@@ -702,9 +702,13 @@ def manual_entry():
             flash('Employee not found', 'error')
             return redirect(url_for('admin.manual_entry'))
         
-        # Create timestamp
+        # Create timestamp in IST (user enters time in IST, not UTC)
+        import pytz
+        ist = pytz.timezone('Asia/Kolkata')
         timestamp_str = f"{date} {time}:00"
-        timestamp = datetime.strptime(timestamp_str, "%Y-%m-%d %H:%M:%S")
+        naive_timestamp = datetime.strptime(timestamp_str, "%Y-%m-%d %H:%M:%S")
+        # Localize to IST (tell Python this is IST time, not UTC)
+        timestamp = ist.localize(naive_timestamp)
         
         # Create manual attendance record
         attendance = Attendance(
