@@ -53,6 +53,41 @@ def login():
     
     return render_template('admin/login.html', tenant=tenant)
 
+@admin_bp.route('/forgot-password', methods=['GET', 'POST'])
+@require_tenant
+def forgot_password():
+    """Reset password"""
+    tenant = get_current_tenant()
+    
+    if request.method == 'POST':
+        email = request.form.get('email')
+        new_password = request.form.get('new_password')
+        confirm_password = request.form.get('confirm_password')
+        
+        # Verify email matches tenant admin
+        if tenant.admin_email != email:
+            flash('Email does not match our records for this account', 'error')
+            return render_template('admin/forgot_password.html')
+        
+        # Validate passwords match
+        if new_password != confirm_password:
+            flash('Passwords do not match!', 'error')
+            return render_template('admin/forgot_password.html')
+        
+        # Validate password length
+        if len(new_password) < 6:
+            flash('Password must be at least 6 characters!', 'error')
+            return render_template('admin/forgot_password.html')
+        
+        # Update password
+        tenant.admin_password_hash = hashlib.sha256(new_password.encode()).hexdigest()
+        db.session.commit()
+        
+        flash('✅ Password reset successful! You can now login with your new password.', 'success')
+        return redirect(url_for('admin.login'))
+    
+    return render_template('admin/forgot_password.html')
+
 @admin_bp.route('/logout')
 def logout():
     """Logout"""
@@ -350,6 +385,71 @@ def update_stock():
     db.session.commit()
     
     flash('Stock updated successfully!', 'success')
+    return redirect(url_for('admin.inventory'))
+
+@admin_bp.route('/stock/transfer', methods=['POST'])
+@require_tenant
+@login_required
+def transfer_stock():
+    """Transfer stock between sites (doesn't affect Total In/Out)"""
+    tenant_id = get_current_tenant_id()
+    material_id = request.form.get('material_id')
+    from_site_id = request.form.get('from_site_id')
+    to_site_id = request.form.get('to_site_id')
+    quantity = float(request.form.get('quantity'))
+    reason = request.form.get('reason', 'Stock transfer')
+    
+    # Validate different sites
+    if from_site_id == to_site_id:
+        flash('Cannot transfer to the same site!', 'error')
+        return redirect(url_for('admin.inventory'))
+    
+    # Get source stock
+    from_stock = Stock.query.filter_by(tenant_id=tenant_id, material_id=material_id, site_id=from_site_id).first()
+    if not from_stock or from_stock.quantity < quantity:
+        flash(f'Insufficient stock at source site! Available: {from_stock.quantity if from_stock else 0}', 'error')
+        return redirect(url_for('admin.inventory'))
+    
+    # Get or create destination stock
+    to_stock = Stock.query.filter_by(tenant_id=tenant_id, material_id=material_id, site_id=to_site_id).first()
+    if not to_stock:
+        to_stock = Stock(tenant_id=tenant_id, material_id=material_id, site_id=to_site_id, quantity=0)
+        db.session.add(to_stock)
+    
+    # Update quantities
+    from_stock.quantity -= quantity
+    to_stock.quantity += quantity
+    from_stock.last_updated = datetime.utcnow()
+    to_stock.last_updated = datetime.utcnow()
+    
+    # Record transfer movements (marked with 'transfer_out' and 'transfer_in' types)
+    # These won't be counted in Total In/Out
+    from_movement = StockMovement(
+        tenant_id=tenant_id,
+        material_id=material_id,
+        site_id=from_site_id,
+        type='transfer_out',
+        quantity=quantity,
+        reason=f"Transfer to {Site.query.get(to_site_id).name}: {reason}"
+    )
+    
+    to_movement = StockMovement(
+        tenant_id=tenant_id,
+        material_id=material_id,
+        site_id=to_site_id,
+        type='transfer_in',
+        quantity=quantity,
+        reason=f"Transfer from {Site.query.get(from_site_id).name}: {reason}"
+    )
+    
+    db.session.add(from_movement)
+    db.session.add(to_movement)
+    db.session.commit()
+    
+    material = Material.query.get(material_id)
+    from_site = Site.query.get(from_site_id)
+    to_site = Site.query.get(to_site_id)
+    flash(f'✅ Transferred {quantity} {material.unit} of {material.name} from {from_site.name} to {to_site.name}!', 'success')
     return redirect(url_for('admin.inventory'))
 
 # Attendance Management
