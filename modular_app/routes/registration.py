@@ -115,17 +115,26 @@ def index():
             
             # Redirect to their subdomain (use current host's base domain)
             # For local testing: subdomain.lvh.me:5001
+            # For Vercel: subdomain.bizbooks-dun.vercel.app
             # For production: subdomain.bizbooks.co.in
-            current_host = request.host  # e.g., "lvh.me:5001" or "bizbooks.co.in"
+            current_host = request.host  # e.g., "bizbooks-dun.vercel.app" or "bizbooks.co.in"
             scheme = request.scheme  # http or https
             
-            # If accessing via localhost, use lvh.me for subdomain
+            # Determine base domain
             if 'localhost' in current_host or '127.0.0.1' in current_host:
+                # Local development
                 base_domain = 'lvh.me:5001'
+            elif 'vercel.app' in current_host:
+                # Vercel deployment: keep full host as base
+                # bizbooks-dun.vercel.app -> subdomain.bizbooks-dun.vercel.app
+                base_domain = current_host
             else:
+                # Production domain (bizbooks.co.in)
                 base_domain = current_host.split('.', 1)[1] if '.' in current_host else current_host
             
-            return redirect(f"{scheme}://{subdomain}.{base_domain}/admin/login")
+            redirect_url = f"{scheme}://{subdomain}.{base_domain}/admin/login"
+            
+            return redirect(redirect_url)
             
         except Exception as e:
             db.session.rollback()
