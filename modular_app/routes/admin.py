@@ -468,107 +468,116 @@ def attendance():
     all_records = Attendance.query.filter_by(tenant_id=tenant_id).order_by(Attendance.timestamp.desc()).all()
     
     # Group by employee and date
-    grouped = defaultdict(lambda: defaultdict(list))
+    # Group by employee name only (not by date) for better cross-date pairing
+    grouped_by_employee = defaultdict(list)
     for record in all_records:
-        # Convert timestamp to IST for grouping
-        if record.timestamp.tzinfo is None:
-            # Naive datetime - assume UTC
-            utc_time = pytz.UTC.localize(record.timestamp)
-        else:
-            utc_time = record.timestamp
-        
-        ist_time = utc_time.astimezone(ist)
-        date = ist_time.strftime("%Y-%m-%d")
-        grouped[record.employee_name][date].append(record)
+        grouped_by_employee[record.employee_name].append(record)
     
-    # Create pairs (check-in + check-out)
+    # Create pairs (check-in + check-out) - handles cross-midnight shifts
     attendance_pairs = []
     
-    for employee_name in grouped:
-        for date in sorted(grouped[employee_name].keys(), reverse=True):
-            day_records = sorted(grouped[employee_name][date], key=lambda x: x.timestamp)
+    for employee_name in sorted(grouped_by_employee.keys()):
+        employee_records = sorted(grouped_by_employee[employee_name], key=lambda x: x.timestamp, reverse=True)
+        
+        processed = set()
+        
+        for record in employee_records:
+            if record.id in processed:
+                continue
             
-            i = 0
-            while i < len(day_records):
-                record = day_records[i]
+            if record.type == "check_in":
+                # Look for the next check-out after this check-in (even if on different date)
+                check_out = None
+                for potential_checkout in employee_records:
+                    if (potential_checkout.type == "check_out" and 
+                        potential_checkout.timestamp > record.timestamp and
+                        potential_checkout.id not in processed):
+                        check_out = potential_checkout
+                        break
                 
-                if record.type == "check_in":
-                    # Look for matching check-out
-                    check_out = None
-                    for j in range(i + 1, len(day_records)):
-                        if day_records[j].type == "check_out":
-                            check_out = day_records[j]
-                            break
-                    
-                    # Calculate duration
-                    duration = None
-                    if check_out:
-                        diff = check_out.timestamp - record.timestamp
-                        hours = diff.seconds // 3600
-                        minutes = (diff.seconds % 3600) // 60
-                        duration = f"{hours}h {minutes}m"
-                    
-                    # Convert timestamps to IST for display
-                    def to_ist_string(timestamp):
-                        if timestamp.tzinfo is None:
-                            utc_time = pytz.UTC.localize(timestamp)
-                        else:
-                            utc_time = timestamp
-                        return utc_time.astimezone(ist).strftime("%I:%M %p")
-                    
-                    attendance_pairs.append({
-                        'date': date,
-                        'employee_name': employee_name,
-                        'check_in_time': to_ist_string(record.timestamp),
-                        'check_in_distance': f"{record.distance:.0f}m",
-                        'check_in_photo': record.photo,
-                        'check_in_id': record.id,
-                        'check_in_comment': record.comment,
-                        'check_in_manual': record.manual_entry,
-                        'check_out_time': to_ist_string(check_out.timestamp) if check_out else None,
-                        'check_out_distance': f"{check_out.distance:.0f}m" if check_out else None,
-                        'check_out_photo': check_out.photo if check_out else None,
-                        'check_out_id': check_out.id if check_out else None,
-                        'check_out_comment': check_out.comment if check_out else None,
-                        'check_out_manual': check_out.manual_entry if check_out else False,
-                        'duration': duration
-                    })
-                    
-                    if check_out:
-                        i += 2
+                # Calculate duration
+                duration = None
+                if check_out:
+                    diff = check_out.timestamp - record.timestamp
+                    hours = diff.seconds // 3600
+                    minutes = (diff.seconds % 3600) // 60
+                    duration = f"{hours}h {minutes}m"
+                    processed.add(check_out.id)
+                
+                # Mark check-in as processed
+                processed.add(record.id)
+                
+                # Convert timestamps to IST for display
+                def to_ist_string(timestamp):
+                    if timestamp.tzinfo is None:
+                        utc_time = pytz.UTC.localize(timestamp)
                     else:
-                        i += 1
+                        utc_time = timestamp
+                    return utc_time.astimezone(ist).strftime("%I:%M %p")
                 
-                elif record.type == "check_out":
-                    # Orphaned check-out
-                    # Convert timestamp to IST
-                    def to_ist_string(timestamp):
-                        if timestamp.tzinfo is None:
-                            utc_time = pytz.UTC.localize(timestamp)
-                        else:
-                            utc_time = timestamp
-                        return utc_time.astimezone(ist).strftime("%I:%M %p")
-                    
-                    attendance_pairs.append({
-                        'date': date,
-                        'employee_name': employee_name,
-                        'check_in_time': "—",
-                        'check_in_distance': "—",
-                        'check_in_photo': None,
-                        'check_in_id': None,
-                        'check_in_comment': None,
-                        'check_in_manual': False,
-                        'check_out_time': to_ist_string(record.timestamp),
-                        'check_out_distance': f"{record.distance:.0f}m",
-                        'check_out_photo': record.photo,
-                        'check_out_id': record.id,
-                        'check_out_comment': record.comment,
-                        'check_out_manual': record.manual_entry,
-                        'duration': None
-                    })
-                    i += 1
+                # Get date from check-in for display
+                if record.timestamp.tzinfo is None:
+                    utc_time = pytz.UTC.localize(record.timestamp)
                 else:
-                    i += 1
+                    utc_time = record.timestamp
+                ist_time = utc_time.astimezone(ist)
+                display_date = ist_time.strftime("%Y-%m-%d")
+                
+                attendance_pairs.append({
+                    'date': display_date,
+                    'employee_name': employee_name,
+                    'check_in_time': to_ist_string(record.timestamp),
+                    'check_in_distance': f"{record.distance:.0f}m",
+                    'check_in_photo': record.photo,
+                    'check_in_id': record.id,
+                    'check_in_comment': record.comment,
+                    'check_in_manual': record.manual_entry,
+                    'check_out_time': to_ist_string(check_out.timestamp) if check_out else None,
+                    'check_out_distance': f"{check_out.distance:.0f}m" if check_out else None,
+                    'check_out_photo': check_out.photo if check_out else None,
+                    'check_out_id': check_out.id if check_out else None,
+                    'check_out_comment': check_out.comment if check_out else None,
+                    'check_out_manual': check_out.manual_entry if check_out else False,
+                    'duration': duration
+                })
+            
+            elif record.type == "check_out":
+                # Orphaned check-out (no matching check-in found)
+                processed.add(record.id)
+                
+                # Convert timestamp to IST
+                def to_ist_string(timestamp):
+                    if timestamp.tzinfo is None:
+                        utc_time = pytz.UTC.localize(timestamp)
+                    else:
+                        utc_time = timestamp
+                    return utc_time.astimezone(ist).strftime("%I:%M %p")
+                
+                # Get date from check-out for display
+                if record.timestamp.tzinfo is None:
+                    utc_time = pytz.UTC.localize(record.timestamp)
+                else:
+                    utc_time = record.timestamp
+                ist_time = utc_time.astimezone(ist)
+                display_date = ist_time.strftime("%Y-%m-%d")
+                
+                attendance_pairs.append({
+                    'date': display_date,
+                    'employee_name': employee_name,
+                    'check_in_time': "—",
+                    'check_in_distance': "—",
+                    'check_in_photo': None,
+                    'check_in_id': None,
+                    'check_in_comment': None,
+                    'check_in_manual': False,
+                    'check_out_time': to_ist_string(record.timestamp),
+                    'check_out_distance': f"{record.distance:.0f}m",
+                    'check_out_photo': record.photo,
+                    'check_out_id': record.id,
+                    'check_out_comment': record.comment,
+                    'check_out_manual': record.manual_entry,
+                    'duration': None
+                })
     
     return render_template('admin/attendance.html', attendance_pairs=attendance_pairs)
 
@@ -639,6 +648,39 @@ def manual_entry():
     tenant_id = get_current_tenant_id()
     employees = Employee.query.filter_by(tenant_id=tenant_id, active=True).all()
     
+    # Get unclosed check-ins for each employee (to show context)
+    unclosed_checkins = {}
+    for employee in employees:
+        last_checkin = Attendance.query.filter(
+            Attendance.tenant_id == tenant_id,
+            Attendance.employee_id == employee.id,
+            Attendance.type == 'check_in'
+        ).order_by(Attendance.timestamp.desc()).first()
+        
+        if last_checkin:
+            # Check if there's a checkout after this check-in
+            checkout_after = Attendance.query.filter(
+                Attendance.tenant_id == tenant_id,
+                Attendance.employee_id == employee.id,
+                Attendance.type == 'check_out',
+                Attendance.timestamp > last_checkin.timestamp
+            ).first()
+            
+            if not checkout_after:
+                # This check-in is unclosed
+                import pytz
+                ist = pytz.timezone('Asia/Kolkata')
+                if last_checkin.timestamp.tzinfo is None:
+                    utc_time = pytz.UTC.localize(last_checkin.timestamp)
+                else:
+                    utc_time = last_checkin.timestamp
+                ist_time = utc_time.astimezone(ist)
+                unclosed_checkins[employee.id] = {
+                    'time': ist_time.strftime('%I:%M %p'),
+                    'date': ist_time.strftime('%b %d, %Y'),
+                    'full_datetime': ist_time
+                }
+    
     if request.method == 'POST':
         employee_id = request.form.get('employee_id')
         action = request.form.get('action')  # 'check_in' or 'check_out'
@@ -682,7 +724,7 @@ def manual_entry():
         flash(f'Manual {action_text} added for {employee.name}', 'success')
         return redirect(url_for('admin.attendance'))
     
-    return render_template('admin/manual_entry.html', employees=employees)
+    return render_template('admin/manual_entry.html', employees=employees, unclosed_checkins=unclosed_checkins)
 
 # QR Code Generation
 @admin_bp.route('/generate_qr')

@@ -46,13 +46,30 @@
   
   <div class="container">
     <h3 style="text-align: center; margin-bottom: 20px;">Add Manual Attendance Entry</h3>
+    
+    {% if unclosed_checkins %}
+    <div class="info-box">
+      <strong>⚠️ Unclosed Check-ins:</strong>
+      <ul>
+        {% for employee in employees %}
+          {% if unclosed_checkins.get(employee.id) %}
+          <li><strong>{{ employee.name }}</strong>: Checked in at {{ unclosed_checkins[employee.id]['time'] }} on {{ unclosed_checkins[employee.id]['date'] }} (No check-out yet)</li>
+          {% endif %}
+        {% endfor %}
+      </ul>
+      <small style="color: #666;">💡 When creating a manual check-out for these employees, it will automatically pair with their unclosed check-in.</small>
+    </div>
+    {% endif %}
+    
     <form method="POST">
       <div class="form-group">
         <label>Select Employee *</label>
-        <select name="employee_id" required>
+        <select name="employee_id" required id="employee_select">
           <option value="">-- Select Employee --</option>
           {% for employee in employees %}
-          <option value="{{ employee.id }}">{{ employee.name }} (PIN: {{ employee.pin }})</option>
+          <option value="{{ employee.id }}" data-unclosed="{% if unclosed_checkins.get(employee.id) %}yes{% else %}no{% endif %}">
+            {{ employee.name }} (PIN: {{ employee.pin }}){% if unclosed_checkins.get(employee.id) %} ⚠️{% endif %}
+          </option>
           {% endfor %}
         </select>
       </div>
