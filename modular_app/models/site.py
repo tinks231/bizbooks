@@ -6,8 +6,12 @@ from .database import db, TimestampMixin
 class Site(db.Model, TimestampMixin):
     """Site/Shop/Location model"""
     __tablename__ = 'sites'
+    __table_args__ = (
+        db.Index('idx_tenant_site', 'tenant_id', 'active'),
+    )
     
     id = db.Column(db.Integer, primary_key=True)
+    tenant_id = db.Column(db.Integer, db.ForeignKey('tenants.id'), nullable=False, index=True)
     name = db.Column(db.String(100), nullable=False)
     address = db.Column(db.String(255))
     latitude = db.Column(db.Float, default=0.0)
@@ -21,5 +25,5 @@ class Site(db.Model, TimestampMixin):
     stocks = db.relationship('Stock', backref='site', lazy=True)
     
     def __repr__(self):
-        return f'<Site {self.name}>'
+        return f'<Site {self.name} (Tenant: {self.tenant_id})>'
 

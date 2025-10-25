@@ -7,8 +7,13 @@ from datetime import datetime
 class Attendance(db.Model, TimestampMixin):
     """Attendance record model"""
     __tablename__ = 'attendance'
+    __table_args__ = (
+        db.Index('idx_tenant_attendance', 'tenant_id', 'timestamp'),
+        db.Index('idx_tenant_employee_date', 'tenant_id', 'employee_id', 'timestamp'),
+    )
     
     id = db.Column(db.Integer, primary_key=True)
+    tenant_id = db.Column(db.Integer, db.ForeignKey('tenants.id'), nullable=False, index=True)
     employee_id = db.Column(db.Integer, db.ForeignKey('employees.id'), nullable=False)
     site_id = db.Column(db.Integer, db.ForeignKey('sites.id'), nullable=False)
     employee_name = db.Column(db.String(100))  # Denormalized for quick access
@@ -26,5 +31,5 @@ class Attendance(db.Model, TimestampMixin):
     comment = db.Column(db.String(500))
     
     def __repr__(self):
-        return f'<Attendance {self.employee_name} - {self.type} at {self.timestamp}>'
+        return f'<Attendance {self.employee_name} - {self.type} at {self.timestamp} (Tenant: {self.tenant_id})>'
 

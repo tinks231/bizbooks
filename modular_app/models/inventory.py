@@ -7,8 +7,12 @@ from datetime import datetime
 class Material(db.Model, TimestampMixin):
     """Material/Product model"""
     __tablename__ = 'materials'
+    __table_args__ = (
+        db.Index('idx_tenant_material', 'tenant_id', 'active'),
+    )
     
     id = db.Column(db.Integer, primary_key=True)
+    tenant_id = db.Column(db.Integer, db.ForeignKey('tenants.id'), nullable=False, index=True)
     name = db.Column(db.String(100), nullable=False)
     category = db.Column(db.String(50))  # e.g., "Construction", "Hardware"
     unit = db.Column(db.String(20), default='nos')  # nos, kg, liters, bags, etc.
@@ -21,36 +25,42 @@ class Material(db.Model, TimestampMixin):
     movements = db.relationship('StockMovement', backref='material', lazy=True)
     
     def __repr__(self):
-        return f'<Material {self.name}>'
+        return f'<Material {self.name} (Tenant: {self.tenant_id})>'
 
 
 class Stock(db.Model, TimestampMixin):
     """Stock level per site"""
     __tablename__ = 'stocks'
+    __table_args__ = (
+        db.UniqueConstraint('tenant_id', 'material_id', 'site_id', name='_tenant_material_site_uc'),
+        db.Index('idx_tenant_stock', 'tenant_id', 'site_id'),
+    )
     
     id = db.Column(db.Integer, primary_key=True)
+    tenant_id = db.Column(db.Integer, db.ForeignKey('tenants.id'), nullable=False, index=True)
     material_id = db.Column(db.Integer, db.ForeignKey('materials.id'), nullable=False)
     site_id = db.Column(db.Integer, db.ForeignKey('sites.id'), nullable=False)
     quantity = db.Column(db.Float, default=0.0)
     min_stock_alert = db.Column(db.Float, default=10.0)  # Alert if below this
     last_updated = db.Column(db.DateTime, default=datetime.utcnow)
     
-    # Unique constraint: one stock record per material per site
-    __table_args__ = (db.UniqueConstraint('material_id', 'site_id', name='_material_site_uc'),)
-    
     def is_low_stock(self):
         """Check if stock is below minimum"""
         return self.quantity < self.min_stock_alert
     
     def __repr__(self):
-        return f'<Stock {self.material.name if self.material else "Unknown"} at {self.site.name if self.site else "Unknown"}: {self.quantity}>'
+        return f'<Stock {self.material.name if self.material else "Unknown"} at {self.site.name if self.site else "Unknown"}: {self.quantity} (Tenant: {self.tenant_id})>'
 
 
 class StockMovement(db.Model, TimestampMixin):
     """Stock in/out movement history"""
     __tablename__ = 'stock_movements'
+    __table_args__ = (
+        db.Index('idx_tenant_movement', 'tenant_id', 'timestamp'),
+    )
     
     id = db.Column(db.Integer, primary_key=True)
+    tenant_id = db.Column(db.Integer, db.ForeignKey('tenants.id'), nullable=False, index=True)
     material_id = db.Column(db.Integer, db.ForeignKey('materials.id'), nullable=False)
     site_id = db.Column(db.Integer, db.ForeignKey('sites.id'), nullable=False)
     type = db.Column(db.String(20), nullable=False)  # 'in', 'out', 'transfer_out', 'transfer_in'
@@ -62,14 +72,18 @@ class StockMovement(db.Model, TimestampMixin):
     transfer_id = db.Column(db.Integer, db.ForeignKey('transfers.id'))  # If part of transfer
     
     def __repr__(self):
-        return f'<StockMovement {self.type} {self.quantity} of {self.material.name if self.material else "Unknown"}>'
+        return f'<StockMovement {self.type} {self.quantity} of {self.material.name if self.material else "Unknown"} (Tenant: {self.tenant_id})>'
 
 
 class Transfer(db.Model, TimestampMixin):
     """Transfer between sites"""
     __tablename__ = 'transfers'
+    __table_args__ = (
+        db.Index('idx_tenant_transfer', 'tenant_id', 'status'),
+    )
     
     id = db.Column(db.Integer, primary_key=True)
+    tenant_id = db.Column(db.Integer, db.ForeignKey('tenants.id'), nullable=False, index=True)
     material_id = db.Column(db.Integer, db.ForeignKey('materials.id'), nullable=False)
     from_site_id = db.Column(db.Integer, db.ForeignKey('sites.id'), nullable=False)
     to_site_id = db.Column(db.Integer, db.ForeignKey('sites.id'), nullable=False)
@@ -87,5 +101,5 @@ class Transfer(db.Model, TimestampMixin):
     movements = db.relationship('StockMovement', backref='transfer', lazy=True)
     
     def __repr__(self):
-        return f'<Transfer {self.material.name if self.material else "Unknown"}: {self.from_site.name if self.from_site else "Unknown"} → {self.to_site.name if self.to_site else "Unknown"}>'
+        return f'<Transfer {self.material.name if self.material else "Unknown"}: {self.from_site.name if self.from_site else "Unknown"} → {self.to_site.name if self.to_site else "Unknown"} (Tenant: {self.tenant_id})>'
 

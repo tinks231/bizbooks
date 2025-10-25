@@ -47,12 +47,24 @@ os.makedirs('instance', exist_ok=True)
 init_db(app)
 
 # ============================================================
+# Multi-tenant middleware
+# ============================================================
+from utils.tenant_middleware import load_tenant
+
+@app.before_request
+def before_request():
+    """Load tenant on every request based on subdomain"""
+    load_tenant()
+
+# ============================================================
 # Import and register blueprints
 # ============================================================
+from routes.registration import registration_bp
 from routes.attendance import attendance_bp
 from routes.inventory import inventory_bp
 from routes.admin import admin_bp
 
+app.register_blueprint(registration_bp)
 app.register_blueprint(attendance_bp)
 app.register_blueprint(inventory_bp)
 app.register_blueprint(admin_bp)
