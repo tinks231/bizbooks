@@ -8,8 +8,9 @@ def get_subdomain_from_host(host):
     """Extract subdomain from host header"""
     # Examples:
     # vijayservice.bizbooks.co.in -> vijayservice
+    # client1.bizbooks-dun.vercel.app -> client1
+    # bizbooks-dun.vercel.app -> None (Vercel base URL)
     # localhost:5001 -> None (local development)
-    # bizbooks.onrender.com -> None (main domain)
     
     # Remove port if present
     host = host.split(':')[0]
@@ -17,18 +18,26 @@ def get_subdomain_from_host(host):
     # Split by dots
     parts = host.split('.')
     
-    # Local development (localhost)
+    # Local development (localhost, IPs)
     if host == 'localhost' or host.startswith('127.0.0.1') or host.startswith('192.168'):
         return None
     
-    # Main domain (no subdomain)
-    # bizbooks.co.in or bizbooks.onrender.com
+    # Vercel URLs: *.vercel.app
+    if len(parts) >= 3 and parts[-2] == 'vercel' and parts[-1] == 'app':
+        # bizbooks-dun.vercel.app -> No subdomain (base)
+        # client1.bizbooks-dun.vercel.app -> subdomain = "client1"
+        if len(parts) == 3:
+            return None  # Base Vercel URL (e.g., bizbooks-dun.vercel.app)
+        else:
+            return parts[0]  # Has subdomain (e.g., client1.bizbooks-dun.vercel.app)
+    
+    # Regular domains (bizbooks.co.in)
+    # Main domain (no subdomain) - 2 parts
     if len(parts) <= 2:
         return None
     
-    # Has subdomain
+    # Has subdomain (3+ parts)
     # vijayservice.bizbooks.co.in -> vijayservice
-    # client1.bizbooks.onrender.com -> client1
     return parts[0]
 
 
