@@ -16,7 +16,7 @@ class Employee(db.Model, TimestampMixin):
     name = db.Column(db.String(100), nullable=False)
     pin = db.Column(db.String(10), nullable=False)  # Unique per tenant
     phone = db.Column(db.String(20))
-    document_path = db.Column(db.String(200))  # Aadhar, etc.
+    document_path = db.Column(db.Text)  # Changed to Text to store URLs
     site_id = db.Column(db.Integer, db.ForeignKey('sites.id'))
     active = db.Column(db.Boolean, default=True)
     

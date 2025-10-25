@@ -86,26 +86,26 @@
             {% endif %}
           </td>
           <td>
-            {% if pair.check_in_photo and pair.check_in_photo != 'manual_entry.jpg' %}
-              {% if pair.check_in_photo.startswith('data:') %}
-                <img src='{{ pair.check_in_photo }}' class='photo' title='Check In'>
-              {% else %}
-                <img src='/selfie/{{ pair.check_in_photo }}' class='photo' title='Check In'>
-              {% endif %}
-            {% else %}
-              —
-            {% endif %}
+                                {% if pair.check_in_photo and pair.check_in_photo != 'manual_entry.jpg' %}
+                                    {% if pair.check_in_photo.startswith('http') %}
+                                        <img src='{{ pair.check_in_photo }}' class='photo' title='Check In'>
+                                    {% else %}
+                                        <img src='/selfie/{{ pair.check_in_photo }}' class='photo' title='Check In'>
+                                    {% endif %}
+                                {% else %}
+                                    —
+                                {% endif %}
           </td>
           <td>
-            {% if pair.check_out_photo and pair.check_out_photo != 'manual_entry.jpg' %}
-              {% if pair.check_out_photo.startswith('data:') %}
-                <img src='{{ pair.check_out_photo }}' class='photo' title='Check Out'>
-              {% else %}
-                <img src='/selfie/{{ pair.check_out_photo }}' class='photo' title='Check Out'>
-              {% endif %}
-            {% else %}
-              —
-            {% endif %}
+                                {% if pair.check_out_photo and pair.check_out_photo != 'manual_entry.jpg' %}
+                                    {% if pair.check_out_photo.startswith('http') %}
+                                        <img src='{{ pair.check_out_photo }}' class='photo' title='Check Out'>
+                                    {% else %}
+                                        <img src='/selfie/{{ pair.check_out_photo }}' class='photo' title='Check Out'>
+                                    {% endif %}
+                                {% else %}
+                                    —
+                                {% endif %}
           </td>
           <td style="max-width: 200px; font-size: 0.85em; color: #666;">
             {% if pair.check_in_comment or pair.check_out_comment %}

@@ -14,16 +14,16 @@ def allowed_file(filename, allowed_extensions={'png', 'jpg', 'jpeg', 'pdf'}):
 def save_uploaded_file(file, upload_folder):
     """
     Save uploaded file with secure filename
-    On Vercel (serverless): Stores as base64 data URL in database
+    On Vercel (serverless): Uploads to Vercel Blob Storage
     On local: Saves to filesystem
-    Returns: filename or base64 data URL if successful, None otherwise
+    Returns: filename/URL if successful, None otherwise
     """
     if file and allowed_file(file.filename):
         # Check if running on Vercel (read-only filesystem)
         if os.environ.get('VERCEL'):
-            # Store as base64 data URL
-            import base64
-            file_bytes = file.read()
+            # Upload to Vercel Blob Storage
+            from utils.vercel_blob import upload_to_vercel_blob, generate_blob_filename
+            
             file_ext = file.filename.rsplit('.', 1)[1].lower()
             
             # Determine MIME type
@@ -35,8 +35,17 @@ def save_uploaded_file(file, upload_folder):
             }
             mime_type = mime_types.get(file_ext, 'application/octet-stream')
             
-            # Return base64 data URL
-            return f"data:{mime_type};base64,{base64.b64encode(file_bytes).decode('utf-8')}"
+            # Generate blob filename
+            blob_filename = generate_blob_filename('documents', None, file_ext)
+            
+            # Upload to Vercel Blob
+            blob_url = upload_to_vercel_blob(file, blob_filename, mime_type)
+            
+            if blob_url:
+                return blob_url
+            else:
+                print("⚠️  Document upload to Vercel Blob failed")
+                return None
         else:
             # Local: Save to filesystem
             filename = secure_filename(file.filename)

@@ -26,7 +26,7 @@ class Attendance(db.Model, TimestampMixin):
     distance = db.Column(db.Float, default=0.0)  # Distance from office (meters)
     
     # Photo and manual entry
-    photo = db.Column(db.String(200))
+    photo = db.Column(db.Text)  # Changed to Text to store URLs (can be long with query params)
     manual_entry = db.Column(db.Boolean, default=False)
     comment = db.Column(db.String(500))
     

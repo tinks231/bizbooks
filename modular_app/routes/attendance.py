@@ -81,23 +81,31 @@ def submit():
             # if distance > site.allowed_radius:
             #     return error message
 
-    # Save photo (handle Vercel's read-only filesystem)
-    photo_data = None
-    if os.environ.get('VERCEL'):
-        # On Vercel: Store photo as base64 in database
-        import base64
-        photo_bytes = photo.read()
-        photo_data = f"data:image/jpeg;base64,{base64.b64encode(photo_bytes).decode('utf-8')}"
-    else:
-        # Local: Save to filesystem
-        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        filename = secure_filename(f"{employee.name}_{timestamp}.jpg")
-        photo_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'uploads', 'selfies', filename)
-        
-        # Ensure directory exists
-        os.makedirs(os.path.dirname(photo_path), exist_ok=True)
-        photo.save(photo_path)
-        photo_data = filename
+        # Save photo (Vercel Blob Storage or local filesystem)
+        photo_data = None
+        if os.environ.get('VERCEL'):
+            # On Vercel: Upload to Vercel Blob Storage
+            from utils.vercel_blob import upload_to_vercel_blob, generate_blob_filename
+            
+            blob_filename = generate_blob_filename('attendance', employee.name, 'jpg')
+            photo_url = upload_to_vercel_blob(photo, blob_filename, 'image/jpeg')
+            
+            if photo_url:
+                photo_data = photo_url
+            else:
+                # Fallback: If Blob upload fails, skip photo
+                print("⚠️  Photo upload failed, continuing without photo")
+                photo_data = None
+        else:
+            # Local: Save to filesystem
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            filename = secure_filename(f"{employee.name}_{timestamp}.jpg")
+            photo_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'uploads', 'selfies', filename)
+            
+            # Ensure directory exists
+            os.makedirs(os.path.dirname(photo_path), exist_ok=True)
+            photo.save(photo_path)
+            photo_data = filename
 
     # Save attendance record
     record = Attendance(
