@@ -103,7 +103,7 @@ def index():
                 address="",
                 latitude=0.0,
                 longitude=0.0,
-                radius=100,
+                allowed_radius=100,
                 active=True
             )
             db.session.add(default_site)
