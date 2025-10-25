@@ -31,13 +31,23 @@ def get_subdomain_from_host(host):
         else:
             return parts[0]  # Has subdomain (e.g., client1.bizbooks-dun.vercel.app)
     
-    # Regular domains (bizbooks.co.in)
+    # Regular domains
+    # Handle second-level TLDs like .co.in, .co.uk, .com.au
+    if len(parts) >= 3 and parts[-2] in ['co', 'com', 'net', 'org', 'gov', 'edu', 'ac']:
+        # For .co.in: bizbooks.co.in (3 parts) → No subdomain
+        #            client1.bizbooks.co.in (4 parts) → subdomain = client1
+        if len(parts) == 3:
+            return None  # Base domain (e.g., bizbooks.co.in)
+        else:
+            return parts[0]  # Has subdomain (e.g., client1.bizbooks.co.in)
+    
+    # Regular TLDs like .com, .org
     # Main domain (no subdomain) - 2 parts
     if len(parts) <= 2:
         return None
     
     # Has subdomain (3+ parts)
-    # vijayservice.bizbooks.co.in -> vijayservice
+    # vijayservice.example.com → vijayservice
     return parts[0]
 
 
