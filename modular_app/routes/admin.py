@@ -136,22 +136,26 @@ def add_employee():
     return redirect(url_for('admin.employees'))
 
 @admin_bp.route('/employee/delete/<int:emp_id>')
+@require_tenant
 @login_required
 def delete_employee(emp_id):
     """Delete employee"""
-    employee = Employee.query.get_or_404(emp_id)
+    tenant_id = get_current_tenant_id()
+    employee = Employee.query.filter_by(tenant_id=tenant_id, id=emp_id).first_or_404()
     employee.active = False
     db.session.commit()
     flash('Employee deactivated', 'success')
     return redirect(url_for('admin.employees'))
 
 @admin_bp.route('/employee/document/<int:emp_id>')
+@require_tenant
 @login_required
 def view_employee_document(emp_id):
     """View employee document"""
     from flask import send_from_directory
     import os
-    employee = Employee.query.get_or_404(emp_id)
+    tenant_id = get_current_tenant_id()
+    employee = Employee.query.filter_by(tenant_id=tenant_id, id=emp_id).first_or_404()
     if employee.document_path:
         return send_from_directory('uploads/documents', employee.document_path)
     else:
@@ -160,22 +164,26 @@ def view_employee_document(emp_id):
 
 # Sites Management
 @admin_bp.route('/sites')
+@require_tenant
 @login_required
 def sites():
     """Manage sites"""
-    sites = Site.query.all()
+    tenant_id = get_current_tenant_id()
+    sites = Site.query.filter_by(tenant_id=tenant_id).all()
     return render_template('admin/sites.html', sites=sites)
 
 @admin_bp.route('/site/add', methods=['POST'])
+@require_tenant
 @login_required
 def add_site():
     """Add new site"""
+    tenant_id = get_current_tenant_id()
     name = request.form.get('name')
     address = request.form.get('address')
     latitude = float(request.form.get('latitude', 0))
     longitude = float(request.form.get('longitude', 0))
     
-    site = Site(name=name, address=address, latitude=latitude, longitude=longitude)
+    site = Site(tenant_id=tenant_id, name=name, address=address, latitude=latitude, longitude=longitude)
     db.session.add(site)
     db.session.commit()
     
@@ -184,17 +192,21 @@ def add_site():
 
 # Inventory Management
 @admin_bp.route('/inventory')
+@require_tenant
 @login_required
 def inventory():
     """Manage inventory"""
-    materials = Material.query.filter_by(active=True).all()
-    sites = Site.query.filter_by(active=True).all()
+    tenant_id = get_current_tenant_id()
+    materials = Material.query.filter_by(tenant_id=tenant_id, active=True).all()
+    sites = Site.query.filter_by(tenant_id=tenant_id, active=True).all()
     return render_template('admin/inventory.html', materials=materials, sites=sites)
 
 @admin_bp.route('/material/add', methods=['POST'])
+@require_tenant
 @login_required
 def add_material():
     """Add new material with initial stock"""
+    tenant_id = get_current_tenant_id()
     name = request.form.get('name')
     category = request.form.get('category')
     unit = request.form.get('unit', 'nos')
@@ -202,27 +214,28 @@ def add_material():
     initial_quantity = float(request.form.get('initial_quantity', 0))
     initial_site_id = request.form.get('site_id')
     
-    material = Material(name=name, category=category, unit=unit, description=description)
+    material = Material(tenant_id=tenant_id, name=name, category=category, unit=unit, description=description)
     db.session.add(material)
     db.session.flush()  # Get material.id
     
-    # Create stock records for all active sites
-    sites = Site.query.filter_by(active=True).all()
+    # Create stock records for all active sites (of this tenant)
+    sites = Site.query.filter_by(tenant_id=tenant_id, active=True).all()
     for site in sites:
         # Set initial quantity for the selected site, 0 for others
         quantity = initial_quantity if str(site.id) == str(initial_site_id) else 0.0
-        stock = Stock(material_id=material.id, site_id=site.id, quantity=quantity)
+        stock = Stock(tenant_id=tenant_id, material_id=material.id, site_id=site.id, quantity=quantity)
         db.session.add(stock)
     
     # Record the initial stock movement if quantity > 0
     if initial_quantity > 0:
         movement = StockMovement(
+            tenant_id=tenant_id,
             material_id=material.id,
             site_id=initial_site_id,
             type='in',
             quantity=initial_quantity,
             reason='Initial stock',
-            user_id=session.get('user_id')
+            user_id=session.get('tenant_admin_id')
         )
         db.session.add(movement)
     
@@ -232,10 +245,12 @@ def add_material():
     return redirect(url_for('admin.inventory'))
 
 @admin_bp.route('/material/edit/<int:material_id>', methods=['GET', 'POST'])
+@require_tenant
 @login_required
 def edit_material(material_id):
     """Edit material details (name, category, unit)"""
-    material = Material.query.get_or_404(material_id)
+    tenant_id = get_current_tenant_id()
+    material = Material.query.filter_by(tenant_id=tenant_id, id=material_id).first_or_404()
     
     if request.method == 'POST':
         material.name = request.form.get('name')
@@ -248,21 +263,23 @@ def edit_material(material_id):
         return redirect(url_for('admin.inventory'))
     
     # GET - show edit form
-    sites = Site.query.filter_by(active=True).all()
+    sites = Site.query.filter_by(tenant_id=tenant_id, active=True).all()
     return render_template('admin/edit_material.html', material=material, sites=sites)
 
 @admin_bp.route('/material/delete/<int:material_id>')
+@require_tenant
 @login_required
 def delete_material(material_id):
     """Delete material and all associated records"""
-    material = Material.query.get_or_404(material_id)
+    tenant_id = get_current_tenant_id()
+    material = Material.query.filter_by(tenant_id=tenant_id, id=material_id).first_or_404()
     material_name = material.name
     
-    # Delete all stock movements
-    StockMovement.query.filter_by(material_id=material_id).delete()
+    # Delete all stock movements (for this tenant's material)
+    StockMovement.query.filter_by(tenant_id=tenant_id, material_id=material_id).delete()
     
-    # Delete all stock records
-    Stock.query.filter_by(material_id=material_id).delete()
+    # Delete all stock records (for this tenant's material)
+    Stock.query.filter_by(tenant_id=tenant_id, material_id=material_id).delete()
     
     # Delete the material
     db.session.delete(material)
@@ -272,19 +289,21 @@ def delete_material(material_id):
     return redirect(url_for('admin.inventory'))
 
 @admin_bp.route('/stock/update', methods=['POST'])
+@require_tenant
 @login_required
 def update_stock():
     """Update stock (in/out)"""
+    tenant_id = get_current_tenant_id()
     material_id = request.form.get('material_id')
     site_id = request.form.get('site_id')
     quantity = float(request.form.get('quantity'))
     action = request.form.get('action')  # 'in' or 'out'
     reason = request.form.get('reason', '')
     
-    # Get or create stock record
-    stock = Stock.query.filter_by(material_id=material_id, site_id=site_id).first()
+    # Get or create stock record (scoped to tenant)
+    stock = Stock.query.filter_by(tenant_id=tenant_id, material_id=material_id, site_id=site_id).first()
     if not stock:
-        stock = Stock(material_id=material_id, site_id=site_id, quantity=0)
+        stock = Stock(tenant_id=tenant_id, material_id=material_id, site_id=site_id, quantity=0)
         db.session.add(stock)
     
     # Update quantity
@@ -299,12 +318,13 @@ def update_stock():
     
     # Record movement
     movement = StockMovement(
+        tenant_id=tenant_id,
         material_id=material_id,
         site_id=site_id,
         type=action,
         quantity=quantity,
         reason=reason,
-        user_id=session.get('user_id')
+        user_id=session.get('tenant_admin_id')
     )
     db.session.add(movement)
     db.session.commit()
@@ -314,13 +334,15 @@ def update_stock():
 
 # Attendance Management
 @admin_bp.route('/attendance')
+@require_tenant
 @login_required
 def attendance():
     """View all attendance records - Grouped by employee & date"""
     from collections import defaultdict
     
-    # Get all attendance records
-    all_records = Attendance.query.order_by(Attendance.timestamp.desc()).all()
+    tenant_id = get_current_tenant_id()
+    # Get all attendance records (for this tenant only)
+    all_records = Attendance.query.filter_by(tenant_id=tenant_id).order_by(Attendance.timestamp.desc()).all()
     
     # Group by employee and date
     grouped = defaultdict(lambda: defaultdict(list))
@@ -404,25 +426,30 @@ def attendance():
     return render_template('admin/attendance.html', attendance_pairs=attendance_pairs)
 
 @admin_bp.route('/record/delete/<int:record_id>')
+@require_tenant
 @login_required
 def delete_record(record_id):
     """Delete individual attendance record"""
-    record = Attendance.query.get_or_404(record_id)
+    tenant_id = get_current_tenant_id()
+    record = Attendance.query.filter_by(tenant_id=tenant_id, id=record_id).first_or_404()
     db.session.delete(record)
     db.session.commit()
     flash('Record deleted successfully', 'success')
     return redirect(url_for('admin.attendance'))
 
 @admin_bp.route('/clear_attendance', methods=['POST'])
+@require_tenant
 @login_required
 def clear_attendance():
-    """Clear all attendance data"""
-    Attendance.query.delete()
+    """Clear all attendance data (for this tenant only)"""
+    tenant_id = get_current_tenant_id()
+    Attendance.query.filter_by(tenant_id=tenant_id).delete()
     db.session.commit()
     flash('All attendance data cleared', 'success')
     return redirect(url_for('admin.dashboard'))
 
 @admin_bp.route('/export')
+@require_tenant
 @login_required
 def export_csv():
     """Export attendance to CSV"""
@@ -430,7 +457,8 @@ def export_csv():
     import io
     from flask import Response
     
-    records = Attendance.query.order_by(Attendance.timestamp).all()
+    tenant_id = get_current_tenant_id()
+    records = Attendance.query.filter_by(tenant_id=tenant_id).order_by(Attendance.timestamp).all()
     
     # Create CSV
     output = io.StringIO()
@@ -457,10 +485,12 @@ def export_csv():
     )
 
 @admin_bp.route('/manual_entry', methods=['GET', 'POST'])
+@require_tenant
 @login_required
 def manual_entry():
     """Manual attendance entry"""
-    employees = Employee.query.filter_by(active=True).all()
+    tenant_id = get_current_tenant_id()
+    employees = Employee.query.filter_by(tenant_id=tenant_id, active=True).all()
     
     if request.method == 'POST':
         employee_id = request.form.get('employee_id')
@@ -484,6 +514,7 @@ def manual_entry():
         
         # Create manual attendance record
         attendance = Attendance(
+            tenant_id=tenant_id,
             employee_id=employee.id,
             site_id=employee.site_id or 1,
             employee_name=employee.name,
@@ -505,4 +536,41 @@ def manual_entry():
         return redirect(url_for('admin.attendance'))
     
     return render_template('admin/manual_entry.html', employees=employees)
+
+# QR Code Generation
+@admin_bp.route('/generate_qr')
+@require_tenant
+@login_required
+def generate_qr():
+    """Generate QR code for tenant's attendance URL"""
+    import qrcode
+    import io
+    import base64
+    
+    tenant = get_current_tenant()
+    attendance_url = f"https://{tenant.subdomain}.bizbooks.co.in/attendance"
+    
+    # Create QR code
+    qr = qrcode.QRCode(
+        version=1,
+        error_correction=qrcode.constants.ERROR_CORRECT_L,
+        box_size=10,
+        border=4,
+    )
+    qr.add_data(attendance_url)
+    qr.make(fit=True)
+    
+    img = qr.make_image(fill_color="black", back_color="white")
+    
+    # Convert to base64 for embedding in HTML
+    buf = io.BytesIO()
+    img.save(buf, format='PNG')
+    buf.seek(0)
+    img_base64 = base64.b64encode(buf.read()).decode('utf-8')
+    
+    return render_template('admin/qr_code.html',
+                         qr_image=img_base64,
+                         url=attendance_url,
+                         company=tenant.company_name,
+                         subdomain=tenant.subdomain)
 

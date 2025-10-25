@@ -86,7 +86,14 @@
 </head>
 <body>
     <div class="login-card">
+        {% if tenant %}
         <h1>👤 Admin Login</h1>
+        <p style="text-align: center; color: #667eea; font-size: 18px; margin-bottom: 20px;">
+            <strong>{{ tenant.company_name }}</strong>
+        </p>
+        {% else %}
+        <h1>👤 Admin Login</h1>
+        {% endif %}
         
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
@@ -98,8 +105,8 @@
         
         <form method="POST">
             <div class="form-group">
-                <label>Username:</label>
-                <input type="text" name="username" required autofocus>
+                <label>Email Address:</label>
+                <input type="email" name="email" placeholder="your@email.com" required autofocus>
             </div>
             <div class="form-group">
                 <label>Password:</label>
