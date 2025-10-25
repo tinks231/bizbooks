@@ -130,7 +130,8 @@ def index():
                 base_domain = current_host
             else:
                 # Production domain (bizbooks.co.in)
-                base_domain = current_host.split('.', 1)[1] if '.' in current_host else current_host
+                # Keep the full domain as-is (don't split it)
+                base_domain = current_host
             
             redirect_url = f"{scheme}://{subdomain}.{base_domain}/admin/login"
             

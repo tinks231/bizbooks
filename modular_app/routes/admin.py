@@ -361,15 +361,26 @@ def update_stock():
 def attendance():
     """View all attendance records - Grouped by employee & date"""
     from collections import defaultdict
+    import pytz
     
     tenant_id = get_current_tenant_id()
+    ist = pytz.timezone('Asia/Kolkata')
+    
     # Get all attendance records (for this tenant only)
     all_records = Attendance.query.filter_by(tenant_id=tenant_id).order_by(Attendance.timestamp.desc()).all()
     
     # Group by employee and date
     grouped = defaultdict(lambda: defaultdict(list))
     for record in all_records:
-        date = record.timestamp.strftime("%Y-%m-%d")
+        # Convert timestamp to IST for grouping
+        if record.timestamp.tzinfo is None:
+            # Naive datetime - assume UTC
+            utc_time = pytz.UTC.localize(record.timestamp)
+        else:
+            utc_time = record.timestamp
+        
+        ist_time = utc_time.astimezone(ist)
+        date = ist_time.strftime("%Y-%m-%d")
         grouped[record.employee_name][date].append(record)
     
     # Create pairs (check-in + check-out)
@@ -399,16 +410,24 @@ def attendance():
                         minutes = (diff.seconds % 3600) // 60
                         duration = f"{hours}h {minutes}m"
                     
+                    # Convert timestamps to IST for display
+                    def to_ist_string(timestamp):
+                        if timestamp.tzinfo is None:
+                            utc_time = pytz.UTC.localize(timestamp)
+                        else:
+                            utc_time = timestamp
+                        return utc_time.astimezone(ist).strftime("%I:%M %p")
+                    
                     attendance_pairs.append({
                         'date': date,
                         'employee_name': employee_name,
-                        'check_in_time': record.timestamp.strftime("%I:%M %p"),
+                        'check_in_time': to_ist_string(record.timestamp),
                         'check_in_distance': f"{record.distance:.0f}m",
                         'check_in_photo': record.photo,
                         'check_in_id': record.id,
                         'check_in_comment': record.comment,
                         'check_in_manual': record.manual_entry,
-                        'check_out_time': check_out.timestamp.strftime("%I:%M %p") if check_out else None,
+                        'check_out_time': to_ist_string(check_out.timestamp) if check_out else None,
                         'check_out_distance': f"{check_out.distance:.0f}m" if check_out else None,
                         'check_out_photo': check_out.photo if check_out else None,
                         'check_out_id': check_out.id if check_out else None,
@@ -424,6 +443,14 @@ def attendance():
                 
                 elif record.type == "check_out":
                     # Orphaned check-out
+                    # Convert timestamp to IST
+                    def to_ist_string(timestamp):
+                        if timestamp.tzinfo is None:
+                            utc_time = pytz.UTC.localize(timestamp)
+                        else:
+                            utc_time = timestamp
+                        return utc_time.astimezone(ist).strftime("%I:%M %p")
+                    
                     attendance_pairs.append({
                         'date': date,
                         'employee_name': employee_name,
@@ -433,7 +460,7 @@ def attendance():
                         'check_in_id': None,
                         'check_in_comment': None,
                         'check_in_manual': False,
-                        'check_out_time': record.timestamp.strftime("%I:%M %p"),
+                        'check_out_time': to_ist_string(record.timestamp),
                         'check_out_distance': f"{record.distance:.0f}m",
                         'check_out_photo': record.photo,
                         'check_out_id': record.id,
