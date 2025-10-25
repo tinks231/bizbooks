@@ -5,6 +5,7 @@ PIN-based authentication + selfie capture
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, g, abort
 from models import db, Employee, Attendance, Site
 from datetime import datetime
+import pytz
 from utils.tenant_middleware import require_tenant, get_current_tenant_id
 import base64
 import os
@@ -115,8 +116,6 @@ def submit():
             photo_data = None
     else:
         # Local: Save to filesystem
-        from datetime import datetime
-        import pytz
         ist = pytz.timezone('Asia/Kolkata')
         timestamp = datetime.now(ist).strftime('%Y%m%d_%H%M%S')
         filename = secure_filename(f"{employee.name}_{timestamp}.jpg")
@@ -128,7 +127,6 @@ def submit():
         photo_data = filename
 
     # Save attendance record (with IST timezone)
-    import pytz
     ist = pytz.timezone('Asia/Kolkata')
     record = Attendance(
         tenant_id=tenant_id,
