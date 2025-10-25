@@ -64,12 +64,33 @@ def submit():
     
     # Check if already checked in (and not checked out yet)
     if action == 'check_in':
-        # Look for the most recent record
-        if today_records:
-            last_record = today_records[0]
-            if last_record.type == 'check_in':
-                # Last action was check-in, so employee is already checked in
-                last_time = last_record.timestamp.strftime('%I:%M %p')
+        # Look for the most recent check-in (regardless of date)
+        last_checkin = Attendance.query.filter(
+            Attendance.tenant_id == tenant_id,
+            Attendance.employee_id == employee.id,
+            Attendance.type == 'check_in'
+        ).order_by(Attendance.timestamp.desc()).first()
+        
+        if last_checkin:
+            # Check if there's a checkout after this check-in
+            checkout_after_last_checkin = Attendance.query.filter(
+                Attendance.tenant_id == tenant_id,
+                Attendance.employee_id == employee.id,
+                Attendance.type == 'check_out',
+                Attendance.timestamp > last_checkin.timestamp
+            ).first()
+            
+            if not checkout_after_last_checkin:
+                # Last check-in has no corresponding checkout yet
+                ist = pytz.timezone('Asia/Kolkata')
+                if last_checkin.timestamp.tzinfo is None:
+                    utc_time = pytz.UTC.localize(last_checkin.timestamp)
+                    ist_time = utc_time.astimezone(ist)
+                else:
+                    ist_time = last_checkin.timestamp.astimezone(ist)
+                
+                last_time = ist_time.strftime('%I:%M %p on %b %d')
+                
                 return f"""
                 <div style="text-align: center; padding: 50px; font-family: Arial;">
                     <h2 style="color: #ff9800;">⚠️ Already Checked In!</h2>
@@ -82,14 +103,41 @@ def submit():
     
     # Check if trying to check out without checking in first
     elif action == 'check_out':
-        if not today_records or today_records[0].type == 'check_out':
-            # No records today or last action was check-out
+        # Look for the most recent check-in (even from previous days) that doesn't have a checkout
+        last_checkin = Attendance.query.filter(
+            Attendance.tenant_id == tenant_id,
+            Attendance.employee_id == employee.id,
+            Attendance.type == 'check_in'
+        ).order_by(Attendance.timestamp.desc()).first()
+        
+        if not last_checkin:
+            # No check-in found at all
             return f"""
             <div style="text-align: center; padding: 50px; font-family: Arial;">
                 <h2 style="color: #ff9800;">⚠️ Cannot Check Out</h2>
                 <p style="font-size: 18px;"><strong>{employee.name}</strong></p>
-                <p>You haven't checked in yet today!</p>
+                <p>You haven't checked in yet!</p>
                 <p style="color: #666; margin-top: 15px;">Please check in first.</p>
+                <a href='/attendance' style="display: inline-block; margin-top: 20px; padding: 10px 20px; background: #4CAF50; color: white; text-decoration: none; border-radius: 5px;">← Go Back</a>
+            </div>
+            """
+        
+        # Check if there's a checkout after this check-in
+        checkout_after_last_checkin = Attendance.query.filter(
+            Attendance.tenant_id == tenant_id,
+            Attendance.employee_id == employee.id,
+            Attendance.type == 'check_out',
+            Attendance.timestamp > last_checkin.timestamp
+        ).first()
+        
+        if checkout_after_last_checkin:
+            # Already checked out after the last check-in
+            return f"""
+            <div style="text-align: center; padding: 50px; font-family: Arial;">
+                <h2 style="color: #ff9800;">⚠️ Already Checked Out!</h2>
+                <p style="font-size: 18px;"><strong>{employee.name}</strong></p>
+                <p>You already checked out after your last check-in.</p>
+                <p style="color: #666; margin-top: 15px;">Please check in again if you want to mark a new entry.</p>
                 <a href='/attendance' style="display: inline-block; margin-top: 20px; padding: 10px 20px; background: #4CAF50; color: white; text-decoration: none; border-radius: 5px;">← Go Back</a>
             </div>
             """
