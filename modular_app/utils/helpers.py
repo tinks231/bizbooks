@@ -14,18 +14,42 @@ def allowed_file(filename, allowed_extensions={'png', 'jpg', 'jpeg', 'pdf'}):
 def save_uploaded_file(file, upload_folder):
     """
     Save uploaded file with secure filename
-    Returns: filename if successful, None otherwise
+    On Vercel (serverless): Stores as base64 data URL in database
+    On local: Saves to filesystem
+    Returns: filename or base64 data URL if successful, None otherwise
     """
     if file and allowed_file(file.filename):
-        filename = secure_filename(file.filename)
-        # Add timestamp to avoid overwriting
-        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        name, ext = os.path.splitext(filename)
-        filename = f"{name}_{timestamp}{ext}"
-        
-        filepath = os.path.join(upload_folder, filename)
-        file.save(filepath)
-        return filename
+        # Check if running on Vercel (read-only filesystem)
+        if os.environ.get('VERCEL'):
+            # Store as base64 data URL
+            import base64
+            file_bytes = file.read()
+            file_ext = file.filename.rsplit('.', 1)[1].lower()
+            
+            # Determine MIME type
+            mime_types = {
+                'pdf': 'application/pdf',
+                'png': 'image/png',
+                'jpg': 'image/jpeg',
+                'jpeg': 'image/jpeg'
+            }
+            mime_type = mime_types.get(file_ext, 'application/octet-stream')
+            
+            # Return base64 data URL
+            return f"data:{mime_type};base64,{base64.b64encode(file_bytes).decode('utf-8')}"
+        else:
+            # Local: Save to filesystem
+            filename = secure_filename(file.filename)
+            # Add timestamp to avoid overwriting
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            name, ext = os.path.splitext(filename)
+            filename = f"{name}_{timestamp}{ext}"
+            
+            # Ensure upload folder exists
+            os.makedirs(upload_folder, exist_ok=True)
+            filepath = os.path.join(upload_folder, filename)
+            file.save(filepath)
+            return filename
     return None
 
 def calculate_distance(lat1, lon1, lat2, lon2):
