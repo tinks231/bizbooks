@@ -68,7 +68,7 @@ class StockMovement(db.Model, TimestampMixin):
     reason = db.Column(db.String(255))  # Purchase, consumption, damaged, etc.
     reference = db.Column(db.String(100))  # PO number, bill number, etc.
     timestamp = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+    # user_id removed - using tenant_id for tracking (no separate users table)
     transfer_id = db.Column(db.Integer, db.ForeignKey('transfers.id'))  # If part of transfer
     
     def __repr__(self):

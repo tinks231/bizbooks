@@ -256,8 +256,7 @@ def add_material():
             site_id=initial_site_id,
             type='in',
             quantity=initial_quantity,
-            reason='Initial stock',
-            user_id=session.get('tenant_admin_id')
+            reason='Initial stock'
         )
         db.session.add(movement)
     
@@ -345,8 +344,7 @@ def update_stock():
         site_id=site_id,
         type=action,
         quantity=quantity,
-        reason=reason,
-        user_id=session.get('tenant_admin_id')
+        reason=reason
     )
     db.session.add(movement)
     db.session.commit()
