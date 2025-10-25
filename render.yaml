@@ -9,4 +9,8 @@ services:
         value: 3.9.18
       - key: PORT
         value: 10000
-
+    # Persistent disk for SQLite database (FREE - 1GB)
+    disk:
+      name: bizbooks-data
+      mountPath: /opt/render/project/src/modular_app/instance
+      sizeGB: 1

@@ -26,11 +26,15 @@ app = Flask(__name__)
 config = Config()
 app.config['SECRET_KEY'] = config.SECRET_KEY
 
-# Fix database URI to use absolute path
+# Database configuration
+# Using SQLite (works locally and on Render - 100% FREE!)
 import os as os_module
 basedir = os_module.path.abspath(os_module.path.dirname(__file__))
 app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{os_module.path.join(basedir, "instance", "app.db")}'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+# Note: For production with many clients (50+), migrate to PostgreSQL
+# For now, SQLite works perfectly for testing with 3-10 clients
 
 # Configure upload folders
 app.config['SELFIE_FOLDER'] = config.SELFIE_FOLDER
