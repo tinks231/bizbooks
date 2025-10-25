@@ -1,10 +1,12 @@
 """
 Admin routes - Login, Dashboard, Management
 """
-from flask import Blueprint, render_template, request, redirect, url_for, flash, session
-from models import db, User, Employee, Site, Attendance, Material, Stock, StockMovement
+from flask import Blueprint, render_template, request, redirect, url_for, flash, session, g, abort
+from models import db, User, Employee, Site, Attendance, Material, Stock, StockMovement, Tenant
 from datetime import datetime, timedelta
 from sqlalchemy import func
+from utils.tenant_middleware import require_tenant, get_current_tenant_id, get_current_tenant
+import hashlib
 
 admin_bp = Blueprint('admin', __name__, url_prefix='/admin')
 
@@ -13,29 +15,43 @@ def login_required(f):
     from functools import wraps
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        if 'user_id' not in session:
+        if 'tenant_admin_id' not in session:
             flash('Please login first', 'error')
+            return redirect(url_for('admin.login'))
+        # Verify session tenant matches current tenant
+        if session.get('tenant_admin_id') != get_current_tenant_id():
+            session.clear()
+            flash('Session mismatch. Please login again.', 'error')
             return redirect(url_for('admin.login'))
         return f(*args, **kwargs)
     return decorated_function
 
 @admin_bp.route('/login', methods=['GET', 'POST'])
+@require_tenant
 def login():
-    """Admin login page"""
+    """Tenant admin login page"""
+    tenant = get_current_tenant()
+    
     if request.method == 'POST':
-        username = request.form.get('username')
+        email = request.form.get('email')
         password = request.form.get('password')
         
-        user = User.query.filter_by(username=username, active=True).first()
-        if user and user.check_password(password):
-            session['user_id'] = user.id
-            session['username'] = user.username
-            flash('Login successful!', 'success')
+        # Hash password for comparison
+        password_hash = hashlib.sha256(password.encode()).hexdigest()
+        
+        # Check if credentials match tenant admin
+        if tenant.admin_email == email and tenant.admin_password_hash == password_hash:
+            session['tenant_admin_id'] = tenant.id
+            session['tenant_subdomain'] = tenant.subdomain
+            session['admin_name'] = tenant.admin_name
+            tenant.last_login_at = datetime.utcnow()
+            db.session.commit()
+            flash(f'Welcome back, {tenant.admin_name}!', 'success')
             return redirect(url_for('admin.dashboard'))
         else:
-            flash('Invalid credentials', 'error')
+            flash('Invalid email or password', 'error')
     
-    return render_template('admin/login.html')
+    return render_template('admin/login.html', tenant=tenant)
 
 @admin_bp.route('/logout')
 def logout():
@@ -45,21 +61,29 @@ def logout():
     return redirect(url_for('admin.login'))
 
 @admin_bp.route('/dashboard')
+@require_tenant
 @login_required
 def dashboard():
     """Admin dashboard"""
-    # Stats
-    total_employees = Employee.query.filter_by(active=True).count()
-    total_sites = Site.query.filter_by(active=True).count()
-    total_materials = Material.query.filter_by(active=True).count()
+    tenant_id = get_current_tenant_id()
+    tenant = get_current_tenant()
     
-    # Recent attendance
-    recent_attendance = Attendance.query.order_by(Attendance.timestamp.desc()).limit(10).all()
+    # Stats (filtered by tenant)
+    total_employees = Employee.query.filter_by(tenant_id=tenant_id, active=True).count()
+    total_sites = Site.query.filter_by(tenant_id=tenant_id, active=True).count()
+    total_materials = Material.query.filter_by(tenant_id=tenant_id, active=True).count()
     
-    # Low stock items
-    low_stock = Stock.query.filter(Stock.quantity < Stock.min_stock_alert).limit(5).all()
+    # Recent attendance (filtered by tenant)
+    recent_attendance = Attendance.query.filter_by(tenant_id=tenant_id).order_by(Attendance.timestamp.desc()).limit(10).all()
+    
+    # Low stock items (filtered by tenant)
+    low_stock = Stock.query.filter(
+        Stock.tenant_id == tenant_id,
+        Stock.quantity < Stock.min_stock_alert
+    ).limit(5).all()
     
     return render_template('admin/dashboard.html',
+                         tenant=tenant,
                          total_employees=total_employees,
                          total_sites=total_sites,
                          total_materials=total_materials,
@@ -68,29 +92,33 @@ def dashboard():
 
 # Employees Management
 @admin_bp.route('/employees')
+@require_tenant
 @login_required
 def employees():
     """Manage employees"""
-    employees = Employee.query.all()
-    sites = Site.query.filter_by(active=True).all()
+    tenant_id = get_current_tenant_id()
+    employees = Employee.query.filter_by(tenant_id=tenant_id).all()
+    sites = Site.query.filter_by(tenant_id=tenant_id, active=True).all()
     return render_template('admin/employees.html', employees=employees, sites=sites)
 
 @admin_bp.route('/employee/add', methods=['POST'])
+@require_tenant
 @login_required
 def add_employee():
     """Add new employee"""
+    tenant_id = get_current_tenant_id()
     name = request.form.get('name')
     pin = request.form.get('pin')
     phone = request.form.get('phone')
     site_id = request.form.get('site_id')
     
-    # Check if PIN already exists
-    existing = Employee.query.filter_by(pin=pin).first()
+    # Check if PIN already exists (within this tenant)
+    existing = Employee.query.filter_by(tenant_id=tenant_id, pin=pin).first()
     if existing:
         flash('PIN already exists!', 'error')
         return redirect(url_for('admin.employees'))
     
-    employee = Employee(name=name, pin=pin, phone=phone, site_id=site_id)
+    employee = Employee(tenant_id=tenant_id, name=name, pin=pin, phone=phone, site_id=site_id)
     
     # Handle document upload (Aadhar, etc.)
     if 'document' in request.files:

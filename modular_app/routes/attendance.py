@@ -2,34 +2,43 @@
 Attendance management routes
 PIN-based authentication + selfie capture
 """
-from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
+from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, g, abort
 from models import db, Employee, Attendance, Site
 from datetime import datetime
+from utils.tenant_middleware import require_tenant, get_current_tenant_id
 import base64
 import os
 
 attendance_bp = Blueprint('attendance', __name__, url_prefix='/attendance')
 
 @attendance_bp.route('/')
+@require_tenant
 def index():
     """Main attendance page"""
-    sites = Site.query.filter_by(active=True).all()
+    tenant_id = get_current_tenant_id()
+    sites = Site.query.filter_by(tenant_id=tenant_id, active=True).all()
     return render_template('attendance/index.html', sites=sites)
 
 @attendance_bp.route('/submit', methods=['POST'])
+@require_tenant
 def submit():
     """Submit attendance (check-in or check-out)"""
     from werkzeug.utils import secure_filename
     from geopy.distance import geodesic
     
+    tenant_id = get_current_tenant_id()
     pin = request.form.get('pin', '').strip()
     action = request.form.get('action', '').strip()
     lat_str = request.form.get('latitude', '')
     lon_str = request.form.get('longitude', '')
     site_id = request.form.get('site_id', 1)
 
-    # Validate PIN
-    employee = Employee.query.filter_by(pin=pin, active=True).first()
+    # Validate PIN (scoped to tenant)
+    employee = Employee.query.filter_by(
+        tenant_id=tenant_id,
+        pin=pin,
+        active=True
+    ).first()
     if not employee:
         return f"""
         <div style="text-align: center; padding: 50px; font-family: Arial;">
@@ -83,6 +92,7 @@ def submit():
 
     # Save attendance record
     record = Attendance(
+        tenant_id=tenant_id,
         employee_id=employee.id,
         site_id=site_id,
         employee_name=employee.name,
