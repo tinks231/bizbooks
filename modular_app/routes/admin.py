@@ -477,7 +477,8 @@ def attendance():
     attendance_pairs = []
     
     for employee_name in sorted(grouped_by_employee.keys()):
-        employee_records = sorted(grouped_by_employee[employee_name], key=lambda x: x.timestamp, reverse=True)
+        # Sort in chronological order (oldest first) so check-ins are processed before check-outs
+        employee_records = sorted(grouped_by_employee[employee_name], key=lambda x: x.timestamp)
         
         processed = set()
         
@@ -495,12 +496,13 @@ def attendance():
                         check_out = potential_checkout
                         break
                 
-                # Calculate duration
+                # Calculate duration (handles cross-day shifts)
                 duration = None
                 if check_out:
                     diff = check_out.timestamp - record.timestamp
-                    hours = diff.seconds // 3600
-                    minutes = (diff.seconds % 3600) // 60
+                    total_seconds = diff.days * 86400 + diff.seconds  # Include days in calculation
+                    hours = total_seconds // 3600
+                    minutes = (total_seconds % 3600) // 60
                     duration = f"{hours}h {minutes}m"
                     processed.add(check_out.id)
                 
@@ -578,6 +580,9 @@ def attendance():
                     'check_out_manual': record.manual_entry,
                     'duration': None
                 })
+    
+    # Reverse the list so newest records appear first
+    attendance_pairs.reverse()
     
     return render_template('admin/attendance.html', attendance_pairs=attendance_pairs)
 
