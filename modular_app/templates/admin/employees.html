@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+
+{% block title %}Manage Employees{% endblock %}
+
+{% block nav_links %}
+<a href="/admin/dashboard">Dashboard</a>
+<a href="/admin/employees">Employees</a>
+<a href="/admin/sites">Sites</a>
+<a href="/admin/inventory">Inventory</a>
+<a href="/admin/logout">Logout</a>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h1>👥 Manage Employees</h1>
+    
+    <h3 style="margin-top: 30px;">Add New Employee</h3>
+    <form method="POST" action="/admin/employee/add" enctype="multipart/form-data" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; max-width: 800px;">
+        <div class="form-group">
+            <label>Name:</label>
+            <input type="text" name="name" required>
+        </div>
+        <div class="form-group">
+            <label>PIN (4 digits):</label>
+            <input type="text" name="pin" pattern="[0-9]{4}" maxlength="4" required>
+        </div>
+        <div class="form-group">
+            <label>Phone:</label>
+            <input type="tel" name="phone">
+        </div>
+        <div class="form-group">
+            <label>Site:</label>
+            <select name="site_id">
+                <option value="">Select Site</option>
+                {% for site in sites %}
+                <option value="{{ site.id }}">{{ site.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group" style="grid-column: span 2;">
+            <label>ID Document (Aadhar, etc.) - Optional:</label>
+            <input type="file" name="document" accept=".pdf,.jpg,.jpeg,.png">
+            <small style="color: #7f8c8d;">Supported: PDF, JPG, PNG</small>
+        </div>
+        <div style="grid-column: span 2;">
+            <button type="submit" class="btn btn-success">Add Employee</button>
+        </div>
+    </form>
+</div>
+
+<div class="card" style="margin-top: 20px;">
+    <h3>All Employees</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>PIN</th>
+                <th>Phone</th>
+                <th>Site</th>
+                <th>Document</th>
+                <th>Status</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for employee in employees %}
+            <tr>
+                <td>{{ employee.name }}</td>
+                <td>{{ employee.pin }}</td>
+                <td>{{ employee.phone or '-' }}</td>
+                <td>{{ employee.site.name if employee.site else '-' }}</td>
+                <td>
+                    {% if employee.document_path %}
+                    <a href="/admin/employee/document/{{ employee.id }}" target="_blank" style="color: #3498db;">
+                        📄 View
+                    </a>
+                    {% else %}
+                    <span style="color: #999;">-</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if employee.active %}
+                    <span style="color: #28a745;">● Active</span>
+                    {% else %}
+                    <span style="color: #dc3545;">● Inactive</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if employee.active %}
+                    <a href="/admin/employee/delete/{{ employee.id }}" 
+                       onclick="return confirm('Deactivate this employee?')"
+                       style="color: #dc3545;">Deactivate</a>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}
+

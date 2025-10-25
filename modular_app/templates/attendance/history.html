@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+
+{% block title %}Attendance History{% endblock %}
+
+{% block nav_links %}
+<a href="/">Home</a>
+<a href="/attendance">Attendance</a>
+<a href="/inventory">Inventory</a>
+<a href="/admin/login">Admin</a>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h1>📋 Attendance History</h1>
+    <p style="color: #7f8c8d;">Recent attendance records</p>
+</div>
+
+<div class="card">
+    <table>
+        <thead>
+            <tr>
+                <th>Employee</th>
+                <th>Action</th>
+                <th>Date</th>
+                <th>Time</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for record in records %}
+            <tr>
+                <td><strong>{{ record.employee_name }}</strong></td>
+                <td>
+                    {% if record.type == 'check_in' %}
+                    <span style="color: #28a745;">✅ Check In</span>
+                    {% else %}
+                    <span style="color: #dc3545;">❌ Check Out</span>
+                    {% endif %}
+                </td>
+                <td>{{ record.timestamp.strftime('%Y-%m-%d') }}</td>
+                <td>{{ record.timestamp.strftime('%H:%M') }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<div style="text-align: center; margin-top: 20px;">
+    <a href="/attendance" class="btn btn-primary">← Back to Attendance</a>
+</div>
+{% endblock %}
+

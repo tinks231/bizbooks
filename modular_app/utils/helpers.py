@@ -1,0 +1,71 @@
+"""
+Helper functions for the application
+"""
+import os
+from werkzeug.utils import secure_filename
+from geopy.distance import geodesic
+from datetime import datetime
+
+def allowed_file(filename, allowed_extensions={'png', 'jpg', 'jpeg', 'pdf'}):
+    """Check if file extension is allowed"""
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in allowed_extensions
+
+def save_uploaded_file(file, upload_folder):
+    """
+    Save uploaded file with secure filename
+    Returns: filename if successful, None otherwise
+    """
+    if file and allowed_file(file.filename):
+        filename = secure_filename(file.filename)
+        # Add timestamp to avoid overwriting
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        name, ext = os.path.splitext(filename)
+        filename = f"{name}_{timestamp}{ext}"
+        
+        filepath = os.path.join(upload_folder, filename)
+        file.save(filepath)
+        return filename
+    return None
+
+def calculate_distance(lat1, lon1, lat2, lon2):
+    """
+    Calculate distance between two GPS coordinates in meters
+    """
+    try:
+        coords_1 = (lat1, lon1)
+        coords_2 = (lat2, lon2)
+        distance = geodesic(coords_1, coords_2).meters
+        return round(distance, 2)
+    except:
+        return 0.0
+
+def format_duration(seconds):
+    """
+    Format duration in seconds to human-readable format
+    Example: 3665 seconds -> "1h 1m"
+    """
+    if not seconds:
+        return "0m"
+    
+    hours = int(seconds // 3600)
+    minutes = int((seconds % 3600) // 60)
+    
+    if hours > 0:
+        return f"{hours}h {minutes}m"
+    return f"{minutes}m"
+
+def format_datetime(dt, format='%Y-%m-%d %H:%M'):
+    """Format datetime object to string"""
+    if not dt:
+        return ""
+    return dt.strftime(format)
+
+def is_within_radius(user_lat, user_lon, office_lat, office_lon, allowed_radius):
+    """
+    Check if user is within allowed radius of office
+    Returns: (is_within, distance)
+    """
+    distance = calculate_distance(user_lat, user_lon, office_lat, office_lon)
+    return (distance <= allowed_radius, distance)
+

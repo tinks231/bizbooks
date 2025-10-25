@@ -1,0 +1,200 @@
+{% extends "base.html" %}
+
+{% block title %}Manage Inventory{% endblock %}
+
+{% block nav_links %}
+<a href="/admin/dashboard">Dashboard</a>
+<a href="/admin/employees">Employees</a>
+<a href="/admin/sites">Sites</a>
+<a href="/admin/inventory">Inventory</a>
+<a href="/admin/logout">Logout</a>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h1>📦 Manage Inventory</h1>
+    
+    <h3 style="margin-top: 30px;">Add New Material</h3>
+    <form method="POST" action="/admin/material/add" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; max-width: 1000px;">
+        <div class="form-group">
+            <label>Material Name: *</label>
+            <input type="text" name="name" placeholder="e.g., Sand, Cement, Bricks" required>
+        </div>
+        <div class="form-group">
+            <label>Category:</label>
+            <input type="text" name="category" placeholder="e.g., Raw Materials, Building Materials">
+        </div>
+        <div class="form-group">
+            <label>Unit: *</label>
+            <select name="unit">
+                <option value="tons">Tons</option>
+                <option value="bags">Bags</option>
+                <option value="kg">Kg (Kilograms)</option>
+                <option value="liters">Liters</option>
+                <option value="pcs">Pcs (Pieces)</option>
+                <option value="nos">Nos (Numbers)</option>
+                <option value="cubic_meter">Cubic Meter</option>
+                <option value="sqm">Square Meter</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Initial Quantity: *</label>
+            <input type="number" name="initial_quantity" step="0.01" placeholder="e.g., 10" required>
+        </div>
+        <div class="form-group">
+            <label>Site: *</label>
+            <select name="site_id" required>
+                {% for site in sites %}
+                <option value="{{ site.id }}">{{ site.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Description:</label>
+            <input type="text" name="description" placeholder="Optional details">
+        </div>
+        <div style="grid-column: span 2;">
+            <button type="submit" class="btn btn-success" style="width: 100%; padding: 15px; font-size: 1.1em;">
+                ➕ Add Material with Initial Stock
+            </button>
+        </div>
+    </form>
+</div>
+
+<div class="card" style="margin-top: 20px;">
+    <h3>Update Stock</h3>
+    <form method="POST" action="/admin/stock/update" style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; max-width: 900px;">
+        <div class="form-group">
+            <label>Material:</label>
+            <select name="material_id" required>
+                <option value="">Select Material</option>
+                {% for material in materials %}
+                <option value="{{ material.id }}">{{ material.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Site:</label>
+            <select name="site_id" required>
+                <option value="">Select Site</option>
+                {% for site in sites %}
+                <option value="{{ site.id }}">{{ site.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Action:</label>
+            <select name="action" required>
+                <option value="in">Stock In</option>
+                <option value="out">Stock Out</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Quantity:</label>
+            <input type="number" name="quantity" step="0.01" required>
+        </div>
+        <div class="form-group">
+            <label>Reason:</label>
+            <input type="text" name="reason" placeholder="Purchase, Usage, etc.">
+        </div>
+        <div>
+            <label>&nbsp;</label>
+            <button type="submit" class="btn btn-primary">Update Stock</button>
+        </div>
+    </form>
+</div>
+
+<div class="card" style="margin-top: 20px;">
+    <h3>Current Stock</h3>
+    <table style="font-size: 14px;">
+        <thead>
+            <tr>
+                <th>Material</th>
+                <th>Category</th>
+                <th>Unit</th>
+                <th style="background: #4CAF50; color: white;">📥 Total In</th>
+                <th style="background: #f44336; color: white;">📤 Total Out</th>
+                <th style="background: #2196F3; color: white; font-size: 1.1em;">📊 Current Stock</th>
+                {% for site in sites %}
+                <th>{{ site.name }}</th>
+                {% endfor %}
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for material in materials %}
+            <tr>
+                <td><strong>{{ material.name }}</strong></td>
+                <td>{{ material.category or '-' }}</td>
+                <td>{{ material.unit }}</td>
+                
+                {# Calculate total stock in #}
+                <td style="background: #e8f5e9; font-weight: bold; color: #2e7d32;">
+                    {% set total_in = namespace(value=0) %}
+                    {% for movement in material.movements %}
+                        {% if movement.type == 'in' %}
+                            {% set total_in.value = total_in.value + movement.quantity %}
+                        {% endif %}
+                    {% endfor %}
+                    {{ "%.2f"|format(total_in.value) }}
+                </td>
+                
+                {# Calculate total stock out #}
+                <td style="background: #ffebee; font-weight: bold; color: #c62828;">
+                    {% set total_out = namespace(value=0) %}
+                    {% for movement in material.movements %}
+                        {% if movement.type == 'out' %}
+                            {% set total_out.value = total_out.value + movement.quantity %}
+                        {% endif %}
+                    {% endfor %}
+                    {{ "%.2f"|format(total_out.value) }}
+                </td>
+                
+                {# Calculate current total stock #}
+                <td style="background: #e3f2fd; font-weight: bold; font-size: 1.2em; color: #1976d2;">
+                    {% set total = namespace(value=0) %}
+                    {% for stock in material.stocks %}
+                        {% set total.value = total.value + stock.quantity %}
+                    {% endfor %}
+                    {{ "%.2f"|format(total.value) }}
+                </td>
+                
+                {# Stock per site #}
+                {% for site in sites %}
+                <td>
+                    {% set stock = material.stocks|selectattr('site_id', 'equalto', site.id)|first %}
+                    {% if stock %}
+                        <span style="{% if stock.is_low_stock() %}color: #f44336; font-weight: bold;{% endif %}">
+                            {{ "%.2f"|format(stock.quantity) }}
+                        </span>
+                    {% else %}
+                        <span style="color: #999;">0.00</span>
+                    {% endif %}
+                </td>
+                {% endfor %}
+                
+                {# Actions #}
+                <td style="white-space: nowrap;">
+                    <a href="/admin/material/edit/{{ material.id }}" 
+                       style="padding: 6px 12px; background: #ff9800; color: white; text-decoration: none; border-radius: 4px; font-size: 12px; display: inline-block; margin-right: 5px;">
+                        ✏️ Edit
+                    </a>
+                    <a href="/admin/material/delete/{{ material.id }}" 
+                       onclick="return confirm('⚠️ Delete {{ material.name }}?\n\nThis will DELETE:\n• All stock records\n• All movement history\n• Cannot be undone!\n\nAre you sure?')"
+                       style="padding: 6px 12px; background: #f44336; color: white; text-decoration: none; border-radius: 4px; font-size: 12px; display: inline-block;">
+                        🗑️ Delete
+                    </a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    
+    {% if not materials %}
+    <p style="text-align: center; color: #7f8c8d; padding: 30px;">
+        No materials added yet. Add materials using the form above.
+    </p>
+    {% endif %}
+</div>
+{% endblock %}
+

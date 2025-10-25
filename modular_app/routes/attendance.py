@@ -1,0 +1,118 @@
+"""
+Attendance management routes
+PIN-based authentication + selfie capture
+"""
+from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
+from models import db, Employee, Attendance, Site
+from datetime import datetime
+import base64
+import os
+
+attendance_bp = Blueprint('attendance', __name__, url_prefix='/attendance')
+
+@attendance_bp.route('/')
+def index():
+    """Main attendance page"""
+    sites = Site.query.filter_by(active=True).all()
+    return render_template('attendance/index.html', sites=sites)
+
+@attendance_bp.route('/submit', methods=['POST'])
+def submit():
+    """Submit attendance (check-in or check-out)"""
+    from werkzeug.utils import secure_filename
+    from geopy.distance import geodesic
+    
+    pin = request.form.get('pin', '').strip()
+    action = request.form.get('action', '').strip()
+    lat_str = request.form.get('latitude', '')
+    lon_str = request.form.get('longitude', '')
+    site_id = request.form.get('site_id', 1)
+
+    # Validate PIN
+    employee = Employee.query.filter_by(pin=pin, active=True).first()
+    if not employee:
+        return f"""
+        <div style="text-align: center; padding: 50px; font-family: Arial;">
+            <h2 style="color: #dc3545;">❌ Invalid PIN</h2>
+            <p>Please check your PIN and try again.</p>
+            <a href='/attendance' style="display: inline-block; margin-top: 20px; padding: 10px 20px; background: #4CAF50; color: white; text-decoration: none; border-radius: 5px;">← Go Back</a>
+        </div>
+        """
+
+    # Validate GPS (optional - WiFi connection is the primary security)
+    try:
+        lat = float(lat_str) if lat_str else 0
+        lon = float(lon_str) if lon_str else 0
+    except ValueError:
+        lat = 0
+        lon = 0
+
+    # Validate photo
+    photo = request.files.get('photo')
+    if not photo:
+        return f"""
+        <div style="text-align: center; padding: 50px; font-family: Arial;">
+            <h2 style="color: #dc3545;">❌ Missing Photo</h2>
+            <p>Please take a selfie.</p>
+            <a href='/attendance' style="display: inline-block; margin-top: 20px; padding: 10px 20px; background: #4CAF50; color: white; text-decoration: none; border-radius: 5px;">← Go Back</a>
+        </div>
+        """
+
+    # Calculate distance from site (if location available)
+    distance = 0
+    if lat != 0 and lon != 0:
+        # Get site location
+        site = Site.query.get(site_id)
+        if site and site.latitude and site.longitude:
+            user_loc = (lat, lon)
+            site_loc = (site.latitude, site.longitude)
+            distance = geodesic(user_loc, site_loc).meters
+            
+            # Optional: Check if within allowed radius (can be enabled if needed)
+            # if distance > site.allowed_radius:
+            #     return error message
+
+    # Save photo
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    filename = secure_filename(f"{employee.name}_{timestamp}.jpg")
+    photo_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'uploads', 'selfies', filename)
+    
+    # Ensure directory exists
+    os.makedirs(os.path.dirname(photo_path), exist_ok=True)
+    photo.save(photo_path)
+
+    # Save attendance record
+    record = Attendance(
+        employee_id=employee.id,
+        site_id=site_id,
+        employee_name=employee.name,
+        type=action,
+        timestamp=datetime.now(),
+        latitude=lat,
+        longitude=lon,
+        distance=distance,
+        photo=filename
+    )
+    db.session.add(record)
+    db.session.commit()
+    
+    # Show distance if available
+    distance_text = f"{int(distance)} meters" if distance != 0 else "N/A (WiFi verified)"
+    action_text = "Check In" if action == "check_in" else "Check Out"
+    
+    return f"""
+    <div style="text-align: center; padding: 50px; font-family: Arial;">
+        <h2 style="color: #4CAF50;">✅ Success!</h2>
+        <h3>Hello {employee.name}!</h3>
+        <p style="font-size: 1.2em;">{action_text} recorded at {datetime.now().strftime('%I:%M %p')}</p>
+        <p style="color: #666;">Distance from office: {distance_text}</p>
+        <a href='/attendance' style="display: inline-block; margin-top: 20px; padding: 10px 20px; background: #4CAF50; color: white; text-decoration: none; border-radius: 5px;">← Go Back</a>
+    </div>
+    """
+
+@attendance_bp.route('/history')
+def history():
+    """View attendance history (last 50 records)"""
+    records = Attendance.query.order_by(Attendance.timestamp.desc()).limit(50).all()
+    return render_template('attendance/history.html', records=records)
+

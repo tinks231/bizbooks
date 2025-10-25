@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Manual Attendance Entry</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body { font-family: Arial; margin: 0; padding: 20px; background: #f5f5f5; }
+    .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; padding: 20px; background: white; border-radius: 10px; }
+    .header h2 { margin: 0; }
+    .nav { display: flex; gap: 20px; }
+    .nav a { padding: 10px 20px; background: #4CAF50; color: white; text-decoration: none; border-radius: 5px; }
+    .nav a:hover { background: #45a049; }
+    .container { background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); max-width: 600px; margin: 0 auto; }
+    .form-group { margin-bottom: 20px; }
+    .form-group label { display: block; margin-bottom: 8px; font-weight: bold; color: #333; }
+    .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 12px; font-size: 1em; border: 1px solid #ddd; border-radius: 5px; box-sizing: border-box; }
+    .form-group textarea { resize: vertical; min-height: 80px; }
+    .form-group button { width: 100%; padding: 15px; font-size: 1.1em; background: #ff9800; color: white; border: none; border-radius: 5px; cursor: pointer; }
+    .form-group button:hover { background: #f57c00; }
+    .info-box { background: #e3f2fd; padding: 15px; border-radius: 5px; margin-bottom: 20px; border-left: 4px solid #2196F3; }
+    .info-box ul { margin: 10px 0; padding-left: 20px; }
+    .success-msg { background: #d4edda; color: #155724; padding: 15px; border-radius: 5px; margin-bottom: 20px; border-left: 4px solid #28a745; }
+    .error-msg { background: #f8d7da; color: #721c24; padding: 15px; border-radius: 5px; margin-bottom: 20px; border-left: 4px solid #f44336; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h2>✍️ Manual Attendance Entry</h2>
+    <div class="nav">
+      <a href="/admin/dashboard">📊 Dashboard</a>
+      <a href="/admin/employees">👥 Employees</a>
+      <a href="/admin/attendance">📅 Attendance</a>
+      <a href="/admin/logout" style="background: #f44336;">Logout</a>
+    </div>
+  </div>
+  
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for category, message in messages %}
+        <div class="{{ 'success-msg' if category == 'success' else 'error-msg' }}">
+          {{ message }}
+        </div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+  
+  <div class="container">
+    <h3 style="text-align: center; margin-bottom: 20px;">Add Manual Attendance Entry</h3>
+    <form method="POST">
+      <div class="form-group">
+        <label>Select Employee *</label>
+        <select name="employee_id" required>
+          <option value="">-- Select Employee --</option>
+          {% for employee in employees %}
+          <option value="{{ employee.id }}">{{ employee.name }} (PIN: {{ employee.pin }})</option>
+          {% endfor %}
+        </select>
+      </div>
+      
+      <div class="form-group">
+        <label>Action *</label>
+        <select name="action" required>
+          <option value="check_in">Check In</option>
+          <option value="check_out">Check Out</option>
+        </select>
+      </div>
+      
+      <div class="form-group">
+        <label>Date *</label>
+        <input type="date" name="date" required>
+      </div>
+      
+      <div class="form-group">
+        <label>Time *</label>
+        <input type="time" name="time" required>
+      </div>
+      
+      <div class="form-group">
+        <label>Comment (Optional)</label>
+        <textarea name="comment" placeholder="e.g., Forgot to check in, Added by admin, etc."></textarea>
+      </div>
+      
+      <div class="form-group">
+        <button type="submit">✅ Add Manual Entry</button>
+      </div>
+    </form>
+  </div>
+  
+  <div class="info-box" style="max-width: 600px; margin: 20px auto;">
+    <h4 style="margin-top: 0;">ℹ️ Manual Entry Guidelines</h4>
+    <ul>
+      <li>Manual entries are marked with a ✍️ icon in the dashboard</li>
+      <li>Use this for employees who forgot to mark attendance</li>
+      <li>Always add a comment explaining why it's a manual entry</li>
+      <li>Manual entries don't have photos or location data</li>
+      <li>The entry time will be set to the date/time you specify</li>
+    </ul>
+  </div>
+</body>
+</html>

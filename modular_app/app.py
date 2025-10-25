@@ -1,0 +1,302 @@
+"""
+Modular Business Management System
+Main application entry point
+
+Features:
+- Attendance Management
+- Inventory Management
+- Multi-Site Support
+- Modular Architecture (Flask Blueprints)
+"""
+
+from flask import Flask, render_template, redirect, url_for, session
+from flask_sqlalchemy import SQLAlchemy
+import os
+
+# Import configuration
+from config import Config
+
+# Import database
+from models import db, init_db
+
+# Create Flask app
+app = Flask(__name__)
+
+# Load configuration
+config = Config()
+app.config['SECRET_KEY'] = config.SECRET_KEY
+
+# Fix database URI to use absolute path
+import os as os_module
+basedir = os_module.path.abspath(os_module.path.dirname(__file__))
+app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{os_module.path.join(basedir, "instance", "app.db")}'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+# Configure upload folders
+app.config['SELFIE_FOLDER'] = config.SELFIE_FOLDER
+app.config['DOCUMENT_FOLDER'] = config.DOCUMENT_FOLDER
+app.config['INVENTORY_IMAGES_FOLDER'] = config.INVENTORY_IMAGES_FOLDER
+
+# Create upload folders
+os.makedirs(config.SELFIE_FOLDER, exist_ok=True)
+os.makedirs(config.DOCUMENT_FOLDER, exist_ok=True)
+os.makedirs(config.INVENTORY_IMAGES_FOLDER, exist_ok=True)
+os.makedirs('instance', exist_ok=True)
+
+# Initialize database
+init_db(app)
+
+# ============================================================
+# Import and register blueprints
+# ============================================================
+from routes.attendance import attendance_bp
+from routes.inventory import inventory_bp
+from routes.admin import admin_bp
+
+app.register_blueprint(attendance_bp)
+app.register_blueprint(inventory_bp)
+app.register_blueprint(admin_bp)
+
+# ============================================================
+# Main route
+# ============================================================
+@app.route('/')
+def index():
+    """Main landing page"""
+    return render_template('index.html')
+
+@app.route('/selfie/<filename>')
+def selfie(filename):
+    """Serve selfie photos"""
+    from flask import send_from_directory
+    import os
+    selfie_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'uploads', 'selfies')
+    return send_from_directory(selfie_dir, filename)
+
+# Welcome page for documentation
+@app.route('/welcome')
+def welcome():
+    """Welcome page with setup info"""
+    return """
+    <html>
+    <head>
+        <title>Modular Business Management System</title>
+        <style>
+            body {
+                font-family: Arial, sans-serif;
+                max-width: 800px;
+                margin: 50px auto;
+                padding: 20px;
+                background: #f5f5f5;
+            }
+            .container {
+                background: white;
+                padding: 30px;
+                border-radius: 10px;
+                box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            }
+            h1 {
+                color: #2c3e50;
+                border-bottom: 3px solid #3498db;
+                padding-bottom: 10px;
+            }
+            .success {
+                background: #d4edda;
+                border: 1px solid #c3e6cb;
+                color: #155724;
+                padding: 15px;
+                border-radius: 5px;
+                margin: 20px 0;
+            }
+            .info {
+                background: #d1ecf1;
+                border: 1px solid #bee5eb;
+                color: #0c5460;
+                padding: 15px;
+                border-radius: 5px;
+                margin: 20px 0;
+            }
+            .feature {
+                background: #f8f9fa;
+                padding: 15px;
+                margin: 10px 0;
+                border-left: 4px solid #3498db;
+                border-radius: 3px;
+            }
+            code {
+                background: #f4f4f4;
+                padding: 2px 6px;
+                border-radius: 3px;
+                font-family: 'Courier New', monospace;
+            }
+            .command {
+                background: #2c3e50;
+                color: #ecf0f1;
+                padding: 15px;
+                border-radius: 5px;
+                margin: 10px 0;
+                font-family: 'Courier New', monospace;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h1>🎉 Modular Business Management System</h1>
+            
+            <div class="success">
+                <strong>✅ System is Running!</strong><br>
+                Database initialized successfully. Your modular app is ready!
+            </div>
+            
+            <h2>📦 Features Available:</h2>
+            <div class="feature">
+                <strong>✅ Attendance Management</strong><br>
+                PIN + Selfie authentication, Location tracking, Multi-site support
+            </div>
+            <div class="feature">
+                <strong>✅ Inventory Management</strong><br>
+                Material tracking, Stock in/out, Inter-site transfers, Low stock alerts
+            </div>
+            <div class="feature">
+                <strong>✅ Multi-Site Support</strong><br>
+                Manage multiple locations, Site-specific inventory and attendance
+            </div>
+            <div class="feature">
+                <strong>✅ Modular Architecture</strong><br>
+                Easy to add new features, Flask Blueprints, Organized code
+            </div>
+            
+            <h2>🚀 Next Steps:</h2>
+            <div class="info">
+                <strong>1. Create Routes/Blueprints</strong><br>
+                Create files in <code>routes/</code> folder for each feature:<br>
+                <div class="command">
+                    routes/auth.py         # Login/logout<br>
+                    routes/attendance.py   # Attendance feature<br>
+                    routes/inventory.py    # Inventory feature<br>
+                    routes/admin.py        # Admin dashboard
+                </div>
+                
+                <strong>2. Create Templates</strong><br>
+                Create HTML files in <code>templates/</code> folder<br><br>
+                
+                <strong>3. Register Blueprints</strong><br>
+                In <code>app.py</code>, import and register your blueprints<br><br>
+                
+                <strong>4. Test Everything</strong><br>
+                Access your routes and verify functionality
+            </div>
+            
+            <h2>📚 Documentation:</h2>
+            <ul>
+                <li><code>README.md</code> - Complete architecture overview</li>
+                <li><code>WHAT_IM_CREATING.md</code> - Detailed explanation</li>
+                <li><code>QUICK_START.md</code> - Quick start guide (coming next!)</li>
+            </ul>
+            
+            <h2>🗄️ Database Status:</h2>
+            <div class="info">
+                <strong>Models Created:</strong><br>
+                ✅ User (Admin authentication)<br>
+                ✅ Site (Multiple locations)<br>
+                ✅ Employee (PIN-based)<br>
+                ✅ Attendance (Check-in/out)<br>
+                ✅ Material (Inventory items)<br>
+                ✅ Stock (Stock per site)<br>
+                ✅ StockMovement (History)<br>
+                ✅ Transfer (Inter-site)<br><br>
+                
+                <strong>Default Admin Created:</strong><br>
+                Username: <code>admin</code><br>
+                Password: <code>admin123</code> (⚠️ Change this!)
+            </div>
+            
+            <h2>💡 Quick Example:</h2>
+            <p>To add attendance feature, create <code>routes/attendance.py</code>:</p>
+            <div class="command">
+from flask import Blueprint<br>
+<br>
+attendance_bp = Blueprint('attendance', __name__)<br>
+<br>
+@attendance_bp.route('/attendance')<br>
+def index():<br>
+    return "Attendance page!"<br>
+<br>
+# Then register in app.py:<br>
+# from routes.attendance import attendance_bp<br>
+# app.register_blueprint(attendance_bp)
+            </div>
+            
+            <hr>
+            <p style="text-align: center; color: #7f8c8d;">
+                <strong>Modular Business Management System v2.0</strong><br>
+                Built with Flask + SQLAlchemy + Modular Architecture<br>
+                Ready for enterprise deployment! 🚀
+            </p>
+        </div>
+    </body>
+    </html>
+    """
+
+
+# ============================================================
+# Database inspection route (for development)
+# ============================================================
+@app.route('/db-info')
+def db_info():
+    """Show database information"""
+    from models import User, Site, Employee, Material
+    
+    try:
+        user_count = User.query.count()
+        site_count = Site.query.count()
+        employee_count = Employee.query.count()
+        material_count = Material.query.count()
+        
+        return f"""
+        <html>
+        <body style="font-family: Arial; padding: 20px;">
+            <h2>Database Information</h2>
+            <ul>
+                <li>Users: {user_count}</li>
+                <li>Sites: {site_count}</li>
+                <li>Employees: {employee_count}</li>
+                <li>Materials: {material_count}</li>
+            </ul>
+            <p><a href="/">← Back to Home</a></p>
+        </body>
+        </html>
+        """
+    except Exception as e:
+        return f"Error: {str(e)}"
+
+
+# ============================================================
+# Run application
+# ============================================================
+if __name__ == '__main__':
+    # Check if SSL certificates exist
+    ssl_context = None
+    if os.path.exists('cert.pem') and os.path.exists('key.pem'):
+        ssl_context = ('cert.pem', 'key.pem')
+        print("🔒 Running with HTTPS (SSL enabled)")
+    else:
+        print("⚠️  Running without HTTPS (SSL certificates not found)")
+        print("   For production, generate SSL certificates!")
+    
+    # Run app
+    print(f"\n{'='*60}")
+    print(f"🚀 Modular Business Management System")
+    print(f"{'='*60}")
+    print(f"📍 URL: https://127.0.0.1:{config.PORT}")
+    print(f"🗄️  Database: {config.DATABASE_URI}")
+    print(f"👤 Default Admin: admin / admin123")
+    print(f"{'='*60}\n")
+    
+    app.run(
+        host=config.HOST,
+        port=config.PORT,
+        debug=config.DEBUG,
+        ssl_context=ssl_context
+    )
+

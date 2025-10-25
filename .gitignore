@@ -1,0 +1,73 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+*.egg-info/
+dist/
+build/
+
+# Flask
+instance/
+*.db
+*.sqlite
+*.sqlite3
+
+# Uploads (contains user data)
+modular_app/uploads/
+uploads/
+selfies/
+documents/
+inventory_images/
+
+# QR Codes (can regenerate)
+*.png
+
+# Logs
+*.log
+*.log.*
+
+# Environment variables
+.env
+.env.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows
+Thumbs.db
+Desktop.ini
+
+# Cloudflare
+.cloudflared/
+
+# Certificates
+*.pem
+*.key
+cert.pem
+key.pem
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.backup
+
+# Config with sensitive data (keep settings.ini.example instead)
+modular_app/config/settings.ini
+
+config.ini
+current_tunnel_url.txt

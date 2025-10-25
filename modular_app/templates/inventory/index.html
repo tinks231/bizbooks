@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+
+{% block title %}View Inventory{% endblock %}
+
+{% block nav_links %}
+<a href="/">Home</a>
+<a href="/attendance">Attendance</a>
+<a href="/inventory">Inventory</a>
+<a href="/admin/login">Admin</a>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h1>📦 View Inventory</h1>
+    <p style="color: #7f8c8d;">Check current stock levels</p>
+</div>
+
+<div class="card">
+    {% if inventory_data %}
+    <table>
+        <thead>
+            <tr>
+                <th>Material</th>
+                <th>Category</th>
+                <th>Total Stock</th>
+                <th>Unit</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in inventory_data %}
+            <tr>
+                <td><strong>{{ item.material.name }}</strong></td>
+                <td>{{ item.material.category or '-' }}</td>
+                <td style="font-weight: bold; color: #2c3e50;">{{ item.total_stock }}</td>
+                <td>{{ item.material.unit }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p style="text-align: center; color: #7f8c8d; padding: 40px;">
+        No materials added yet. Contact admin to add materials.
+    </p>
+    {% endif %}
+</div>
+
+<div style="text-align: center; margin-top: 20px;">
+    <a href="/" class="btn btn-primary">← Back to Home</a>
+</div>
+{% endblock %}
+

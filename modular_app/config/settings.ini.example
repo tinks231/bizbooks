@@ -1,0 +1,26 @@
+[APP]
+secret_key = CHANGE_THIS_TO_RANDOM_STRING
+port = 5001
+debug = True
+host = 0.0.0.0
+
+[DATABASE]
+uri = sqlite:///instance/app.db
+
+[ADMIN]
+username = admin
+password = CHANGE_THIS_PASSWORD
+
+[LOCATION]
+office_lat = 0.0
+office_lon = 0.0
+allowed_radius_meters = 100
+gps_required = False
+
+[UPLOAD]
+selfie_folder = uploads/selfies
+document_folder = uploads/documents
+inventory_images_folder = uploads/inventory_images
+max_file_size = 5242880
+allowed_extensions = png,jpg,jpeg,pdf
+

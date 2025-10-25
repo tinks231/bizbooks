@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Dashboard{% endblock %}
+
+{% block nav_links %}
+<a href="/admin/dashboard">Dashboard</a>
+<a href="/admin/employees">Employees</a>
+<a href="/admin/sites">Sites</a>
+<a href="/admin/inventory">Inventory</a>
+<a href="/admin/attendance">Attendance</a>
+<a href="/admin/manual_entry" style="background: #f39c12;">✍️ Manual Entry</a>
+<a href="/admin/logout">Logout</a>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h1 style="color: #2c3e50;">👤 Admin Dashboard</h1>
+    <p style="color: #7f8c8d;">Welcome, {{ session.username }}!</p>
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin: 20px 0;">
+    <div class="card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+        <h2 style="margin: 0;">{{ total_employees }}</h2>
+        <p style="margin: 10px 0 0 0; opacity: 0.9;">Active Employees</p>
+    </div>
+    <div class="card" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white;">
+        <h2 style="margin: 0;">{{ total_sites }}</h2>
+        <p style="margin: 10px 0 0 0; opacity: 0.9;">Sites/Locations</p>
+    </div>
+    <div class="card" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: white;">
+        <h2 style="margin: 0;">{{ total_materials }}</h2>
+        <p style="margin: 10px 0 0 0; opacity: 0.9;">Materials</p>
+    </div>
+</div>
+
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+    <div class="card">
+        <h3 style="color: #2c3e50; margin-bottom: 20px;">📋 Recent Attendance</h3>
+        {% if recent_attendance %}
+        <table style="font-size: 14px;">
+            <thead>
+                <tr>
+                    <th>Employee</th>
+                    <th>Action</th>
+                    <th>Time</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for record in recent_attendance %}
+                <tr>
+                    <td>{{ record.employee_name }}</td>
+                    <td>
+                        {% if record.type == 'check_in' %}
+                        <span style="color: #28a745;">✅ In</span>
+                        {% else %}
+                        <span style="color: #dc3545;">❌ Out</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ record.timestamp.strftime('%H:%M') }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p style="color: #7f8c8d;">No attendance records yet</p>
+        {% endif %}
+        <div style="text-align: center; margin-top: 15px;">
+            <a href="/admin/attendance" class="btn btn-primary">View All →</a>
+        </div>
+    </div>
+    
+    <div class="card">
+        <h3 style="color: #2c3e50; margin-bottom: 20px;">⚠️ Low Stock Alerts</h3>
+        {% if low_stock %}
+        <table style="font-size: 14px;">
+            <thead>
+                <tr>
+                    <th>Material</th>
+                    <th>Site</th>
+                    <th>Stock</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for stock in low_stock %}
+                <tr>
+                    <td>{{ stock.material.name if stock.material else 'Unknown' }}</td>
+                    <td>{{ stock.site.name if stock.site else 'Unknown' }}</td>
+                    <td style="color: #dc3545; font-weight: bold;">
+                        {{ stock.quantity }} {{ stock.material.unit if stock.material else '' }}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p style="color: #7f8c8d;">All stock levels are good!</p>
+        {% endif %}
+        <div style="text-align: center; margin-top: 15px;">
+            <a href="/admin/inventory" class="btn btn-primary">Manage Inventory →</a>
+        </div>
+    </div>
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-top: 20px;">
+    <a href="/admin/employees" class="btn btn-primary" style="text-decoration: none; text-align: center;">
+        👥 Manage Employees
+    </a>
+    <a href="/admin/sites" class="btn btn-primary" style="text-decoration: none; text-align: center;">
+        🏢 Manage Sites
+    </a>
+    <a href="/admin/inventory" class="btn btn-primary" style="text-decoration: none; text-align: center;">
+        📦 Manage Inventory
+    </a>
+    <a href="/admin/attendance" class="btn btn-primary" style="text-decoration: none; text-align: center;">
+        📊 View Attendance
+    </a>
+</div>
+{% endblock %}
+
