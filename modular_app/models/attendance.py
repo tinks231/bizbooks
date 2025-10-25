@@ -3,6 +3,7 @@ Attendance model
 """
 from .database import db, TimestampMixin
 from datetime import datetime
+import pytz
 
 class Attendance(db.Model, TimestampMixin):
     """Attendance record model"""
@@ -18,7 +19,8 @@ class Attendance(db.Model, TimestampMixin):
     site_id = db.Column(db.Integer, db.ForeignKey('sites.id'), nullable=False)
     employee_name = db.Column(db.String(100))  # Denormalized for quick access
     type = db.Column(db.String(20), nullable=False)  # 'check_in' or 'check_out'
-    timestamp = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    # Store timezone-aware datetime (IST)
+    timestamp = db.Column(db.DateTime, default=lambda: datetime.now(pytz.timezone('Asia/Kolkata')), nullable=False)
     
     # Location data
     latitude = db.Column(db.Float, default=0.0)
