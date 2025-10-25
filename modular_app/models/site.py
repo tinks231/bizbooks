@@ -16,7 +16,7 @@ class Site(db.Model, TimestampMixin):
     address = db.Column(db.String(255))
     latitude = db.Column(db.Float, default=0.0)
     longitude = db.Column(db.Float, default=0.0)
-    radius = db.Column(db.Integer, default=100)  # meters
+    allowed_radius = db.Column(db.Integer, default=100)  # meters (radius within which attendance is allowed)
     active = db.Column(db.Boolean, default=True)
     
     # Relationships

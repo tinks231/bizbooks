@@ -26,6 +26,7 @@ def submit():
     """Submit attendance (check-in or check-out)"""
     from werkzeug.utils import secure_filename
     from geopy.distance import geodesic
+    from datetime import datetime as dt, timedelta
     
     tenant_id = get_current_tenant_id()
     pin = request.form.get('pin', '').strip()
@@ -48,6 +49,50 @@ def submit():
             <a href='/attendance' style="display: inline-block; margin-top: 20px; padding: 10px 20px; background: #4CAF50; color: white; text-decoration: none; border-radius: 5px;">← Go Back</a>
         </div>
         """
+    
+    # Check for duplicate check-in or check-out today
+    today_start = dt.now(pytz.timezone('Asia/Kolkata')).replace(hour=0, minute=0, second=0, microsecond=0)
+    today_end = today_start + timedelta(days=1)
+    
+    # Get today's attendance records for this employee
+    today_records = Attendance.query.filter(
+        Attendance.tenant_id == tenant_id,
+        Attendance.employee_id == employee.id,
+        Attendance.timestamp >= today_start,
+        Attendance.timestamp < today_end
+    ).order_by(Attendance.timestamp.desc()).all()
+    
+    # Check if already checked in (and not checked out yet)
+    if action == 'check_in':
+        # Look for the most recent record
+        if today_records:
+            last_record = today_records[0]
+            if last_record.type == 'check_in':
+                # Last action was check-in, so employee is already checked in
+                last_time = last_record.timestamp.strftime('%I:%M %p')
+                return f"""
+                <div style="text-align: center; padding: 50px; font-family: Arial;">
+                    <h2 style="color: #ff9800;">⚠️ Already Checked In!</h2>
+                    <p style="font-size: 18px;"><strong>{employee.name}</strong></p>
+                    <p>You already checked in at <strong>{last_time}</strong></p>
+                    <p style="color: #666; margin-top: 15px;">Please check out first before checking in again.</p>
+                    <a href='/attendance' style="display: inline-block; margin-top: 20px; padding: 10px 20px; background: #4CAF50; color: white; text-decoration: none; border-radius: 5px;">← Go Back</a>
+                </div>
+                """
+    
+    # Check if trying to check out without checking in first
+    elif action == 'check_out':
+        if not today_records or today_records[0].type == 'check_out':
+            # No records today or last action was check-out
+            return f"""
+            <div style="text-align: center; padding: 50px; font-family: Arial;">
+                <h2 style="color: #ff9800;">⚠️ Cannot Check Out</h2>
+                <p style="font-size: 18px;"><strong>{employee.name}</strong></p>
+                <p>You haven't checked in yet today!</p>
+                <p style="color: #666; margin-top: 15px;">Please check in first.</p>
+                <a href='/attendance' style="display: inline-block; margin-top: 20px; padding: 10px 20px; background: #4CAF50; color: white; text-decoration: none; border-radius: 5px;">← Go Back</a>
+            </div>
+            """
 
     # Validate GPS (MANDATORY - must be at site location)
     try:
@@ -87,13 +132,16 @@ def submit():
         site_loc = (site.latitude, site.longitude)
         distance = geodesic(user_loc, site_loc).meters
         
+        # Get allowed radius (handle both old 'radius' and new 'allowed_radius' column names)
+        max_allowed_distance = getattr(site, 'allowed_radius', getattr(site, 'radius', 100))
+        
         # Check if within allowed radius (MANDATORY)
-        if distance > site.allowed_radius:
+        if distance > max_allowed_distance:
             return f"""
             <div style="text-align: center; padding: 50px; font-family: Arial;">
                 <h2 style="color: #dc3545;">❌ Too Far from Site</h2>
                 <p>You are <strong>{int(distance)} meters</strong> away from the site.</p>
-                <p style="color: #666;">Maximum allowed distance: <strong>{int(site.allowed_radius)} meters</strong></p>
+                <p style="color: #666;">Maximum allowed distance: <strong>{int(max_allowed_distance)} meters</strong></p>
                 <p style="color: #ff6b6b; margin-top: 20px;">Please move closer to the site location to mark attendance.</p>
                 <a href='/attendance' style="display: inline-block; margin-top: 20px; padding: 10px 20px; background: #4CAF50; color: white; text-decoration: none; border-radius: 5px;">← Go Back</a>
             </div>
