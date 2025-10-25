@@ -96,6 +96,16 @@ app.register_blueprint(admin_bp)
 @app.route('/')
 def index():
     """Main landing page"""
+    from flask import g
+    
+    # Check if tenant subdomain is present
+    tenant = getattr(g, 'tenant', None)
+    
+    if tenant:
+        # If accessing with subdomain, redirect to admin dashboard
+        return redirect(url_for('admin.dashboard'))
+    
+    # Base domain - show landing page
     return render_template('index.html')
 
 @app.route('/selfie/<filename>')
