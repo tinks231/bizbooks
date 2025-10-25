@@ -275,27 +275,31 @@ def db_info():
 # Run application
 # ============================================================
 if __name__ == '__main__':
-    # Check if SSL certificates exist
+    # Get port from environment (for Render/Railway) or use config
+    port = int(os.environ.get('PORT', config.PORT))
+    host = os.environ.get('HOST', config.HOST)
+    
+    # SSL is handled by cloud platforms (Render/Railway)
+    # Only use SSL for local development
     ssl_context = None
     if os.path.exists('cert.pem') and os.path.exists('key.pem'):
         ssl_context = ('cert.pem', 'key.pem')
         print("🔒 Running with HTTPS (SSL enabled)")
     else:
-        print("⚠️  Running without HTTPS (SSL certificates not found)")
-        print("   For production, generate SSL certificates!")
+        print("⚠️  Running without HTTPS (SSL handled by hosting platform)")
     
     # Run app
     print(f"\n{'='*60}")
     print(f"🚀 Modular Business Management System")
     print(f"{'='*60}")
-    print(f"📍 URL: https://127.0.0.1:{config.PORT}")
+    print(f"📍 Host: {host}:{port}")
     print(f"🗄️  Database: {config.DATABASE_URI}")
     print(f"👤 Default Admin: admin / admin123")
     print(f"{'='*60}\n")
     
     app.run(
-        host=config.HOST,
-        port=config.PORT,
+        host=host,
+        port=port,
         debug=config.DEBUG,
         ssl_context=ssl_context
     )

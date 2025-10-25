@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: bizbooks
+    runtime: python
+    buildCommand: "cd modular_app && pip install -r requirements.txt"
+    startCommand: "cd modular_app && gunicorn app:app --bind 0.0.0.0:$PORT"
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.9.18
+      - key: PORT
+        value: 10000
+
