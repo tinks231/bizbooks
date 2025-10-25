@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Site{% endblock %}
+
+{% block nav_links %}
+<a href="/admin/dashboard">Dashboard</a>
+<a href="/admin/employees">Employees</a>
+<a href="/admin/sites">Sites</a>
+<a href="/admin/inventory">Inventory</a>
+<a href="/admin/logout">Logout</a>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h1>✏️ Edit Site: {{ site.name }}</h1>
+    
+    <form method="POST" style="max-width: 600px; margin-top: 30px;">
+        <div class="form-group">
+            <label>Site Name:</label>
+            <input type="text" name="name" value="{{ site.name }}" required>
+        </div>
+        
+        <div class="form-group">
+            <label>Address:</label>
+            <input type="text" name="address" value="{{ site.address or '' }}">
+        </div>
+        
+        <div class="form-group">
+            <label>Latitude:</label>
+            <input type="number" name="latitude" step="0.000001" value="{{ site.latitude }}" required>
+            <small style="color: #666; font-size: 0.85em;">Get coordinates from Google Maps (right-click → coordinates)</small>
+        </div>
+        
+        <div class="form-group">
+            <label>Longitude:</label>
+            <input type="number" name="longitude" step="0.000001" value="{{ site.longitude }}" required>
+        </div>
+        
+        <div class="form-group">
+            <label>Allowed Radius (meters):</label>
+            <input type="number" name="allowed_radius" value="{{ site.allowed_radius }}" required>
+            <small style="color: #666; font-size: 0.85em;">Employees must be within this distance to mark attendance</small>
+        </div>
+        
+        <div style="display: flex; gap: 10px; margin-top: 20px;">
+            <button type="submit" class="btn btn-success">💾 Save Changes</button>
+            <a href="/admin/sites" class="btn" style="background: #6c757d;">← Cancel</a>
+        </div>
+    </form>
+</div>
+
+<div class="card" style="margin-top: 20px; background: #f8f9fa; border-left: 4px solid #17a2b8;">
+    <h3>📍 How to Get GPS Coordinates:</h3>
+    <ol style="line-height: 1.8;">
+        <li><strong>On Phone:</strong> Open Google Maps → Long-press on your site location → Copy coordinates</li>
+        <li><strong>On Computer:</strong> Go to Google Maps → Right-click on your site → Click coordinates at top to copy</li>
+        <li><strong>Example:</strong> 19.0760, 72.8777 (Mumbai)</li>
+    </ol>
+    <p style="margin-top: 15px; color: #666;">
+        <strong>⚠️ Important:</strong> Set accurate coordinates and radius to ensure employees can only mark attendance from the actual site location!
+    </p>
+</div>
+{% endblock %}
+

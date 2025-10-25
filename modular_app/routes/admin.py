@@ -182,13 +182,35 @@ def add_site():
     address = request.form.get('address')
     latitude = float(request.form.get('latitude', 0))
     longitude = float(request.form.get('longitude', 0))
+    allowed_radius = float(request.form.get('allowed_radius', 100))
     
-    site = Site(tenant_id=tenant_id, name=name, address=address, latitude=latitude, longitude=longitude)
+    site = Site(tenant_id=tenant_id, name=name, address=address, latitude=latitude, longitude=longitude, allowed_radius=allowed_radius)
     db.session.add(site)
     db.session.commit()
     
     flash(f'Site {name} added successfully!', 'success')
     return redirect(url_for('admin.sites'))
+
+@admin_bp.route('/site/edit/<int:site_id>', methods=['GET', 'POST'])
+@require_tenant
+@login_required
+def edit_site(site_id):
+    """Edit site details"""
+    tenant_id = get_current_tenant_id()
+    site = Site.query.filter_by(tenant_id=tenant_id, id=site_id).first_or_404()
+    
+    if request.method == 'POST':
+        site.name = request.form.get('name')
+        site.address = request.form.get('address')
+        site.latitude = float(request.form.get('latitude', 0))
+        site.longitude = float(request.form.get('longitude', 0))
+        site.allowed_radius = float(request.form.get('allowed_radius', 100))
+        
+        db.session.commit()
+        flash(f'Site "{site.name}" updated successfully!', 'success')
+        return redirect(url_for('admin.sites'))
+    
+    return render_template('admin/edit_site.html', site=site)
 
 # Inventory Management
 @admin_bp.route('/inventory')
