@@ -52,11 +52,17 @@ app.config['SELFIE_FOLDER'] = config.SELFIE_FOLDER
 app.config['DOCUMENT_FOLDER'] = config.DOCUMENT_FOLDER
 app.config['INVENTORY_IMAGES_FOLDER'] = config.INVENTORY_IMAGES_FOLDER
 
-# Create upload folders
-os.makedirs(config.SELFIE_FOLDER, exist_ok=True)
-os.makedirs(config.DOCUMENT_FOLDER, exist_ok=True)
-os.makedirs(config.INVENTORY_IMAGES_FOLDER, exist_ok=True)
-os.makedirs('instance', exist_ok=True)
+# Create upload folders (only for local development, not on Vercel)
+if not os.environ.get('VERCEL'):
+    try:
+        os.makedirs(config.SELFIE_FOLDER, exist_ok=True)
+        os.makedirs(config.DOCUMENT_FOLDER, exist_ok=True)
+        os.makedirs(config.INVENTORY_IMAGES_FOLDER, exist_ok=True)
+        os.makedirs('instance', exist_ok=True)
+    except (OSError, PermissionError) as e:
+        print(f"⚠️  Could not create upload folders: {e}")
+        print("💡 This is normal on serverless platforms (Vercel)")
+        print("📦 Files will be stored in database or cloud storage (S3/R2)")
 
 # Initialize database
 init_db(app)
