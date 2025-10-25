@@ -12,11 +12,14 @@ class Config:
         self.config_file = config_file
         self.config = configparser.ConfigParser()
         
-        # Load config if exists
-        if os.path.exists(config_file):
+        # Check if running on Vercel (read-only filesystem)
+        self.is_vercel = os.environ.get('VERCEL') == '1'
+        
+        # Load config if exists (only for local dev)
+        if not self.is_vercel and os.path.exists(config_file):
             self.config.read(config_file)
         else:
-            # Create default config
+            # Create default config in memory only
             self.create_default_config()
     
     def create_default_config(self):
@@ -51,10 +54,15 @@ class Config:
             'ALLOWED_EXTENSIONS': 'png,jpg,jpeg,pdf'
         }
         
-        # Save default config
-        os.makedirs(os.path.dirname(self.config_file), exist_ok=True)
-        with open(self.config_file, 'w') as f:
-            self.config.write(f)
+        # Save default config (only for local dev, not on Vercel)
+        if not self.is_vercel:
+            try:
+                os.makedirs(os.path.dirname(self.config_file), exist_ok=True)
+                with open(self.config_file, 'w') as f:
+                    self.config.write(f)
+            except (OSError, PermissionError):
+                # Filesystem is read-only (cloud deployment)
+                pass
     
     def get(self, section, key, fallback=None):
         """Get configuration value"""
@@ -91,14 +99,28 @@ class Config:
         self.config[section][key] = str(value)
     
     def save(self):
-        """Save configuration to file"""
-        with open(self.config_file, 'w') as f:
-            self.config.write(f)
+        """Save configuration to file (only for local dev)"""
+        if not self.is_vercel:
+            try:
+                with open(self.config_file, 'w') as f:
+                    self.config.write(f)
+            except (OSError, PermissionError):
+                # Filesystem is read-only (cloud deployment)
+                pass
     
     # Convenience properties
     @property
     def SECRET_KEY(self):
-        return self.get('APP', 'SECRET_KEY')
+        # Use environment variable first, then config file, then generate one
+        secret = os.environ.get('SECRET_KEY') or self.get('APP', 'SECRET_KEY')
+        if not secret:
+            secret = os.urandom(24).hex()
+        return secret
+    
+    @property
+    def BASE_DOMAIN(self):
+        """Base domain for multi-tenant (e.g., 'bizbooks.co.in')"""
+        return os.environ.get('BASE_DOMAIN') or self.get('APP', 'BASE_DOMAIN', 'bizbooks.co.in')
     
     @property
     def PORT(self):
