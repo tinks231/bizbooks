@@ -146,7 +146,17 @@ def submit():
     # Show distance and format time in IST
     distance_text = f"{int(distance)} meters from site"
     action_text = "Check In" if action == "check_in" else "Check Out"
-    ist_time = record.timestamp.strftime('%I:%M %p')
+    
+    # Ensure timestamp is displayed in IST
+    if record.timestamp.tzinfo is None:
+        # If naive, assume UTC and convert to IST
+        utc_time = pytz.UTC.localize(record.timestamp)
+        ist_time_obj = utc_time.astimezone(ist)
+    else:
+        # If already timezone-aware, convert to IST
+        ist_time_obj = record.timestamp.astimezone(ist)
+    
+    ist_time = ist_time_obj.strftime('%I:%M %p')
     
     return f"""
     <div style="text-align: center; padding: 50px; font-family: Arial;">
