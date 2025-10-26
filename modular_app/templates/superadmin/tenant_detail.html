@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{{ tenant.company_name }} - Details</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body { font-family: Arial; margin: 0; padding: 20px; background: #f5f5f5; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; padding: 20px; background: white; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .header h1 { margin: 0; color: #667eea; }
+        .back-btn { padding: 10px 20px; background: #95a5a6; color: white; text-decoration: none; border-radius: 5px; }
+        .back-btn:hover { background: #7f8c8d; }
+        .info-card { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        .info-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px; }
+        .info-item { padding: 10px; background: #f8f9fa; border-radius: 5px; }
+        .info-item strong { display: block; color: #7f8c8d; font-size: 0.9em; margin-bottom: 5px; }
+        .info-item span { font-size: 1.1em; color: #2c3e50; }
+        .section { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        .section h2 { margin-top: 0; color: #2c3e50; border-bottom: 2px solid #667eea; padding-bottom: 10px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        th, td { padding: 10px; text-align: left; border-bottom: 1px solid #ddd; }
+        th { background: #f8f9fa; font-weight: bold; }
+        tr:hover { background: #f5f5f5; }
+        .badge { display: inline-block; padding: 4px 8px; border-radius: 3px; font-size: 0.85em; }
+        .badge-green { background: #d4edda; color: #155724; }
+        .badge-red { background: #f8d7da; color: #721c24; }
+        .photo { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; }
+        .no-data { text-align: center; padding: 40px; color: #7f8c8d; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>📊 {{ tenant.company_name }}</h1>
+        <a href="/superadmin/dashboard" class="back-btn">← Back to Dashboard</a>
+    </div>
+    
+    <div class="info-card">
+        <h2>Account Information</h2>
+        <div class="info-grid">
+            <div class="info-item">
+                <strong>Subdomain:</strong>
+                <span><a href="https://{{ tenant.subdomain }}.bizbooks.co.in" target="_blank">{{ tenant.subdomain }}.bizbooks.co.in</a></span>
+            </div>
+            <div class="info-item">
+                <strong>Admin Name:</strong>
+                <span>{{ tenant.admin_name }}</span>
+            </div>
+            <div class="info-item">
+                <strong>Admin Email:</strong>
+                <span>{{ tenant.admin_email }}</span>
+            </div>
+            <div class="info-item">
+                <strong>Registered:</strong>
+                <span>{{ tenant.created_at.strftime('%Y-%m-%d %H:%M') }}</span>
+            </div>
+            <div class="info-item">
+                <strong>Last Login:</strong>
+                <span>{% if tenant.last_login_at %}{{ tenant.last_login_at.strftime('%Y-%m-%d %H:%M') }}{% else %}Never{% endif %}</span>
+            </div>
+        </div>
+    </div>
+    
+    <div class="section">
+        <h2>👥 Employees ({{ employees|length }})</h2>
+        {% if employees %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>PIN</th>
+                    <th>Phone</th>
+                    <th>Site</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for emp in employees %}
+                <tr>
+                    <td><strong>{{ emp.name }}</strong></td>
+                    <td>{{ emp.pin }}</td>
+                    <td>{{ emp.phone or '—' }}</td>
+                    <td>{{ emp.site.name if emp.site else '—' }}</td>
+                    <td>
+                        {% if emp.active %}
+                        <span class="badge badge-green">Active</span>
+                        {% else %}
+                        <span class="badge badge-red">Inactive</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="no-data">No employees yet</div>
+        {% endif %}
+    </div>
+    
+    <div class="section">
+        <h2>📅 Recent Attendance (Last 50)</h2>
+        {% if attendance %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Date/Time</th>
+                    <th>Employee</th>
+                    <th>Type</th>
+                    <th>Photo</th>
+                    <th>Distance</th>
+                    <th>Manual</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for att in attendance %}
+                <tr>
+                    <td>{{ att.timestamp.strftime('%Y-%m-%d %I:%M %p') }}</td>
+                    <td><strong>{{ att.employee_name }}</strong></td>
+                    <td>
+                        {% if att.type == 'check_in' %}
+                        <span class="badge badge-green">Check In</span>
+                        {% else %}
+                        <span class="badge badge-red">Check Out</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if att.photo and att.photo != 'manual_entry.jpg' %}
+                            {% if att.photo.startswith('http') %}
+                            <img src="{{ att.photo }}" class="photo">
+                            {% else %}
+                            <img src="/selfie/{{ att.photo }}" class="photo">
+                            {% endif %}
+                        {% else %}
+                        —
+                        {% endif %}
+                    </td>
+                    <td>{{ '%.0f'|format(att.distance) }}m</td>
+                    <td>{% if att.manual_entry %}✅{% else %}—{% endif %}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="no-data">No attendance records yet</div>
+        {% endif %}
+    </div>
+    
+    <div class="section">
+        <h2>🏢 Sites ({{ sites|length }})</h2>
+        {% if sites %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Address</th>
+                    <th>Coordinates</th>
+                    <th>Allowed Radius</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for site in sites %}
+                <tr>
+                    <td><strong>{{ site.name }}</strong></td>
+                    <td>{{ site.address or '—' }}</td>
+                    <td>{{ '%.4f'|format(site.latitude) }}, {{ '%.4f'|format(site.longitude) }}</td>
+                    <td>{{ site.allowed_radius or site.radius or 100 }}m</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="no-data">No sites yet</div>
+        {% endif %}
+    </div>
+    
+    <div class="section">
+        <h2>📦 Inventory Materials ({{ materials|length }})</h2>
+        {% if materials %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Material</th>
+                    <th>Category</th>
+                    <th>Unit</th>
+                    <th>Description</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for material in materials %}
+                <tr>
+                    <td><strong>{{ material.name }}</strong></td>
+                    <td>{{ material.category or '—' }}</td>
+                    <td>{{ material.unit }}</td>
+                    <td>{{ material.description or '—' }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="no-data">No inventory materials yet</div>
+        {% endif %}
+    </div>
+</body>
+</html>
+
