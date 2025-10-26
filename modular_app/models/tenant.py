@@ -56,7 +56,7 @@ class Tenant(db.Model):
     @property
     def is_trial(self):
         """Check if tenant is in trial period"""
-        return self.status == 'trial' and self.trial_ends_at > datetime.utcnow()
+        return self.status == 'trial' and self.trial_ends_at and self.trial_ends_at > datetime.utcnow()
     
     @property
     def is_active(self):
@@ -64,21 +64,24 @@ class Tenant(db.Model):
         if self.status == 'suspended':
             return False
         if self.status == 'trial':
+            # If no trial_ends_at set, allow access (backward compatibility for old accounts)
+            if not self.trial_ends_at:
+                return True  # Old accounts without trial date keep working
             return self.trial_ends_at > datetime.utcnow()
         if self.subscription_ends_at:
             return self.subscription_ends_at > datetime.utcnow()
-        return True
+        return True  # Default: allow access
     
     @property
     def days_remaining(self):
         """Get days remaining in trial or subscription"""
-        if self.status == 'trial':
+        if self.status == 'trial' and self.trial_ends_at:
             delta = self.trial_ends_at - datetime.utcnow()
             return max(0, delta.days)
         if self.subscription_ends_at:
             delta = self.subscription_ends_at - datetime.utcnow()
             return max(0, delta.days)
-        return 0
+        return 0  # No trial date set
     
     @property
     def employee_count(self):
