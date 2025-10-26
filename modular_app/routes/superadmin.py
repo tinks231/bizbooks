@@ -93,19 +93,87 @@ def view_tenant(tenant_id):
 
 @superadmin_bp.route('/tenant/<int:tenant_id>/delete', methods=['POST'])
 def delete_tenant(tenant_id):
-    """Delete a tenant and all their data"""
+    """Delete a tenant and all their data (including Blob storage files)"""
     if not is_superadmin():
         return redirect(url_for('superadmin.login'))
     
+    import os
     tenant = Tenant.query.get_or_404(tenant_id)
     company_name = tenant.company_name
     
-    # Delete tenant (cascade will delete all related data)
+    # Step 1: Delete Vercel Blob files (if deployed on Vercel)
+    deleted_files = 0
+    if os.environ.get('VERCEL'):
+        import requests
+        blob_token = os.environ.get('BLOB_READ_WRITE_TOKEN')
+        
+        if blob_token:
+            # Delete attendance photos
+            attendance_records = Attendance.query.filter_by(tenant_id=tenant_id).all()
+            for record in attendance_records:
+                if record.photo and record.photo.startswith('http'):
+                    # It's a Blob URL, delete it
+                    try:
+                        response = requests.delete(
+                            record.photo,
+                            headers={'Authorization': f'Bearer {blob_token}'}
+                        )
+                        if response.status_code == 200:
+                            deleted_files += 1
+                    except Exception as e:
+                        print(f"Failed to delete blob {record.photo}: {e}")
+            
+            # Delete employee documents
+            employees = Employee.query.filter_by(tenant_id=tenant_id).all()
+            for employee in employees:
+                if employee.document_path and employee.document_path.startswith('http'):
+                    # It's a Blob URL, delete it
+                    try:
+                        response = requests.delete(
+                            employee.document_path,
+                            headers={'Authorization': f'Bearer {blob_token}'}
+                        )
+                        if response.status_code == 200:
+                            deleted_files += 1
+                    except Exception as e:
+                        print(f"Failed to delete blob {employee.document_path}: {e}")
+    else:
+        # Local development: Delete files from filesystem
+        import os as os_module
+        
+        # Delete attendance photos
+        attendance_records = Attendance.query.filter_by(tenant_id=tenant_id).all()
+        for record in attendance_records:
+            if record.photo and not record.photo.startswith('http') and record.photo != 'manual_entry.jpg':
+                photo_path = os_module.path.join(os_module.path.dirname(os_module.path.abspath(__file__)), '..', 'uploads', 'selfies', record.photo)
+                if os_module.path.exists(photo_path):
+                    try:
+                        os_module.remove(photo_path)
+                        deleted_files += 1
+                    except Exception as e:
+                        print(f"Failed to delete file {photo_path}: {e}")
+        
+        # Delete employee documents
+        employees = Employee.query.filter_by(tenant_id=tenant_id).all()
+        for employee in employees:
+            if employee.document_path and not employee.document_path.startswith('http'):
+                doc_path = os_module.path.join(os_module.path.dirname(os_module.path.abspath(__file__)), '..', 'uploads', 'documents', employee.document_path)
+                if os_module.path.exists(doc_path):
+                    try:
+                        os_module.remove(doc_path)
+                        deleted_files += 1
+                    except Exception as e:
+                        print(f"Failed to delete file {doc_path}: {e}")
+    
+    # Step 2: Delete database records (cascade will delete all related data)
     db.session.delete(tenant)
     db.session.commit()
     
     from flask import flash
-    flash(f'✅ Deleted {company_name} and all their data', 'success')
+    if deleted_files > 0:
+        flash(f'✅ Deleted {company_name} and all their data ({deleted_files} files removed from storage)', 'success')
+    else:
+        flash(f'✅ Deleted {company_name} and all their data', 'success')
     return redirect(url_for('superadmin.dashboard'))
 
 @superadmin_bp.route('/tenant/<int:tenant_id>/extend-trial', methods=['POST'])
