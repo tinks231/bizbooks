@@ -124,7 +124,7 @@
             {% endif %}
             
             <form method="POST" action="/superadmin/tenant/{{ tenant.id }}/delete" style="display: inline;">
-                <button type="submit" style="padding: 10px 20px; background: #dc3545; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold;" onclick="return confirm('⚠️ DELETE {{ tenant.company_name }}?\n\nThis will permanently delete:\n• All employees\n• All attendance records\n• All sites\n• All inventory data\n\nThis action CANNOT be undone!')">
+                <button type="submit" style="padding: 10px 20px; background: #dc3545; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold;" onclick="return confirm('⚠️ DELETE {{ tenant.company_name }}?\n\nThis will permanently delete:\n• All employees\n• All attendance records\n• All sites\n• All inventory data\n• All photos from Blob storage\n• All documents from Blob storage\n\nStorage space will be reclaimed.\n\nThis action CANNOT be undone!')">
                     🗑️ Delete Account
                 </button>
             </form>

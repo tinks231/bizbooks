@@ -124,7 +124,7 @@
                             <form method="POST" action="/superadmin/tenant/{{ stat.tenant.id }}/delete" style="display: inline; margin: 0;">
                                 <button type="submit" 
                                         style="padding: 6px 12px; background: #dc3545; color: white; border: none; border-radius: 5px; font-size: 0.9em; cursor: pointer;"
-                                        onclick="return confirm('⚠️ DELETE {{ stat.tenant.company_name }}?\n\n{{ stat.employee_count }} employees\n{{ stat.attendance_count }} attendance records\n{{ stat.site_count }} sites\n{{ stat.material_count }} materials\n\nAll data will be PERMANENTLY deleted!\n\nThis action CANNOT be undone!')">
+                                        onclick="return confirm('⚠️ DELETE {{ stat.tenant.company_name }}?\n\nThis will permanently delete:\n• {{ stat.employee_count }} employees\n• {{ stat.attendance_count }} attendance records\n• {{ stat.site_count }} sites\n• {{ stat.material_count }} materials\n• All photos from Blob storage\n• All documents from Blob storage\n\nStorage space will be reclaimed.\n\nThis action CANNOT be undone!')">
                                     🗑️ Delete
                                 </button>
                             </form>
