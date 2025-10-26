@@ -164,3 +164,28 @@ def suspend_tenant(tenant_id):
     flash(f'⚠️ Suspended {tenant.company_name}', 'warning')
     return redirect(url_for('superadmin.view_tenant', tenant_id=tenant_id))
 
+@superadmin_bp.route('/fix-licenses')
+def fix_licenses():
+    """One-time fix: Set trial_ends_at for existing accounts"""
+    if not is_superadmin():
+        return redirect(url_for('superadmin.login'))
+    
+    from datetime import datetime, timedelta
+    
+    # Find tenants without trial_ends_at
+    tenants_without_license = Tenant.query.filter(Tenant.trial_ends_at == None).all()
+    
+    fixed_count = 0
+    for tenant in tenants_without_license:
+        # Give them 30 days from now
+        tenant.trial_ends_at = datetime.utcnow() + timedelta(days=30)
+        tenant.status = 'trial'
+        tenant.plan = 'trial'
+        fixed_count += 1
+    
+    db.session.commit()
+    
+    from flask import flash
+    flash(f'✅ Fixed {fixed_count} accounts - gave them 30-day trial from today', 'success')
+    return redirect(url_for('superadmin.dashboard'))
+

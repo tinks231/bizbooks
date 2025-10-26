@@ -59,6 +59,78 @@
         </div>
     </div>
     
+    <div class="info-card" style="background: #f8f9fa;">
+        <h2>🔐 License & Subscription</h2>
+        <div class="info-grid">
+            <div class="info-item">
+                <strong>Status:</strong>
+                <span>
+                    {% if not tenant.trial_ends_at %}
+                    <span style="background: #ffc107; color: #000; padding: 4px 8px; border-radius: 3px;">⚠️ NO LICENSE SET</span>
+                    {% elif tenant.status == 'suspended' %}
+                    <span style="background: #f8d7da; color: #721c24; padding: 4px 8px; border-radius: 3px;">❌ Suspended</span>
+                    {% elif tenant.is_active %}
+                        {% if tenant.status == 'trial' %}
+                        <span style="background: #fff3cd; color: #856404; padding: 4px 8px; border-radius: 3px;">🔄 Trial Active</span>
+                        {% else %}
+                        <span style="background: #d4edda; color: #155724; padding: 4px 8px; border-radius: 3px;">✅ Pro Active</span>
+                        {% endif %}
+                    {% else %}
+                    <span style="background: #f8d7da; color: #721c24; padding: 4px 8px; border-radius: 3px;">⏰ Expired</span>
+                    {% endif %}
+                </span>
+            </div>
+            <div class="info-item">
+                <strong>Plan:</strong>
+                <span style="text-transform: capitalize;">{{ tenant.plan or 'trial' }}</span>
+            </div>
+            <div class="info-item">
+                <strong>Trial Ends:</strong>
+                <span>{% if tenant.trial_ends_at %}{{ tenant.trial_ends_at.strftime('%Y-%m-%d %H:%M') }}{% else %}<span style="color: #999;">Not Set</span>{% endif %}</span>
+            </div>
+            <div class="info-item">
+                <strong>Days Remaining:</strong>
+                <span>
+                    {% if tenant.trial_ends_at and tenant.is_active %}
+                    <strong style="color: #28a745;">{{ tenant.days_remaining }} days</strong>
+                    {% elif not tenant.trial_ends_at %}
+                    —
+                    {% else %}
+                    <strong style="color: #dc3545;">Expired</strong>
+                    {% endif %}
+                </span>
+            </div>
+        </div>
+        
+        <div style="margin-top: 20px; display: flex; gap: 10px; flex-wrap: wrap;">
+            <form method="POST" action="/superadmin/tenant/{{ tenant.id }}/extend-trial" style="display: inline;">
+                <button type="submit" style="padding: 10px 20px; background: #17a2b8; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold;">
+                    ⏰ Extend Trial (+30 days)
+                </button>
+            </form>
+            
+            <form method="POST" action="/superadmin/tenant/{{ tenant.id }}/activate" style="display: inline;">
+                <button type="submit" style="padding: 10px 20px; background: #28a745; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold;">
+                    ✅ Activate Pro (1 year)
+                </button>
+            </form>
+            
+            {% if tenant.status != 'suspended' %}
+            <form method="POST" action="/superadmin/tenant/{{ tenant.id }}/suspend" style="display: inline;">
+                <button type="submit" style="padding: 10px 20px; background: #ffc107; color: #000; border: none; border-radius: 5px; cursor: pointer; font-weight: bold;" onclick="return confirm('Suspend this account? Users will lose access immediately.')">
+                    ⏸️ Suspend Account
+                </button>
+            </form>
+            {% endif %}
+            
+            <form method="POST" action="/superadmin/tenant/{{ tenant.id }}/delete" style="display: inline;">
+                <button type="submit" style="padding: 10px 20px; background: #dc3545; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold;" onclick="return confirm('⚠️ DELETE {{ tenant.company_name }}?\n\nThis will permanently delete:\n• All employees\n• All attendance records\n• All sites\n• All inventory data\n\nThis action CANNOT be undone!')">
+                    🗑️ Delete Account
+                </button>
+            </form>
+        </div>
+    </div>
+    
     <div class="section">
         <h2>👥 Employees ({{ employees|length }})</h2>
         {% if employees %}

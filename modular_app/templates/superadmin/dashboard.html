@@ -62,12 +62,13 @@
                     <th>Company Name</th>
                     <th>Subdomain</th>
                     <th>Admin Email</th>
+                    <th>License Status</th>
+                    <th>Days Left</th>
+                    <th>Trial Ends</th>
                     <th>Employees</th>
                     <th>Attendance</th>
                     <th>Sites</th>
-                    <th>Inventory</th>
                     <th>Registered</th>
-                    <th>Last Login</th>
                     <th>Actions</th>
                 </tr>
             </thead>
@@ -82,20 +83,52 @@
                         </a>
                     </td>
                     <td>{{ stat.tenant.admin_email }}</td>
-                    <td><span class="badge badge-success">{{ stat.employee_count }}</span></td>
-                    <td><span class="badge badge-info">{{ stat.attendance_count }}</span></td>
-                    <td><span class="badge badge-warning">{{ stat.site_count }}</span></td>
-                    <td><span class="badge badge-success">{{ stat.material_count }}</span></td>
-                    <td>{{ stat.tenant.created_at.strftime('%Y-%m-%d') }}</td>
                     <td>
-                        {% if stat.tenant.last_login_at %}
-                        {{ stat.tenant.last_login_at.strftime('%Y-%m-%d %H:%M') }}
+                        {% if not stat.tenant.trial_ends_at %}
+                        <span class="badge" style="background: #ffc107; color: #000;">⚠️ NO LICENSE</span>
+                        {% elif stat.tenant.status == 'suspended' %}
+                        <span class="badge badge-error">❌ Suspended</span>
+                        {% elif stat.tenant.is_active %}
+                            {% if stat.tenant.status == 'trial' %}
+                            <span class="badge badge-warning">🔄 Trial</span>
+                            {% else %}
+                            <span class="badge badge-success">✅ Active (Pro)</span>
+                            {% endif %}
                         {% else %}
-                        Never
+                        <span class="badge" style="background: #f8d7da; color: #721c24;">⏰ Expired</span>
                         {% endif %}
                     </td>
                     <td>
-                        <a href="/superadmin/tenant/{{ stat.tenant.id }}" class="view-btn">👁️ View Details</a>
+                        {% if stat.tenant.trial_ends_at and stat.tenant.is_active %}
+                        <strong>{{ stat.tenant.days_remaining }} days</strong>
+                        {% elif not stat.tenant.trial_ends_at %}
+                        —
+                        {% else %}
+                        <span style="color: #dc3545;">Expired</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if stat.tenant.trial_ends_at %}
+                        {{ stat.tenant.trial_ends_at.strftime('%Y-%m-%d') }}
+                        {% else %}
+                        <span style="color: #999;">Not Set</span>
+                        {% endif %}
+                    </td>
+                    <td><span class="badge badge-success">{{ stat.employee_count }}</span></td>
+                    <td><span class="badge badge-info">{{ stat.attendance_count }}</span></td>
+                    <td><span class="badge badge-warning">{{ stat.site_count }}</span></td>
+                    <td>{{ stat.tenant.created_at.strftime('%Y-%m-%d') }}</td>
+                    <td>
+                        <div style="display: flex; gap: 8px;">
+                            <a href="/superadmin/tenant/{{ stat.tenant.id }}" class="view-btn">👁️ View</a>
+                            <form method="POST" action="/superadmin/tenant/{{ stat.tenant.id }}/delete" style="display: inline; margin: 0;">
+                                <button type="submit" 
+                                        style="padding: 6px 12px; background: #dc3545; color: white; border: none; border-radius: 5px; font-size: 0.9em; cursor: pointer;"
+                                        onclick="return confirm('⚠️ DELETE {{ stat.tenant.company_name }}?\n\n{{ stat.employee_count }} employees\n{{ stat.attendance_count }} attendance records\n{{ stat.site_count }} sites\n{{ stat.material_count }} materials\n\nAll data will be PERMANENTLY deleted!\n\nThis action CANNOT be undone!')">
+                                    🗑️ Delete
+                                </button>
+                            </form>
+                        </div>
                     </td>
                 </tr>
                 {% endfor %}
