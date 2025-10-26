@@ -6,14 +6,16 @@ from models import db, User, Employee, Site, Attendance, Material, Stock, StockM
 from datetime import datetime, timedelta
 from sqlalchemy import func
 from utils.tenant_middleware import require_tenant, get_current_tenant_id, get_current_tenant
+from utils.license_check import check_license
 import hashlib
 
 admin_bp = Blueprint('admin', __name__, url_prefix='/admin')
 
 def login_required(f):
-    """Decorator to require admin login"""
+    """Decorator to require admin login (also checks license)"""
     from functools import wraps
     @wraps(f)
+    @check_license  # ← Check license/trial before allowing access
     def decorated_function(*args, **kwargs):
         if 'tenant_admin_id' not in session:
             flash('Please login first', 'error')

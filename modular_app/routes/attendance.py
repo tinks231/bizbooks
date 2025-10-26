@@ -7,6 +7,7 @@ from models import db, Employee, Attendance, Site
 from datetime import datetime
 import pytz
 from utils.tenant_middleware import require_tenant, get_current_tenant_id
+from utils.license_check import check_license
 import base64
 import os
 
@@ -14,6 +15,7 @@ attendance_bp = Blueprint('attendance', __name__, url_prefix='/attendance')
 
 @attendance_bp.route('/')
 @require_tenant
+@check_license  # ← Check license/trial before allowing employee attendance
 def index():
     """Main attendance page"""
     tenant_id = get_current_tenant_id()

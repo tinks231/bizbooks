@@ -91,3 +91,76 @@ def view_tenant(tenant_id):
                          sites=sites,
                          materials=materials)
 
+@superadmin_bp.route('/tenant/<int:tenant_id>/delete', methods=['POST'])
+def delete_tenant(tenant_id):
+    """Delete a tenant and all their data"""
+    if not is_superadmin():
+        return redirect(url_for('superadmin.login'))
+    
+    tenant = Tenant.query.get_or_404(tenant_id)
+    company_name = tenant.company_name
+    
+    # Delete tenant (cascade will delete all related data)
+    db.session.delete(tenant)
+    db.session.commit()
+    
+    from flask import flash
+    flash(f'✅ Deleted {company_name} and all their data', 'success')
+    return redirect(url_for('superadmin.dashboard'))
+
+@superadmin_bp.route('/tenant/<int:tenant_id>/extend-trial', methods=['POST'])
+def extend_trial(tenant_id):
+    """Extend trial by 30 days"""
+    if not is_superadmin():
+        return redirect(url_for('superadmin.login'))
+    
+    from datetime import datetime, timedelta
+    tenant = Tenant.query.get_or_404(tenant_id)
+    
+    # Extend trial by 30 days
+    if tenant.trial_ends_at < datetime.utcnow():
+        # Already expired, extend from now
+        tenant.trial_ends_at = datetime.utcnow() + timedelta(days=30)
+    else:
+        # Still active, extend from current end date
+        tenant.trial_ends_at = tenant.trial_ends_at + timedelta(days=30)
+    
+    db.session.commit()
+    
+    from flask import flash
+    flash(f'✅ Extended trial for {tenant.company_name} by 30 days', 'success')
+    return redirect(url_for('superadmin.view_tenant', tenant_id=tenant_id))
+
+@superadmin_bp.route('/tenant/<int:tenant_id>/activate', methods=['POST'])
+def activate_tenant(tenant_id):
+    """Activate tenant (unlimited access)"""
+    if not is_superadmin():
+        return redirect(url_for('superadmin.login'))
+    
+    from datetime import datetime, timedelta
+    tenant = Tenant.query.get_or_404(tenant_id)
+    
+    tenant.status = 'active'
+    tenant.plan = 'pro'
+    tenant.subscription_ends_at = datetime.utcnow() + timedelta(days=365)  # 1 year
+    
+    db.session.commit()
+    
+    from flask import flash
+    flash(f'✅ Activated {tenant.company_name} with Pro plan for 1 year', 'success')
+    return redirect(url_for('superadmin.view_tenant', tenant_id=tenant_id))
+
+@superadmin_bp.route('/tenant/<int:tenant_id>/suspend', methods=['POST'])
+def suspend_tenant(tenant_id):
+    """Suspend tenant access"""
+    if not is_superadmin():
+        return redirect(url_for('superadmin.login'))
+    
+    tenant = Tenant.query.get_or_404(tenant_id)
+    tenant.status = 'suspended'
+    db.session.commit()
+    
+    from flask import flash
+    flash(f'⚠️ Suspended {tenant.company_name}', 'warning')
+    return redirect(url_for('superadmin.view_tenant', tenant_id=tenant_id))
+
