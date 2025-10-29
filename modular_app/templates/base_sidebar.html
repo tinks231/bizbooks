@@ -647,6 +647,17 @@
                 </a>
             </div>
             
+            <!-- Expenses Section -->
+            <div class="nav-section">
+                <div class="nav-section-title">Expenses</div>
+                <a href="/admin/expenses" class="nav-item {% if '/admin/expenses' in request.path %}active{% endif %}">
+                    <i>💰</i> All Expenses
+                </a>
+                <a href="/admin/expenses/categories" class="nav-item {% if '/admin/expenses/categories' in request.path %}active{% endif %}">
+                    <i>🏷️</i> Categories
+                </a>
+            </div>
+            
             <!-- Reports Section -->
             <div class="nav-section">
                 <div class="nav-section-title">Reports</div>
