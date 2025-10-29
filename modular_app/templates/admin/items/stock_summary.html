@@ -8,13 +8,17 @@
 <a href="{{ url_for('items.index') }}" class="btn btn-secondary">
     ← Back to Items
 </a>
+<!-- Mobile View Toggle (only shows on mobile) -->
+<button id="viewToggle" class="btn btn-primary" onclick="toggleView()" style="display: none;">
+    <span id="toggleIcon">📊</span> <span id="toggleText">Table View</span>
+</button>
 {% endblock %}
 
 {% block content %}
 
     {% if stock_data %}
-    <!-- Desktop Table View -->
-    <div class="desktop-table" style="background: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); overflow: hidden;">
+    <!-- Desktop Table View (Always visible on desktop) -->
+    <div id="tableView" class="desktop-table" style="background: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); overflow: hidden;">
         <table style="width: 100%; border-collapse: collapse;">
             <thead>
                 <tr style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
@@ -64,8 +68,8 @@
         </table>
     </div>
     
-    <!-- Mobile Card View -->
-    <div class="mobile-cards" style="display: none;">
+    <!-- Mobile Card View (Default on mobile) -->
+    <div id="cardView" class="mobile-cards" style="display: none;">
         {% for data in stock_data %}
         <div class="card" style="margin-bottom: 15px;">
             <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
@@ -117,14 +121,82 @@
     {% endif %}
     
 <style>
-    @media (max-width: 768px) {
-        .desktop-table {
+    /* Desktop: Always show table */
+    @media (min-width: 769px) {
+        #tableView {
+            display: block !important;
+        }
+        #cardView {
             display: none !important;
         }
-        .mobile-cards {
+        #viewToggle {
+            display: none !important;
+        }
+    }
+    
+    /* Mobile: Show toggle button and respect user preference */
+    @media (max-width: 768px) {
+        #viewToggle {
+            display: inline-block !important;
+        }
+        
+        /* Default: Card view */
+        #tableView {
+            display: none;
+        }
+        #cardView {
+            display: block;
+        }
+        
+        /* When table view selected */
+        body.show-table #tableView {
             display: block !important;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+        body.show-table #cardView {
+            display: none !important;
+        }
+        
+        /* Make table scrollable horizontally on mobile */
+        body.show-table #tableView table {
+            min-width: 800px;
         }
     }
 </style>
+
+<script>
+    function toggleView() {
+        const body = document.body;
+        const toggleIcon = document.getElementById('toggleIcon');
+        const toggleText = document.getElementById('toggleText');
+        
+        if (body.classList.contains('show-table')) {
+            // Switch to Card View
+            body.classList.remove('show-table');
+            toggleIcon.textContent = '📊';
+            toggleText.textContent = 'Table View';
+            localStorage.setItem('stockViewPreference', 'cards');
+        } else {
+            // Switch to Table View
+            body.classList.add('show-table');
+            toggleIcon.textContent = '📱';
+            toggleText.textContent = 'Card View';
+            localStorage.setItem('stockViewPreference', 'table');
+        }
+    }
+    
+    // Load user preference on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        const preference = localStorage.getItem('stockViewPreference');
+        const isMobile = window.innerWidth <= 768;
+        
+        if (isMobile && preference === 'table') {
+            document.body.classList.add('show-table');
+            document.getElementById('toggleIcon').textContent = '📱';
+            document.getElementById('toggleText').textContent = 'Card View';
+        }
+    });
+</script>
 {% endblock %}
 

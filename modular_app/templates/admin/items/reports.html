@@ -123,7 +123,7 @@
             {% for movement in recent_movements %}
             <tr style="border-bottom: 1px solid #e0e0e0;">
                 <td style="padding: 12px; color: #666; font-size: 13px;">
-                    {{ movement.movement_date.strftime('%d %b %Y, %I:%M %p') }}
+                    {{ movement.created_at.strftime('%d %b %Y, %I:%M %p') }}
                 </td>
                 <td style="padding: 12px; font-weight: 500;">{{ movement.item.name }}</td>
                 <td style="padding: 12px; text-align: center;">

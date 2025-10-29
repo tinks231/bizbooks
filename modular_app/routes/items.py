@@ -736,8 +736,8 @@ def reports():
     
     recent_movements = ItemStockMovement.query.join(Item)\
         .filter(Item.tenant_id == tenant_id)\
-        .filter(ItemStockMovement.movement_date >= thirty_days_ago)\
-        .order_by(ItemStockMovement.movement_date.desc())\
+        .filter(ItemStockMovement.created_at >= thirty_days_ago)\
+        .order_by(ItemStockMovement.created_at.desc())\
         .limit(100)\
         .all()
     
@@ -746,14 +746,14 @@ def reports():
         .join(Item)\
         .filter(Item.tenant_id == tenant_id)\
         .filter(ItemStockMovement.quantity > 0)\
-        .filter(ItemStockMovement.movement_date >= thirty_days_ago)\
+        .filter(ItemStockMovement.created_at >= thirty_days_ago)\
         .scalar() or 0
     
     movements_out = abs(db.session.query(func.sum(ItemStockMovement.quantity))\
         .join(Item)\
         .filter(Item.tenant_id == tenant_id)\
         .filter(ItemStockMovement.quantity < 0)\
-        .filter(ItemStockMovement.movement_date >= thirty_days_ago)\
+        .filter(ItemStockMovement.created_at >= thirty_days_ago)\
         .scalar() or 0)
     
     return render_template('admin/items/reports.html',
