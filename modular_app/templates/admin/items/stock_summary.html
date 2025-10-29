@@ -2,16 +2,19 @@
 
 {% block title %}Stock Summary - {{ tenant.company_name }}{% endblock %}
 
+{% block page_title %}Stock Summary{% endblock %}
+
+{% block header_actions %}
+<a href="{{ url_for('items.index') }}" class="btn btn-secondary">
+    ← Back to Items
+</a>
+{% endblock %}
+
 {% block content %}
-<div style="padding: 20px;">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">
-        <h1 style="margin: 0; font-size: 28px; color: #2c3e50;">
-            📊 Stock Summary
-        </h1>
-    </div>
 
     {% if stock_data %}
-    <div style="background: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); overflow: hidden;">
+    <!-- Desktop Table View -->
+    <div class="desktop-table" style="background: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); overflow: hidden;">
         <table style="width: 100%; border-collapse: collapse;">
             <thead>
                 <tr style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
@@ -60,6 +63,48 @@
             </tbody>
         </table>
     </div>
+    
+    <!-- Mobile Card View -->
+    <div class="mobile-cards" style="display: none;">
+        {% for data in stock_data %}
+        <div class="card" style="margin-bottom: 15px;">
+            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
+                <div>
+                    <div style="font-weight: 600; font-size: 16px; color: #2c3e50;">{{ data.item.name }}</div>
+                    <div style="color: #7f8c8d; font-size: 13px; margin-top: 3px;">SKU: {{ data.item.sku }}</div>
+                </div>
+                <div>
+                    {% if data.low_stock %}
+                    <span style="background: #fff3cd; color: #856404; padding: 5px 10px; border-radius: 15px; font-size: 11px; font-weight: 600;">
+                        ⚠️ Low
+                    </span>
+                    {% else %}
+                    <span style="background: #d4edda; color: #155724; padding: 5px 10px; border-radius: 15px; font-size: 11px; font-weight: 600;">
+                        ✅ Good
+                    </span>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div style="background: #f8f9fa; padding: 12px; border-radius: 6px; margin-bottom: 10px;">
+                <div style="font-size: 13px; color: #6c757d; margin-bottom: 5px;">Total Stock</div>
+                <div style="font-size: 24px; font-weight: 700; color: #2c3e50;">{{ data.total_stock }} <span style="font-size: 14px; font-weight: 400; color: #7f8c8d;">{{ data.item.unit }}</span></div>
+            </div>
+            
+            {% if sites|length > 0 %}
+            <div style="border-top: 1px solid #e9ecef; padding-top: 10px;">
+                <div style="font-size: 12px; color: #6c757d; margin-bottom: 8px; font-weight: 600;">Stock by Location:</div>
+                {% for site in sites %}
+                <div style="display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #f1f3f5;">
+                    <span style="color: #495057; font-size: 13px;">{{ site.name }}</span>
+                    <span style="font-weight: 600; color: #2c3e50;">{{ data.stock_by_site[site.id] }}</span>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
     {% else %}
     <div style="background: white; border-radius: 8px; padding: 40px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
         <div style="font-size: 48px; margin-bottom: 15px;">📦</div>
@@ -70,6 +115,16 @@
         </a>
     </div>
     {% endif %}
-</div>
+    
+<style>
+    @media (max-width: 768px) {
+        .desktop-table {
+            display: none !important;
+        }
+        .mobile-cards {
+            display: block !important;
+        }
+    }
+</style>
 {% endblock %}
 
