@@ -14,13 +14,18 @@ import os
 items_bp = Blueprint('items', __name__, url_prefix='/admin/items')
 
 def login_required(f):
-    """Check if user is logged in"""
+    """Decorator to require admin login (also checks license)"""
     @wraps(f)
-    @check_license
+    @check_license  # Check license/trial before allowing access
     def decorated_function(*args, **kwargs):
         from flask import session
-        if 'admin_id' not in session and 'username' not in session:
-            flash('Please login to continue', 'error')
+        if 'tenant_admin_id' not in session:
+            flash('Please login first', 'error')
+            return redirect(url_for('admin.login'))
+        # Verify session tenant matches current tenant
+        if session.get('tenant_admin_id') != get_current_tenant_id():
+            session.clear()
+            flash('Session mismatch. Please login again.', 'error')
             return redirect(url_for('admin.login'))
         return f(*args, **kwargs)
     return decorated_function
