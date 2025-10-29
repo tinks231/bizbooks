@@ -459,14 +459,14 @@
             <!-- Inventory Section -->
             <div class="nav-section">
                 <div class="nav-section-title">Inventory</div>
-                <a href="/admin/inventory" class="nav-item {% if request.path == '/admin/inventory' %}active{% endif %}">
+                <a href="/admin/items/stock-summary" class="nav-item {% if '/admin/items/stock-summary' in request.path %}active{% endif %}">
                     <i>📊</i> Stock Summary
                 </a>
-                <a href="/admin/inventory/adjustments" class="nav-item {% if '/admin/inventory/adjustments' in request.path %}active{% endif %}">
-                    <i>🔄</i> Adjustments
+                <a href="/admin/items/adjustments" class="nav-item {% if '/admin/items/adjustments' in request.path %}active{% endif %}">
+                    <i>🔧</i> Adjustments
                 </a>
-                <a href="/admin/inventory/transfers" class="nav-item {% if '/admin/inventory/transfers' in request.path %}active{% endif %}">
-                    <i>🔁</i> Transfers
+                <a href="/admin/items/transfers" class="nav-item {% if '/admin/items/transfers' in request.path %}active{% endif %}">
+                    <i>🔄</i> Transfers
                 </a>
             </div>
             
