@@ -12,12 +12,14 @@ from .item import (
     Item, ItemCategory, ItemGroup, ItemImage, ItemStock, 
     ItemStockMovement, InventoryAdjustment, InventoryAdjustmentLine
 )
+from .expense import Expense, ExpenseCategory
 
 __all__ = [
     'db', 'init_db',
     'Tenant', 'User', 'Employee', 'Site', 'Attendance',
     'Material', 'Stock', 'StockMovement', 'Transfer',
     'Item', 'ItemCategory', 'ItemGroup', 'ItemImage', 'ItemStock',
-    'ItemStockMovement', 'InventoryAdjustment', 'InventoryAdjustmentLine'
+    'ItemStockMovement', 'InventoryAdjustment', 'InventoryAdjustmentLine',
+    'Expense', 'ExpenseCategory'
 ]
 
