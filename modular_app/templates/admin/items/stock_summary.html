@@ -18,8 +18,8 @@
 
     {% if stock_data %}
     <!-- Desktop Table View (Always visible on desktop) -->
-    <div id="tableView" class="desktop-table" style="background: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); overflow: hidden;">
-        <table style="width: 100%; border-collapse: collapse;">
+    <div id="tableView" class="desktop-table" style="background: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); overflow-x: auto; -webkit-overflow-scrolling: touch;">
+        <table style="width: 100%; border-collapse: collapse; min-width: 800px;">
             <thead>
                 <tr style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
                     <th style="padding: 15px; text-align: left; font-weight: 600;">SKU</th>
@@ -121,7 +121,7 @@
     {% endif %}
     
 <style>
-    /* Desktop: Always show table */
+    /* Desktop: Always show table, hide toggle */
     @media (min-width: 769px) {
         #tableView {
             display: block !important;
@@ -132,35 +132,42 @@
         #viewToggle {
             display: none !important;
         }
+        
+        /* Desktop table scrollable if too wide */
+        #tableView {
+            overflow-x: auto;
+        }
     }
     
     /* Mobile: Show toggle button and respect user preference */
     @media (max-width: 768px) {
+        /* Show toggle button */
         #viewToggle {
             display: inline-block !important;
         }
         
-        /* Default: Card view */
-        #tableView {
-            display: none;
+        /* Default: Card view (when body doesn't have show-table class) */
+        body:not(.show-table) #tableView {
+            display: none !important;
         }
-        #cardView {
-            display: block;
+        body:not(.show-table) #cardView {
+            display: block !important;
         }
         
-        /* When table view selected */
+        /* Table view (when body has show-table class) */
         body.show-table #tableView {
             display: block !important;
-            overflow-x: auto;
+            overflow-x: auto !important;
             -webkit-overflow-scrolling: touch;
         }
         body.show-table #cardView {
             display: none !important;
         }
         
-        /* Make table scrollable horizontally on mobile */
-        body.show-table #tableView table {
-            min-width: 800px;
+        /* Ensure table is scrollable */
+        #tableView {
+            max-width: 100%;
+            overflow-x: auto;
         }
     }
 </style>
