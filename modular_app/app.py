@@ -88,6 +88,7 @@ from routes.migration import migration_bp
 from routes.superadmin import superadmin_bp
 from routes.items import items_bp  # NEW: Professional items management
 from routes.expenses import expenses_bp  # NEW: Expenses tracking
+from routes.purchase_requests import purchase_request_bp, admin_purchase_bp  # NEW: Purchase requests
 
 app.register_blueprint(registration_bp)
 app.register_blueprint(attendance_bp)
@@ -97,6 +98,8 @@ app.register_blueprint(migration_bp)
 app.register_blueprint(superadmin_bp)
 app.register_blueprint(items_bp)  # NEW: Register items blueprint
 app.register_blueprint(expenses_bp)  # NEW: Register expenses blueprint
+app.register_blueprint(purchase_request_bp)  # NEW: Employee purchase requests
+app.register_blueprint(admin_purchase_bp)  # NEW: Admin purchase management
 
 # ============================================================
 # Main route

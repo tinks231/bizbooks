@@ -1,0 +1,109 @@
+{% extends "base_sidebar.html" %}
+{% block title %}Purchase Requests - {{ tenant.company_name }}{% endblock %}
+{% block page_title %}
+Purchase Requests 
+{% if pending_count > 0 %}
+<span style="background: #dc3545; color: white; padding: 5px 12px; border-radius: 20px; font-size: 14px; margin-left: 10px;">{{ pending_count }}</span>
+{% endif %}
+{% endblock %}
+
+{% block content %}
+<!-- Filter Buttons -->
+<div style="margin-bottom: 20px; display: flex; gap: 10px; flex-wrap: wrap;">
+    <a href="{{ url_for('admin_purchase.index', status='all') }}" 
+       class="btn {% if status_filter == 'all' %}btn-primary{% else %}btn-secondary{% endif %}"
+       style="min-width: 100px;">
+        All Requests
+    </a>
+    <a href="{{ url_for('admin_purchase.index', status='pending') }}" 
+       class="btn {% if status_filter == 'pending' %}btn-primary{% else %}btn-secondary{% endif %}"
+       style="min-width: 100px;">
+        Pending {% if pending_count > 0 %}({{ pending_count }}){% endif %}
+    </a>
+    <a href="{{ url_for('admin_purchase.index', status='approved') }}" 
+       class="btn {% if status_filter == 'approved' %}btn-primary{% else %}btn-secondary{% endif %}"
+       style="min-width: 100px;">
+        Approved
+    </a>
+    <a href="{{ url_for('admin_purchase.index', status='rejected') }}" 
+       class="btn {% if status_filter == 'rejected' %}btn-primary{% else %}btn-secondary{% endif %}"
+       style="min-width: 100px;">
+        Rejected
+    </a>
+</div>
+
+<!-- Requests List -->
+{% if requests %}
+<div class="card">
+    <table style="width: 100%; border-collapse: collapse;">
+        <thead>
+            <tr style="background: #f8f9fa; border-bottom: 2px solid #dee2e6;">
+                <th style="padding: 12px; text-align: left;">Date</th>
+                <th style="padding: 12px; text-align: left;">Employee</th>
+                <th style="padding: 12px; text-align: left;">Item</th>
+                <th style="padding: 12px; text-align: right;">Qty</th>
+                <th style="padding: 12px; text-align: right;">Est. Price</th>
+                <th style="padding: 12px; text-align: center;">Type</th>
+                <th style="padding: 12px; text-align: center;">Status</th>
+                <th style="padding: 12px; text-align: center;">Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for req in requests %}
+            <tr style="border-bottom: 1px solid #e0e0e0;">
+                <td style="padding: 12px;">{{ req.created_at.strftime('%d %b %Y') }}</td>
+                <td style="padding: 12px;">{{ req.employee.name }}</td>
+                <td style="padding: 12px;">{{ req.item_name }}</td>
+                <td style="padding: 12px; text-align: right;">{{ req.quantity }}</td>
+                <td style="padding: 12px; text-align: right; font-weight: 600;">₹{{ "{:,.2f}".format(req.estimated_price) }}</td>
+                <td style="padding: 12px; text-align: center;">
+                    <span style="background: {% if req.request_type == 'expense' %}#e3f2fd{% else %}#f3e5f5{% endif %}; 
+                                 padding: 4px 12px; border-radius: 12px; font-size: 12px;">
+                        {% if req.request_type == 'expense' %}💰 Expense{% else %}📦 Inventory{% endif %}
+                    </span>
+                </td>
+                <td style="padding: 12px; text-align: center;">
+                    <span style="background: {% if req.status == 'pending' %}#fff3cd{% elif req.status == 'approved' %}#d4edda{% else %}#f8d7da{% endif %}; 
+                                 color: {% if req.status == 'pending' %}#856404{% elif req.status == 'approved' %}#155724{% else %}#721c24{% endif %}; 
+                                 padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 600;">
+                        {% if req.status == 'pending' %}⏳ Pending{% elif req.status == 'approved' %}✅ Approved{% else %}❌ Rejected{% endif %}
+                    </span>
+                </td>
+                <td style="padding: 12px; text-align: center;">
+                    <a href="{{ url_for('admin_purchase.view_request', request_id=req.id) }}" 
+                       class="btn btn-primary" style="padding: 6px 15px; font-size: 13px;">
+                        View
+                    </a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<div class="card" style="text-align: center; padding: 60px;">
+    <div style="font-size: 48px; margin-bottom: 15px;">📋</div>
+    <h3 style="color: #666; margin-bottom: 10px;">No Purchase Requests</h3>
+    <p style="color: #999;">
+        {% if status_filter == 'pending' %}
+        No pending requests at the moment.
+        {% elif status_filter == 'approved' %}
+        No approved requests yet.
+        {% elif status_filter == 'rejected' %}
+        No rejected requests yet.
+        {% else %}
+        Employees haven't submitted any purchase requests yet.
+        {% endif %}
+    </p>
+</div>
+{% endif %}
+
+<!-- Info Card -->
+<div class="card" style="margin-top: 20px; background: #e8f4fd; border-left: 4px solid #2196F3;">
+    <h3 style="color: #1976D2; margin-bottom: 10px;">📱 Employee Access</h3>
+    <p style="color: #555; line-height: 1.6;">
+        Employees can submit purchase requests at:<br>
+        <strong style="color: #1976D2;">{{ tenant.subdomain }}.bizbooks.co.in/purchase-request</strong>
+    </p>
+</div>
+{% endblock %}

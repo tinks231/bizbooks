@@ -147,6 +147,7 @@ def add_employee():
     name = request.form.get('name')
     pin = request.form.get('pin')
     phone = request.form.get('phone')
+    email = request.form.get('email')  # NEW: Email for purchase request notifications
     site_id = request.form.get('site_id')
     
     # Check if PIN already exists (within this tenant)
@@ -155,7 +156,7 @@ def add_employee():
         flash('PIN already exists!', 'error')
         return redirect(url_for('admin.employees'))
     
-    employee = Employee(tenant_id=tenant_id, name=name, pin=pin, phone=phone, site_id=site_id)
+    employee = Employee(tenant_id=tenant_id, name=name, pin=pin, phone=phone, email=email, site_id=site_id)
     
     # Handle document upload (Aadhar, etc.)
     if 'document' in request.files:

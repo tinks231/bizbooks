@@ -647,6 +647,19 @@
                 </a>
             </div>
             
+            <!-- Purchase Requests Section -->
+            <div class="nav-section">
+                <div class="nav-section-title">Purchase Requests</div>
+                <a href="/admin/purchase-requests" class="nav-item {% if '/admin/purchase-requests' in request.path %}active{% endif %}">
+                    <i>🛒</i> All Requests
+                    {% if g.pending_purchase_count and g.pending_purchase_count > 0 %}
+                    <span style="background: #dc3545; color: white; padding: 2px 8px; border-radius: 10px; font-size: 11px; margin-left: auto;">
+                        {{ g.pending_purchase_count }}
+                    </span>
+                    {% endif %}
+                </a>
+            </div>
+            
             <!-- Expenses Section -->
             <div class="nav-section">
                 <div class="nav-section-title">Expenses</div>

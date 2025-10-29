@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Submit Purchase Request - {{ tenant.company_name }}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f7fa;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 24px;
+            margin-bottom: 5px;
+        }
+        
+        .header p {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+        
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 600;
+        }
+        
+        input[type="text"],
+        input[type="number"],
+        select,
+        textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 16px !important;
+            font-family: inherit;
+            transition: border-color 0.3s;
+        }
+        
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+        
+        .file-upload {
+            border: 2px dashed #ccc;
+            border-radius: 6px;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .file-upload:hover {
+            border-color: #667eea;
+            background: #f8f9ff;
+        }
+        
+        .file-upload input[type="file"] {
+            display: none;
+        }
+        
+        .file-upload-label {
+            display: block;
+            color: #666;
+            cursor: pointer;
+        }
+        
+        .file-upload-label strong {
+            color: #667eea;
+        }
+        
+        .btn {
+            padding: 15px 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            transition: transform 0.2s;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+        
+        .radio-group {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .radio-option {
+            flex: 1;
+            min-width: 120px;
+        }
+        
+        .radio-option input[type="radio"] {
+            margin-right: 8px;
+        }
+        
+        .radio-option label {
+            font-weight: normal;
+            cursor: pointer;
+        }
+        
+        .category-select {
+            display: none;
+        }
+        
+        .category-select.active {
+            display: block;
+        }
+        
+        @media (max-width: 600px) {
+            .container {
+                padding: 20px;
+            }
+            
+            .header h1 {
+                font-size: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🛒 Submit Purchase Request</h1>
+        <p>Employee: <strong>{{ employee_name }}</strong></p>
+    </div>
+    
+    <div class="container">
+        <form method="POST" enctype="multipart/form-data">
+            <div class="form-group">
+                <label>Item Name *</label>
+                <input type="text" name="item_name" placeholder="e.g., Paint, Electrical Wire, Tools" required>
+            </div>
+            
+            <div class="form-group">
+                <label>Quantity *</label>
+                <input type="number" name="quantity" placeholder="e.g., 5" step="0.01" required>
+            </div>
+            
+            <div class="form-group">
+                <label>Estimated Price (₹) *</label>
+                <input type="number" name="estimated_price" placeholder="e.g., 5000" step="0.01" required>
+            </div>
+            
+            <div class="form-group">
+                <label>Vendor/Shop Name</label>
+                <input type="text" name="vendor_name" placeholder="e.g., Local Hardware Store">
+            </div>
+            
+            <div class="form-group">
+                <label>Purchase Type *</label>
+                <div class="radio-group">
+                    <div class="radio-option">
+                        <input type="radio" id="type_expense" name="request_type" value="expense" checked onchange="toggleCategories()">
+                        <label for="type_expense">General Expense</label>
+                    </div>
+                    <div class="radio-option">
+                        <input type="radio" id="type_inventory" name="request_type" value="inventory" onchange="toggleCategories()">
+                        <label for="type_inventory">Add to Inventory</label>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="form-group category-select active" id="expense_category">
+                <label>Expense Category</label>
+                <select name="category_id" id="expense_cat_select">
+                    <option value="">-- Select Category --</option>
+                    {% for cat in expense_categories %}
+                    <option value="{{ cat.id }}">{{ cat.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="form-group category-select" id="inventory_category">
+                <label>Item Category</label>
+                <select name="category_id" id="inventory_cat_select">
+                    <option value="">-- Select Category --</option>
+                    {% for cat in item_categories %}
+                    <option value="{{ cat.id }}">{{ cat.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label>Reason for Purchase *</label>
+                <textarea name="reason" placeholder="Explain why this purchase is needed..." required></textarea>
+            </div>
+            
+            <div class="form-group">
+                <label>Upload Quotation/Invoice (Optional)</label>
+                <div class="file-upload" onclick="document.getElementById('file-input').click()">
+                    <input type="file" id="file-input" name="document" accept="image/*,.pdf" onchange="showFileName(this)">
+                    <label for="file-input" class="file-upload-label">
+                        📎 <strong>Click to upload</strong><br>
+                        <span id="file-name" style="font-size: 13px; color: #999;">Accepted: Images, PDF</span>
+                    </label>
+                </div>
+            </div>
+            
+            <button type="submit" class="btn">
+                Submit Request for Approval
+            </button>
+        </form>
+    </div>
+    
+    <script>
+        function toggleCategories() {
+            const isExpense = document.getElementById('type_expense').checked;
+            const expenseDiv = document.getElementById('expense_category');
+            const inventoryDiv = document.getElementById('inventory_category');
+            const expenseSelect = document.getElementById('expense_cat_select');
+            const inventorySelect = document.getElementById('inventory_cat_select');
+            
+            if (isExpense) {
+                expenseDiv.classList.add('active');
+                inventoryDiv.classList.remove('active');
+                inventorySelect.removeAttribute('required');
+                // Don't make expense category required either (it's optional)
+            } else {
+                inventoryDiv.classList.add('active');
+                expenseDiv.classList.remove('active');
+                expenseSelect.removeAttribute('required');
+                // Don't make inventory category required either (it's optional)
+            }
+        }
+        
+        function showFileName(input) {
+            const fileNameSpan = document.getElementById('file-name');
+            if (input.files && input.files[0]) {
+                fileNameSpan.textContent = '✓ ' + input.files[0].name;
+                fileNameSpan.style.color = '#28a745';
+            }
+        }
+    </script>
+</body>
+</html>
+

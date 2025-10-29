@@ -170,6 +170,16 @@ def load_tenant():
     g.tenant = tenant
     g.subdomain = subdomain
     g.tenant_id = tenant.id
+    
+    # Add pending purchase requests count for notification badge
+    try:
+        from models import PurchaseRequest
+        g.pending_purchase_count = PurchaseRequest.query.filter_by(
+            tenant_id=tenant.id,
+            status='pending'
+        ).count()
+    except:
+        g.pending_purchase_count = 0
 
 
 def require_tenant(f):

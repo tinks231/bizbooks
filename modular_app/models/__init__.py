@@ -13,6 +13,7 @@ from .item import (
     ItemStockMovement, InventoryAdjustment, InventoryAdjustmentLine
 )
 from .expense import Expense, ExpenseCategory
+from .purchase_request import PurchaseRequest
 
 __all__ = [
     'db', 'init_db',
@@ -20,6 +21,7 @@ __all__ = [
     'Material', 'Stock', 'StockMovement', 'Transfer',
     'Item', 'ItemCategory', 'ItemGroup', 'ItemImage', 'ItemStock',
     'ItemStockMovement', 'InventoryAdjustment', 'InventoryAdjustmentLine',
-    'Expense', 'ExpenseCategory'
+    'Expense', 'ExpenseCategory',
+    'PurchaseRequest'
 ]
 
