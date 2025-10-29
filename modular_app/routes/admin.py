@@ -189,12 +189,20 @@ def delete_employee(emp_id):
 @login_required
 def view_employee_document(emp_id):
     """View employee document"""
-    from flask import send_from_directory
+    from flask import send_from_directory, redirect
     import os
     tenant_id = get_current_tenant_id()
     employee = Employee.query.filter_by(tenant_id=tenant_id, id=emp_id).first_or_404()
+    
     if employee.document_path:
-        return send_from_directory('uploads/documents', employee.document_path)
+        # If it's a Blob storage URL (starts with http), redirect to it
+        if employee.document_path.startswith('http'):
+            return redirect(employee.document_path)
+        
+        # For local files, serve from the correct directory
+        base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        upload_dir = os.path.join(base_path, 'uploads', 'documents')
+        return send_from_directory(upload_dir, employee.document_path)
     else:
         flash('No document found', 'error')
         return redirect(url_for('admin.employees'))
