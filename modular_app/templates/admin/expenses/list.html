@@ -92,6 +92,7 @@
                 <td style="padding: 12px;">{{ expense.vendor_name or '—' }}</td>
                 <td style="padding: 12px; text-align: right; font-weight: 600;">₹{{ "{:,.2f}".format(expense.amount) }}</td>
                 <td style="padding: 12px;">
+                    <a href="{{ url_for('expenses.edit', expense_id=expense.id) }}" style="color: #3498db; margin-right: 10px;">✏️</a>
                     <a href="{{ url_for('expenses.delete', expense_id=expense.id) }}" onclick="return confirm('Delete this expense?')" style="color: #dc3545;">🗑️</a>
                 </td>
             </tr>

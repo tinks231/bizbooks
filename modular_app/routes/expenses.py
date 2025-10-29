@@ -119,6 +119,38 @@ def add():
     return redirect(url_for('expenses.index'))
 
 
+@expenses_bp.route('/edit/<int:expense_id>', methods=['GET', 'POST'])
+@require_tenant
+@login_required
+def edit(expense_id):
+    """Edit expense"""
+    tenant_id = get_current_tenant_id()
+    expense = Expense.query.filter_by(tenant_id=tenant_id, id=expense_id).first_or_404()
+    
+    if request.method == 'POST':
+        try:
+            expense.expense_date = datetime.strptime(request.form.get('expense_date'), '%Y-%m-%d').date()
+            expense.category_id = int(request.form.get('category_id'))
+            expense.amount = float(request.form.get('amount'))
+            expense.description = request.form.get('description')
+            expense.payment_method = request.form.get('payment_method')
+            expense.reference_number = request.form.get('reference_number')
+            expense.vendor_name = request.form.get('vendor_name')
+            
+            db.session.commit()
+            flash('✅ Expense updated!', 'success')
+            return redirect(url_for('expenses.index'))
+        except Exception as e:
+            db.session.rollback()
+            flash(f'❌ Error: {str(e)}', 'error')
+    
+    categories = ExpenseCategory.query.filter_by(tenant_id=tenant_id, is_active=True).all()
+    return render_template('admin/expenses/edit.html', 
+                         expense=expense, 
+                         categories=categories,
+                         tenant=g.tenant)
+
+
 @expenses_bp.route('/delete/<int:expense_id>')
 @require_tenant
 @login_required
@@ -203,4 +235,121 @@ def delete_category(category_id):
         flash('✅ Category deleted!', 'success')
     
     return redirect(url_for('expenses.categories'))
+
+
+@expenses_bp.route('/categories/create-defaults')
+@require_tenant
+@login_required
+def create_default_categories():
+    """Create default expense categories"""
+    tenant_id = get_current_tenant_id()
+    
+    default_categories = [
+        {'name': 'Rent', 'description': 'Office/Shop rent payments'},
+        {'name': 'Salaries', 'description': 'Employee salaries and wages'},
+        {'name': 'Utilities', 'description': 'Electricity, water, internet bills'},
+        {'name': 'Office Supplies', 'description': 'Stationery, printing, consumables'},
+        {'name': 'Travel', 'description': 'Business travel and transportation'},
+        {'name': 'Marketing', 'description': 'Advertising and promotional expenses'},
+        {'name': 'Maintenance', 'description': 'Repairs and maintenance'},
+        {'name': 'Inventory Purchases', 'description': 'Stock and material purchases'},
+        {'name': 'Professional Fees', 'description': 'Consultant, legal, accounting fees'},
+        {'name': 'Insurance', 'description': 'Business insurance premiums'},
+        {'name': 'Taxes', 'description': 'Government taxes and fees'},
+        {'name': 'Miscellaneous', 'description': 'Other expenses'},
+    ]
+    
+    created = 0
+    for cat_data in default_categories:
+        # Check if category already exists
+        existing = ExpenseCategory.query.filter_by(
+            tenant_id=tenant_id, 
+            name=cat_data['name']
+        ).first()
+        
+        if not existing:
+            category = ExpenseCategory(
+                tenant_id=tenant_id,
+                name=cat_data['name'],
+                description=cat_data['description']
+            )
+            db.session.add(category)
+            created += 1
+    
+    db.session.commit()
+    
+    if created > 0:
+        flash(f'✅ Created {created} default categories!', 'success')
+    else:
+        flash('ℹ️ All default categories already exist', 'info')
+    
+    return redirect(url_for('expenses.categories'))
+
+
+# ===== REPORTS =====
+@expenses_bp.route('/reports')
+@require_tenant
+@login_required
+def reports():
+    """Expense reports and analytics"""
+    tenant_id = get_current_tenant_id()
+    
+    # Get selected month/year or default to current
+    selected_month = request.args.get('month', type=int) or datetime.now().month
+    selected_year = request.args.get('year', type=int) or datetime.now().year
+    
+    # Total expenses for selected month
+    month_expenses = db.session.query(func.sum(Expense.amount)).filter(
+        Expense.tenant_id == tenant_id,
+        extract('month', Expense.expense_date) == selected_month,
+        extract('year', Expense.expense_date) == selected_year
+    ).scalar() or 0
+    
+    # Category-wise breakdown for selected month
+    category_breakdown = db.session.query(
+        ExpenseCategory.name,
+        func.sum(Expense.amount).label('total'),
+        func.count(Expense.id).label('count')
+    ).join(Expense).filter(
+        Expense.tenant_id == tenant_id,
+        extract('month', Expense.expense_date) == selected_month,
+        extract('year', Expense.expense_date) == selected_year
+    ).group_by(ExpenseCategory.name).all()
+    
+    # Daily expenses for selected month
+    daily_expenses = db.session.query(
+        Expense.expense_date,
+        func.sum(Expense.amount).label('total')
+    ).filter(
+        Expense.tenant_id == tenant_id,
+        extract('month', Expense.expense_date) == selected_month,
+        extract('year', Expense.expense_date) == selected_year
+    ).group_by(Expense.expense_date).order_by(Expense.expense_date).all()
+    
+    # Last 6 months trend
+    months_trend = []
+    for i in range(5, -1, -1):
+        date = datetime.now() - timedelta(days=i*30)
+        month_total = db.session.query(func.sum(Expense.amount)).filter(
+            Expense.tenant_id == tenant_id,
+            extract('month', Expense.expense_date) == date.month,
+            extract('year', Expense.expense_date) == date.year
+        ).scalar() or 0
+        months_trend.append({
+            'month': date.strftime('%B %Y'),
+            'total': month_total
+        })
+    
+    # Recent expenses (last 10)
+    recent_expenses = Expense.query.filter_by(tenant_id=tenant_id).order_by(Expense.expense_date.desc()).limit(10).all()
+    
+    return render_template('admin/expenses/reports.html',
+                         tenant=g.tenant,
+                         selected_month=selected_month,
+                         selected_year=selected_year,
+                         month_expenses=month_expenses,
+                         category_breakdown=category_breakdown,
+                         daily_expenses=daily_expenses,
+                         months_trend=months_trend,
+                         recent_expenses=recent_expenses)
 
