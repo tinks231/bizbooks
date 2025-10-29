@@ -450,7 +450,7 @@ def stock_summary():
     stock_data = []
     for item in items:
         # Get total stock across all sites
-        total_stock = db.session.query(func.sum(ItemStock.quantity)).filter_by(
+        total_stock = db.session.query(func.sum(ItemStock.quantity_available)).filter_by(
             item_id=item.id
         ).scalar() or 0
         
@@ -461,7 +461,7 @@ def stock_summary():
                 item_id=item.id,
                 site_id=site.id
             ).first()
-            stock_by_site[site.id] = site_stock.quantity if site_stock else 0
+            stock_by_site[site.id] = site_stock.quantity_available if site_stock else 0
         
         stock_data.append({
             'item': item,
@@ -550,13 +550,13 @@ def add_adjustment():
             ).first()
             
             if stock:
-                stock.quantity += qty if adj_type == 'add' else -qty
+                stock.quantity_available += qty if adj_type == 'add' else -qty
             else:
                 # Create new stock record
                 stock = ItemStock(
                     item_id=int(item_id),
                     site_id=int(site_id),
-                    quantity=qty if adj_type == 'add' else 0
+                    quantity_available=qty if adj_type == 'add' else 0
                 )
                 db.session.add(stock)
             
@@ -632,12 +632,12 @@ def add_transfer():
             site_id=from_site_id
         ).first()
         
-        if not source_stock or source_stock.quantity < quantity:
+        if not source_stock or source_stock.quantity_available < quantity:
             flash('❌ Insufficient stock at source site!', 'error')
             return redirect(url_for('items.transfers'))
         
         # Deduct from source
-        source_stock.quantity -= quantity
+        source_stock.quantity_available -= quantity
         
         # Add to destination
         dest_stock = ItemStock.query.filter_by(
@@ -646,12 +646,12 @@ def add_transfer():
         ).first()
         
         if dest_stock:
-            dest_stock.quantity += quantity
+            dest_stock.quantity_available += quantity
         else:
             dest_stock = ItemStock(
                 item_id=item_id,
                 site_id=to_site_id,
-                quantity=quantity
+                quantity_available=quantity
             )
             db.session.add(dest_stock)
         
