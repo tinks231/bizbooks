@@ -150,6 +150,12 @@ def add_employee():
     email = request.form.get('email')  # NEW: Email for purchase request notifications
     site_id = request.form.get('site_id')
     
+    # Convert empty string to None for site_id (PostgreSQL requirement)
+    if site_id == '' or not site_id:
+        site_id = None
+    else:
+        site_id = int(site_id)
+    
     # Check if PIN already exists (within this tenant)
     existing = Employee.query.filter_by(tenant_id=tenant_id, pin=pin).first()
     if existing:
