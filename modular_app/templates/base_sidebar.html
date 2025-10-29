@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}BizBooks - Business Management{% endblock %}</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', sans-serif;
+            line-height: 1.6;
+            background: #f5f7fa;
+            color: #2c3e50;
+        }
+        
+        /* ===== SIDEBAR NAVIGATION ===== */
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: 240px;
+            height: 100vh;
+            background: #2c3e50;
+            color: white;
+            overflow-y: auto;
+            z-index: 1000;
+            transition: transform 0.3s ease;
+        }
+        
+        .sidebar-header {
+            padding: 20px;
+            background: #34495e;
+            border-bottom: 1px solid #1a252f;
+        }
+        
+        .sidebar-brand {
+            font-size: 22px;
+            font-weight: 700;
+            color: white;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .sidebar-company {
+            font-size: 13px;
+            color: #95a5a6;
+            margin-top: 5px;
+            font-weight: normal;
+        }
+        
+        .sidebar-nav {
+            padding: 10px 0;
+        }
+        
+        .nav-section {
+            margin-top: 20px;
+        }
+        
+        .nav-section-title {
+            padding: 10px 20px 5px;
+            font-size: 11px;
+            font-weight: 700;
+            color: #95a5a6;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .nav-item {
+            display: block;
+            padding: 12px 20px;
+            color: #ecf0f1;
+            text-decoration: none;
+            transition: all 0.2s;
+            font-size: 14px;
+            border-left: 3px solid transparent;
+        }
+        
+        .nav-item:hover {
+            background: #34495e;
+            border-left-color: #3498db;
+        }
+        
+        .nav-item.active {
+            background: #34495e;
+            border-left-color: #3498db;
+            color: #3498db;
+            font-weight: 600;
+        }
+        
+        .nav-item i {
+            margin-right: 10px;
+            width: 20px;
+            display: inline-block;
+            text-align: center;
+        }
+        
+        .nav-item.logout {
+            color: #e74c3c;
+            margin-top: 30px;
+            border-top: 1px solid #34495e;
+            padding-top: 20px;
+        }
+        
+        .nav-item.logout:hover {
+            background: #c0392b;
+            border-left-color: #e74c3c;
+            color: white;
+        }
+        
+        /* ===== MAIN CONTENT AREA ===== */
+        .main-content {
+            margin-left: 240px;
+            min-height: 100vh;
+            transition: margin-left 0.3s ease;
+        }
+        
+        /* Top Header Bar */
+        .top-header {
+            background: white;
+            padding: 15px 30px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        
+        .header-title {
+            font-size: 24px;
+            font-weight: 700;
+            color: #2c3e50;
+        }
+        
+        .header-actions {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+        
+        .mobile-menu-btn {
+            display: none;
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #2c3e50;
+            padding: 5px;
+        }
+        
+        /* Content Container */
+        .container {
+            padding: 30px;
+            max-width: 1400px;
+        }
+        
+        /* ===== CARDS ===== */
+        .card {
+            background: white;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            margin-bottom: 25px;
+        }
+        
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #f5f7fa;
+        }
+        
+        .card-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: #2c3e50;
+        }
+        
+        /* ===== STATS GRID ===== */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            border-left: 4px solid #3498db;
+        }
+        
+        .stat-value {
+            font-size: 32px;
+            font-weight: 700;
+            color: #2c3e50;
+        }
+        
+        .stat-label {
+            font-size: 14px;
+            color: #7f8c8d;
+            margin-top: 5px;
+        }
+        
+        /* ===== BUTTONS ===== */
+        .btn {
+            display: inline-block;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.2s;
+            text-align: center;
+        }
+        
+        .btn-primary {
+            background: #3498db;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #2980b9;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(52, 152, 219, 0.3);
+        }
+        
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+        
+        .btn-success:hover {
+            background: #218838;
+        }
+        
+        .btn-danger {
+            background: #e74c3c;
+            color: white;
+        }
+        
+        .btn-danger:hover {
+            background: #c0392b;
+        }
+        
+        .btn-secondary {
+            background: #95a5a6;
+            color: white;
+        }
+        
+        .btn-secondary:hover {
+            background: #7f8c8d;
+        }
+        
+        /* ===== TABLES ===== */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        
+        table th,
+        table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ecf0f1;
+        }
+        
+        table th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #2c3e50;
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        table tr:hover {
+            background: #f8f9fa;
+        }
+        
+        /* ===== FORMS ===== */
+        .form-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #2c3e50;
+            font-size: 14px;
+        }
+        
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #dfe6e9;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: border-color 0.2s;
+        }
+        
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+        }
+        
+        /* ===== ALERTS ===== */
+        .alert {
+            padding: 15px 20px;
+            margin: 20px 0;
+            border-radius: 6px;
+            border-left: 4px solid;
+        }
+        
+        .alert-success {
+            background: #d4edda;
+            border-color: #28a745;
+            color: #155724;
+        }
+        
+        .alert-error {
+            background: #f8d7da;
+            border-color: #e74c3c;
+            color: #721c24;
+        }
+        
+        .alert-info {
+            background: #d1ecf1;
+            border-color: #3498db;
+            color: #0c5460;
+        }
+        
+        /* ===== MOBILE RESPONSIVE ===== */
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+            
+            .sidebar.active {
+                transform: translateX(0);
+            }
+            
+            .main-content {
+                margin-left: 0;
+            }
+            
+            .mobile-menu-btn {
+                display: block;
+            }
+            
+            .container {
+                padding: 15px;
+            }
+            
+            .top-header {
+                padding: 12px 15px;
+            }
+            
+            .header-title {
+                font-size: 18px;
+            }
+            
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+            
+            table {
+                display: block;
+                overflow-x: auto;
+                white-space: nowrap;
+                -webkit-overflow-scrolling: touch;
+            }
+            
+            table th,
+            table td {
+                padding: 8px;
+                font-size: 13px;
+            }
+        }
+        
+        /* ===== UTILITY CLASSES ===== */
+        .text-center { text-align: center; }
+        .text-right { text-align: right; }
+        .mt-20 { margin-top: 20px; }
+        .mb-20 { margin-bottom: 20px; }
+        .hide-mobile { display: block; }
+        
+        @media (max-width: 768px) {
+            .hide-mobile { display: none; }
+        }
+        
+        {% block extra_css %}{% endblock %}
+    </style>
+</head>
+<body>
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <a href="/admin/dashboard" class="sidebar-brand">
+                🏢 BizBooks
+            </a>
+            {% if tenant %}
+            <div class="sidebar-company">{{ tenant.company_name }}</div>
+            {% endif %}
+        </div>
+        
+        <nav class="sidebar-nav">
+            <!-- Home -->
+            <a href="/admin/dashboard" class="nav-item {% if request.path == '/admin/dashboard' %}active{% endif %}">
+                <i>🏠</i> Home
+            </a>
+            
+            <!-- Items Section -->
+            <div class="nav-section">
+                <div class="nav-section-title">Items</div>
+                <a href="/admin/items" class="nav-item {% if '/admin/items' in request.path %}active{% endif %}">
+                    <i>📦</i> All Items
+                </a>
+                <a href="/admin/items/groups" class="nav-item {% if '/admin/items/groups' in request.path %}active{% endif %}">
+                    <i>📑</i> Item Groups
+                </a>
+                <a href="/admin/items/categories" class="nav-item {% if '/admin/items/categories' in request.path %}active{% endif %}">
+                    <i>🏷️</i> Categories
+                </a>
+            </div>
+            
+            <!-- Inventory Section -->
+            <div class="nav-section">
+                <div class="nav-section-title">Inventory</div>
+                <a href="/admin/inventory" class="nav-item {% if request.path == '/admin/inventory' %}active{% endif %}">
+                    <i>📊</i> Stock Summary
+                </a>
+                <a href="/admin/inventory/adjustments" class="nav-item {% if '/admin/inventory/adjustments' in request.path %}active{% endif %}">
+                    <i>🔄</i> Adjustments
+                </a>
+                <a href="/admin/inventory/transfers" class="nav-item {% if '/admin/inventory/transfers' in request.path %}active{% endif %}">
+                    <i>🔁</i> Transfers
+                </a>
+            </div>
+            
+            <!-- Operations Section -->
+            <div class="nav-section">
+                <div class="nav-section-title">Operations</div>
+                <a href="/admin/employees" class="nav-item {% if '/admin/employees' in request.path %}active{% endif %}">
+                    <i>👥</i> Employees
+                </a>
+                <a href="/admin/attendance" class="nav-item {% if '/admin/attendance' in request.path %}active{% endif %}">
+                    <i>⏰</i> Attendance
+                </a>
+                <a href="/admin/sites" class="nav-item {% if '/admin/sites' in request.path %}active{% endif %}">
+                    <i>📍</i> Sites
+                </a>
+                <a href="/admin/generate_qr" class="nav-item {% if '/admin/generate_qr' in request.path %}active{% endif %}">
+                    <i>📱</i> QR Code
+                </a>
+            </div>
+            
+            <!-- Reports Section (Future) -->
+            <!--
+            <div class="nav-section">
+                <div class="nav-section-title">Reports</div>
+                <a href="/admin/reports/analytics" class="nav-item">
+                    <i>📈</i> Analytics
+                </a>
+                <a href="/admin/reports/inventory" class="nav-item">
+                    <i>📊</i> Inventory Reports
+                </a>
+                <a href="/admin/reports/attendance" class="nav-item">
+                    <i>⏰</i> Attendance Reports
+                </a>
+            </div>
+            -->
+            
+            <!-- Logout -->
+            <a href="/admin/logout" class="nav-item logout">
+                <i>🚪</i> Logout
+            </a>
+        </nav>
+    </aside>
+    
+    <!-- Main Content -->
+    <div class="main-content">
+        <!-- Top Header -->
+        <header class="top-header">
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <button class="mobile-menu-btn" onclick="toggleSidebar()">
+                    ☰
+                </button>
+                <h1 class="header-title">{% block page_title %}Dashboard{% endblock %}</h1>
+            </div>
+            
+            <div class="header-actions">
+                {% block header_actions %}
+                <a href="/admin/manual_entry" class="btn btn-secondary">
+                    ✍️ Manual Entry
+                </a>
+                <a href="/admin/generate_qr" class="btn btn-success">
+                    📱 QR Code
+                </a>
+                {% endblock %}
+            </div>
+        </header>
+        
+        <!-- Flash Messages -->
+        <div class="container">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">
+                        {{ message }}
+                    </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+            
+            <!-- Page Content -->
+            {% block content %}
+            {% endblock %}
+        </div>
+    </div>
+    
+    <!-- JavaScript -->
+    <script>
+        // Mobile Sidebar Toggle
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            sidebar.classList.toggle('active');
+        }
+        
+        // Close sidebar when clicking outside (mobile)
+        document.addEventListener('click', function(event) {
+            const sidebar = document.getElementById('sidebar');
+            const menuBtn = document.querySelector('.mobile-menu-btn');
+            
+            if (window.innerWidth <= 768) {
+                if (!sidebar.contains(event.target) && event.target !== menuBtn) {
+                    sidebar.classList.remove('active');
+                }
+            }
+        });
+        
+        // Form validation helper
+        function validateForm(formId) {
+            const form = document.getElementById(formId);
+            const inputs = form.querySelectorAll('[required]');
+            let isValid = true;
+            
+            inputs.forEach(input => {
+                if (!input.value.trim()) {
+                    input.style.borderColor = '#e74c3c';
+                    isValid = false;
+                } else {
+                    input.style.borderColor = '#dfe6e9';
+                }
+            });
+            
+            return isValid;
+        }
+    </script>
+    
+    {% block extra_js %}{% endblock %}
+</body>
+</html>
+

@@ -1,0 +1,190 @@
+{% extends "base_sidebar.html" %}
+
+{% block title %}All Items - BizBooks{% endblock %}
+
+{% block page_title %}All Items{% endblock %}
+
+{% block header_actions %}
+<a href="{{ url_for('items.add') }}" class="btn btn-primary">
+    ➕ Add New Item
+</a>
+{% endblock %}
+
+{% block content %}
+<!-- Stats Cards -->
+<div class="stats-grid" style="margin-bottom: 30px;">
+    <div class="stat-card">
+        <div class="stat-value">{{ items|length }}</div>
+        <div class="stat-label">Total Items</div>
+    </div>
+    <div class="stat-card" style="border-left-color: #28a745;">
+        <div class="stat-value">{{ items|selectattr('is_active')|list|length }}</div>
+        <div class="stat-label">Active Items</div>
+    </div>
+    <div class="stat-card" style="border-left-color: #e74c3c;">
+        <div class="stat-value">{{ items|selectattr('track_inventory')|selectattr('is_low_stock')|list|length }}</div>
+        <div class="stat-label">Low Stock Alerts</div>
+    </div>
+</div>
+
+<!-- Filters & Search -->
+<div class="card">
+    <form method="GET" class="form-row" style="margin-bottom: 0;">
+        <div class="form-group" style="margin-bottom: 0;">
+            <input type="text" name="search" placeholder="🔍 Search by name or SKU..." 
+                   value="{{ request.args.get('search', '') }}"
+                   style="min-width: 300px;">
+        </div>
+        
+        <div class="form-group" style="margin-bottom: 0;">
+            <select name="category" onchange="this.form.submit()">
+                <option value="">All Categories</option>
+                {% for category in categories %}
+                <option value="{{ category.id }}" {% if request.args.get('category', type=int) == category.id %}selected{% endif %}>
+                    {{ category.name }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+        
+        <div class="form-group" style="margin-bottom: 0;">
+            <select name="group" onchange="this.form.submit()">
+                <option value="">All Groups</option>
+                {% for group in groups %}
+                <option value="{{ group.id }}" {% if request.args.get('group', type=int) == group.id %}selected{% endif %}>
+                    {{ group.name }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+        
+        <div class="form-group" style="margin-bottom: 0;">
+            <select name="status" onchange="this.form.submit()">
+                <option value="active" {% if request.args.get('status', 'active') == 'active' %}selected{% endif %}>Active</option>
+                <option value="inactive" {% if request.args.get('status') == 'inactive' %}selected{% endif %}>Inactive</option>
+                <option value="all" {% if request.args.get('status') == 'all' %}selected{% endif %}>All</option>
+            </select>
+        </div>
+        
+        <button type="submit" class="btn btn-primary" style="margin-bottom: 0;">
+            Search
+        </button>
+        
+        {% if request.args.get('search') or request.args.get('category') or request.args.get('group') or request.args.get('status', 'active') != 'active' %}
+        <a href="{{ url_for('items.index') }}" class="btn btn-secondary" style="margin-bottom: 0;">
+            Clear Filters
+        </a>
+        {% endif %}
+    </form>
+</div>
+
+<!-- Items Table -->
+<div class="card">
+    {% if items %}
+    <div style="overflow-x: auto;">
+        <table>
+            <thead>
+                <tr>
+                    <th>SKU</th>
+                    <th>Item Name</th>
+                    <th>Type</th>
+                    <th>Category</th>
+                    <th>Unit</th>
+                    <th>Selling Price</th>
+                    <th>Cost Price</th>
+                    <th>Stock</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in items %}
+                <tr>
+                    <td>
+                        <strong style="color: #3498db;">{{ item.sku }}</strong>
+                    </td>
+                    <td>
+                        <div style="font-weight: 600;">{{ item.name }}</div>
+                        {% if item.brand %}
+                        <small style="color: #7f8c8d;">{{ item.brand }}</small>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <span style="padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 600; 
+                                     background: {% if item.type == 'goods' %}#e3f2fd{% else %}#f3e5f5{% endif %};
+                                     color: {% if item.type == 'goods' %}#1976d2{% else %}#7b1fa2{% endif %};">
+                            {{ item.type|title }}
+                        </span>
+                    </td>
+                    <td>
+                        {% if item.category %}
+                        {{ item.category.name }}
+                        {% else %}
+                        <span style="color: #95a5a6;">—</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ item.unit }}</td>
+                    <td>
+                        <strong>₹ {{ "%.2f"|format(item.selling_price) }}</strong>
+                    </td>
+                    <td>
+                        ₹ {{ "%.2f"|format(item.cost_price) }}
+                    </td>
+                    <td>
+                        {% if item.track_inventory %}
+                            {% set total_stock = item.get_total_stock() %}
+                            <span style="{% if item.is_low_stock() %}color: #e74c3c; font-weight: 700;{% endif %}">
+                                {{ "%.2f"|format(total_stock) }}
+                            </span>
+                            {% if item.is_low_stock() %}
+                            <small style="color: #e74c3c;">⚠️ Low</small>
+                            {% endif %}
+                        {% else %}
+                        <span style="color: #95a5a6;">—</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if item.is_active %}
+                        <span style="color: #28a745; font-weight: 600;">● Active</span>
+                        {% else %}
+                        <span style="color: #dc3545; font-weight: 600;">● Inactive</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div style="display: flex; gap: 8px;">
+                            <a href="{{ url_for('items.edit', item_id=item.id) }}" 
+                               class="btn btn-secondary" 
+                               style="padding: 6px 12px; font-size: 13px;"
+                               title="Edit">
+                                ✏️ Edit
+                            </a>
+                            <form method="POST" action="{{ url_for('items.delete', item_id=item.id) }}" 
+                                  style="display: inline;"
+                                  onsubmit="return confirm('⚠️ Delete {{ item.name }}?\n\nThis will also delete:\n• All stock records\n• All stock movements\n\nThis cannot be undone!')">
+                                <button type="submit" 
+                                        class="btn btn-danger" 
+                                        style="padding: 6px 12px; font-size: 13px;"
+                                        title="Delete">
+                                    🗑️
+                                </button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div style="text-align: center; padding: 60px 20px; color: #95a5a6;">
+        <div style="font-size: 64px; margin-bottom: 20px;">📦</div>
+        <h3 style="color: #7f8c8d; margin-bottom: 10px;">No Items Found</h3>
+        <p>Start by adding your first item!</p>
+        <a href="{{ url_for('items.add') }}" class="btn btn-primary" style="margin-top: 20px;">
+            ➕ Add New Item
+        </a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+

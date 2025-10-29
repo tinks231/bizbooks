@@ -1,0 +1,90 @@
+{% extends "base_sidebar.html" %}
+
+{% block title %}Item Groups - BizBooks{% endblock %}
+
+{% block page_title %}Item Groups{% endblock %}
+
+{% block header_actions %}
+<a href="{{ url_for('items.index') }}" class="btn btn-secondary">
+    ← Back to Items
+</a>
+{% endblock %}
+
+{% block content %}
+<!-- Add New Group -->
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">➕ Add New Group</h3>
+    </div>
+    
+    <form method="POST" action="{{ url_for('items.add_group') }}">
+        <div class="form-row">
+            <div class="form-group" style="margin-bottom: 0;">
+                <input type="text" name="name" required placeholder="Group Name" style="min-width: 300px;">
+            </div>
+            <div class="form-group" style="margin-bottom: 0; flex: 2;">
+                <input type="text" name="description" placeholder="Description (optional)">
+            </div>
+            <button type="submit" class="btn btn-primary" style="margin-bottom: 0;">
+                ➕ Add Group
+            </button>
+        </div>
+    </form>
+</div>
+
+<!-- Groups List -->
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">📑 All Groups ({{ groups|length }})</h3>
+    </div>
+    
+    {% if groups %}
+    <table>
+        <thead>
+            <tr>
+                <th>Group Name</th>
+                <th>Description</th>
+                <th>Items</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for group in groups %}
+            <tr>
+                <td>
+                    <strong>{{ group.name }}</strong>
+                </td>
+                <td>
+                    {{ group.description or '—' }}
+                </td>
+                <td>
+                    <span style="background: #f3e5f5; color: #7b1fa2; padding: 4px 10px; border-radius: 12px; font-size: 13px; font-weight: 600;">
+                        {{ group.items|length }} items
+                    </span>
+                </td>
+                <td>
+                    <form method="POST" action="{{ url_for('items.delete_group', group_id=group.id) }}" 
+                          style="display: inline;"
+                          onsubmit="return confirm('⚠️ Delete group {{ group.name }}?\n\n{% if group.items %}This group has {{ group.items|length }} items.\nItems will not be deleted, just unlinked from this group.\n\n{% endif %}Continue?')">
+                        <button type="submit" class="btn btn-danger" style="padding: 6px 12px; font-size: 13px;">
+                            🗑️ Delete
+                        </button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div style="text-align: center; padding: 60px 20px; color: #95a5a6;">
+        <div style="font-size: 64px; margin-bottom: 20px;">📦</div>
+        <h3 style="color: #7f8c8d; margin-bottom: 10px;">No Groups Yet</h3>
+        <p>Groups help organize variants of the same item</p>
+        <p style="margin-top: 20px; color: #7f8c8d; font-size: 14px;">
+            <strong>Examples:</strong> Cables (different sizes), T-Shirts (different colors/sizes), Cement (different brands)
+        </p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+

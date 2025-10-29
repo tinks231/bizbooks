@@ -1,0 +1,90 @@
+{% extends "base_sidebar.html" %}
+
+{% block title %}Item Categories - BizBooks{% endblock %}
+
+{% block page_title %}Item Categories{% endblock %}
+
+{% block header_actions %}
+<a href="{{ url_for('items.index') }}" class="btn btn-secondary">
+    ← Back to Items
+</a>
+{% endblock %}
+
+{% block content %}
+<!-- Add New Category -->
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">➕ Add New Category</h3>
+    </div>
+    
+    <form method="POST" action="{{ url_for('items.add_category') }}">
+        <div class="form-row">
+            <div class="form-group" style="margin-bottom: 0;">
+                <input type="text" name="name" required placeholder="Category Name" style="min-width: 300px;">
+            </div>
+            <div class="form-group" style="margin-bottom: 0; flex: 2;">
+                <input type="text" name="description" placeholder="Description (optional)">
+            </div>
+            <button type="submit" class="btn btn-primary" style="margin-bottom: 0;">
+                ➕ Add Category
+            </button>
+        </div>
+    </form>
+</div>
+
+<!-- Categories List -->
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">📑 All Categories ({{ categories|length }})</h3>
+    </div>
+    
+    {% if categories %}
+    <table>
+        <thead>
+            <tr>
+                <th>Category Name</th>
+                <th>Description</th>
+                <th>Items</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for category in categories %}
+            <tr>
+                <td>
+                    <strong>{{ category.name }}</strong>
+                </td>
+                <td>
+                    {{ category.description or '—' }}
+                </td>
+                <td>
+                    <span style="background: #e3f2fd; color: #1976d2; padding: 4px 10px; border-radius: 12px; font-size: 13px; font-weight: 600;">
+                        {{ category.items|length }} items
+                    </span>
+                </td>
+                <td>
+                    <form method="POST" action="{{ url_for('items.delete_category', category_id=category.id) }}" 
+                          style="display: inline;"
+                          onsubmit="return confirm('⚠️ Delete category {{ category.name }}?\n\n{% if category.items %}This category has {{ category.items|length }} items.\nItems will not be deleted, just unlinked from this category.\n\n{% endif %}Continue?')">
+                        <button type="submit" class="btn btn-danger" style="padding: 6px 12px; font-size: 13px;">
+                            🗑️ Delete
+                        </button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div style="text-align: center; padding: 60px 20px; color: #95a5a6;">
+        <div style="font-size: 64px; margin-bottom: 20px;">🏷️</div>
+        <h3 style="color: #7f8c8d; margin-bottom: 10px;">No Categories Yet</h3>
+        <p>Categories help organize your items</p>
+        <p style="margin-top: 20px; color: #7f8c8d; font-size: 14px;">
+            <strong>Examples:</strong> Electrical, Hardware, Construction, Office Supplies
+        </p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+

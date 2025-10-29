@@ -86,6 +86,7 @@ from routes.inventory import inventory_bp
 from routes.admin import admin_bp
 from routes.migration import migration_bp
 from routes.superadmin import superadmin_bp
+from routes.items import items_bp  # NEW: Professional items management
 
 app.register_blueprint(registration_bp)
 app.register_blueprint(attendance_bp)
@@ -93,6 +94,7 @@ app.register_blueprint(inventory_bp)
 app.register_blueprint(admin_bp)
 app.register_blueprint(migration_bp)
 app.register_blueprint(superadmin_bp)
+app.register_blueprint(items_bp)  # NEW: Register items blueprint
 
 # ============================================================
 # Main route
