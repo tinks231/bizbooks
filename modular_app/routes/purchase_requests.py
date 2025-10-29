@@ -120,9 +120,9 @@ def submit_form():
             db.session.commit()
             
             # Send email notification to admin
-            if tenant.email:
+            if tenant.admin_email:
                 send_purchase_request_notification(
-                    admin_email=tenant.email,
+                    admin_email=tenant.admin_email,
                     employee_name=employee_name,
                     item_name=item_name,
                     estimated_price=estimated_price,

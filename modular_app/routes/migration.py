@@ -255,7 +255,7 @@ def debug_emails():
                 {
                     'id': t.id,
                     'company': t.company_name,
-                    'email': t.email,
+                    'email': t.admin_email,
                     'subdomain': t.subdomain
                 } for t in tenants
             ],
