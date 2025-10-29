@@ -136,7 +136,7 @@ def employees():
     tenant_id = get_current_tenant_id()
     employees = Employee.query.filter_by(tenant_id=tenant_id).all()
     sites = Site.query.filter_by(tenant_id=tenant_id, active=True).all()
-    return render_template('admin/employees.html', employees=employees, sites=sites)
+    return render_template('admin/employees.html', employees=employees, sites=sites, tenant=g.tenant)
 
 @admin_bp.route('/employee/add', methods=['POST'])
 @require_tenant
@@ -207,7 +207,7 @@ def sites():
     """Manage sites"""
     tenant_id = get_current_tenant_id()
     sites = Site.query.filter_by(tenant_id=tenant_id).all()
-    return render_template('admin/sites.html', sites=sites)
+    return render_template('admin/sites.html', sites=sites, tenant=g.tenant)
 
 @admin_bp.route('/site/add', methods=['POST'])
 @require_tenant
@@ -247,7 +247,7 @@ def edit_site(site_id):
         flash(f'Site "{site.name}" updated successfully!', 'success')
         return redirect(url_for('admin.sites'))
     
-    return render_template('admin/edit_site.html', site=site)
+    return render_template('admin/edit_site.html', site=site, tenant=g.tenant)
 
 # Inventory Management
 @admin_bp.route('/inventory')
@@ -258,7 +258,7 @@ def inventory():
     tenant_id = get_current_tenant_id()
     materials = Material.query.filter_by(tenant_id=tenant_id, active=True).all()
     sites = Site.query.filter_by(tenant_id=tenant_id, active=True).all()
-    return render_template('admin/inventory.html', materials=materials, sites=sites)
+    return render_template('admin/inventory.html', materials=materials, sites=sites, tenant=g.tenant)
 
 @admin_bp.route('/material/add', methods=['POST'])
 @require_tenant
@@ -322,7 +322,7 @@ def edit_material(material_id):
     
     # GET - show edit form
     sites = Site.query.filter_by(tenant_id=tenant_id, active=True).all()
-    return render_template('admin/edit_material.html', material=material, sites=sites)
+    return render_template('admin/edit_material.html', material=material, sites=sites, tenant=g.tenant)
 
 @admin_bp.route('/material/delete/<int:material_id>')
 @require_tenant
@@ -586,7 +586,7 @@ def attendance():
     # Reverse the list so newest records appear first
     attendance_pairs.reverse()
     
-    return render_template('admin/attendance.html', attendance_pairs=attendance_pairs)
+    return render_template('admin/attendance.html', attendance_pairs=attendance_pairs, tenant=g.tenant)
 
 @admin_bp.route('/record/delete/<int:record_id>')
 @require_tenant
@@ -735,7 +735,7 @@ def manual_entry():
         flash(f'Manual {action_text} added for {employee.name}', 'success')
         return redirect(url_for('admin.attendance'))
     
-    return render_template('admin/manual_entry.html', employees=employees, unclosed_checkins=unclosed_checkins)
+    return render_template('admin/manual_entry.html', employees=employees, unclosed_checkins=unclosed_checkins, tenant=g.tenant)
 
 # QR Code Generation
 @admin_bp.route('/generate_qr')
@@ -772,5 +772,6 @@ def generate_qr():
                          qr_image=img_base64,
                          url=attendance_url,
                          company=tenant.company_name,
-                         subdomain=tenant.subdomain)
+                         subdomain=tenant.subdomain,
+                         tenant=g.tenant)
 
