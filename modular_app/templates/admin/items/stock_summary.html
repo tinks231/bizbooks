@@ -18,8 +18,7 @@
 
     {% if stock_data %}
     <!-- Desktop Table View (Always visible on desktop) -->
-    <div id="tableView" class="desktop-table" style="background: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); overflow-x: auto; -webkit-overflow-scrolling: touch;">
-        <div style="min-width: 800px;">
+    <div id="tableView" class="desktop-table" style="background: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
         <table style="width: 100%; border-collapse: collapse;">
             <thead>
                 <tr style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
@@ -67,7 +66,6 @@
                 {% endfor %}
             </tbody>
         </table>
-        </div>
     </div>
     
     <!-- Mobile Card View (Default on mobile) -->
@@ -134,11 +132,6 @@
         #viewToggle {
             display: none !important;
         }
-        
-        /* Desktop table scrollable if too wide */
-        #tableView {
-            overflow-x: auto;
-        }
     }
     
     /* Mobile: Show toggle button and respect user preference */
@@ -159,17 +152,9 @@
         /* Table view (when body has show-table class) */
         body.show-table #tableView {
             display: block !important;
-            overflow-x: auto !important;
-            -webkit-overflow-scrolling: touch;
         }
         body.show-table #cardView {
             display: none !important;
-        }
-        
-        /* Ensure table is scrollable */
-        #tableView {
-            max-width: 100%;
-            overflow-x: auto;
         }
     }
 </style>
