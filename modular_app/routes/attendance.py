@@ -35,7 +35,6 @@ def submit():
     action = request.form.get('action', '').strip()
     lat_str = request.form.get('latitude', '')
     lon_str = request.form.get('longitude', '')
-    site_id = request.form.get('site_id', 1)
 
     # Validate PIN (scoped to tenant)
     employee = Employee.query.filter_by(
@@ -174,28 +173,71 @@ def submit():
         </div>
         """
 
-    # Calculate distance from site (MANDATORY check)
-    distance = 0
-    site = Site.query.get(site_id)
-    if site and site.latitude and site.longitude:
-        user_loc = (lat, lon)
-        site_loc = (site.latitude, site.longitude)
-        distance = geodesic(user_loc, site_loc).meters
-        
-        # Get allowed radius (handle both old 'radius' and new 'allowed_radius' column names)
-        max_allowed_distance = getattr(site, 'allowed_radius', getattr(site, 'radius', 100))
-        
-        # Check if within allowed radius (MANDATORY)
-        if distance > max_allowed_distance:
+    # AUTO-DETECT SITE: Find closest site within allowed radius
+    user_loc = (lat, lon)
+    all_sites = Site.query.filter_by(tenant_id=tenant_id, active=True).all()
+    
+    if not all_sites:
+        return f"""
+        <div style="text-align: center; padding: 50px; font-family: Arial;">
+            <h2 style="color: #dc3545;">❌ No Sites Configured</h2>
+            <p>Please contact admin to set up site locations.</p>
+            <a href='/attendance' style="display: inline-block; margin-top: 20px; padding: 10px 20px; background: #4CAF50; color: white; text-decoration: none; border-radius: 5px;">← Go Back</a>
+        </div>
+        """
+    
+    # Calculate distance to each site
+    sites_with_distance = []
+    for site in all_sites:
+        if site.latitude and site.longitude:
+            site_loc = (site.latitude, site.longitude)
+            distance = geodesic(user_loc, site_loc).meters
+            max_allowed = getattr(site, 'allowed_radius', getattr(site, 'radius', 100))
+            
+            sites_with_distance.append({
+                'site': site,
+                'distance': distance,
+                'max_allowed': max_allowed,
+                'within_radius': distance <= max_allowed
+            })
+    
+    # Sort by distance (closest first)
+    sites_with_distance.sort(key=lambda x: x['distance'])
+    
+    # Find the closest site within allowed radius
+    matched_site = None
+    for site_info in sites_with_distance:
+        if site_info['within_radius']:
+            matched_site = site_info
+            break
+    
+    # If no site is within allowed radius, reject
+    if not matched_site:
+        # Show details of closest site
+        closest = sites_with_distance[0] if sites_with_distance else None
+        if closest:
             return f"""
             <div style="text-align: center; padding: 50px; font-family: Arial;">
-                <h2 style="color: #dc3545;">❌ Too Far from Site</h2>
-                <p>You are <strong>{int(distance)} meters</strong> away from the site.</p>
-                <p style="color: #666;">Maximum allowed distance: <strong>{int(max_allowed_distance)} meters</strong></p>
-                <p style="color: #ff6b6b; margin-top: 20px;">Please move closer to the site location to mark attendance.</p>
+                <h2 style="color: #dc3545;">❌ Too Far from Any Site</h2>
+                <p>Closest site: <strong>{closest['site'].name}</strong></p>
+                <p>You are <strong>{int(closest['distance'])} meters</strong> away.</p>
+                <p style="color: #666;">Maximum allowed: <strong>{int(closest['max_allowed'])} meters</strong></p>
+                <p style="color: #ff6b6b; margin-top: 20px;">Please move closer to one of your registered sites.</p>
                 <a href='/attendance' style="display: inline-block; margin-top: 20px; padding: 10px 20px; background: #4CAF50; color: white; text-decoration: none; border-radius: 5px;">← Go Back</a>
             </div>
             """
+        else:
+            return f"""
+            <div style="text-align: center; padding: 50px; font-family: Arial;">
+                <h2 style="color: #dc3545;">❌ No Valid Sites Found</h2>
+                <p>Please contact admin to configure site locations with GPS coordinates.</p>
+                <a href='/attendance' style="display: inline-block; margin-top: 20px; padding: 10px 20px; background: #4CAF50; color: white; text-decoration: none; border-radius: 5px;">← Go Back</a>
+            </div>
+            """
+    
+    # Use the matched site
+    site = matched_site['site']
+    distance = matched_site['distance']
 
     # Save photo (Vercel Blob Storage or local filesystem)
     photo_data = None

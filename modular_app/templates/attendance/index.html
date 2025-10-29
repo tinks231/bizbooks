@@ -51,17 +51,6 @@
     <div id="locationStatus" class="loading">📍 Getting your location...</div>
     
     <form id="attendanceForm" method="POST" enctype="multipart/form-data" action="/attendance/submit">
-      {% if sites %}
-      <div class="form-group">
-        <label>Select Site:</label>
-        <select name="site_id" id="site_id" required>
-          {% for site in sites %}
-          <option value="{{ site.id }}">{{ site.name }}</option>
-          {% endfor %}
-        </select>
-      </div>
-      {% endif %}
-      
       <div class="form-group">
         <label>Enter Your PIN:</label>
         <input type="password" name="pin" id="pin" placeholder="4-digit PIN" maxlength="4" pattern="[0-9]{4}" required autofocus>

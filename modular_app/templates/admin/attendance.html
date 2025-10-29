@@ -1,150 +1,99 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <title>Admin Dashboard</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <style>
-    body { font-family: Arial; margin: 0; padding: 20px; background: #f5f5f5; }
-    .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; padding: 20px; background: white; border-radius: 10px; }
-    .header h2 { margin: 0; }
-    .nav { display: flex; gap: 20px; }
-    .nav a { padding: 10px 20px; background: #4CAF50; color: white; text-decoration: none; border-radius: 5px; }
-    .nav a:hover { background: #45a049; }
-    .logout { background: #f44336 !important; }
-    .logout:hover { background: #da190b !important; }
-    .container { background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin-bottom: 20px; }
-    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-    th { background: #4CAF50; color: white; padding: 15px; text-align: left; font-size: 0.9em; }
-    td { padding: 12px; border-bottom: 1px solid #ddd; vertical-align: middle; }
-    tr:hover { background-color: #f5f5f5; }
-    .photo { width: 50px; height: 50px; object-fit: cover; border-radius: 5px; cursor: pointer; transition: transform 0.2s; }
-    .photo:hover { transform: scale(3); z-index: 1000; }
-    .time-in { color: #4CAF50; }
-    .time-out { color: #f44336; }
-    .duration { background: #e3f2fd; padding: 5px 10px; border-radius: 5px; font-weight: bold; color: #1976d2; }
-    .working { background: #fff3cd; padding: 5px 10px; border-radius: 5px; color: #856404; }
-    .distance { color: #666; font-size: 0.85em; }
-  </style>
-</head>
-<body>
-  <div class="header">
-    <h2>📊 Admin Dashboard</h2>
-    <div class="nav">
-      <a href="/admin/dashboard">📊 Dashboard</a>
-      <a href="/admin/employees">👥 Manage Employees</a>
-      <a href="/admin/sites">🏢 Sites</a>
-      <a href="/admin/inventory">📦 Inventory</a>
-      <a href="/admin/manual_entry" style="background: #ff9800;">✍️ Manual Entry</a>
-      <a href="/admin/logout" class="logout">Logout</a>
+{% extends "base_sidebar.html" %}
+
+{% block title %}Attendance Records - {{ tenant.company_name }}{% endblock %}
+
+{% block content %}
+<div style="padding: 20px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">
+        <h1 style="margin: 0; font-size: 28px; color: #2c3e50;">📅 Attendance Records</h1>
+        <div style="display: flex; gap: 10px;">
+            <a href="/admin/manual_entry" style="background: #ff9800; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: 600; font-size: 14px;">✍️ Manual Entry</a>
+            <a href="/admin/export" style="background: #2196F3; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: 600; font-size: 14px;">📥 Export CSV</a>
+            <form method="POST" action="/admin/clear_attendance" style="display: inline; margin: 0;" onsubmit="return confirm('⚠️ Delete ALL attendance records? This cannot be undone!');">
+                <button type="submit" style="background: #f44336; color: white; padding: 12px 24px; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 14px;">🗑️ Clear All</button>
+            </form>
+        </div>
     </div>
-  </div>
-  
-  <div class="container">
-    <h3>📅 Attendance Records (Grouped by Employee & Date)</h3>
-    <div style="margin-bottom: 20px; display: flex; gap: 10px;">
-      <a href="/admin/export" style="padding: 10px 20px; background: #2196F3; color: white; text-decoration: none; border-radius: 5px;">📥 Export to CSV</a>
-      <form method="POST" action="/admin/clear_attendance" style="display: inline; margin: 0;" onsubmit="return confirm('⚠️ Delete ALL attendance records? This cannot be undone!');">
-        <button type="submit" style="padding: 10px 20px; background: #f44336; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 1em;">🗑️ Clear All Attendance Data</button>
-      </form>
+
+    {% if attendance_pairs %}
+    <div style="background: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); overflow: hidden;">
+        <table style="width: 100%; border-collapse: collapse;">
+            <thead>
+                <tr style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                    <th style="padding: 15px; text-align: left; font-weight: 600;">Date</th>
+                    <th style="padding: 15px; text-align: left; font-weight: 600;">Employee</th>
+                    <th style="padding: 15px; text-align: left; font-weight: 600;">Check In</th>
+                    <th style="padding: 15px; text-align: left; font-weight: 600;">Check Out</th>
+                    <th style="padding: 15px; text-align: center; font-weight: 600;">Duration</th>
+                    <th style="padding: 15px; text-align: center; font-weight: 600;">In Photo</th>
+                    <th style="padding: 15px; text-align: center; font-weight: 600;">Out Photo</th>
+                    <th style="padding: 15px; text-align: left; font-weight: 600;">Comment</th>
+                    <th style="padding: 15px; text-align: center; font-weight: 600;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for pair in attendance_pairs %}
+                <tr style="border-bottom: 1px solid #e0e0e0;">
+                    <td style="padding: 15px;">{{ pair.date }}</td>
+                    <td style="padding: 15px; font-weight: 500;">{{ pair.employee_name }}</td>
+                    <td style="padding: 15px;">
+                        <span style="color: #28a745; font-weight: 600;">{{ pair.check_in_time }}</span>
+                        <div style="color: #666; font-size: 12px; margin-top: 3px;">{{ pair.check_in_distance }}</div>
+                    </td>
+                    <td style="padding: 15px;">
+                        {% if pair.check_out_time %}
+                            <span style="color: #dc3545; font-weight: 600;">{{ pair.check_out_time }}</span>
+                            <div style="color: #666; font-size: 12px; margin-top: 3px;">{{ pair.check_out_distance }}</div>
+                        {% else %}
+                            <span style="background: #fff3cd; color: #856404; padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 600;">Working</span>
+                        {% endif %}
+                    </td>
+                    <td style="padding: 15px; text-align: center;">
+                        {% if pair.duration %}
+                            <span style="background: #e3f2fd; color: #1976d2; padding: 5px 12px; border-radius: 20px; font-weight: 600;">{{ pair.duration }}</span>
+                        {% else %}
+                            <span style="color: #999;">—</span>
+                        {% endif %}
+                    </td>
+                    <td style="padding: 15px; text-align: center;">
+                        {% if pair.check_in_photo and pair.check_in_photo != 'manual_entry.jpg' %}
+                            {% if pair.check_in_photo.startswith('http') %}
+                                <img src='{{ pair.check_in_photo }}' style='width: 50px; height: 50px; object-fit: cover; border-radius: 5px; cursor: pointer;' title='Check In' onclick="window.open(this.src, '_blank')">
+                            {% else %}
+                                <img src='/selfie/{{ pair.check_in_photo }}' style='width: 50px; height: 50px; object-fit: cover; border-radius: 5px; cursor: pointer;' title='Check In' onclick="window.open(this.src, '_blank')">
+                            {% endif %}
+                        {% else %}
+                            <span style="color: #999;">—</span>
+                        {% endif %}
+                    </td>
+                    <td style="padding: 15px; text-align: center;">
+                        {% if pair.check_out_photo and pair.check_out_photo != 'manual_entry.jpg' %}
+                            {% if pair.check_out_photo.startswith('http') %}
+                                <img src='{{ pair.check_out_photo }}' style='width: 50px; height: 50px; object-fit: cover; border-radius: 5px; cursor: pointer;' title='Check Out' onclick="window.open(this.src, '_blank')">
+                            {% else %}
+                                <img src='/selfie/{{ pair.check_out_photo }}' style='width: 50px; height: 50px; object-fit: cover; border-radius: 5px; cursor: pointer;' title='Check Out' onclick="window.open(this.src, '_blank')">
+                            {% endif %}
+                        {% else %}
+                            <span style="color: #999;">—</span>
+                        {% endif %}
+                    </td>
+                    <td style="padding: 15px; color: #666; font-size: 13px;">{{ pair.comment or '—' }}</td>
+                    <td style="padding: 15px; text-align: center;">
+                        <form method="POST" action="/admin/delete_attendance/{{ pair.check_in_id }}" style="display: inline; margin: 0;" onsubmit="return confirm('Delete this attendance record?');">
+                            <button type="submit" style="background: none; border: none; cursor: pointer; font-size: 18px; color: #dc3545;" title="Delete">🗑️</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
     </div>
-    <table>
-      <thead>
-        <tr>
-          <th>Date</th>
-          <th>Employee</th>
-          <th>Check In</th>
-          <th>Check Out</th>
-          <th>Duration</th>
-          <th>In Photo</th>
-          <th>Out Photo</th>
-          <th>Comment</th>
-          <th>Actions</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for pair in attendance_pairs %}
-        <tr>
-          <td>{{ pair.date }}</td>
-          <td><strong>{{ pair.employee_name }}</strong></td>
-          <td>
-            <span class="time-in">{{ pair.check_in_time }}</span>
-            <div class="distance">{{ pair.check_in_distance }}</div>
-          </td>
-          <td>
-            {% if pair.check_out_time %}
-              <span class="time-out">{{ pair.check_out_time }}</span>
-              <div class="distance">{{ pair.check_out_distance }}</div>
-            {% else %}
-              <span class="working">Still Working</span>
-            {% endif %}
-          </td>
-          <td>
-            {% if pair.duration %}
-              <span class="duration">{{ pair.duration }}</span>
-            {% else %}
-              <span class="working">—</span>
-            {% endif %}
-          </td>
-          <td>
-                                {% if pair.check_in_photo and pair.check_in_photo != 'manual_entry.jpg' %}
-                                    {% if pair.check_in_photo.startswith('http') %}
-                                        <img src='{{ pair.check_in_photo }}' class='photo' title='Check In'>
-                                    {% else %}
-                                        <img src='/selfie/{{ pair.check_in_photo }}' class='photo' title='Check In'>
-                                    {% endif %}
-                                {% else %}
-                                    —
-                                {% endif %}
-          </td>
-          <td>
-                                {% if pair.check_out_photo and pair.check_out_photo != 'manual_entry.jpg' %}
-                                    {% if pair.check_out_photo.startswith('http') %}
-                                        <img src='{{ pair.check_out_photo }}' class='photo' title='Check Out'>
-                                    {% else %}
-                                        <img src='/selfie/{{ pair.check_out_photo }}' class='photo' title='Check Out'>
-                                    {% endif %}
-                                {% else %}
-                                    —
-                                {% endif %}
-          </td>
-          <td style="max-width: 200px; font-size: 0.85em; color: #666;">
-            {% if pair.check_in_comment or pair.check_out_comment %}
-              <div style="background: #fff3cd; padding: 5px; border-radius: 3px;">
-                {% if pair.check_in_comment %}
-                  <div style="margin-bottom: 3px;">
-                    <strong>In:</strong> {{ pair.check_in_comment }}
-                    {% if pair.check_in_manual %}<span style="color: #ff9800; font-weight: bold;" title="Manual Entry">✍️</span>{% endif %}
-                  </div>
-                {% endif %}
-                {% if pair.check_out_comment %}
-                  <div>
-                    <strong>Out:</strong> {{ pair.check_out_comment }}
-                    {% if pair.check_out_manual %}<span style="color: #ff9800; font-weight: bold;" title="Manual Entry">✍️</span>{% endif %}
-                  </div>
-                {% endif %}
-              </div>
-            {% else %}
-              —
-            {% endif %}
-          </td>
-          <td>
-            <div style="display: flex; gap: 5px;">
-              {% if pair.check_in_id %}
-              <a href="/admin/record/delete/{{ pair.check_in_id }}" onclick="return confirm('Delete check-in record?');" style="padding: 5px 10px; background: #f44336; color: white; text-decoration: none; border-radius: 3px; font-size: 0.85em;">🗑️ In</a>
-              {% endif %}
-              {% if pair.check_out_id %}
-              <a href="/admin/record/delete/{{ pair.check_out_id }}" onclick="return confirm('Delete check-out record?');" style="padding: 5px 10px; background: #f44336; color: white; text-decoration: none; border-radius: 3px; font-size: 0.85em;">🗑️ Out</a>
-              {% endif %}
-            </div>
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-    
-    {% if not attendance_pairs %}
-    <p style="text-align: center; color: #999; padding: 40px 0;">No attendance records yet.</p>
+    {% else %}
+    <div style="background: white; border-radius: 8px; padding: 40px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+        <div style="font-size: 48px; margin-bottom: 15px;">📅</div>
+        <h3 style="color: #666; margin: 0 0 10px 0;">No Attendance Records</h3>
+        <p style="color: #999; margin: 0;">Attendance records will appear here once employees check in</p>
+    </div>
     {% endif %}
-  </div>
-</body>
-</html>
+</div>
+{% endblock %}

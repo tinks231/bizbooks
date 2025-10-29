@@ -1,0 +1,75 @@
+{% extends "base_sidebar.html" %}
+
+{% block title %}Stock Summary - {{ tenant.company_name }}{% endblock %}
+
+{% block content %}
+<div style="padding: 20px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">
+        <h1 style="margin: 0; font-size: 28px; color: #2c3e50;">
+            📊 Stock Summary
+        </h1>
+    </div>
+
+    {% if stock_data %}
+    <div style="background: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); overflow: hidden;">
+        <table style="width: 100%; border-collapse: collapse;">
+            <thead>
+                <tr style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                    <th style="padding: 15px; text-align: left; font-weight: 600;">SKU</th>
+                    <th style="padding: 15px; text-align: left; font-weight: 600;">Item Name</th>
+                    <th style="padding: 15px; text-align: center; font-weight: 600;">Unit</th>
+                    {% for site in sites %}
+                    <th style="padding: 15px; text-align: center; font-weight: 600;">{{ site.name }}</th>
+                    {% endfor %}
+                    <th style="padding: 15px; text-align: center; font-weight: 600;">Total Stock</th>
+                    <th style="padding: 15px; text-align: center; font-weight: 600;">Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for data in stock_data %}
+                <tr style="border-bottom: 1px solid #e0e0e0;">
+                    <td style="padding: 15px; color: #666;">{{ data.item.sku }}</td>
+                    <td style="padding: 15px; font-weight: 500;">
+                        {{ data.item.name }}
+                        {% if data.item.description %}
+                        <div style="color: #666; font-size: 12px; margin-top: 3px;">{{ data.item.description[:50] }}...</div>
+                        {% endif %}
+                    </td>
+                    <td style="padding: 15px; text-align: center; color: #666;">{{ data.item.unit }}</td>
+                    {% for site in sites %}
+                    <td style="padding: 15px; text-align: center; font-weight: 500;">
+                        {{ data.stock_by_site[site.id] }}
+                    </td>
+                    {% endfor %}
+                    <td style="padding: 15px; text-align: center; font-weight: 600; font-size: 16px;">
+                        {{ data.total_stock }}
+                    </td>
+                    <td style="padding: 15px; text-align: center;">
+                        {% if data.low_stock %}
+                        <span style="background: #fff3cd; color: #856404; padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 600;">
+                            ⚠️ Low Stock
+                        </span>
+                        {% else %}
+                        <span style="background: #d4edda; color: #155724; padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 600;">
+                            ✅ Good
+                        </span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div style="background: white; border-radius: 8px; padding: 40px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+        <div style="font-size: 48px; margin-bottom: 15px;">📦</div>
+        <h3 style="color: #666; margin: 0 0 10px 0;">No Items Yet</h3>
+        <p style="color: #999; margin: 0 0 20px 0;">Add your first item to start tracking stock</p>
+        <a href="{{ url_for('items.add') }}" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 12px 30px; border-radius: 6px; text-decoration: none; display: inline-block; font-weight: 600;">
+            ➕ Add First Item
+        </a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+

@@ -1,21 +1,14 @@
-{% extends "base.html" %}
+{% extends "base_sidebar.html" %}
 
-{% block title %}Manage Sites{% endblock %}
-
-{% block nav_links %}
-<a href="/admin/dashboard">Dashboard</a>
-<a href="/admin/employees">Employees</a>
-<a href="/admin/sites">Sites</a>
-<a href="/admin/inventory">Inventory</a>
-<a href="/admin/logout">Logout</a>
-{% endblock %}
+{% block title %}Manage Sites - {{ tenant.company_name }}{% endblock %}
 
 {% block content %}
-<div class="card">
-    <h1>🏢 Manage Sites</h1>
+<div style="padding: 20px;">
+    <h1 style="margin: 0 0 30px 0; font-size: 28px; color: #2c3e50;">🏢 Manage Sites</h1>
     
-    <h3 style="margin-top: 30px;">Add New Site</h3>
-    <form method="POST" action="/admin/site/add" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; max-width: 800px;">
+    <div style="background: white; border-radius: 8px; padding: 25px; margin-bottom: 25px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+    <h3 style="margin: 0 0 20px 0; color: #2c3e50;">Add New Site</h3>
+    <form method="POST" action="/admin/site/add" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
         <div class="form-group">
             <label>Site Name:</label>
             <input type="text" name="name" required>
@@ -37,45 +30,46 @@
             <input type="number" name="allowed_radius" value="100" placeholder="100">
         </div>
         <div style="grid-column: span 2;">
-            <button type="submit" class="btn btn-success">Add Site</button>
+            <button type="submit" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 12px 30px; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">➕ Add Site</button>
         </div>
     </form>
-</div>
+    </div>
 
-<div class="card" style="margin-top: 20px;">
-    <h3>All Sites</h3>
-    <table>
+    <div style="background: white; border-radius: 8px; padding: 25px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+    <h3 style="margin: 0 0 20px 0; color: #2c3e50;">All Sites</h3>
+    <table style="width: 100%; border-collapse: collapse;">
         <thead>
-            <tr>
-                <th>Site Name</th>
-                <th>Address</th>
-                <th>Coordinates</th>
-                <th>Radius</th>
-                <th>Status</th>
-                <th>Actions</th>
+            <tr style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                <th style="padding: 15px; text-align: left; font-weight: 600;">Site Name</th>
+                <th style="padding: 15px; text-align: left; font-weight: 600;">Address</th>
+                <th style="padding: 15px; text-align: left; font-weight: 600;">Coordinates</th>
+                <th style="padding: 15px; text-align: center; font-weight: 600;">Radius</th>
+                <th style="padding: 15px; text-align: center; font-weight: 600;">Status</th>
+                <th style="padding: 15px; text-align: center; font-weight: 600;">Actions</th>
             </tr>
         </thead>
         <tbody>
             {% for site in sites %}
-            <tr>
-                <td><strong>{{ site.name }}</strong></td>
-                <td>{{ site.address or '-' }}</td>
-                <td>{{ site.latitude }}, {{ site.longitude }}</td>
-                <td>{{ site.allowed_radius }} m</td>
-                <td>
+            <tr style="border-bottom: 1px solid #e0e0e0;">
+                <td style="padding: 15px; font-weight: 500;">{{ site.name }}</td>
+                <td style="padding: 15px; color: #666;">{{ site.address or '-' }}</td>
+                <td style="padding: 15px; color: #666;">{{ site.latitude }}, {{ site.longitude }}</td>
+                <td style="padding: 15px; text-align: center;">{{ site.allowed_radius }} m</td>
+                <td style="padding: 15px; text-align: center;">
                     {% if site.active %}
-                    <span style="color: #28a745;">● Active</span>
+                    <span style="background: #d4edda; color: #155724; padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 600;">● Active</span>
                     {% else %}
-                    <span style="color: #dc3545;">● Inactive</span>
+                    <span style="background: #f8d7da; color: #721c24; padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 600;">● Inactive</span>
                     {% endif %}
                 </td>
-                <td>
+                <td style="padding: 15px; text-align: center;">
                     <a href="/admin/site/edit/{{ site.id }}" style="text-decoration: none; font-size: 1.2em;" title="Edit Site">✏️</a>
                 </td>
             </tr>
             {% endfor %}
         </tbody>
     </table>
+    </div>
 </div>
 {% endblock %}
 

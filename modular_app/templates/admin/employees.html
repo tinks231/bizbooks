@@ -1,21 +1,14 @@
-{% extends "base.html" %}
+{% extends "base_sidebar.html" %}
 
-{% block title %}Manage Employees{% endblock %}
-
-{% block nav_links %}
-<a href="/admin/dashboard">Dashboard</a>
-<a href="/admin/employees">Employees</a>
-<a href="/admin/sites">Sites</a>
-<a href="/admin/inventory">Inventory</a>
-<a href="/admin/logout">Logout</a>
-{% endblock %}
+{% block title %}Manage Employees - {{ tenant.company_name }}{% endblock %}
 
 {% block content %}
-<div class="card">
-    <h1>👥 Manage Employees</h1>
+<div style="padding: 20px;">
+    <h1 style="margin: 0 0 30px 0; font-size: 28px; color: #2c3e50;">👥 Manage Employees</h1>
     
-    <h3 style="margin-top: 30px;">Add New Employee</h3>
-    <form method="POST" action="/admin/employee/add" enctype="multipart/form-data" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; max-width: 800px;">
+    <div style="background: white; border-radius: 8px; padding: 25px; margin-bottom: 25px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+    <h3 style="margin: 0 0 20px 0; color: #2c3e50;">Add New Employee</h3>
+    <form method="POST" action="/admin/employee/add" enctype="multipart/form-data" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
         <div class="form-group">
             <label>Name:</label>
             <input type="text" name="name" required>
@@ -43,59 +36,60 @@
             <small style="color: #7f8c8d;">Supported: PDF, JPG, PNG</small>
         </div>
         <div style="grid-column: span 2;">
-            <button type="submit" class="btn btn-success">Add Employee</button>
+            <button type="submit" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 12px 30px; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">➕ Add Employee</button>
         </div>
     </form>
-</div>
+    </div>
 
-<div class="card" style="margin-top: 20px;">
-    <h3>All Employees</h3>
-    <table>
+    <div style="background: white; border-radius: 8px; padding: 25px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+    <h3 style="margin: 0 0 20px 0; color: #2c3e50;">All Employees</h3>
+    <table style="width: 100%; border-collapse: collapse;">
         <thead>
-            <tr>
-                <th>Name</th>
-                <th>PIN</th>
-                <th>Phone</th>
-                <th>Site</th>
-                <th>Document</th>
-                <th>Status</th>
-                <th>Actions</th>
+            <tr style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                <th style="padding: 15px; text-align: left; font-weight: 600;">Name</th>
+                <th style="padding: 15px; text-align: left; font-weight: 600;">PIN</th>
+                <th style="padding: 15px; text-align: left; font-weight: 600;">Phone</th>
+                <th style="padding: 15px; text-align: left; font-weight: 600;">Site</th>
+                <th style="padding: 15px; text-align: center; font-weight: 600;">Document</th>
+                <th style="padding: 15px; text-align: center; font-weight: 600;">Status</th>
+                <th style="padding: 15px; text-align: center; font-weight: 600;">Actions</th>
             </tr>
         </thead>
         <tbody>
             {% for employee in employees %}
-            <tr>
-                <td>{{ employee.name }}</td>
-                <td>{{ employee.pin }}</td>
-                <td>{{ employee.phone or '-' }}</td>
-                <td>{{ employee.site.name if employee.site else '-' }}</td>
-                <td>
+            <tr style="border-bottom: 1px solid #e0e0e0;">
+                <td style="padding: 15px; font-weight: 500;">{{ employee.name }}</td>
+                <td style="padding: 15px; color: #666;">{{ employee.pin }}</td>
+                <td style="padding: 15px; color: #666;">{{ employee.phone or '-' }}</td>
+                <td style="padding: 15px;">{{ employee.site.name if employee.site else '-' }}</td>
+                <td style="padding: 15px; text-align: center;">
                     {% if employee.document_path %}
-                    <a href="/admin/employee/document/{{ employee.id }}" target="_blank" style="color: #3498db;">
+                    <a href="/admin/employee/document/{{ employee.id }}" target="_blank" style="color: #3498db; text-decoration: none;">
                         📄 View
                     </a>
                     {% else %}
                     <span style="color: #999;">-</span>
                     {% endif %}
                 </td>
-                <td>
+                <td style="padding: 15px; text-align: center;">
                     {% if employee.active %}
-                    <span style="color: #28a745;">● Active</span>
+                    <span style="background: #d4edda; color: #155724; padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 600;">● Active</span>
                     {% else %}
-                    <span style="color: #dc3545;">● Inactive</span>
+                    <span style="background: #f8d7da; color: #721c24; padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 600;">● Inactive</span>
                     {% endif %}
                 </td>
-                <td>
+                <td style="padding: 15px; text-align: center;">
                     {% if employee.active %}
                     <a href="/admin/employee/delete/{{ employee.id }}" 
                        onclick="return confirm('Deactivate this employee?')"
-                       style="color: #dc3545;">Deactivate</a>
+                       style="color: #dc3545; text-decoration: none; font-weight: 600;">Deactivate</a>
                     {% endif %}
                 </td>
             </tr>
             {% endfor %}
         </tbody>
     </table>
+    </div>
 </div>
 {% endblock %}
 

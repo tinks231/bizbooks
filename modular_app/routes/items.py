@@ -1,12 +1,13 @@
 """
 Items management routes (Professional inventory - Zoho style)
 """
-from flask import Blueprint, render_template, request, redirect, url_for, flash, g
-from models import db, Item, ItemCategory, ItemGroup, ItemStock, ItemStockMovement
+from flask import Blueprint, render_template, request, redirect, url_for, flash, g, jsonify
+from models import db, Item, ItemCategory, ItemGroup, ItemStock, ItemStockMovement, Site, InventoryAdjustment, InventoryAdjustmentLine
 from utils.tenant_middleware import require_tenant, get_current_tenant_id
 from utils.license_check import check_license
 from functools import wraps
 from datetime import datetime
+from sqlalchemy import func
 import pytz
 import os
 
@@ -429,4 +430,257 @@ def delete_group(group_id):
         flash(f'❌ Error deleting group: {str(e)}', 'error')
     
     return redirect(url_for('items.groups'))
+
+
+# ===== STOCK SUMMARY =====
+@items_bp.route('/stock-summary')
+@require_tenant
+@login_required
+def stock_summary():
+    """Show current stock levels for all items across all sites"""
+    tenant_id = get_current_tenant_id()
+    
+    # Get all items with their stock
+    items = Item.query.filter_by(tenant_id=tenant_id, is_active=True).all()
+    
+    # Get all sites
+    sites = Site.query.filter_by(tenant_id=tenant_id).all()
+    
+    # Build stock summary data
+    stock_data = []
+    for item in items:
+        # Get total stock across all sites
+        total_stock = db.session.query(func.sum(ItemStock.quantity)).filter_by(
+            item_id=item.id
+        ).scalar() or 0
+        
+        # Get stock by site
+        stock_by_site = {}
+        for site in sites:
+            site_stock = ItemStock.query.filter_by(
+                item_id=item.id,
+                site_id=site.id
+            ).first()
+            stock_by_site[site.id] = site_stock.quantity if site_stock else 0
+        
+        stock_data.append({
+            'item': item,
+            'total_stock': total_stock,
+            'stock_by_site': stock_by_site,
+            'low_stock': total_stock < item.reorder_point if item.reorder_point else False
+        })
+    
+    return render_template('admin/items/stock_summary.html',
+                         stock_data=stock_data,
+                         sites=sites,
+                         tenant=g.tenant)
+
+
+# ===== ADJUSTMENTS =====
+@items_bp.route('/adjustments')
+@require_tenant
+@login_required
+def adjustments():
+    """List all inventory adjustments"""
+    tenant_id = get_current_tenant_id()
+    
+    # Get all adjustments
+    adjustments = InventoryAdjustment.query.filter_by(
+        tenant_id=tenant_id
+    ).order_by(InventoryAdjustment.adjustment_date.desc()).all()
+    
+    # Get items and sites for the form
+    items = Item.query.filter_by(tenant_id=tenant_id, is_active=True).order_by(Item.name).all()
+    sites = Site.query.filter_by(tenant_id=tenant_id).all()
+    
+    return render_template('admin/items/adjustments.html',
+                         adjustments=adjustments,
+                         items=items,
+                         sites=sites,
+                         tenant=g.tenant)
+
+
+@items_bp.route('/adjustments/add', methods=['POST'])
+@require_tenant
+@login_required
+def add_adjustment():
+    """Create new inventory adjustment"""
+    tenant_id = get_current_tenant_id()
+    ist = pytz.timezone('Asia/Kolkata')
+    
+    try:
+        # Create adjustment record
+        adjustment = InventoryAdjustment(
+            tenant_id=tenant_id,
+            adjustment_date=datetime.now(ist),
+            reason=request.form.get('reason'),
+            notes=request.form.get('notes')
+        )
+        db.session.add(adjustment)
+        db.session.flush()  # Get adjustment ID
+        
+        # Process each line item
+        item_ids = request.form.getlist('item_id[]')
+        site_ids = request.form.getlist('site_id[]')
+        quantities = request.form.getlist('quantity[]')
+        adjustment_types = request.form.getlist('adjustment_type[]')
+        
+        for item_id, site_id, qty, adj_type in zip(item_ids, site_ids, quantities, adjustment_types):
+            if not item_id or not site_id or not qty:
+                continue
+            
+            qty = int(qty)
+            if qty == 0:
+                continue
+            
+            # Create adjustment line
+            line = InventoryAdjustmentLine(
+                adjustment_id=adjustment.id,
+                item_id=int(item_id),
+                site_id=int(site_id),
+                quantity_change=qty if adj_type == 'add' else -qty,
+                adjustment_type=adj_type
+            )
+            db.session.add(line)
+            
+            # Update item stock
+            stock = ItemStock.query.filter_by(
+                item_id=int(item_id),
+                site_id=int(site_id)
+            ).first()
+            
+            if stock:
+                stock.quantity += qty if adj_type == 'add' else -qty
+            else:
+                # Create new stock record
+                stock = ItemStock(
+                    item_id=int(item_id),
+                    site_id=int(site_id),
+                    quantity=qty if adj_type == 'add' else 0
+                )
+                db.session.add(stock)
+            
+            # Create stock movement record
+            movement = ItemStockMovement(
+                item_id=int(item_id),
+                site_id=int(site_id),
+                quantity=qty if adj_type == 'add' else -qty,
+                movement_type='adjustment_in' if adj_type == 'add' else 'adjustment_out',
+                reference_type='adjustment',
+                reference_id=adjustment.id,
+                notes=f"Adjustment: {request.form.get('reason')}"
+            )
+            db.session.add(movement)
+        
+        db.session.commit()
+        flash(f'✅ Inventory adjustment recorded successfully!', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'❌ Error recording adjustment: {str(e)}', 'error')
+    
+    return redirect(url_for('items.adjustments'))
+
+
+# ===== TRANSFERS =====
+@items_bp.route('/transfers')
+@require_tenant
+@login_required
+def transfers():
+    """List all stock transfers"""
+    tenant_id = get_current_tenant_id()
+    
+    # Get all transfers (movements with type 'transfer')
+    transfers = ItemStockMovement.query.join(Item).filter(
+        Item.tenant_id == tenant_id,
+        ItemStockMovement.movement_type.in_(['transfer_out', 'transfer_in'])
+    ).order_by(ItemStockMovement.created_at.desc()).all()
+    
+    # Get items and sites for the form
+    items = Item.query.filter_by(tenant_id=tenant_id, is_active=True).order_by(Item.name).all()
+    sites = Site.query.filter_by(tenant_id=tenant_id).all()
+    
+    return render_template('admin/items/transfers.html',
+                         transfers=transfers,
+                         items=items,
+                         sites=sites,
+                         tenant=g.tenant)
+
+
+@items_bp.route('/transfers/add', methods=['POST'])
+@require_tenant
+@login_required
+def add_transfer():
+    """Transfer stock between sites"""
+    tenant_id = get_current_tenant_id()
+    ist = pytz.timezone('Asia/Kolkata')
+    
+    try:
+        item_id = int(request.form.get('item_id'))
+        from_site_id = int(request.form.get('from_site'))
+        to_site_id = int(request.form.get('to_site'))
+        quantity = int(request.form.get('quantity'))
+        notes = request.form.get('notes', '')
+        
+        # Validate
+        if from_site_id == to_site_id:
+            flash('❌ Cannot transfer to the same site!', 'error')
+            return redirect(url_for('items.transfers'))
+        
+        # Check source stock
+        source_stock = ItemStock.query.filter_by(
+            item_id=item_id,
+            site_id=from_site_id
+        ).first()
+        
+        if not source_stock or source_stock.quantity < quantity:
+            flash('❌ Insufficient stock at source site!', 'error')
+            return redirect(url_for('items.transfers'))
+        
+        # Deduct from source
+        source_stock.quantity -= quantity
+        
+        # Add to destination
+        dest_stock = ItemStock.query.filter_by(
+            item_id=item_id,
+            site_id=to_site_id
+        ).first()
+        
+        if dest_stock:
+            dest_stock.quantity += quantity
+        else:
+            dest_stock = ItemStock(
+                item_id=item_id,
+                site_id=to_site_id,
+                quantity=quantity
+            )
+            db.session.add(dest_stock)
+        
+        # Record movements
+        transfer_out = ItemStockMovement(
+            item_id=item_id,
+            site_id=from_site_id,
+            quantity=-quantity,
+            movement_type='transfer_out',
+            reference_type='transfer',
+            notes=f"Transfer to site {to_site_id}: {notes}"
+        )
+        db.session.add(transfer_out)
+        
+        transfer_in = ItemStockMovement(
+            item_id=item_id,
+            site_id=to_site_id,
+            quantity=quantity,
+            movement_type='transfer_in',
+            reference_type='transfer',
+            notes=f"Transfer from site {from_site_id}: {notes}"
+        )
+        db.session.add(transfer_in)
+        
+        db.session.commit()
+        flash(f'✅ Stock transferred successfully!', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'❌ Error transferring stock: {str(e)}', 'error')
+    
+    return redirect(url_for('items.transfers'))
 
