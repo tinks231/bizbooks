@@ -629,21 +629,22 @@
                 </a>
             </div>
             
-            <!-- Reports Section (Future) -->
-            <!--
+            <!-- Reports Section -->
             <div class="nav-section">
                 <div class="nav-section-title">Reports</div>
+                <a href="/admin/items/reports" class="nav-item {% if '/admin/items/reports' in request.path %}active{% endif %}">
+                    <i>📊</i> Inventory Reports
+                </a>
+                <!-- Coming Soon -->
+                <!--
                 <a href="/admin/reports/analytics" class="nav-item">
                     <i>📈</i> Analytics
-                </a>
-                <a href="/admin/reports/inventory" class="nav-item">
-                    <i>📊</i> Inventory Reports
                 </a>
                 <a href="/admin/reports/attendance" class="nav-item">
                     <i>⏰</i> Attendance Reports
                 </a>
+                -->
             </div>
-            -->
             
             <!-- Logout -->
             <a href="/admin/logout" class="nav-item logout">

@@ -1,0 +1,184 @@
+{% extends "base_sidebar.html" %}
+
+{% block title %}Inventory Reports - {{ tenant.company_name }}{% endblock %}
+
+{% block page_title %}Inventory Reports{% endblock %}
+
+{% block header_actions %}
+<a href="{{ url_for('items.index') }}" class="btn btn-secondary">
+    ← Back to Items
+</a>
+{% endblock %}
+
+{% block content %}
+<!-- Summary Cards -->
+<div class="stats-grid" style="margin-bottom: 30px;">
+    <div class="stat-card">
+        <div class="stat-value">₹{{ "{:,.0f}".format(total_stock_value) }}</div>
+        <div class="stat-label">Total Stock Value</div>
+    </div>
+    <div class="stat-card" style="border-left-color: #28a745;">
+        <div class="stat-value">{{ total_items }}</div>
+        <div class="stat-label">Items in Stock</div>
+    </div>
+    <div class="stat-card" style="border-left-color: #ffc107;">
+        <div class="stat-value">{{ low_stock_items }}</div>
+        <div class="stat-label">Low Stock Alerts</div>
+    </div>
+    <div class="stat-card" style="border-left-color: #dc3545;">
+        <div class="stat-value">{{ out_of_stock_items }}</div>
+        <div class="stat-label">Out of Stock</div>
+    </div>
+</div>
+
+<!-- Stock Movements Summary (Last 30 Days) -->
+<div class="card" style="margin-bottom: 30px;">
+    <h3 style="color: #2c3e50; margin-bottom: 20px;">📊 Stock Movements (Last 30 Days)</h3>
+    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px;">
+        <div style="text-align: center; padding: 20px; background: #f8f9fa; border-radius: 8px;">
+            <div style="font-size: 28px; font-weight: 700; color: #28a745;">{{ movements_in }}</div>
+            <div style="color: #6c757d; margin-top: 8px;">Stock In</div>
+        </div>
+        <div style="text-align: center; padding: 20px; background: #f8f9fa; border-radius: 8px;">
+            <div style="font-size: 28px; font-weight: 700; color: #dc3545;">{{ movements_out }}</div>
+            <div style="color: #6c757d; margin-top: 8px;">Stock Out</div>
+        </div>
+        <div style="text-align: center; padding: 20px; background: #f8f9fa; border-radius: 8px;">
+            <div style="font-size: 28px; font-weight: 700; color: #3498db;">{{ movements_in - movements_out }}</div>
+            <div style="color: #6c757d; margin-top: 8px;">Net Change</div>
+        </div>
+    </div>
+</div>
+
+<!-- Stock Valuation by Item -->
+<div class="card">
+    <h3 style="color: #2c3e50; margin-bottom: 20px;">💰 Stock Valuation by Item</h3>
+    
+    {% if stock_details %}
+    <table style="width: 100%; border-collapse: collapse;">
+        <thead>
+            <tr style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                <th style="padding: 12px; text-align: left;">Item Name</th>
+                <th style="padding: 12px; text-align: center;">SKU</th>
+                <th style="padding: 12px; text-align: center;">Quantity</th>
+                <th style="padding: 12px; text-align: center;">Unit</th>
+                <th style="padding: 12px; text-align: right;">Cost Price</th>
+                <th style="padding: 12px; text-align: right;">Total Value</th>
+                <th style="padding: 12px; text-align: center;">Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for detail in stock_details %}
+            <tr style="border-bottom: 1px solid #e0e0e0;">
+                <td style="padding: 12px; font-weight: 500;">{{ detail.item.name }}</td>
+                <td style="padding: 12px; text-align: center; color: #666;">{{ detail.item.sku }}</td>
+                <td style="padding: 12px; text-align: center; font-weight: 600;">{{ detail.quantity }}</td>
+                <td style="padding: 12px; text-align: center; color: #666;">{{ detail.item.unit }}</td>
+                <td style="padding: 12px; text-align: right;">₹{{ "{:,.2f}".format(detail.item.cost_price or 0) }}</td>
+                <td style="padding: 12px; text-align: right; font-weight: 600;">₹{{ "{:,.2f}".format(detail.value) }}</td>
+                <td style="padding: 12px; text-align: center;">
+                    {% if detail.low_stock %}
+                    <span style="background: #fff3cd; color: #856404; padding: 5px 12px; border-radius: 20px; font-size: 11px; font-weight: 600;">
+                        ⚠️ Low Stock
+                    </span>
+                    {% else %}
+                    <span style="background: #d4edda; color: #155724; padding: 5px 12px; border-radius: 20px; font-size: 11px; font-weight: 600;">
+                        ✅ Good
+                    </span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+            <tr style="background: #f8f9fa; font-weight: 700;">
+                <td colspan="5" style="padding: 15px; text-align: right; font-size: 16px;">TOTAL STOCK VALUE:</td>
+                <td style="padding: 15px; text-align: right; font-size: 16px; color: #2c3e50;">₹{{ "{:,.2f}".format(total_stock_value) }}</td>
+                <td></td>
+            </tr>
+        </tbody>
+    </table>
+    {% else %}
+    <div style="text-align: center; padding: 40px; color: #7f8c8d;">
+        <div style="font-size: 48px; margin-bottom: 15px;">📦</div>
+        <p>No stock data available</p>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Recent Stock Movements -->
+<div class="card" style="margin-top: 30px;">
+    <h3 style="color: #2c3e50; margin-bottom: 20px;">📋 Recent Stock Movements (Last 100)</h3>
+    
+    {% if recent_movements %}
+    <table style="width: 100%; border-collapse: collapse;">
+        <thead>
+            <tr style="background: #f8f9fa;">
+                <th style="padding: 12px; text-align: left;">Date</th>
+                <th style="padding: 12px; text-align: left;">Item</th>
+                <th style="padding: 12px; text-align: center;">Type</th>
+                <th style="padding: 12px; text-align: center;">Quantity</th>
+                <th style="padding: 12px; text-align: left;">Notes</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for movement in recent_movements %}
+            <tr style="border-bottom: 1px solid #e0e0e0;">
+                <td style="padding: 12px; color: #666; font-size: 13px;">
+                    {{ movement.movement_date.strftime('%d %b %Y, %I:%M %p') }}
+                </td>
+                <td style="padding: 12px; font-weight: 500;">{{ movement.item.name }}</td>
+                <td style="padding: 12px; text-align: center;">
+                    {% if movement.movement_type == 'adjustment' %}
+                    <span style="background: #e3f2fd; color: #1976d2; padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 600;">
+                        🔧 Adjustment
+                    </span>
+                    {% elif 'transfer' in movement.movement_type %}
+                    <span style="background: #f3e5f5; color: #7b1fa2; padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 600;">
+                        🔄 Transfer
+                    </span>
+                    {% else %}
+                    <span style="background: #f5f5f5; color: #616161; padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 600;">
+                        {{ movement.movement_type }}
+                    </span>
+                    {% endif %}
+                </td>
+                <td style="padding: 12px; text-align: center; font-weight: 600;">
+                    {% if movement.quantity > 0 %}
+                    <span style="color: #28a745;">+{{ movement.quantity }}</span>
+                    {% else %}
+                    <span style="color: #dc3545;">{{ movement.quantity }}</span>
+                    {% endif %}
+                </td>
+                <td style="padding: 12px; color: #666; font-size: 13px;">{{ movement.notes or '—' }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div style="text-align: center; padding: 40px; color: #7f8c8d;">
+        <p>No recent stock movements</p>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+    @media (max-width: 768px) {
+        .stats-grid {
+            grid-template-columns: repeat(2, 1fr) !important;
+        }
+        
+        [style*="grid-template-columns: 1fr 1fr 1fr"] {
+            grid-template-columns: 1fr !important;
+        }
+        
+        table {
+            font-size: 13px;
+        }
+        
+        table th,
+        table td {
+            padding: 8px !important;
+        }
+    }
+</style>
+{% endblock %}
+

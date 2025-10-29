@@ -684,3 +684,86 @@ def add_transfer():
     
     return redirect(url_for('items.transfers'))
 
+
+# ===== REPORTS =====
+@items_bp.route('/reports')
+@require_tenant
+@login_required
+def reports():
+    """Inventory reports - Stock valuation and movement summary"""
+    tenant_id = get_current_tenant_id()
+    
+    # Get all items with stock
+    items = Item.query.filter_by(tenant_id=tenant_id, is_active=True, track_inventory=True).all()
+    
+    # Calculate stock valuation
+    total_stock_value = 0
+    total_items = 0
+    low_stock_items = 0
+    out_of_stock_items = 0
+    
+    stock_details = []
+    
+    for item in items:
+        # Get total stock across all sites
+        total_qty = db.session.query(func.sum(ItemStock.quantity_available))\
+            .filter_by(tenant_id=tenant_id, item_id=item.id)\
+            .scalar() or 0
+        
+        # Calculate value (quantity * cost price)
+        item_value = total_qty * (item.cost_price or 0)
+        total_stock_value += item_value
+        
+        if total_qty > 0:
+            total_items += 1
+            
+            # Check if low stock
+            if item.reorder_point and total_qty < item.reorder_point:
+                low_stock_items += 1
+            
+            stock_details.append({
+                'item': item,
+                'quantity': total_qty,
+                'value': item_value,
+                'low_stock': item.reorder_point and total_qty < item.reorder_point
+            })
+        else:
+            out_of_stock_items += 1
+    
+    # Get recent stock movements (last 30 days)
+    from datetime import timedelta
+    thirty_days_ago = datetime.now(pytz.timezone('Asia/Kolkata')) - timedelta(days=30)
+    
+    recent_movements = ItemStockMovement.query.join(Item)\
+        .filter(Item.tenant_id == tenant_id)\
+        .filter(ItemStockMovement.movement_date >= thirty_days_ago)\
+        .order_by(ItemStockMovement.movement_date.desc())\
+        .limit(100)\
+        .all()
+    
+    # Stock movements summary
+    movements_in = db.session.query(func.sum(ItemStockMovement.quantity))\
+        .join(Item)\
+        .filter(Item.tenant_id == tenant_id)\
+        .filter(ItemStockMovement.quantity > 0)\
+        .filter(ItemStockMovement.movement_date >= thirty_days_ago)\
+        .scalar() or 0
+    
+    movements_out = abs(db.session.query(func.sum(ItemStockMovement.quantity))\
+        .join(Item)\
+        .filter(Item.tenant_id == tenant_id)\
+        .filter(ItemStockMovement.quantity < 0)\
+        .filter(ItemStockMovement.movement_date >= thirty_days_ago)\
+        .scalar() or 0)
+    
+    return render_template('admin/items/reports.html',
+                         total_stock_value=total_stock_value,
+                         total_items=total_items,
+                         low_stock_items=low_stock_items,
+                         out_of_stock_items=out_of_stock_items,
+                         stock_details=stock_details,
+                         recent_movements=recent_movements,
+                         movements_in=movements_in,
+                         movements_out=movements_out,
+                         tenant=g.tenant)
+
