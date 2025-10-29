@@ -215,6 +215,70 @@ def add_purchase_requests():
         }), 500
 
 
+@migration_bp.route('/debug-emails')
+def debug_emails():
+    """Debug: Check if employee emails are saved and SMTP is configured"""
+    import os
+    from models import Employee, Tenant, PurchaseRequest
+    
+    try:
+        # Check SMTP configuration
+        smtp_email = os.getenv('SMTP_EMAIL')
+        smtp_password = os.getenv('SMTP_PASSWORD')
+        smtp_configured = bool(smtp_email and smtp_password)
+        
+        # Get all employees with emails
+        employees_with_email = Employee.query.filter(Employee.email.isnot(None)).all()
+        
+        # Get all tenants with emails
+        tenants = Tenant.query.all()
+        
+        # Get recent purchase requests
+        recent_requests = PurchaseRequest.query.order_by(PurchaseRequest.created_at.desc()).limit(5).all()
+        
+        return jsonify({
+            'status': 'success',
+            'smtp_configured': smtp_configured,
+            'smtp_email': smtp_email if smtp_email else 'NOT CONFIGURED',
+            'smtp_password_set': '✅ Yes' if smtp_password else '❌ No',
+            'total_employees_with_email': len(employees_with_email),
+            'employees': [
+                {
+                    'id': emp.id,
+                    'name': emp.name,
+                    'email': emp.email,
+                    'tenant_id': emp.tenant_id
+                } for emp in employees_with_email
+            ],
+            'total_tenants': len(tenants),
+            'tenants': [
+                {
+                    'id': t.id,
+                    'company': t.company_name,
+                    'email': t.email,
+                    'subdomain': t.subdomain
+                } for t in tenants
+            ],
+            'recent_purchase_requests': [
+                {
+                    'id': pr.id,
+                    'employee_name': pr.employee.name,
+                    'employee_email': pr.employee.email or 'NO EMAIL',
+                    'item': pr.item_name,
+                    'status': pr.status,
+                    'created_at': pr.created_at.strftime('%Y-%m-%d %H:%M:%S') if pr.created_at else None
+                } for pr in recent_requests
+            ]
+        })
+        
+    except Exception as e:
+        return jsonify({
+            'status': 'error',
+            'message': str(e),
+            'details': str(e)
+        }), 500
+
+
 @migration_bp.route('/status')
 def migration_status():
     """Check migration status"""
