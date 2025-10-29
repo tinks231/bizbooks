@@ -2,18 +2,24 @@
 
 {% block title %}Attendance Records - {{ tenant.company_name }}{% endblock %}
 
+{% block page_title %}Attendance Records{% endblock %}
+
+{% block header_actions %}
+<a href="/admin/manual_entry" class="btn btn-secondary">
+    ✍️ Manual Entry
+</a>
+<a href="/admin/generate_qr" class="btn btn-success">
+    📱 Generate QR Code
+</a>
+<a href="/admin/export" class="btn btn-primary">
+    📥 Export CSV
+</a>
+<form method="POST" action="/admin/clear_attendance" style="display: inline; margin: 0;" onsubmit="return confirm('⚠️ Delete ALL attendance records? This cannot be undone!');">
+    <button type="submit" class="btn" style="background: #f44336; color: white;">🗑️ Clear All</button>
+</form>
+{% endblock %}
+
 {% block content %}
-<div style="padding: 20px;">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">
-        <h1 style="margin: 0; font-size: 28px; color: #2c3e50;">📅 Attendance Records</h1>
-        <div style="display: flex; gap: 10px;">
-            <a href="/admin/manual_entry" style="background: #ff9800; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: 600; font-size: 14px;">✍️ Manual Entry</a>
-            <a href="/admin/export" style="background: #2196F3; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: 600; font-size: 14px;">📥 Export CSV</a>
-            <form method="POST" action="/admin/clear_attendance" style="display: inline; margin: 0;" onsubmit="return confirm('⚠️ Delete ALL attendance records? This cannot be undone!');">
-                <button type="submit" style="background: #f44336; color: white; padding: 12px 24px; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 14px;">🗑️ Clear All</button>
-            </form>
-        </div>
-    </div>
 
     {% if attendance_pairs %}
     <div style="background: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); overflow: hidden;">
@@ -95,5 +101,4 @@
         <p style="color: #999; margin: 0;">Attendance records will appear here once employees check in</p>
     </div>
     {% endif %}
-</div>
 {% endblock %}

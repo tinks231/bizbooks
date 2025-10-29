@@ -382,15 +382,29 @@
             
             .top-header {
                 padding: 12px 15px;
+                flex-direction: column;
+                align-items: stretch;
+                gap: 12px;
             }
             
             .header-title {
                 font-size: 18px;
+                text-align: center;
             }
             
             .header-actions {
-                flex-wrap: wrap;
+                display: grid;
+                grid-template-columns: 1fr 1fr;
                 gap: 8px;
+                width: 100%;
+            }
+            
+            .header-actions .btn {
+                padding: 10px 12px;
+                font-size: 13px;
+                white-space: normal;
+                text-align: center;
+                line-height: 1.2;
             }
             
             /* ===== IMPROVED STATS GRID FOR MOBILE ===== */
@@ -415,22 +429,30 @@
                 line-height: 1.2;
             }
             
-            /* Dashboard cards - smaller on mobile */
+            /* Dashboard cards - MUCH smaller on mobile */
             body .card {
-                padding: 15px;
-                margin-bottom: 15px;
+                padding: 12px;
+                margin-bottom: 12px;
             }
             
             body .card h2 {
-                font-size: 24px;
+                font-size: 20px !important;
+                margin: 0 !important;
             }
             
             body .card p {
-                font-size: 13px;
+                font-size: 12px !important;
+                margin: 5px 0 0 0 !important;
             }
             
-            /* Make dashboard grid 1 column on mobile */
-            [style*="grid-template-columns: repeat(auto-fit, minmax(250px, 1fr))"],
+            /* Make dashboard grid compact on mobile */
+            [style*="grid-template-columns: repeat(auto-fit, minmax(250px, 1fr))"] {
+                grid-template-columns: 1fr !important;
+                gap: 12px !important;
+                margin: 15px 0 !important;
+            }
+            
+            /* Recent attendance & low stock tables - 1 column */
             [style*="grid-template-columns: 1fr 1fr"] {
                 grid-template-columns: 1fr !important;
                 gap: 15px !important;
@@ -444,6 +466,16 @@
             
             .form-group {
                 margin-bottom: 15px;
+            }
+            
+            /* Fix forms with inline grid styles (like sites page) */
+            form[style*="grid-template-columns"] {
+                grid-template-columns: 1fr !important;
+            }
+            
+            /* Fix grid-column spans on mobile */
+            [style*="grid-column: span"] {
+                grid-column: span 1 !important;
             }
             
             /* Fix checkbox alignment in forms */
