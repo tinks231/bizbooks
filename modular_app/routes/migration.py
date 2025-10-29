@@ -116,6 +116,105 @@ def migrate_radius_column():
             'details': str(e)
         }), 500
 
+@migration_bp.route('/add-purchase-requests')
+def add_purchase_requests():
+    """
+    SAFE MIGRATION: Add email column to employees and create purchase_requests table
+    ✅ Does NOT delete any existing data!
+    Access this URL once: /migrate/add-purchase-requests
+    """
+    try:
+        changes_made = []
+        
+        # Check if we're using PostgreSQL
+        db_url = db.engine.url.drivername
+        
+        if 'postgresql' not in db_url:
+            return jsonify({
+                'status': 'error',
+                'message': 'This migration only works with PostgreSQL',
+                'db_type': db_url
+            }), 400
+        
+        # 1. Add email column to employees table (if it doesn't exist)
+        check_email_sql = text("""
+            SELECT column_name 
+            FROM information_schema.columns 
+            WHERE table_name='employees' AND column_name='email'
+        """)
+        has_email = db.session.execute(check_email_sql).fetchone()
+        
+        if not has_email:
+            add_email_sql = text("""
+                ALTER TABLE employees 
+                ADD COLUMN email VARCHAR(120)
+            """)
+            db.session.execute(add_email_sql)
+            db.session.commit()
+            changes_made.append('✅ Added "email" column to employees table')
+        else:
+            changes_made.append('ℹ️ Email column already exists in employees table')
+        
+        # 2. Create purchase_requests table (if it doesn't exist)
+        check_table_sql = text("""
+            SELECT table_name 
+            FROM information_schema.tables 
+            WHERE table_name='purchase_requests'
+        """)
+        has_table = db.session.execute(check_table_sql).fetchone()
+        
+        if not has_table:
+            create_table_sql = text("""
+                CREATE TABLE purchase_requests (
+                    id SERIAL PRIMARY KEY,
+                    tenant_id INTEGER NOT NULL REFERENCES tenants(id),
+                    employee_id INTEGER NOT NULL REFERENCES employees(id),
+                    item_name VARCHAR(200) NOT NULL,
+                    quantity FLOAT NOT NULL,
+                    estimated_price FLOAT NOT NULL,
+                    vendor_name VARCHAR(200),
+                    request_type VARCHAR(20) NOT NULL DEFAULT 'expense',
+                    category_id INTEGER,
+                    reason TEXT,
+                    document_url TEXT,
+                    status VARCHAR(20) NOT NULL DEFAULT 'pending',
+                    admin_notes TEXT,
+                    rejection_reason TEXT,
+                    processed_by VARCHAR(100),
+                    processed_at TIMESTAMP,
+                    created_expense_id INTEGER REFERENCES expenses(id),
+                    created_item_id INTEGER REFERENCES items(id),
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                );
+                
+                CREATE INDEX idx_tenant_status ON purchase_requests(tenant_id, status);
+                CREATE INDEX idx_employee_requests ON purchase_requests(employee_id, created_at);
+            """)
+            db.session.execute(create_table_sql)
+            db.session.commit()
+            changes_made.append('✅ Created "purchase_requests" table with indexes')
+        else:
+            changes_made.append('ℹ️ Purchase_requests table already exists')
+        
+        return jsonify({
+            'status': 'success',
+            'message': '✅ Migration completed successfully!',
+            'changes': changes_made,
+            'data_safety': '✅ All existing data is safe - no deletions performed',
+            'next_step': 'Your app should work now! Try logging in again.'
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({
+            'status': 'error',
+            'message': f'Migration failed: {str(e)}',
+            'details': str(e),
+            'help': 'Contact support if this persists'
+        }), 500
+
+
 @migration_bp.route('/status')
 def migration_status():
     """Check migration status"""
