@@ -1,0 +1,60 @@
+{% extends "base_sidebar.html" %}
+{% block title %}Expense Categories - {{ tenant.company_name }}{% endblock %}
+{% block page_title %}Expense Categories{% endblock %}
+{% block header_actions %}
+<a href="{{ url_for('expenses.index') }}" class="btn btn-secondary">
+    ← Back to Expenses
+</a>
+{% endblock %}
+{% block content %}
+<!-- Add Category Form -->
+<div class="card">
+    <h3>Add New Category</h3>
+    <form method="POST" action="{{ url_for('expenses.add_category') }}">
+        <div class="form-row">
+            <div class="form-group">
+                <label>Category Name *</label>
+                <input type="text" name="name" required>
+            </div>
+            <div class="form-group">
+                <label>Description</label>
+                <input type="text" name="description">
+            </div>
+        </div>
+        <button type="submit" class="btn btn-primary">Add Category</button>
+    </form>
+</div>
+
+<!-- Categories List -->
+<div class="card">
+    <h3>All Categories</h3>
+    {% if categories %}
+    <table style="width: 100%; border-collapse: collapse;">
+        <thead>
+            <tr style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                <th style="padding: 12px;">Name</th>
+                <th style="padding: 12px;">Description</th>
+                <th style="padding: 12px; text-align: center;">Expenses</th>
+                <th style="padding: 12px; text-align: right;">Total Amount</th>
+                <th style="padding: 12px;">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for category in categories %}
+            <tr style="border-bottom: 1px solid #e0e0e0;">
+                <td style="padding: 12px; font-weight: 500;">{{ category.name }}</td>
+                <td style="padding: 12px; color: #666;">{{ category.description or '—' }}</td>
+                <td style="padding: 12px; text-align: center;">{{ category_stats[category.id].count }}</td>
+                <td style="padding: 12px; text-align: right;">₹{{ "{:,.2f}".format(category_stats[category.id].total) }}</td>
+                <td style="padding: 12px;">
+                    <a href="{{ url_for('expenses.delete_category', category_id=category.id) }}" onclick="return confirm('Delete this category?')" style="color: #dc3545;">🗑️</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p style="text-align: center; padding: 40px; color: #7f8c8d;">No categories yet</p>
+    {% endif %}
+</div>
+{% endblock %}

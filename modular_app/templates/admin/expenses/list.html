@@ -1,0 +1,105 @@
+{% extends "base_sidebar.html" %}
+{% block title %}Expenses - {{ tenant.company_name }}{% endblock %}
+{% block page_title %}Expenses{% endblock %}
+{% block header_actions %}
+<button onclick="document.getElementById('addExpenseForm').style.display='block'" class="btn btn-success">
+    ➕ Add Expense
+</button>
+{% endblock %}
+{% block content %}
+<!-- Summary Cards -->
+<div class="stats-grid" style="margin-bottom: 30px;">
+    <div class="stat-card">
+        <div class="stat-value">₹{{ "{:,.0f}".format(total_amount) }}</div>
+        <div class="stat-label">Total Expenses</div>
+    </div>
+</div>
+
+<!-- Add Expense Form -->
+<div id="addExpenseForm" style="display: none; background: white; border-radius: 8px; padding: 25px; margin-bottom: 25px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+    <h3>Add Expense</h3>
+    <form method="POST" action="{{ url_for('expenses.add') }}">
+        <div class="form-row">
+            <div class="form-group">
+                <label>Date *</label>
+                <input type="date" name="expense_date" required>
+            </div>
+            <div class="form-group">
+                <label>Category *</label>
+                <select name="category_id" required>
+                    {% for cat in categories %}
+                    <option value="{{ cat.id }}">{{ cat.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label>Amount (₹) *</label>
+                <input type="number" name="amount" step="0.01" required>
+            </div>
+            <div class="form-group">
+                <label>Payment Method</label>
+                <select name="payment_method">
+                    <option value="Cash">Cash</option>
+                    <option value="Bank Transfer">Bank Transfer</option>
+                    <option value="UPI">UPI</option>
+                    <option value="Card">Card</option>
+                    <option value="Cheque">Cheque</option>
+                </select>
+            </div>
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label>Vendor/Payee</label>
+                <input type="text" name="vendor_name">
+            </div>
+            <div class="form-group">
+                <label>Reference Number</label>
+                <input type="text" name="reference_number">
+            </div>
+        </div>
+        <div class="form-group">
+            <label>Description *</label>
+            <textarea name="description" rows="2" required></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary">Save</button>
+        <button type="button" class="btn btn-secondary" onclick="document.getElementById('addExpenseForm').style.display='none'">Cancel</button>
+    </form>
+</div>
+
+<!-- Expenses List -->
+<div class="card">
+    <h3>All Expenses</h3>
+    {% if expenses %}
+    <table style="width: 100%; border-collapse: collapse;">
+        <thead>
+            <tr style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                <th style="padding: 12px;">Date</th>
+                <th style="padding: 12px;">Category</th>
+                <th style="padding: 12px;">Description</th>
+                <th style="padding: 12px;">Vendor</th>
+                <th style="padding: 12px; text-align: right;">Amount</th>
+                <th style="padding: 12px;">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for expense in expenses %}
+            <tr style="border-bottom: 1px solid #e0e0e0;">
+                <td style="padding: 12px;">{{ expense.expense_date.strftime('%d %b %Y') }}</td>
+                <td style="padding: 12px;">{{ expense.category.name }}</td>
+                <td style="padding: 12px;">{{ expense.description[:50] }}</td>
+                <td style="padding: 12px;">{{ expense.vendor_name or '—' }}</td>
+                <td style="padding: 12px; text-align: right; font-weight: 600;">₹{{ "{:,.2f}".format(expense.amount) }}</td>
+                <td style="padding: 12px;">
+                    <a href="{{ url_for('expenses.delete', expense_id=expense.id) }}" onclick="return confirm('Delete this expense?')" style="color: #dc3545;">🗑️</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p style="text-align: center; padding: 40px; color: #7f8c8d;">No expenses yet</p>
+    {% endif %}
+</div>
+{% endblock %}
