@@ -1,17 +1,32 @@
 <!DOCTYPE html>
 <html>
 <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Admin Login</title>
     <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        html, body {
+            height: 100%;
+            width: 100%;
+            overflow: auto;
+        }
+        
         body {
-            font-family: Arial;
+            font-family: Arial, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100vh;
+            min-height: 100vh;
             margin: 0;
+            padding: 20px;
         }
+        
         .login-card {
             background: white;
             padding: 40px;
@@ -19,6 +34,21 @@
             box-shadow: 0 10px 40px rgba(0,0,0,0.2);
             width: 100%;
             max-width: 400px;
+            margin: auto;
+        }
+        
+        /* Mobile optimizations */
+        @media (max-width: 768px) {
+            body {
+                padding: 15px;
+                align-items: flex-start;
+                padding-top: 60px;
+            }
+            
+            .login-card {
+                padding: 30px 20px;
+                margin: 0 auto;
+            }
         }
         h1 {
             text-align: center;
