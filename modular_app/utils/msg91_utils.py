@@ -31,28 +31,33 @@ def send_sms(phone_number, message):
         # Clean phone number (remove spaces, +91, etc.)
         phone_number = str(phone_number).replace('+91', '').replace(' ', '').replace('-', '')
         
-        # MSG91 API endpoint
-        url = 'https://control.msg91.com/api/v5/flow/'
+        # MSG91 API endpoint (v5 Send OTP/SMS API)
+        url = 'https://control.msg91.com/api/v5/otp'
         
-        # Prepare payload
-        payload = {
+        # Alternative: Use v2 API (more reliable for transactional SMS)
+        url = f'https://control.msg91.com/api/sendhttp.php'
+        
+        # Prepare payload for v2 API (more compatible)
+        params = {
             'authkey': auth_key,
-            'mobiles': f'91{phone_number}',  # Add country code
+            'mobiles': phone_number,  # Just 10 digits
             'message': message,
             'sender': sender_id,
             'route': '4',  # 4 = Transactional route
-            'country': '91',
-            'DLT_TE_ID': os.getenv('MSG91_DLT_TEMPLATE_ID', '')  # For DLT compliance
+            'country': '91'
         }
         
-        # Send request
-        response = requests.post(url, json=payload, timeout=10)
+        # Send request (use GET for better compatibility)
+        response = requests.get(url, params=params, timeout=10)
         
-        if response.status_code == 200:
+        # Log the full response for debugging
+        current_app.logger.info(f'MSG91 Response: Status={response.status_code}, Body={response.text[:200]}')
+        
+        if response.status_code == 200 and 'success' in response.text.lower():
             current_app.logger.info(f'✅ SMS sent successfully to {phone_number}')
             return True
         else:
-            current_app.logger.warning(f'❌ SMS failed to {phone_number}: {response.text}')
+            current_app.logger.warning(f'❌ SMS failed to {phone_number}: Status={response.status_code}, Response={response.text}')
             return False
             
     except Exception as e:
@@ -84,8 +89,8 @@ def send_whatsapp(phone_number, message):
         # Clean phone number
         phone_number = str(phone_number).replace('+91', '').replace(' ', '').replace('-', '')
         
-        # MSG91 WhatsApp API endpoint
-        url = 'https://control.msg91.com/api/v5/whatsapp/whatsapp-outbound-message/'
+        # MSG91 WhatsApp API endpoint (API v5)
+        url = 'https://api.msg91.com/api/v5/whatsapp/whatsapp-outbound-message/'
         
         headers = {
             'authkey': auth_key,
@@ -93,18 +98,30 @@ def send_whatsapp(phone_number, message):
         }
         
         payload = {
-            'phoneNumber': f'91{phone_number}',
-            'message': message
+            'integrated_number': os.getenv('MSG91_WHATSAPP_NUMBER', ''),  # Your WhatsApp Business number
+            'content_type': 'template',
+            'payload': {
+                'messaging_product': 'whatsapp',
+                'recipient_type': 'individual',
+                'to': f'91{phone_number}',
+                'type': 'text',
+                'text': {
+                    'body': message
+                }
+            }
         }
         
         # Send request
         response = requests.post(url, json=payload, headers=headers, timeout=10)
         
+        # Log the full response for debugging
+        current_app.logger.info(f'MSG91 WhatsApp Response: Status={response.status_code}, Body={response.text[:200]}')
+        
         if response.status_code in [200, 201]:
             current_app.logger.info(f'✅ WhatsApp sent successfully to {phone_number}')
             return True
         else:
-            current_app.logger.warning(f'❌ WhatsApp failed to {phone_number}: {response.text}')
+            current_app.logger.warning(f'❌ WhatsApp failed to {phone_number}: Status={response.status_code}, Response={response.text}')
             return False
             
     except Exception as e:
