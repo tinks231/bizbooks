@@ -4,7 +4,7 @@ Invoice management routes
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, g, session
 from models import db, Invoice, InvoiceItem, Item, ItemStock, Tenant
 from utils.tenant_middleware import require_tenant, get_current_tenant_id
-from utils.check_license import check_license
+from utils.license_check import check_license
 from sqlalchemy import func, desc
 from datetime import datetime, date
 import pytz
