@@ -28,10 +28,11 @@ app.config['SECRET_KEY'] = config.SECRET_KEY
 
 # Session configuration
 from datetime import timedelta
-app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=12)  # Session lasts 12 hours
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=30)  # Session lasts 30 minutes
 app.config['SESSION_COOKIE_SECURE'] = True  # Only send cookie over HTTPS
 app.config['SESSION_COOKIE_HTTPONLY'] = True  # Prevent JavaScript access
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'  # CSRF protection
+app.config['SESSION_REFRESH_EACH_REQUEST'] = True  # Reset timer on each activity
 
 # Database configuration
 # Use PostgreSQL (Supabase) in production, SQLite for local development
