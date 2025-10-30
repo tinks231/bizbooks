@@ -1,22 +1,41 @@
 """
 Invoice management routes
 """
-from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, send_file, g
+from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, g, session
 from models import db, Invoice, InvoiceItem, Item, ItemStock, Tenant
-from middleware.tenant_middleware import require_tenant
-from middleware.admin_auth import login_required
+from utils.tenant_middleware import require_tenant, get_current_tenant_id
+from utils.check_license import check_license
 from sqlalchemy import func, desc
 from datetime import datetime, date
 import pytz
 import json
-from io import BytesIO
-from reportlab.lib.pagesizes import A4
-from reportlab.lib.units import inch
-from reportlab.pdfgen import canvas
-from reportlab.lib import colors
-from reportlab.platypus import Table, TableStyle
+
+# PDF generation (commented out for now - will add later)
+# from io import BytesIO
+# from reportlab.lib.pagesizes import A4
+# from reportlab.lib.units import inch
+# from reportlab.pdfgen import canvas
+# from reportlab.lib import colors
+# from reportlab.platypus import Table, TableStyle
 
 invoices_bp = Blueprint('invoices', __name__, url_prefix='/admin/invoices')
+
+def login_required(f):
+    """Decorator to require admin login (also checks license)"""
+    from functools import wraps
+    @wraps(f)
+    @check_license  # Check license/trial before allowing access
+    def decorated_function(*args, **kwargs):
+        if 'tenant_admin_id' not in session:
+            flash('Please login first', 'error')
+            return redirect(url_for('admin.login'))
+        # Verify session tenant matches current tenant
+        if session.get('tenant_admin_id') != get_current_tenant_id():
+            session.clear()
+            flash('Session mismatch. Please login again.', 'error')
+            return redirect(url_for('admin.login'))
+        return f(*args, **kwargs)
+    return decorated_function
 
 @invoices_bp.route('/')
 @require_tenant
