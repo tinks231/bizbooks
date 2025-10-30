@@ -43,6 +43,8 @@ def login():
         
         # Check if credentials match tenant admin
         if tenant.admin_email == email and tenant.admin_password_hash == password_hash:
+            # Make session permanent (lasts for PERMANENT_SESSION_LIFETIME)
+            session.permanent = True
             session['tenant_admin_id'] = tenant.id
             session['tenant_subdomain'] = tenant.subdomain
             session['admin_name'] = tenant.admin_name

@@ -36,9 +36,15 @@
             </div>
             
             <div class="form-group">
-                <label>SKU (Auto-generated)</label>
-                <input type="text" value="Auto-generated" disabled style="background: #f5f7fa; color: #7f8c8d;">
-                <small style="color: #7f8c8d;">SKU will be automatically generated</small>
+                <label style="display: flex; align-items: center; gap: 10px;">
+                    SKU
+                    <label style="display: inline-flex; align-items: center; gap: 6px; cursor: pointer; font-weight: normal; font-size: 13px;">
+                        <input type="checkbox" id="autoSkuCheckbox" checked onchange="toggleSKUMode()">
+                        <span>Auto-generate</span>
+                    </label>
+                </label>
+                <input type="text" id="skuInput" name="sku" placeholder="Enter SKU manually" disabled style="background: #f5f7fa; color: #7f8c8d;">
+                <small id="skuHint" style="color: #7f8c8d;">SKU will be automatically generated</small>
             </div>
         </div>
 
@@ -279,6 +285,30 @@
 </form>
 
 <script>
+    function toggleSKUMode() {
+        const autoSkuCheckbox = document.getElementById('autoSkuCheckbox');
+        const skuInput = document.getElementById('skuInput');
+        const skuHint = document.getElementById('skuHint');
+        
+        if (autoSkuCheckbox.checked) {
+            // Auto-generate mode
+            skuInput.disabled = true;
+            skuInput.value = '';
+            skuInput.placeholder = 'Auto-generated';
+            skuInput.style.background = '#f5f7fa';
+            skuInput.style.color = '#7f8c8d';
+            skuHint.textContent = 'SKU will be automatically generated';
+        } else {
+            // Manual mode
+            skuInput.disabled = false;
+            skuInput.placeholder = 'Enter SKU (e.g., PE-FS-W-40)';
+            skuInput.style.background = 'white';
+            skuInput.style.color = '#2c3e50';
+            skuInput.focus();
+            skuHint.textContent = 'Enter your custom SKU code';
+        }
+    }
+    
     function toggleInventoryFields() {
         const trackInventory = document.getElementById('trackInventory');
         const inventoryFields = document.getElementById('inventoryFields');

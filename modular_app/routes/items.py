@@ -104,8 +104,14 @@ def add():
     
     if request.method == 'POST':
         try:
-            # Auto-generate SKU
-            sku = generate_sku(tenant_id)
+            # Check if manual SKU provided, otherwise auto-generate
+            manual_sku = request.form.get('sku', '').strip()
+            if manual_sku:
+                # Use manual SKU (tenant provided)
+                sku = manual_sku
+            else:
+                # Auto-generate SKU
+                sku = generate_sku(tenant_id)
             
             # Create new item
             item = Item(

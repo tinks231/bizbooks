@@ -26,6 +26,13 @@ app = Flask(__name__)
 config = Config()
 app.config['SECRET_KEY'] = config.SECRET_KEY
 
+# Session configuration
+from datetime import timedelta
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=12)  # Session lasts 12 hours
+app.config['SESSION_COOKIE_SECURE'] = True  # Only send cookie over HTTPS
+app.config['SESSION_COOKIE_HTTPONLY'] = True  # Prevent JavaScript access
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'  # CSRF protection
+
 # Database configuration
 # Use PostgreSQL (Supabase) in production, SQLite for local development
 import os as os_module

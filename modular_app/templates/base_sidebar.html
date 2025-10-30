@@ -360,6 +360,30 @@
             color: #0c5460;
         }
         
+        /* ===== CHECKBOX & RADIO BUTTON ALIGNMENT (ALL SCREENS) ===== */
+        .form-group label input[type="checkbox"],
+        .form-group label input[type="radio"] {
+            flex-shrink: 0;
+            width: 18px;
+            height: 18px;
+            margin: 0;
+            margin-right: 8px;
+            cursor: pointer;
+        }
+        
+        .form-group label span {
+            font-size: 14px;
+            line-height: 1.5;
+        }
+        
+        /* Labels with checkboxes/radios */
+        label:has(input[type="checkbox"]),
+        label:has(input[type="radio"]) {
+            display: inline-flex;
+            align-items: center;
+            cursor: pointer;
+        }
+        
         /* ===== MOBILE RESPONSIVE ===== */
         @media (max-width: 768px) {
             .sidebar {
