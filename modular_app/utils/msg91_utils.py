@@ -53,9 +53,24 @@ def send_sms(phone_number, message):
         # Log the full response for debugging
         current_app.logger.info(f'MSG91 Response: Status={response.status_code}, Body={response.text[:200]}')
         
-        if response.status_code == 200 and 'success' in response.text.lower():
-            current_app.logger.info(f'✅ SMS sent successfully to {phone_number}')
-            return True
+        # MSG91 v2 API returns:
+        # Success: Hex string (message ID) - e.g., "356a446a4a324f62417a6745"
+        # Error: JSON with "message" or "error" key
+        
+        if response.status_code == 200:
+            response_text = response.text.strip()
+            
+            # Check if response is an error (contains "error", "invalid", "failed", etc.)
+            error_keywords = ['error', 'invalid', 'failed', 'insufficient', 'authentication']
+            is_error = any(keyword in response_text.lower() for keyword in error_keywords)
+            
+            if not is_error and len(response_text) > 0:
+                # If no error keywords and we have a response, it's likely a success (message ID)
+                current_app.logger.info(f'✅ SMS sent successfully to {phone_number} (Message ID: {response_text[:30]})')
+                return True
+            else:
+                current_app.logger.warning(f'❌ SMS failed to {phone_number}: {response_text}')
+                return False
         else:
             current_app.logger.warning(f'❌ SMS failed to {phone_number}: Status={response.status_code}, Response={response.text}')
             return False
