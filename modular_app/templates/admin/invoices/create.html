@@ -266,6 +266,59 @@
         background: #c0392b;
     }
     
+    /* Autocomplete Dropdown Styles */
+    .autocomplete-dropdown {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background: white;
+        border: 1px solid #ddd;
+        border-top: none;
+        max-height: 300px;
+        overflow-y: auto;
+        z-index: 1000;
+        display: none;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+    
+    .autocomplete-item {
+        padding: 12px;
+        cursor: pointer;
+        border-bottom: 1px solid #f0f0f0;
+        transition: background 0.2s;
+    }
+    
+    .autocomplete-item:hover {
+        background: #f8f9fa;
+    }
+    
+    .autocomplete-item-name {
+        font-weight: 600;
+        color: #2c3e50;
+        margin-bottom: 4px;
+    }
+    
+    .autocomplete-item-details {
+        font-size: 12px;
+        color: #666;
+        display: flex;
+        gap: 15px;
+    }
+    
+    .autocomplete-item-details span {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+    }
+    
+    .autocomplete-no-results {
+        padding: 20px;
+        text-align: center;
+        color: #999;
+        font-size: 14px;
+    }
+    
     @media (max-width: 768px) {
         .form-row {
             grid-template-columns: 1fr;
@@ -278,6 +331,16 @@
         .table input, .table select {
             padding: 6px;
             font-size: 12px;
+        }
+        
+        .autocomplete-item {
+            padding: 10px;
+        }
+        
+        .autocomplete-item-details {
+            font-size: 11px;
+            flex-direction: column;
+            gap: 4px;
         }
     }
 </style>
@@ -300,9 +363,16 @@
         
         row.innerHTML = `
             <td>${itemCount}</td>
-            <td>
-                <input type="text" name="item_name[]" class="form-control" list="itemsList" 
-                       placeholder="Type or select item" required onchange="selectItem(this, ${itemCount})">
+            <td style="position: relative;">
+                <input type="text" name="item_name[]" class="form-control item-search" 
+                       id="item_search_${itemCount}"
+                       placeholder="Type to search items..." 
+                       required 
+                       autocomplete="off"
+                       oninput="searchItems(this, ${itemCount})"
+                       onfocus="searchItems(this, ${itemCount})"
+                       onblur="setTimeout(() => hideDropdown(${itemCount}), 200)">
+                <div class="autocomplete-dropdown" id="dropdown_${itemCount}"></div>
                 <input type="hidden" name="item_id[]" id="item_id_${itemCount}">
                 <input type="hidden" name="description[]" id="description_${itemCount}">
             </td>
@@ -357,14 +427,88 @@
         }
     }
     
-    function selectItem(input, rowId) {
-        const itemName = input.value;
-        const item = items.find(i => i.name === itemName);
+    function searchItems(input, rowId) {
+        const searchTerm = input.value.toLowerCase().trim();
+        const dropdown = document.getElementById(`dropdown_${rowId}`);
         
-        if (item) {
-            document.getElementById(`item_id_${rowId}`).value = item.id;
-            document.querySelector(`#row_${rowId} input[name="rate[]"]`).value = item.selling_price || 0;
-            calculateRow(rowId);
+        if (!searchTerm) {
+            dropdown.style.display = 'none';
+            return;
+        }
+        
+        // Filter items based on search term
+        const filteredItems = items.filter(item => 
+            item.name.toLowerCase().includes(searchTerm)
+        );
+        
+        if (filteredItems.length === 0) {
+            dropdown.innerHTML = `
+                <div class="autocomplete-no-results">
+                    No items found. You can type manually or add items to inventory first.
+                </div>
+            `;
+            dropdown.style.display = 'block';
+            return;
+        }
+        
+        // Build dropdown HTML
+        let html = '';
+        filteredItems.slice(0, 10).forEach(item => { // Show max 10 results
+            html += `
+                <div class="autocomplete-item" onclick="selectItemFromDropdown(${rowId}, ${item.id}, '${item.name.replace(/'/g, "\\'")}', ${item.selling_price}, '${item.hsn_code || ''}')">
+                    <div class="autocomplete-item-name">${item.name}</div>
+                    <div class="autocomplete-item-details">
+                        <span>💰 Rate: ₹${item.selling_price || 0}</span>
+                        ${item.hsn_code ? `<span>📋 HSN: ${item.hsn_code}</span>` : ''}
+                    </div>
+                </div>
+            `;
+        });
+        
+        dropdown.innerHTML = html;
+        dropdown.style.display = 'block';
+    }
+    
+    function selectItemFromDropdown(rowId, itemId, itemName, price, hsnCode) {
+        const row = document.getElementById(`row_${rowId}`);
+        if (!row) return;
+        
+        // Set item name
+        const itemInput = document.getElementById(`item_search_${rowId}`);
+        itemInput.value = itemName;
+        
+        // Set hidden item ID
+        document.getElementById(`item_id_${rowId}`).value = itemId;
+        
+        // Set HSN code
+        const hsnInput = row.querySelector('input[name="hsn_code[]"]');
+        if (hsnInput && hsnCode) {
+            hsnInput.value = hsnCode;
+        }
+        
+        // Set rate
+        const rateInput = row.querySelector('input[name="rate[]"]');
+        if (rateInput) {
+            rateInput.value = price || 0;
+        }
+        
+        // Hide dropdown
+        hideDropdown(rowId);
+        
+        // Calculate row totals
+        calculateRow(rowId);
+        
+        // Focus on quantity field
+        const qtyInput = row.querySelector('input[name="quantity[]"]');
+        if (qtyInput) {
+            qtyInput.focus();
+        }
+    }
+    
+    function hideDropdown(rowId) {
+        const dropdown = document.getElementById(`dropdown_${rowId}`);
+        if (dropdown) {
+            dropdown.style.display = 'none';
         }
     }
     
@@ -433,13 +577,6 @@
     // Set today's date
     document.getElementById('invoice_date').valueAsDate = new Date();
 </script>
-
-<!-- Datalist for item autocomplete -->
-<datalist id="itemsList">
-    {% for item in items %}
-    <option value="{{ item.name }}">{{ item.name }} - ₹{{ item.selling_price }}</option>
-    {% endfor %}
-</datalist>
 
 {% endblock %}
 
