@@ -1,0 +1,212 @@
+{% extends 'base_sidebar.html' %}
+
+{% block title %}Invoices - {{ tenant.company_name }}{% endblock %}
+
+{% block page_title %}Invoices{% endblock %}
+
+{% block header_actions %}
+<a href="{{ url_for('invoices.settings') }}" class="btn btn-secondary">
+    ⚙️ Settings
+</a>
+<a href="{{ url_for('invoices.create') }}" class="btn btn-primary">
+    + New Invoice
+</a>
+{% endblock %}
+
+{% block content %}
+
+<!-- Stats Cards -->
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-icon" style="background: #3498db;">📄</div>
+        <div class="stat-content">
+            <div class="stat-value">{{ total_invoices }}</div>
+            <div class="stat-label">Total Invoices</div>
+        </div>
+    </div>
+    
+    <div class="stat-card">
+        <div class="stat-icon" style="background: #2ecc71;">💰</div>
+        <div class="stat-content">
+            <div class="stat-value">₹{{ "%.2f"|format(total_revenue) }}</div>
+            <div class="stat-label">Total Revenue</div>
+        </div>
+    </div>
+    
+    <div class="stat-card">
+        <div class="stat-icon" style="background: #27ae60;">✅</div>
+        <div class="stat-content">
+            <div class="stat-value">₹{{ "%.2f"|format(paid_revenue) }}</div>
+            <div class="stat-label">Paid Amount</div>
+        </div>
+    </div>
+    
+    <div class="stat-card">
+        <div class="stat-icon" style="background: #e74c3c;">⏳</div>
+        <div class="stat-content">
+            <div class="stat-value">₹{{ "%.2f"|format(pending_revenue) }}</div>
+            <div class="stat-label">Pending Amount</div>
+        </div>
+    </div>
+</div>
+
+<!-- Filters Card -->
+<div class="card">
+    <form method="GET" action="{{ url_for('invoices.index') }}" style="display: flex; gap: 15px; flex-wrap: wrap; align-items: end;">
+        <div class="form-group" style="flex: 1; min-width: 200px;">
+            <label for="search">Search</label>
+            <input type="text" id="search" name="search" class="form-control" 
+                   placeholder="Invoice #, Customer name, Phone..." value="{{ search }}">
+        </div>
+        
+        <div class="form-group" style="min-width: 150px;">
+            <label for="status">Status</label>
+            <select id="status" name="status" class="form-control">
+                <option value="all" {% if status_filter == 'all' %}selected{% endif %}>All</option>
+                <option value="draft" {% if status_filter == 'draft' %}selected{% endif %}>Draft</option>
+                <option value="sent" {% if status_filter == 'sent' %}selected{% endif %}>Sent</option>
+                <option value="paid" {% if status_filter == 'paid' %}selected{% endif %}>Paid</option>
+                <option value="cancelled" {% if status_filter == 'cancelled' %}selected{% endif %}>Cancelled</option>
+            </select>
+        </div>
+        
+        <div class="form-group" style="min-width: 150px;">
+            <label for="payment">Payment</label>
+            <select id="payment" name="payment" class="form-control">
+                <option value="all" {% if payment_filter == 'all' %}selected{% endif %}>All</option>
+                <option value="unpaid" {% if payment_filter == 'unpaid' %}selected{% endif %}>Unpaid</option>
+                <option value="partial" {% if payment_filter == 'partial' %}selected{% endif %}>Partial</option>
+                <option value="paid" {% if payment_filter == 'paid' %}selected{% endif %}>Paid</option>
+            </select>
+        </div>
+        
+        <button type="submit" class="btn btn-primary" style="margin-bottom: 0;">
+            🔍 Filter
+        </button>
+        
+        {% if search or status_filter != 'all' or payment_filter != 'all' %}
+        <a href="{{ url_for('invoices.index') }}" class="btn btn-secondary" style="margin-bottom: 0;">
+            Clear
+        </a>
+        {% endif %}
+    </form>
+</div>
+
+<!-- Invoices List -->
+<div class="card">
+    {% if invoices %}
+    <div style="overflow-x: auto;">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Invoice #</th>
+                    <th>Date</th>
+                    <th>Customer</th>
+                    <th>Amount</th>
+                    <th>Paid</th>
+                    <th>Status</th>
+                    <th>Payment</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for invoice in invoices %}
+                <tr>
+                    <td style="font-weight: 600;">{{ invoice.invoice_number }}</td>
+                    <td>{{ invoice.invoice_date.strftime('%d-%b-%Y') }}</td>
+                    <td>
+                        <div style="font-weight: 600;">{{ invoice.customer_name }}</div>
+                        {% if invoice.customer_phone %}
+                        <div style="font-size: 12px; color: #666;">{{ invoice.customer_phone }}</div>
+                        {% endif %}
+                    </td>
+                    <td style="font-weight: 600;">₹{{ "%.2f"|format(invoice.total_amount) }}</td>
+                    <td>₹{{ "%.2f"|format(invoice.paid_amount) }}</td>
+                    <td>
+                        {% if invoice.status == 'draft' %}
+                        <span class="badge" style="background: #95a5a6;">Draft</span>
+                        {% elif invoice.status == 'sent' %}
+                        <span class="badge" style="background: #3498db;">Sent</span>
+                        {% elif invoice.status == 'paid' %}
+                        <span class="badge" style="background: #2ecc71;">Paid</span>
+                        {% elif invoice.status == 'cancelled' %}
+                        <span class="badge" style="background: #e74c3c;">Cancelled</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if invoice.payment_status == 'paid' %}
+                        <span class="badge" style="background: #27ae60;">Paid</span>
+                        {% elif invoice.payment_status == 'partial' %}
+                        <span class="badge" style="background: #f39c12;">Partial</span>
+                        {% else %}
+                        <span class="badge" style="background: #e74c3c;">Unpaid</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <a href="{{ url_for('invoices.view', invoice_id=invoice.id) }}" class="btn btn-sm btn-primary">
+                            View
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div style="text-align: center; padding: 60px 20px; color: #95a5a6;">
+        <div style="font-size: 48px; margin-bottom: 20px;">📄</div>
+        <h3 style="margin-bottom: 10px;">No Invoices Yet</h3>
+        <p style="margin-bottom: 25px;">Create your first GST invoice to get started!</p>
+        <a href="{{ url_for('invoices.create') }}" class="btn btn-primary">
+            + Create First Invoice
+        </a>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+    .form-group {
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .form-group label {
+        font-weight: 600;
+        margin-bottom: 8px;
+        color: #2c3e50;
+        font-size: 14px;
+    }
+    
+    .form-control {
+        padding: 10px;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        font-size: 14px;
+    }
+    
+    .badge {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: 600;
+        color: white;
+    }
+    
+    @media (max-width: 768px) {
+        .stats-grid {
+            grid-template-columns: 1fr 1fr !important;
+        }
+        
+        .table {
+            font-size: 12px;
+        }
+        
+        .table th, .table td {
+            padding: 8px 5px;
+        }
+    }
+</style>
+
+{% endblock %}
+

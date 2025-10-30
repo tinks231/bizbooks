@@ -219,12 +219,24 @@ def create():
     # Get all items for autocomplete
     items = Item.query.filter_by(tenant_id=tenant_id, is_active=True).all()
     
+    # Prepare items for JSON (only needed fields)
+    items_json = [
+        {
+            'id': item.id,
+            'name': item.name,
+            'selling_price': item.selling_price or 0,
+            'hsn_code': item.hsn_code or ''
+        }
+        for item in items
+    ]
+    
     # Get tenant settings
     tenant_settings = json.loads(g.tenant.settings) if g.tenant.settings else {}
     
     return render_template('admin/invoices/create.html',
                          tenant=g.tenant,
-                         items=items,
+                         items=items_json,
+                         today=date.today().strftime('%Y-%m-%d'),
                          tenant_settings=tenant_settings)
 
 
