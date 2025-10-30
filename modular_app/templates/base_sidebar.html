@@ -660,6 +660,20 @@
                 </a>
             </div>
             
+            <!-- Invoices Section -->
+            <div class="nav-section">
+                <div class="nav-section-title">Invoices</div>
+                <a href="/admin/invoices" class="nav-item {% if '/admin/invoices' in request.path and 'settings' not in request.path %}active{% endif %}">
+                    <i>📄</i> All Invoices
+                </a>
+                <a href="/admin/invoices/create" class="nav-item {% if '/admin/invoices/create' in request.path %}active{% endif %}">
+                    <i>➕</i> New Invoice
+                </a>
+                <a href="/admin/invoices/settings" class="nav-item {% if '/admin/invoices/settings' in request.path %}active{% endif %}">
+                    <i>⚙️</i> Invoice Settings
+                </a>
+            </div>
+            
             <!-- Expenses Section -->
             <div class="nav-section">
                 <div class="nav-section-title">Expenses</div>

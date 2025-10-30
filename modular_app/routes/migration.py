@@ -310,3 +310,110 @@ def migration_status():
             'message': str(e)
         }), 500
 
+
+@migration_bp.route('/add-invoices')
+def add_invoices():
+    """
+    Create invoices and invoice_items tables
+    Safe migration - doesn't affect existing data
+    Access this URL once: /migrate/add-invoices
+    """
+    try:
+        # Check if tables already exist
+        check_sql = text("""
+            SELECT table_name 
+            FROM information_schema.tables 
+            WHERE table_schema='public' 
+            AND table_name IN ('invoices', 'invoice_items')
+        """)
+        result = db.session.execute(check_sql).fetchall()
+        existing_tables = [row[0] for row in result]
+        
+        if 'invoices' in existing_tables and 'invoice_items' in existing_tables:
+            return jsonify({
+                'status': 'success',
+                'message': '✅ Invoice tables already exist!',
+                'action': 'No migration needed',
+                'existing_tables': existing_tables
+            })
+        
+        # Create invoices table
+        create_invoices_sql = text("""
+            CREATE TABLE IF NOT EXISTS invoices (
+                id SERIAL PRIMARY KEY,
+                tenant_id INTEGER NOT NULL REFERENCES tenants(id),
+                invoice_number VARCHAR(50) NOT NULL,
+                invoice_date DATE NOT NULL DEFAULT CURRENT_DATE,
+                due_date DATE,
+                customer_name VARCHAR(200) NOT NULL,
+                customer_phone VARCHAR(20),
+                customer_email VARCHAR(120),
+                customer_address TEXT,
+                customer_gstin VARCHAR(15),
+                customer_state VARCHAR(50),
+                subtotal FLOAT NOT NULL DEFAULT 0,
+                cgst_amount FLOAT DEFAULT 0,
+                sgst_amount FLOAT DEFAULT 0,
+                igst_amount FLOAT DEFAULT 0,
+                discount_amount FLOAT DEFAULT 0,
+                round_off FLOAT DEFAULT 0,
+                total_amount FLOAT NOT NULL,
+                payment_status VARCHAR(20) DEFAULT 'unpaid',
+                paid_amount FLOAT DEFAULT 0,
+                payment_method VARCHAR(50),
+                notes TEXT,
+                internal_notes TEXT,
+                status VARCHAR(20) DEFAULT 'draft',
+                cancelled_at TIMESTAMP,
+                cancelled_reason TEXT,
+                created_at TIMESTAMP DEFAULT NOW(),
+                updated_at TIMESTAMP DEFAULT NOW()
+            );
+            
+            CREATE INDEX IF NOT EXISTS idx_invoice_tenant ON invoices(tenant_id, invoice_date);
+            CREATE INDEX IF NOT EXISTS idx_invoice_number ON invoices(tenant_id, invoice_number);
+        """)
+        
+        db.session.execute(create_invoices_sql)
+        
+        # Create invoice_items table
+        create_invoice_items_sql = text("""
+            CREATE TABLE IF NOT EXISTS invoice_items (
+                id SERIAL PRIMARY KEY,
+                invoice_id INTEGER NOT NULL REFERENCES invoices(id) ON DELETE CASCADE,
+                item_id INTEGER REFERENCES items(id),
+                item_name VARCHAR(200) NOT NULL,
+                description TEXT,
+                hsn_code VARCHAR(20),
+                quantity FLOAT NOT NULL,
+                unit VARCHAR(20) DEFAULT 'Nos',
+                rate FLOAT NOT NULL,
+                gst_rate FLOAT DEFAULT 18,
+                taxable_value FLOAT NOT NULL,
+                cgst_amount FLOAT DEFAULT 0,
+                sgst_amount FLOAT DEFAULT 0,
+                igst_amount FLOAT DEFAULT 0,
+                total_amount FLOAT NOT NULL
+            );
+            
+            CREATE INDEX IF NOT EXISTS idx_invoice_item_invoice ON invoice_items(invoice_id);
+        """)
+        
+        db.session.execute(create_invoice_items_sql)
+        db.session.commit()
+        
+        return jsonify({
+            'status': 'success',
+            'message': '✅ Invoice tables created successfully!',
+            'created_tables': ['invoices', 'invoice_items'],
+            'next_step': 'Configure invoice settings at /admin/invoices/settings'
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({
+            'status': 'error',
+            'message': f'Migration failed: {str(e)}',
+            'details': str(e)
+        }), 500
+
