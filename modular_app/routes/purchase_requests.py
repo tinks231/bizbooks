@@ -6,6 +6,14 @@ from models import db, PurchaseRequest, Employee, Tenant, Expense, ExpenseCatego
 from utils.tenant_middleware import require_tenant, get_current_tenant_id
 from utils.license_check import check_license
 from utils.email_utils import send_purchase_request_notification, send_purchase_approved_notification, send_purchase_rejected_notification
+from utils.msg91_utils import (
+    send_purchase_request_notification_sms,
+    send_purchase_request_notification_whatsapp,
+    send_purchase_approved_notification_sms,
+    send_purchase_approved_notification_whatsapp,
+    send_purchase_rejected_notification_sms,
+    send_purchase_rejected_notification_whatsapp
+)
 from functools import wraps
 from datetime import datetime
 import pytz
@@ -119,7 +127,7 @@ def submit_form():
             db.session.add(purchase_request)
             db.session.commit()
             
-            # Send email notification to admin
+            # Send email notification to admin (ALWAYS)
             if tenant.admin_email:
                 send_purchase_request_notification(
                     admin_email=tenant.admin_email,
@@ -128,6 +136,26 @@ def submit_form():
                     estimated_price=estimated_price,
                     tenant_name=tenant.subdomain
                 )
+            
+            # Send SMS/WhatsApp notification to admin (OPTIONAL - only if MSG91 configured)
+            notification_type = os.getenv('MSG91_NOTIFICATION_TYPE', 'sms')  # 'sms' or 'whatsapp'
+            if tenant.admin_phone:
+                if notification_type == 'whatsapp':
+                    send_purchase_request_notification_whatsapp(
+                        admin_phone=tenant.admin_phone,
+                        employee_name=employee_name,
+                        item_name=item_name,
+                        estimated_price=estimated_price,
+                        company_name=tenant.company_name
+                    )
+                else:  # Default to SMS
+                    send_purchase_request_notification_sms(
+                        admin_phone=tenant.admin_phone,
+                        employee_name=employee_name,
+                        item_name=item_name,
+                        estimated_price=estimated_price,
+                        company_name=tenant.company_name
+                    )
             
             # Clear session
             session.pop('pr_employee_id', None)
@@ -295,7 +323,7 @@ def approve_request(request_id):
         
         db.session.commit()
         
-        # Send email to employee if they have email
+        # Send email to employee if they have email (ALWAYS)
         if purchase_request.employee.email:
             send_purchase_approved_notification(
                 employee_email=purchase_request.employee.email,
@@ -304,6 +332,25 @@ def approve_request(request_id):
                 approved_amount=actual_amount,
                 admin_notes=admin_notes
             )
+        
+        # Send SMS/WhatsApp to employee (OPTIONAL - only if MSG91 configured)
+        notification_type = os.getenv('MSG91_NOTIFICATION_TYPE', 'sms')
+        if purchase_request.employee.phone:
+            if notification_type == 'whatsapp':
+                send_purchase_approved_notification_whatsapp(
+                    employee_phone=purchase_request.employee.phone,
+                    employee_name=purchase_request.employee.name,
+                    item_name=purchase_request.item_name,
+                    approved_amount=actual_amount,
+                    admin_notes=admin_notes
+                )
+            else:  # Default to SMS
+                send_purchase_approved_notification_sms(
+                    employee_phone=purchase_request.employee.phone,
+                    employee_name=purchase_request.employee.name,
+                    item_name=purchase_request.item_name,
+                    approved_amount=actual_amount
+                )
         
         flash('✅ Purchase request approved and record created!', 'success')
         
@@ -334,7 +381,7 @@ def reject_request(request_id):
         
         db.session.commit()
         
-        # Send email to employee if they have email
+        # Send email to employee if they have email (ALWAYS)
         if purchase_request.employee.email:
             send_purchase_rejected_notification(
                 employee_email=purchase_request.employee.email,
@@ -342,6 +389,24 @@ def reject_request(request_id):
                 item_name=purchase_request.item_name,
                 rejection_reason=rejection_reason
             )
+        
+        # Send SMS/WhatsApp to employee (OPTIONAL - only if MSG91 configured)
+        notification_type = os.getenv('MSG91_NOTIFICATION_TYPE', 'sms')
+        if purchase_request.employee.phone:
+            if notification_type == 'whatsapp':
+                send_purchase_rejected_notification_whatsapp(
+                    employee_phone=purchase_request.employee.phone,
+                    employee_name=purchase_request.employee.name,
+                    item_name=purchase_request.item_name,
+                    rejection_reason=rejection_reason
+                )
+            else:  # Default to SMS
+                send_purchase_rejected_notification_sms(
+                    employee_phone=purchase_request.employee.phone,
+                    employee_name=purchase_request.employee.name,
+                    item_name=purchase_request.item_name,
+                    rejection_reason=rejection_reason
+                )
         
         flash('✅ Purchase request rejected', 'success')
         
