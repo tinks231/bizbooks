@@ -81,7 +81,14 @@
         <div class="bill-to">
             <h3>Bill To</h3>
             <p class="customer-name">{{ invoice.customer_name }}</p>
-            {% if invoice.customer_phone %}
+            {% if invoice.customer_id and invoice.customer %}
+            <p style="color: #666; font-size: 13px; margin-top: 3px;">
+                <strong>Customer ID:</strong> {{ invoice.customer.customer_code }}
+                {% if invoice.customer.phone %}
+                | 📞 {{ invoice.customer.phone }}
+                {% endif %}
+            </p>
+            {% elif invoice.customer_phone %}
             <p>📞 {{ invoice.customer_phone }}</p>
             {% endif %}
             {% if invoice.customer_email %}
@@ -280,11 +287,23 @@
         
         .invoice-container {
             box-shadow: none;
-            margin: 0;
-            padding: 10mm 12mm;
+            margin: 0 !important;
+            padding: 8mm 10mm !important;
             max-width: 100%;
-            page-break-after: avoid;
+            page-break-inside: avoid !important;
+            page-break-after: avoid !important;
             font-size: 10px;
+        }
+        
+        /* Ensure all major sections stay together */
+        .invoice-header,
+        .invoice-title,
+        .invoice-info-row,
+        .items-section,
+        .totals-section,
+        .signature-section,
+        .invoice-footer {
+            page-break-inside: avoid !important;
         }
         
         .page-header {
@@ -411,7 +430,13 @@
         /* Fit everything on one page */
         @page {
             size: A4 portrait;
-            margin: 10mm;
+            margin: 5mm;
+        }
+        
+        /* Prevent orphaned sections */
+        * {
+            orphans: 3;
+            widows: 3;
         }
     }
     
