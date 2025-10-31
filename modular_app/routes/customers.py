@@ -55,6 +55,7 @@ def index():
         customer.invoice_count = customer.get_total_invoices()
     
     return render_template('admin/customers/list.html',
+                         tenant=g.tenant,
                          customers=customers,
                          search=search,
                          status_filter=status_filter)
@@ -116,6 +117,7 @@ def add():
     next_customer_code = Customer.generate_customer_code(tenant_id)
     
     return render_template('admin/customers/add.html',
+                         tenant=g.tenant,
                          next_customer_code=next_customer_code)
 
 
@@ -152,7 +154,9 @@ def edit(customer_id):
             db.session.rollback()
             flash(f'Error updating customer: {str(e)}', 'error')
     
-    return render_template('admin/customers/edit.html', customer=customer)
+    return render_template('admin/customers/edit.html',
+                         tenant=g.tenant,
+                         customer=customer)
 
 
 @customers_bp.route('/<int:customer_id>/ledger')
@@ -196,6 +200,7 @@ def ledger(customer_id):
                     aging_data['90+'].append(invoice)
     
     return render_template('admin/customers/ledger.html',
+                         tenant=g.tenant,
                          customer=customer,
                          invoices=invoices,
                          total_billed=total_billed,
@@ -239,6 +244,7 @@ def outstanding():
     customers_with_outstanding.sort(key=lambda x: x['outstanding'], reverse=True)
     
     return render_template('admin/customers/outstanding.html',
+                         tenant=g.tenant,
                          customers_data=customers_with_outstanding,
                          total_outstanding_all=total_outstanding_all)
 
