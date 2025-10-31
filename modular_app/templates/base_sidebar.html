@@ -684,6 +684,20 @@
                 </a>
             </div>
             
+            <!-- Customers Section -->
+            <div class="nav-section">
+                <div class="nav-section-title">Customers</div>
+                <a href="/admin/customers" class="nav-item {% if '/admin/customers' in request.path and 'outstanding' not in request.path %}active{% endif %}">
+                    <i>👥</i> All Customers
+                </a>
+                <a href="/admin/customers/add" class="nav-item {% if '/admin/customers/add' in request.path %}active{% endif %}">
+                    <i>➕</i> Add Customer
+                </a>
+                <a href="/admin/customers/outstanding" class="nav-item {% if '/admin/customers/outstanding' in request.path %}active{% endif %}">
+                    <i>📊</i> Outstanding Report
+                </a>
+            </div>
+            
             <!-- Invoices Section -->
             <div class="nav-section">
                 <div class="nav-section-title">Invoices</div>

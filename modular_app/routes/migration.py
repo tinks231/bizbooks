@@ -417,3 +417,60 @@ def add_invoices():
             'details': str(e)
         }), 500
 
+
+@migration_bp.route('/add-customers')
+def add_customers_table():
+    """
+    Create customers table and add customer_id to invoices
+    Safe migration - preserves existing data
+    Access this URL once: /migrate/add-customers
+    """
+    try:
+        # Create customers table
+        create_customers_sql = text("""
+            CREATE TABLE IF NOT EXISTS customers (
+                id SERIAL PRIMARY KEY,
+                tenant_id INTEGER NOT NULL REFERENCES tenants(id),
+                customer_code VARCHAR(50) NOT NULL,
+                name VARCHAR(200) NOT NULL,
+                phone VARCHAR(20),
+                email VARCHAR(120),
+                address TEXT,
+                gstin VARCHAR(15),
+                state VARCHAR(50),
+                credit_limit FLOAT DEFAULT 0,
+                payment_terms_days INTEGER DEFAULT 30,
+                opening_balance FLOAT DEFAULT 0,
+                notes TEXT,
+                is_active BOOLEAN DEFAULT TRUE,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE (tenant_id, customer_code)
+            )
+        """)
+        
+        db.session.execute(create_customers_sql)
+        
+        # Add customer_id to invoices table
+        add_customer_id_sql = text("""
+            ALTER TABLE invoices 
+            ADD COLUMN IF NOT EXISTS customer_id INTEGER REFERENCES customers(id)
+        """)
+        
+        db.session.execute(add_customer_id_sql)
+        db.session.commit()
+        
+        return jsonify({
+            'status': 'success',
+            'message': '✅ Customers table created and invoices updated!',
+            'created': ['customers table', 'invoices.customer_id column'],
+            'next_step': 'Go to /admin/customers to add your first customer!'
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({
+            'status': 'error',
+            'message': f'Migration failed: {str(e)}',
+            'details': str(e)
+        }), 500

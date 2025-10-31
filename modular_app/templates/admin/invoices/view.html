@@ -140,6 +140,7 @@
                 <tr class="table-header">
                     <th style="width: 30px;">#</th>
                     <th style="text-align: left;">Item Name</th>
+                    <th style="width: 120px;">SKU</th>
                     <th style="width: 100px;">HSN/SAC</th>
                     <th style="width: 60px;">Quantity</th>
                     <th style="width: 60px;">Unit</th>
@@ -156,6 +157,13 @@
                         <strong>{{ item.item_name }}</strong>
                         {% if item.description %}
                         <br><small style="color: #666;">{{ item.description }}</small>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if item.item and item.item.sku %}
+                            <small style="color: #666;">{{ item.item.sku }}</small>
+                        {% else %}
+                            -
                         {% endif %}
                     </td>
                     <td>{{ item.hsn_code or '-' }}</td>

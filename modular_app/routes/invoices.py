@@ -139,8 +139,16 @@ def create():
                 payment_status = 'unpaid'
             
             # Create invoice
+            # Get customer_id if provided (from customer selection)
+            customer_id = request.form.get('customer_id')
+            if customer_id and customer_id.strip():
+                customer_id = int(customer_id)
+            else:
+                customer_id = None
+            
             invoice = Invoice(
                 tenant_id=tenant_id,
+                customer_id=customer_id,  # NEW: Link to customer master
                 customer_name=customer_name,
                 customer_phone=customer_phone,
                 customer_email=customer_email,
@@ -338,6 +346,13 @@ def edit(invoice_id):
     
     if request.method == 'POST':
         try:
+            # Update customer link
+            customer_id = request.form.get('customer_id')
+            if customer_id and customer_id.strip():
+                invoice.customer_id = int(customer_id)
+            else:
+                invoice.customer_id = None
+            
             # Update customer details
             invoice.customer_name = request.form.get('customer_name')
             invoice.customer_phone = request.form.get('customer_phone')
