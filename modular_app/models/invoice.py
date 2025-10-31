@@ -80,6 +80,61 @@ class Invoice(db.Model, TimestampMixin):
             new_seq = 1
         
         return f'INV-{year}-{new_seq:04d}'  # INV-2024-0001
+    
+    def amount_in_words(self):
+        """Convert amount to words (Indian number system)"""
+        ones = ["", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine"]
+        teens = ["Ten", "Eleven", "Twelve", "Thirteen", "Fourteen", "Fifteen", 
+                "Sixteen", "Seventeen", "Eighteen", "Nineteen"]
+        tens = ["", "", "Twenty", "Thirty", "Forty", "Fifty", "Sixty", "Seventy", "Eighty", "Ninety"]
+        
+        def convert_less_than_thousand(n):
+            if n == 0:
+                return ""
+            elif n < 10:
+                return ones[n]
+            elif n < 20:
+                return teens[n - 10]
+            elif n < 100:
+                return tens[n // 10] + (" " + ones[n % 10] if n % 10 != 0 else "")
+            else:
+                return ones[n // 100] + " Hundred" + (" " + convert_less_than_thousand(n % 100) if n % 100 != 0 else "")
+        
+        def convert_indian_number(num):
+            if num == 0:
+                return "Zero Rupees Only"
+            
+            # Split into crores, lakhs, thousands, hundreds
+            crores = num // 10000000
+            num %= 10000000
+            
+            lakhs = num // 100000
+            num %= 100000
+            
+            thousands = num // 1000
+            num %= 1000
+            
+            hundreds = num
+            
+            result = []
+            
+            if crores > 0:
+                result.append(convert_less_than_thousand(crores) + " Crore")
+            
+            if lakhs > 0:
+                result.append(convert_less_than_thousand(lakhs) + " Lakh")
+            
+            if thousands > 0:
+                result.append(convert_less_than_thousand(thousands) + " Thousand")
+            
+            if hundreds > 0:
+                result.append(convert_less_than_thousand(hundreds))
+            
+            return " ".join(result) + " Rupees Only"
+        
+        # Round to integer
+        amount = int(round(self.total_amount))
+        return convert_indian_number(amount)
 
 
 class InvoiceItem(db.Model):

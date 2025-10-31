@@ -1,0 +1,632 @@
+{% extends 'base_sidebar.html' %}
+
+{% block title %}Invoice #{{ invoice.invoice_number }} - {{ tenant.company_name }}{% endblock %}
+
+{% block page_title %}Invoice #{{ invoice.invoice_number }}{% endblock %}
+
+{% block header_actions %}
+<div style="display: flex; gap: 10px; flex-wrap: wrap;">
+    <button onclick="window.print()" class="btn btn-primary">
+        🖨️ Print Invoice
+    </button>
+    
+    {% if invoice.status == 'draft' %}
+    <a href="{{ url_for('invoices.mark_sent', invoice_id=invoice.id) }}" class="btn btn-success" 
+       onclick="return confirm('Mark this invoice as sent?')">
+        ✉️ Mark as Sent
+    </a>
+    <a href="{{ url_for('invoices.edit', invoice_id=invoice.id) }}" class="btn btn-secondary">
+        ✏️ Edit
+    </a>
+    {% elif invoice.payment_status == 'unpaid' %}
+    <a href="{{ url_for('invoices.record_payment', invoice_id=invoice.id) }}" class="btn btn-success">
+        💰 Record Payment
+    </a>
+    {% endif %}
+    
+    <a href="{{ url_for('invoices.index') }}" class="btn btn-secondary">
+        ← Back to Invoices
+    </a>
+</div>
+{% endblock %}
+
+{% block content %}
+
+<!-- Theme Selector (only show on screen, not in print) -->
+<div class="theme-selector no-print">
+    <label style="font-weight: 600; margin-right: 10px;">Invoice Theme:</label>
+    <select id="themeSelect" onchange="changeTheme(this.value)" style="padding: 8px; border-radius: 5px; border: 1px solid #ddd;">
+        <option value="purple">Purple Professional</option>
+        <option value="blue">Blue Corporate</option>
+        <option value="green">Green Fresh</option>
+        <option value="orange">Orange Vibrant</option>
+        <option value="teal">Teal Modern</option>
+        <option value="black">Black Formal</option>
+    </select>
+</div>
+
+<!-- Invoice Container -->
+<div class="invoice-container" id="invoicePrintArea">
+    
+    <!-- Invoice Header -->
+    <div class="invoice-header">
+        <div class="company-details">
+            <h1 class="company-name">{{ tenant.company_name }}</h1>
+            {% if tenant.settings %}
+                {% set settings = tenant.settings|tojson|safe %}
+                <p class="company-info">{{ settings.address or '' }}</p>
+                <p class="company-info">📞 {{ settings.phone or tenant.admin_phone }}</p>
+                <p class="company-info">✉️ {{ settings.email or tenant.admin_email }}</p>
+                {% if settings.gstin %}
+                <p class="company-info"><strong>GSTIN:</strong> {{ settings.gstin }}</p>
+                {% endif %}
+            {% else %}
+                <p class="company-info">📞 {{ tenant.admin_phone }}</p>
+                <p class="company-info">✉️ {{ tenant.admin_email }}</p>
+            {% endif %}
+        </div>
+        
+        <div class="logo-placeholder">
+            <div class="logo-box">LOGO</div>
+        </div>
+    </div>
+    
+    <!-- Tax Invoice Title -->
+    <div class="invoice-title">
+        <h2>TAX INVOICE</h2>
+    </div>
+    
+    <!-- Invoice Info Row -->
+    <div class="invoice-info-row">
+        <div class="bill-to">
+            <h3>Bill To</h3>
+            <p class="customer-name">{{ invoice.customer_name }}</p>
+            {% if invoice.customer_phone %}
+            <p>📞 {{ invoice.customer_phone }}</p>
+            {% endif %}
+            {% if invoice.customer_email %}
+            <p>✉️ {{ invoice.customer_email }}</p>
+            {% endif %}
+            {% if invoice.customer_address %}
+            <p>{{ invoice.customer_address }}</p>
+            {% endif %}
+            {% if invoice.customer_gstin %}
+            <p><strong>GSTIN:</strong> {{ invoice.customer_gstin }}</p>
+            {% endif %}
+            <p><strong>State:</strong> {{ invoice.customer_state }}</p>
+        </div>
+        
+        <div class="invoice-details">
+            <h3>Invoice Details</h3>
+            <table class="details-table">
+                <tr>
+                    <td><strong>Invoice No:</strong></td>
+                    <td>{{ invoice.invoice_number }}</td>
+                </tr>
+                <tr>
+                    <td><strong>Date:</strong></td>
+                    <td>{{ invoice.invoice_date.strftime('%d-%m-%Y') }}</td>
+                </tr>
+                {% if invoice.due_date %}
+                <tr>
+                    <td><strong>Due Date:</strong></td>
+                    <td>{{ invoice.due_date.strftime('%d-%m-%Y') }}</td>
+                </tr>
+                {% endif %}
+                <tr>
+                    <td><strong>Status:</strong></td>
+                    <td>
+                        <span class="status-badge status-{{ invoice.status }}">
+                            {{ invoice.status.upper() }}
+                        </span>
+                    </td>
+                </tr>
+                <tr>
+                    <td><strong>Payment:</strong></td>
+                    <td>
+                        <span class="status-badge status-{{ invoice.payment_status }}">
+                            {{ invoice.payment_status.upper() }}
+                        </span>
+                    </td>
+                </tr>
+            </table>
+        </div>
+    </div>
+    
+    <!-- Items Table -->
+    <div class="items-section">
+        <table class="items-table">
+            <thead>
+                <tr class="table-header">
+                    <th style="width: 30px;">#</th>
+                    <th style="text-align: left;">Item Name</th>
+                    <th style="width: 100px;">HSN/SAC</th>
+                    <th style="width: 60px;">Quantity</th>
+                    <th style="width: 60px;">Unit</th>
+                    <th style="width: 100px; text-align: right;">Rate (₹)</th>
+                    <th style="width: 80px; text-align: center;">GST %</th>
+                    <th style="width: 120px; text-align: right;">Amount (₹)</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in invoice.items %}
+                <tr>
+                    <td>{{ loop.index }}</td>
+                    <td>
+                        <strong>{{ item.item_name }}</strong>
+                        {% if item.description %}
+                        <br><small style="color: #666;">{{ item.description }}</small>
+                        {% endif %}
+                    </td>
+                    <td>{{ item.hsn_code or '-' }}</td>
+                    <td>{{ item.quantity }}</td>
+                    <td>{{ item.unit }}</td>
+                    <td style="text-align: right;">{{ "%.2f"|format(item.rate) }}</td>
+                    <td style="text-align: center;">{{ item.gst_rate }}%</td>
+                    <td style="text-align: right;">
+                        <strong>{{ "%.2f"|format(item.taxable_value + item.cgst_amount + item.sgst_amount + item.igst_amount) }}</strong>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    
+    <!-- Totals Section -->
+    <div class="totals-section">
+        <div class="invoice-notes">
+            <h4>Amount in Words:</h4>
+            <p><em>{{ invoice.amount_in_words() }}</em></p>
+            
+            {% if invoice.notes %}
+            <h4 style="margin-top: 20px;">Terms & Conditions:</h4>
+            <p style="white-space: pre-line;">{{ invoice.notes }}</p>
+            {% endif %}
+        </div>
+        
+        <div class="totals-table">
+            <table>
+                <tr>
+                    <td><strong>Subtotal:</strong></td>
+                    <td style="text-align: right;">₹{{ "%.2f"|format(invoice.subtotal) }}</td>
+                </tr>
+                
+                {% if invoice.discount_amount and invoice.discount_amount > 0 %}
+                <tr>
+                    <td><strong>Discount:</strong></td>
+                    <td style="text-align: right; color: #e74c3c;">-₹{{ "%.2f"|format(invoice.discount_amount) }}</td>
+                </tr>
+                {% endif %}
+                
+                {% if invoice.cgst_amount > 0 %}
+                <tr>
+                    <td>CGST:</td>
+                    <td style="text-align: right;">₹{{ "%.2f"|format(invoice.cgst_amount) }}</td>
+                </tr>
+                <tr>
+                    <td>SGST:</td>
+                    <td style="text-align: right;">₹{{ "%.2f"|format(invoice.sgst_amount) }}</td>
+                </tr>
+                {% endif %}
+                
+                {% if invoice.igst_amount > 0 %}
+                <tr>
+                    <td>IGST:</td>
+                    <td style="text-align: right;">₹{{ "%.2f"|format(invoice.igst_amount) }}</td>
+                </tr>
+                {% endif %}
+                
+                {% if invoice.round_off and invoice.round_off != 0 %}
+                <tr>
+                    <td>Round Off:</td>
+                    <td style="text-align: right;">₹{{ "%.2f"|format(invoice.round_off) }}</td>
+                </tr>
+                {% endif %}
+                
+                <tr class="total-row">
+                    <td><strong>TOTAL:</strong></td>
+                    <td style="text-align: right;"><strong>₹{{ "%.2f"|format(invoice.total_amount) }}</strong></td>
+                </tr>
+            </table>
+        </div>
+    </div>
+    
+    <!-- Signature Section -->
+    <div class="signature-section">
+        <div class="customer-signature">
+            <p>Customer Signature</p>
+            <div class="signature-line"></div>
+        </div>
+        
+        <div class="company-signature">
+            <p>For: <strong>{{ tenant.company_name }}</strong></p>
+            <div class="signature-line"></div>
+            <p><strong>Authorized Signatory</strong></p>
+        </div>
+    </div>
+    
+    <!-- Footer -->
+    <div class="invoice-footer">
+        <p>Thank you for your business!</p>
+        <p style="font-size: 12px; color: #666;">This is a computer-generated invoice and does not require a signature.</p>
+    </div>
+    
+</div>
+
+<style>
+    /* Hide navigation and buttons when printing */
+    @media print {
+        .sidebar, 
+        .header,
+        .no-print,
+        .btn,
+        .theme-selector {
+            display: none !important;
+        }
+        
+        body {
+            background: white;
+            margin: 0;
+            padding: 0;
+        }
+        
+        .invoice-container {
+            box-shadow: none;
+            margin: 0;
+            padding: 20px;
+            max-width: 100%;
+        }
+        
+        .page-header {
+            display: none;
+        }
+    }
+    
+    /* Theme Selector */
+    .theme-selector {
+        background: white;
+        padding: 15px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    /* Invoice Container */
+    .invoice-container {
+        background: white;
+        max-width: 210mm; /* A4 width */
+        margin: 0 auto 30px;
+        padding: 40px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        border-radius: 8px;
+    }
+    
+    /* Invoice Header */
+    .invoice-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        padding-bottom: 20px;
+        border-bottom: 3px solid var(--theme-color, #8b5cf6);
+        margin-bottom: 20px;
+    }
+    
+    .company-details {
+        flex: 1;
+    }
+    
+    .company-name {
+        font-size: 28px;
+        font-weight: 700;
+        color: var(--theme-color, #8b5cf6);
+        margin: 0 0 10px 0;
+    }
+    
+    .company-info {
+        margin: 5px 0;
+        color: #666;
+        font-size: 14px;
+    }
+    
+    .logo-placeholder {
+        width: 120px;
+        height: 120px;
+    }
+    
+    .logo-box {
+        width: 100%;
+        height: 100%;
+        border: 2px dashed var(--theme-color, #8b5cf6);
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--theme-color, #8b5cf6);
+        font-weight: 600;
+        background: var(--theme-light, #f3f0ff);
+    }
+    
+    /* Invoice Title */
+    .invoice-title {
+        text-align: center;
+        margin: 30px 0;
+    }
+    
+    .invoice-title h2 {
+        color: var(--theme-color, #8b5cf6);
+        font-size: 24px;
+        font-weight: 700;
+        margin: 0;
+        letter-spacing: 2px;
+    }
+    
+    /* Invoice Info Row */
+    .invoice-info-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 30px;
+        margin-bottom: 30px;
+    }
+    
+    .bill-to h3,
+    .invoice-details h3 {
+        background: var(--theme-color, #8b5cf6);
+        color: white;
+        padding: 10px 15px;
+        margin: 0 0 15px 0;
+        border-radius: 5px;
+        font-size: 16px;
+    }
+    
+    .bill-to p,
+    .invoice-details p {
+        margin: 8px 0;
+        color: #333;
+    }
+    
+    .customer-name {
+        font-size: 18px;
+        font-weight: 700;
+        color: #2c3e50;
+    }
+    
+    .details-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    
+    .details-table td {
+        padding: 8px 10px;
+        border-bottom: 1px solid #f0f0f0;
+    }
+    
+    .details-table td:first-child {
+        color: #666;
+    }
+    
+    .details-table td:last-child {
+        text-align: right;
+        font-weight: 600;
+    }
+    
+    /* Status Badges */
+    .status-badge {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .status-draft {
+        background: #fef3c7;
+        color: #92400e;
+    }
+    
+    .status-sent {
+        background: #dbeafe;
+        color: #1e40af;
+    }
+    
+    .status-paid {
+        background: #d1fae5;
+        color: #065f46;
+    }
+    
+    .status-unpaid {
+        background: #fee2e2;
+        color: #991b1b;
+    }
+    
+    .status-partial {
+        background: #fed7aa;
+        color: #9a3412;
+    }
+    
+    /* Items Table */
+    .items-section {
+        margin: 30px 0;
+    }
+    
+    .items-table {
+        width: 100%;
+        border-collapse: collapse;
+        border: 1px solid #e0e0e0;
+    }
+    
+    .items-table thead .table-header {
+        background: var(--theme-color, #8b5cf6);
+        color: white;
+    }
+    
+    .items-table th {
+        padding: 12px 10px;
+        font-weight: 600;
+        font-size: 14px;
+        text-align: left;
+    }
+    
+    .items-table td {
+        padding: 12px 10px;
+        border-bottom: 1px solid #f0f0f0;
+        color: #333;
+    }
+    
+    .items-table tbody tr:hover {
+        background: #f8f9fa;
+    }
+    
+    /* Totals Section */
+    .totals-section {
+        display: grid;
+        grid-template-columns: 1.5fr 1fr;
+        gap: 30px;
+        margin: 30px 0;
+    }
+    
+    .invoice-notes h4 {
+        color: var(--theme-color, #8b5cf6);
+        margin: 0 0 10px 0;
+        font-size: 14px;
+        font-weight: 700;
+    }
+    
+    .invoice-notes p {
+        margin: 0;
+        color: #666;
+        font-size: 14px;
+        line-height: 1.6;
+    }
+    
+    .totals-table table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    
+    .totals-table td {
+        padding: 10px 15px;
+        border-bottom: 1px solid #f0f0f0;
+        color: #333;
+    }
+    
+    .totals-table .total-row {
+        background: var(--theme-light, #f3f0ff);
+        border-top: 2px solid var(--theme-color, #8b5cf6);
+    }
+    
+    .totals-table .total-row td {
+        font-size: 18px;
+        padding: 15px;
+        color: var(--theme-color, #8b5cf6);
+    }
+    
+    /* Signature Section */
+    .signature-section {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 40px;
+        margin: 50px 0 30px;
+        padding-top: 30px;
+        border-top: 1px solid #e0e0e0;
+    }
+    
+    .signature-section p {
+        margin: 0 0 40px 0;
+        color: #666;
+        font-size: 14px;
+    }
+    
+    .signature-line {
+        border-bottom: 2px solid #333;
+        margin-bottom: 10px;
+    }
+    
+    .company-signature {
+        text-align: right;
+    }
+    
+    /* Footer */
+    .invoice-footer {
+        text-align: center;
+        padding-top: 20px;
+        border-top: 1px solid #e0e0e0;
+        margin-top: 30px;
+    }
+    
+    .invoice-footer p {
+        margin: 5px 0;
+        color: #666;
+    }
+    
+    /* Mobile Responsive */
+    @media (max-width: 768px) {
+        .invoice-container {
+            padding: 20px;
+            margin: 0;
+            border-radius: 0;
+        }
+        
+        .invoice-header {
+            flex-direction: column;
+            gap: 20px;
+        }
+        
+        .logo-placeholder {
+            width: 100px;
+            height: 100px;
+        }
+        
+        .invoice-info-row,
+        .totals-section,
+        .signature-section {
+            grid-template-columns: 1fr;
+            gap: 20px;
+        }
+        
+        .items-table {
+            font-size: 12px;
+        }
+        
+        .items-table th,
+        .items-table td {
+            padding: 8px 5px;
+        }
+        
+        .company-signature {
+            text-align: left;
+        }
+    }
+</style>
+
+<script>
+    // Theme colors
+    const themes = {
+        purple: { color: '#8b5cf6', light: '#f3f0ff' },
+        blue: { color: '#3b82f6', light: '#dbeafe' },
+        green: { color: '#10b981', light: '#d1fae5' },
+        orange: { color: '#f97316', light: '#ffedd5' },
+        teal: { color: '#14b8a6', light: '#ccfbf1' },
+        black: { color: '#1f2937', light: '#f3f4f6' }
+    };
+    
+    function changeTheme(themeName) {
+        const theme = themes[themeName];
+        document.documentElement.style.setProperty('--theme-color', theme.color);
+        document.documentElement.style.setProperty('--theme-light', theme.light);
+        
+        // Save preference
+        localStorage.setItem('invoiceTheme', themeName);
+    }
+    
+    // Load saved theme
+    window.addEventListener('DOMContentLoaded', function() {
+        const savedTheme = localStorage.getItem('invoiceTheme') || 'purple';
+        document.getElementById('themeSelect').value = savedTheme;
+        changeTheme(savedTheme);
+    });
+</script>
+
+{% endblock %}
+

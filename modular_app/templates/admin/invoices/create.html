@@ -125,12 +125,14 @@
                         <th style="min-width: 100px;">HSN/SAC</th>
                         <th style="width: 80px;">Qty *</th>
                         <th style="width: 80px;">Unit</th>
-                        <th style="width: 120px;">
-                            Rate * 
-                            <label style="display: block; font-size: 11px; font-weight: normal; margin-top: 4px; cursor: pointer;" title="Check this if the rate you enter already includes GST (like MRP on products)">
-                                <input type="checkbox" id="priceInclusiveAll" onchange="toggleAllPriceInclusive(this.checked)" style="margin-right: 4px;">
-                                Tax Inclusive (MRP)
-                            </label>
+                        <th style="width: 140px; text-align: center;">
+                            <div style="display: flex; flex-direction: column; align-items: center; gap: 5px;">
+                                <span>Rate *</span>
+                                <label style="display: flex; align-items: center; gap: 4px; font-size: 11px; font-weight: normal; cursor: pointer; white-space: nowrap;" title="Check this if the rate you enter already includes GST (like MRP on products)">
+                                    <input type="checkbox" id="priceInclusiveAll" onchange="toggleAllPriceInclusive(this.checked)">
+                                    <span>Tax Inclusive (MRP)</span>
+                                </label>
+                            </div>
                         </th>
                         <th style="width: 100px;">GST % *</th>
                         <th style="width: 120px;">Amount</th>
@@ -409,15 +411,16 @@
                     <option value="Pcs">Pcs</option>
                 </select>
             </td>
-            <td>
-                <input type="number" name="rate[]" id="rate_${itemCount}" class="form-control" step="0.01" min="0.01" 
-                       placeholder="1200" required onchange="calculateRow(${itemCount})">
-                <label style="display: block; font-size: 11px; margin-top: 4px; cursor: pointer;">
-                    <input type="checkbox" name="price_inclusive[]" id="price_inclusive_${itemCount}" 
-                           class="price-inclusive-checkbox" onchange="calculateRow(${itemCount})" 
-                           style="margin-right: 4px;">
-                    <span style="color: #666;">Inc. tax</span>
-                </label>
+            <td style="text-align: center;">
+                <div style="display: flex; flex-direction: column; align-items: center; gap: 4px;">
+                    <input type="number" name="rate[]" id="rate_${itemCount}" class="form-control" step="0.01" min="0.01" 
+                           placeholder="1200" required onchange="calculateRow(${itemCount})" style="text-align: right;">
+                    <label style="display: flex; align-items: center; gap: 4px; font-size: 11px; cursor: pointer; white-space: nowrap;">
+                        <input type="checkbox" name="price_inclusive[]" id="price_inclusive_${itemCount}" 
+                               class="price-inclusive-checkbox" onchange="calculateRow(${itemCount})">
+                        <span style="color: #666;">Inc. tax</span>
+                    </label>
+                </div>
             </td>
             <td>
                 <select name="gst_rate[]" class="form-control" onchange="calculateRow(${itemCount})">

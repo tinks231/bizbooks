@@ -203,6 +203,7 @@ def create():
                 
                 # Manually set calculated amounts
                 invoice_item.taxable_value = taxable_value
+                invoice_item.total_amount = total_amount  # CRITICAL: Set total amount
                 
                 if is_same_state:
                     invoice_item.cgst_amount = gst_amount / 2
