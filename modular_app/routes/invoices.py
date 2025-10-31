@@ -189,6 +189,7 @@ def create():
                 gst_rate = float(gst_rates[i]) if gst_rates[i] else 18
                 
                 # Check if price is inclusive of GST (MRP mode)
+                # Checkboxes appear in list only if checked
                 price_inclusive = i < len(price_inclusives) and price_inclusives[i] == 'on'
                 
                 # Calculate based on price mode
@@ -389,6 +390,7 @@ def edit(invoice_id):
                 gst_rate = float(gst_rates[i]) if gst_rates[i] else 18
                 
                 # Check if price is inclusive of GST (MRP mode)
+                # Checkboxes appear in list only if checked
                 price_inclusive = i < len(price_inclusives) and price_inclusives[i] == 'on'
                 
                 # Calculate based on price mode
