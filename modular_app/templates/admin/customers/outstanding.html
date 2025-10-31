@@ -1,0 +1,176 @@
+{% extends 'base_sidebar.html' %}
+
+{% block title %}Outstanding Report - {{ tenant.company_name }}{% endblock %}
+
+{% block page_title %}Outstanding Report{% endblock %}
+
+{% block header_actions %}
+<a href="{{ url_for('customers.index') }}" class="btn btn-secondary">
+    ← Back to Customers
+</a>
+<button onclick="window.print()" class="btn btn-primary">
+    🖨️ Print Report
+</button>
+{% endblock %}
+
+{% block content %}
+
+<!-- Summary Card -->
+<div class="card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; margin-bottom: 20px;">
+    <div style="text-align: center;">
+        <h2 style="margin: 0 0 5px 0; font-size: 20px; opacity: 0.9;">Total Outstanding Amount</h2>
+        <h1 style="margin: 0; font-size: 42px; font-weight: 700;">₹{{ "%.2f"|format(total_outstanding_all) }}</h1>
+        <p style="margin: 10px 0 0 0; opacity: 0.9;">From {{ customers_data|length }} customers with pending payments</p>
+    </div>
+</div>
+
+<!-- Customers Table -->
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">Customers with Outstanding Balance</h3>
+    </div>
+    
+    {% if customers_data %}
+    <div style="overflow-x: auto;">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Customer Code</th>
+                    <th>Customer Name</th>
+                    <th>Contact</th>
+                    <th>Unpaid Invoices</th>
+                    <th>Outstanding Amount</th>
+                    <th>Credit Limit</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in customers_data %}
+                <tr>
+                    <td>{{ loop.index }}</td>
+                    <td><strong>{{ item.customer.customer_code }}</strong></td>
+                    <td><strong>{{ item.customer.name }}</strong></td>
+                    <td>
+                        {% if item.customer.phone %}
+                            📞 {{ item.customer.phone }}
+                        {% endif %}
+                    </td>
+                    <td style="text-align: center;">
+                        <span class="badge badge-warning">{{ item.unpaid_count }}</span>
+                    </td>
+                    <td style="text-align: right;">
+                        <strong style="color: #e74c3c; font-size: 16px;">₹{{ "%.2f"|format(item.outstanding) }}</strong>
+                    </td>
+                    <td style="text-align: right;">
+                        {% if item.customer.credit_limit > 0 %}
+                            {% if item.outstanding > item.customer.credit_limit %}
+                                <span style="color: #e74c3c; font-weight: 600;">
+                                    ₹{{ "%.0f"|format(item.customer.credit_limit) }}
+                                    <br><small>⚠️ Exceeded</small>
+                                </span>
+                            {% else %}
+                                ₹{{ "%.0f"|format(item.customer.credit_limit) }}
+                            {% endif %}
+                        {% else %}
+                            <span style="color: #95a5a6;">No Limit</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div style="display: flex; gap: 8px;">
+                            <a href="{{ url_for('customers.ledger', customer_id=item.customer.id) }}" 
+                               class="btn btn-sm btn-info" title="View Ledger">
+                                📄 Ledger
+                            </a>
+                            <a href="https://wa.me/{{ item.customer.phone|replace(' ', '')|replace('+', '') }}?text=Hello%20{{ item.customer.name }},
+
+%20Your%20outstanding%20balance%20is%20₹{{ '%.2f'|format(item.outstanding) }}.%20Please%20make%20the%20payment%20at%20the%20earliest." 
+                               class="btn btn-sm btn-success" title="Send WhatsApp Reminder" target="_blank"
+                               {% if not item.customer.phone %}style="opacity: 0.5; pointer-events: none;"{% endif %}>
+                                💬 WhatsApp
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+            <tfoot>
+                <tr style="background: #f8f9fa; font-weight: 600;">
+                    <td colspan="5" style="text-align: right; padding: 15px;">TOTAL OUTSTANDING:</td>
+                    <td style="text-align: right; color: #e74c3c; font-size: 18px;">
+                        ₹{{ "%.2f"|format(total_outstanding_all) }}
+                    </td>
+                    <td colspan="2"></td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+    {% else %}
+    <div style="padding: 40px; text-align: center; color: #7f8c8d;">
+        <p style="font-size: 48px; margin-bottom: 10px;">✅</p>
+        <p style="font-size: 18px; margin-bottom: 10px;">No Outstanding Payments!</p>
+        <p>All customers have cleared their dues.</p>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+    .badge {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: 600;
+    }
+    
+    .badge-warning {
+        background: #fff3cd;
+        color: #856404;
+    }
+    
+    .table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    
+    .table th {
+        background: #f8f9fa;
+        padding: 12px;
+        text-align: left;
+        font-weight: 600;
+        border-bottom: 2px solid #dee2e6;
+    }
+    
+    .table td {
+        padding: 12px;
+        border-bottom: 1px solid #dee2e6;
+    }
+    
+    .table tbody tr:hover {
+        background: #f8f9fa;
+    }
+    
+    .btn-sm {
+        padding: 6px 12px;
+        font-size: 13px;
+        white-space: nowrap;
+    }
+    
+    @media print {
+        .sidebar, .header, .btn, .no-print {
+            display: none !important;
+        }
+        
+        body {
+            background: white;
+        }
+        
+        .card {
+            box-shadow: none;
+            page-break-inside: avoid;
+        }
+    }
+</style>
+
+{% endblock %}
+

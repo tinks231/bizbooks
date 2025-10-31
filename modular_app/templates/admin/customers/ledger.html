@@ -1,0 +1,219 @@
+{% extends 'base_sidebar.html' %}
+
+{% block title %}Customer Ledger - {{ customer.name }} - {{ tenant.company_name }}{% endblock %}
+
+{% block page_title %}Customer Ledger{% endblock %}
+
+{% block header_actions %}
+<a href="{{ url_for('customers.index') }}" class="btn btn-secondary">
+    ← Back to Customers
+</a>
+<a href="{{ url_for('customers.edit', customer_id=customer.id) }}" class="btn btn-primary">
+    ✏️ Edit Customer
+</a>
+{% endblock %}
+
+{% block content %}
+
+<!-- Customer Info Card -->
+<div class="card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; margin-bottom: 20px;">
+    <div style="display: flex; justify-content: space-between; align-items: start; flex-wrap: wrap; gap: 20px;">
+        <div>
+            <h2 style="margin: 0 0 5px 0; font-size: 24px;">{{ customer.name }}</h2>
+            <p style="margin: 0; opacity: 0.9;">{{ customer.customer_code }}</p>
+            {% if customer.phone %}
+            <p style="margin: 5px 0 0 0; opacity: 0.9;">📞 {{ customer.phone }}</p>
+            {% endif %}
+        </div>
+        <div style="text-align: right;">
+            <p style="margin: 0; font-size: 14px; opacity: 0.9;">Outstanding Balance</p>
+            <h1 style="margin: 5px 0 0 0; font-size: 36px;">₹{{ "%.2f"|format(total_outstanding) }}</h1>
+        </div>
+    </div>
+</div>
+
+<!-- Summary Cards -->
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px;">
+    <div class="stat-card" style="background: #3498db;">
+        <p class="stat-label">Total Billed</p>
+        <p class="stat-value">₹{{ "%.2f"|format(total_billed) }}</p>
+    </div>
+    <div class="stat-card" style="background: #2ecc71;">
+        <p class="stat-label">Total Paid</p>
+        <p class="stat-value">₹{{ "%.2f"|format(total_paid) }}</p>
+    </div>
+    <div class="stat-card" style="background: #e74c3c;">
+        <p class="stat-label">Total Outstanding</p>
+        <p class="stat-value">₹{{ "%.2f"|format(total_outstanding) }}</p>
+    </div>
+    <div class="stat-card" style="background: #f39c12;">
+        <p class="stat-label">Total Invoices</p>
+        <p class="stat-value">{{ invoices|length }}</p>
+    </div>
+</div>
+
+<!-- Aging Analysis (Overdue Invoices) -->
+{% set total_overdue = aging_data['0-30']|length + aging_data['31-60']|length + aging_data['61-90']|length + aging_data['90+']|length %}
+{% if total_overdue > 0 %}
+<div class="card" style="margin-bottom: 20px; border-left: 4px solid #e74c3c;">
+    <h3 style="margin: 0 0 15px 0; color: #e74c3c;">⚠️ Overdue Invoices</h3>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px;">
+        <div style="padding: 10px; background: #fee; border-radius: 6px;">
+            <p style="margin: 0; font-size: 12px; color: #666;">0-30 Days</p>
+            <p style="margin: 5px 0 0 0; font-size: 20px; font-weight: 600; color: #e74c3c;">{{ aging_data['0-30']|length }}</p>
+        </div>
+        <div style="padding: 10px; background: #fdd; border-radius: 6px;">
+            <p style="margin: 0; font-size: 12px; color: #666;">31-60 Days</p>
+            <p style="margin: 5px 0 0 0; font-size: 20px; font-weight: 600; color: #c0392b;">{{ aging_data['31-60']|length }}</p>
+        </div>
+        <div style="padding: 10px; background: #fcc; border-radius: 6px;">
+            <p style="margin: 0; font-size: 12px; color: #666;">61-90 Days</p>
+            <p style="margin: 5px 0 0 0; font-size: 20px; font-weight: 600; color: #a93226;">{{ aging_data['61-90']|length }}</p>
+        </div>
+        <div style="padding: 10px; background: #faa; border-radius: 6px;">
+            <p style="margin: 0; font-size: 12px; color: #666;">90+ Days</p>
+            <p style="margin: 5px 0 0 0; font-size: 20px; font-weight: 600; color: #922b21;">{{ aging_data['90+']|length }}</p>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Invoices Table -->
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">All Invoices</h3>
+    </div>
+    
+    {% if invoices %}
+    <div style="overflow-x: auto;">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Invoice No</th>
+                    <th>Date</th>
+                    <th>Due Date</th>
+                    <th>Amount</th>
+                    <th>Paid</th>
+                    <th>Balance</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for invoice in invoices %}
+                <tr>
+                    <td><strong>{{ invoice.invoice_number }}</strong></td>
+                    <td>{{ invoice.invoice_date.strftime('%d-%b-%Y') }}</td>
+                    <td>
+                        {% if invoice.due_date %}
+                            {{ invoice.due_date.strftime('%d-%b-%Y') }}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                    <td style="text-align: right;">₹{{ "%.2f"|format(invoice.total_amount) }}</td>
+                    <td style="text-align: right;">₹{{ "%.2f"|format(invoice.paid_amount) }}</td>
+                    <td style="text-align: right;">
+                        <strong style="color: {% if invoice.payment_status == 'unpaid' %}#e74c3c{% else %}#27ae60{% endif %};">
+                            ₹{{ "%.2f"|format(invoice.total_amount - invoice.paid_amount) }}
+                        </strong>
+                    </td>
+                    <td>
+                        {% if invoice.payment_status == 'paid' %}
+                            <span class="badge badge-success">Paid</span>
+                        {% elif invoice.payment_status == 'partial' %}
+                            <span class="badge badge-warning">Partial</span>
+                        {% else %}
+                            <span class="badge badge-danger">Unpaid</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <a href="{{ url_for('invoices.view', invoice_id=invoice.id) }}" class="btn btn-sm btn-primary">
+                            View
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div style="padding: 40px; text-align: center; color: #7f8c8d;">
+        <p style="font-size: 48px; margin-bottom: 10px;">📄</p>
+        <p style="font-size: 16px;">No invoices found for this customer</p>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+    .stat-card {
+        padding: 20px;
+        border-radius: 10px;
+        color: white;
+    }
+    
+    .stat-label {
+        margin: 0;
+        font-size: 13px;
+        opacity: 0.9;
+    }
+    
+    .stat-value {
+        margin: 8px 0 0 0;
+        font-size: 24px;
+        font-weight: 700;
+    }
+    
+    .badge {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: 600;
+    }
+    
+    .badge-success {
+        background: #d4edda;
+        color: #155724;
+    }
+    
+    .badge-warning {
+        background: #fff3cd;
+        color: #856404;
+    }
+    
+    .badge-danger {
+        background: #f8d7da;
+        color: #721c24;
+    }
+    
+    .table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    
+    .table th {
+        background: #f8f9fa;
+        padding: 12px;
+        text-align: left;
+        font-weight: 600;
+        border-bottom: 2px solid #dee2e6;
+    }
+    
+    .table td {
+        padding: 12px;
+        border-bottom: 1px solid #dee2e6;
+    }
+    
+    .table tbody tr:hover {
+        background: #f8f9fa;
+    }
+    
+    .btn-sm {
+        padding: 6px 12px;
+        font-size: 14px;
+    }
+</style>
+
+{% endblock %}
+

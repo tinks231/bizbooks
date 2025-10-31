@@ -21,7 +21,10 @@ class Invoice(db.Model, TimestampMixin):
     invoice_date = db.Column(db.Date, nullable=False, default=datetime.utcnow)
     due_date = db.Column(db.Date)  # For credit sales (optional)
     
-    # Customer Details
+    # Customer Reference (NEW: Link to customer master)
+    customer_id = db.Column(db.Integer, db.ForeignKey('customers.id'), nullable=True)  # Optional: Link to customer master
+    
+    # Customer Details (kept for backward compatibility and one-time customers)
     customer_name = db.Column(db.String(200), nullable=False)
     customer_phone = db.Column(db.String(20))
     customer_email = db.Column(db.String(120))

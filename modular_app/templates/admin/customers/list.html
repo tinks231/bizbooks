@@ -1,0 +1,215 @@
+{% extends 'base_sidebar.html' %}
+
+{% block title %}Customers - {{ tenant.company_name }}{% endblock %}
+
+{% block page_title %}Customer Management{% endblock %}
+
+{% block header_actions %}
+<a href="{{ url_for('customers.add') }}" class="btn btn-primary">
+    + Add New Customer
+</a>
+<a href="{{ url_for('customers.outstanding') }}" class="btn btn-secondary">
+    📊 Outstanding Report
+</a>
+{% endblock %}
+
+{% block content %}
+
+<!-- Search and Filter Card -->
+<div class="card" style="margin-bottom: 20px;">
+    <form method="GET" action="{{ url_for('customers.index') }}" style="display: flex; gap: 15px; flex-wrap: wrap; align-items: flex-end;">
+        <div class="form-group" style="flex: 1; min-width: 250px; margin-bottom: 0;">
+            <label for="search">Search Customer</label>
+            <input type="text" id="search" name="search" class="form-control" 
+                   placeholder="Name, Code, Phone..." value="{{ search }}">
+        </div>
+        
+        <div class="form-group" style="min-width: 150px; margin-bottom: 0;">
+            <label for="status">Status</label>
+            <select id="status" name="status" class="form-control">
+                <option value="all" {% if status_filter == 'all' %}selected{% endif %}>All</option>
+                <option value="active" {% if status_filter == 'active' %}selected{% endif %}>Active</option>
+                <option value="inactive" {% if status_filter == 'inactive' %}selected{% endif %}>Inactive</option>
+            </select>
+        </div>
+        
+        <button type="submit" class="btn btn-primary">
+            🔍 Search
+        </button>
+        
+        {% if search or status_filter != 'all' %}
+        <a href="{{ url_for('customers.index') }}" class="btn btn-secondary">
+            Clear
+        </a>
+        {% endif %}
+    </form>
+</div>
+
+<!-- Customers Table -->
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">All Customers ({{ customers|length }})</h3>
+    </div>
+    
+    {% if customers %}
+    <div style="overflow-x: auto;">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Code</th>
+                    <th>Name</th>
+                    <th>Contact</th>
+                    <th>GST</th>
+                    <th>State</th>
+                    <th>Invoices</th>
+                    <th>Outstanding</th>
+                    <th>Credit Limit</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for customer in customers %}
+                <tr>
+                    <td>
+                        <strong>{{ customer.customer_code }}</strong>
+                    </td>
+                    <td>
+                        <strong>{{ customer.name }}</strong>
+                    </td>
+                    <td>
+                        {% if customer.phone %}
+                            📞 {{ customer.phone }}<br>
+                        {% endif %}
+                        {% if customer.email %}
+                            ✉️ {{ customer.email }}
+                        {% endif %}
+                    </td>
+                    <td>
+                        {{ customer.gstin or '-' }}
+                    </td>
+                    <td>
+                        {{ customer.state or '-' }}
+                    </td>
+                    <td style="text-align: center;">
+                        <span class="badge badge-info">{{ customer.invoice_count }}</span>
+                    </td>
+                    <td style="text-align: right;">
+                        {% if customer.outstanding > 0 %}
+                            <strong style="color: #e74c3c;">₹{{ "%.2f"|format(customer.outstanding) }}</strong>
+                        {% else %}
+                            <span style="color: #27ae60;">₹0.00</span>
+                        {% endif %}
+                    </td>
+                    <td style="text-align: right;">
+                        {% if customer.credit_limit > 0 %}
+                            ₹{{ "%.0f"|format(customer.credit_limit) }}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if customer.is_active %}
+                            <span class="badge badge-success">Active</span>
+                        {% else %}
+                            <span class="badge badge-secondary">Inactive</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div style="display: flex; gap: 8px;">
+                            <a href="{{ url_for('customers.ledger', customer_id=customer.id) }}" 
+                               class="btn btn-sm btn-info" title="View Ledger">
+                                📄
+                            </a>
+                            <a href="{{ url_for('customers.edit', customer_id=customer.id) }}" 
+                               class="btn btn-sm btn-primary" title="Edit">
+                                ✏️
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div style="padding: 40px; text-align: center; color: #7f8c8d;">
+        <p style="font-size: 48px; margin-bottom: 10px;">👥</p>
+        <p style="font-size: 18px; margin-bottom: 20px;">No customers found</p>
+        <a href="{{ url_for('customers.add') }}" class="btn btn-primary">
+            + Add Your First Customer
+        </a>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+    .badge {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: 600;
+    }
+    
+    .badge-success {
+        background: #d4edda;
+        color: #155724;
+    }
+    
+    .badge-secondary {
+        background: #e2e3e5;
+        color: #383d41;
+    }
+    
+    .badge-info {
+        background: #d1ecf1;
+        color: #0c5460;
+    }
+    
+    .btn-sm {
+        padding: 6px 12px;
+        font-size: 14px;
+    }
+    
+    .table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    
+    .table th {
+        background: #f8f9fa;
+        padding: 12px;
+        text-align: left;
+        font-weight: 600;
+        border-bottom: 2px solid #dee2e6;
+    }
+    
+    .table td {
+        padding: 12px;
+        border-bottom: 1px solid #dee2e6;
+    }
+    
+    .table tbody tr:hover {
+        background: #f8f9fa;
+    }
+    
+    @media (max-width: 768px) {
+        .table {
+            font-size: 13px;
+        }
+        
+        .table th,
+        .table td {
+            padding: 8px;
+        }
+        
+        .btn-sm {
+            padding: 4px 8px;
+            font-size: 12px;
+        }
+    }
+</style>
+
+{% endblock %}
+

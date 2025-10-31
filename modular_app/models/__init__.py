@@ -14,6 +14,7 @@ from .item import (
 )
 from .expense import Expense, ExpenseCategory
 from .purchase_request import PurchaseRequest
+from .customer import Customer
 from .invoice import Invoice, InvoiceItem
 
 __all__ = [
@@ -24,6 +25,7 @@ __all__ = [
     'ItemStockMovement', 'InventoryAdjustment', 'InventoryAdjustmentLine',
     'Expense', 'ExpenseCategory',
     'PurchaseRequest',
+    'Customer',
     'Invoice', 'InvoiceItem'
 ]
 
