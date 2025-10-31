@@ -113,6 +113,11 @@ def create():
             due_date = request.form.get('due_date')
             notes = request.form.get('notes')
             
+            # Payment status
+            payment_received = request.form.get('payment_received', 'no')
+            payment_method = request.form.get('payment_method')
+            payment_reference = request.form.get('payment_reference')
+            
             # Convert dates
             if invoice_date:
                 invoice_date = datetime.strptime(invoice_date, '%Y-%m-%d').date()
@@ -124,6 +129,14 @@ def create():
                 due_date = datetime.strptime(due_date, '%Y-%m-%d').date()
             else:
                 due_date = None
+            
+            # Determine status based on payment
+            if payment_received == 'yes':
+                status = 'sent'  # Auto-mark as sent if payment received
+                payment_status = 'paid'
+            else:
+                status = 'draft'  # Keep as draft for credit sales
+                payment_status = 'unpaid'
             
             # Create invoice
             invoice = Invoice(
@@ -137,7 +150,9 @@ def create():
                 invoice_date=invoice_date,
                 due_date=due_date,
                 notes=notes,
-                status='draft'
+                status=status,
+                payment_status=payment_status,
+                payment_method=payment_method if payment_received == 'yes' else None
             )
             
             # Generate invoice number
@@ -246,6 +261,14 @@ def create():
             invoice.total_amount = round(total_before_rounding)
             invoice.round_off = invoice.total_amount - total_before_rounding
             
+            # Set paid amount if payment received
+            if payment_received == 'yes':
+                invoice.paid_amount = invoice.total_amount
+            
+            # Add payment reference to notes if provided
+            if payment_reference and payment_received == 'yes':
+                invoice.internal_notes = f"Payment Reference: {payment_reference}"
+            
             # Save
             db.session.add(invoice)
             db.session.commit()
@@ -349,6 +372,7 @@ def edit(invoice_id):
             rates = request.form.getlist('rate[]')
             gst_rates = request.form.getlist('gst_rate[]')
             hsn_codes = request.form.getlist('hsn_code[]')
+            price_inclusives = request.form.getlist('price_inclusive[]')
             
             subtotal = 0
             total_cgst = 0
@@ -364,6 +388,20 @@ def edit(invoice_id):
                 rate = float(rates[i])
                 gst_rate = float(gst_rates[i]) if gst_rates[i] else 18
                 
+                # Check if price is inclusive of GST (MRP mode)
+                price_inclusive = i < len(price_inclusives) and price_inclusives[i] == 'on'
+                
+                # Calculate based on price mode
+                if price_inclusive:
+                    total_amount = quantity * rate
+                    divisor = 1 + (gst_rate / 100)
+                    taxable_value = total_amount / divisor
+                    gst_amount = total_amount - taxable_value
+                else:
+                    taxable_value = quantity * rate
+                    gst_amount = taxable_value * (gst_rate / 100)
+                    total_amount = taxable_value + gst_amount
+                
                 invoice_item = InvoiceItem(
                     invoice_id=invoice.id,
                     item_id=item_id,
@@ -372,11 +410,22 @@ def edit(invoice_id):
                     hsn_code=hsn_codes[i] if i < len(hsn_codes) else '',
                     quantity=quantity,
                     unit=units[i] if i < len(units) else 'Nos',
-                    rate=rate,
+                    rate=taxable_value / quantity,
                     gst_rate=gst_rate
                 )
                 
-                invoice_item.calculate_amounts(is_same_state=is_same_state)
+                invoice_item.taxable_value = taxable_value
+                invoice_item.total_amount = total_amount
+                
+                if is_same_state:
+                    invoice_item.cgst_amount = gst_amount / 2
+                    invoice_item.sgst_amount = gst_amount / 2
+                    invoice_item.igst_amount = 0
+                else:
+                    invoice_item.cgst_amount = 0
+                    invoice_item.sgst_amount = 0
+                    invoice_item.igst_amount = gst_amount
+                
                 db.session.add(invoice_item)
                 
                 subtotal += invoice_item.taxable_value
@@ -402,15 +451,27 @@ def edit(invoice_id):
             db.session.rollback()
             flash(f'Error updating invoice: {str(e)}', 'error')
     
-    # GET - show edit form
+    # GET - show edit form (using create template)
     items = Item.query.filter_by(tenant_id=tenant_id, is_active=True).all()
+    items_json = [
+        {
+            'id': item.id,
+            'name': item.name,
+            'selling_price': item.selling_price or 0,
+            'hsn_code': item.hsn_code or ''
+        }
+        for item in items
+    ]
     tenant_settings = json.loads(g.tenant.settings) if g.tenant.settings else {}
     
-    return render_template('admin/invoices/edit.html',
+    flash('Edit mode: Modify invoice details below', 'info')
+    return render_template('admin/invoices/create.html',
                          tenant=g.tenant,
                          invoice=invoice,
-                         items=items,
-                         tenant_settings=tenant_settings)
+                         items=items_json,
+                         today=date.today().strftime('%Y-%m-%d'),
+                         tenant_settings=tenant_settings,
+                         edit_mode=True)
 
 
 @invoices_bp.route('/<int:invoice_id>/mark-sent', methods=['POST'])

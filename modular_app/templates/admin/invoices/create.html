@@ -186,7 +186,37 @@
     <!-- Notes Card -->
     <div class="card">
         <div class="card-header">
-            <h3 class="card-title">Additional Notes</h3>
+            <h3 class="card-title">Additional Information</h3>
+        </div>
+        
+        <div class="form-group">
+            <label for="payment_received">Payment Status *</label>
+            <select id="payment_received" name="payment_received" class="form-control" required onchange="togglePaymentDetails(this.value)">
+                <option value="no">Credit Sale (Payment Pending)</option>
+                <option value="yes">Cash Sale (Payment Received)</option>
+            </select>
+            <small style="color: #666;">Select if payment has been received or it's a credit sale</small>
+        </div>
+        
+        <div id="paymentDetails" style="display: none;">
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="payment_method">Payment Method</label>
+                    <select id="payment_method" name="payment_method" class="form-control">
+                        <option value="Cash">Cash</option>
+                        <option value="UPI">UPI</option>
+                        <option value="Card">Card</option>
+                        <option value="Cheque">Cheque</option>
+                        <option value="Bank Transfer">Bank Transfer</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="payment_reference">Payment Reference (Optional)</label>
+                    <input type="text" id="payment_reference" name="payment_reference" class="form-control" 
+                           placeholder="Transaction ID, Cheque No, etc.">
+                </div>
+            </div>
         </div>
         
         <div class="form-group">
@@ -199,12 +229,23 @@
     <!-- Submit Buttons -->
     <div style="display: flex; gap: 15px; margin-bottom: 30px;">
         <button type="submit" class="btn btn-primary" style="flex: 1;">
-            💾 Save as Draft
+            💾 Save Invoice
         </button>
         <a href="{{ url_for('invoices.index') }}" class="btn btn-secondary" style="flex: 1;">
             Cancel
         </a>
     </div>
+    
+    <script>
+    function togglePaymentDetails(value) {
+        const paymentDetails = document.getElementById('paymentDetails');
+        if (value === 'yes') {
+            paymentDetails.style.display = 'block';
+        } else {
+            paymentDetails.style.display = 'none';
+        }
+    }
+    </script>
     
 </form>
 
@@ -411,16 +452,10 @@
                     <option value="Pcs">Pcs</option>
                 </select>
             </td>
-            <td style="text-align: center;">
-                <div style="display: flex; flex-direction: column; align-items: center; gap: 4px;">
-                    <input type="number" name="rate[]" id="rate_${itemCount}" class="form-control" step="0.01" min="0.01" 
-                           placeholder="1200" required onchange="calculateRow(${itemCount})" style="text-align: right;">
-                    <label style="display: flex; align-items: center; gap: 4px; font-size: 11px; cursor: pointer; white-space: nowrap;">
-                        <input type="checkbox" name="price_inclusive[]" id="price_inclusive_${itemCount}" 
-                               class="price-inclusive-checkbox" onchange="calculateRow(${itemCount})">
-                        <span style="color: #666;">Inc. tax</span>
-                    </label>
-                </div>
+            <td>
+                <input type="number" name="rate[]" id="rate_${itemCount}" class="form-control" step="0.01" min="0.01" 
+                       placeholder="1200" required onchange="calculateRow(${itemCount})" style="text-align: right;">
+                <input type="hidden" name="price_inclusive[]" id="price_inclusive_${itemCount}" class="price-inclusive-checkbox" value="off">
             </td>
             <td>
                 <select name="gst_rate[]" class="form-control" onchange="calculateRow(${itemCount})">
@@ -544,7 +579,8 @@
         const qty = parseFloat(row.querySelector('input[name="quantity[]"]').value) || 0;
         const rate = parseFloat(row.querySelector('input[name="rate[]"]').value) || 0;
         const gstRate = parseFloat(row.querySelector('select[name="gst_rate[]"]').value) || 0;
-        const priceInclusive = row.querySelector('input[name="price_inclusive[]"]').checked;
+        const priceInclusiveInput = row.querySelector('input[name="price_inclusive[]"]');
+        const priceInclusive = priceInclusiveInput && priceInclusiveInput.value === 'on';
         
         let taxableValue, gstAmount, total;
         
@@ -577,9 +613,9 @@
     }
     
     function toggleAllPriceInclusive(checked) {
-        const checkboxes = document.querySelectorAll('.price-inclusive-checkbox');
-        checkboxes.forEach(checkbox => {
-            checkbox.checked = checked;
+        const hiddenInputs = document.querySelectorAll('.price-inclusive-checkbox');
+        hiddenInputs.forEach(input => {
+            input.value = checked ? 'on' : 'off';
         });
         
         // Recalculate all rows

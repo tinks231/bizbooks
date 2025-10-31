@@ -273,12 +273,79 @@
         .invoice-container {
             box-shadow: none;
             margin: 0;
-            padding: 20px;
+            padding: 15mm;
             max-width: 100%;
+            page-break-after: avoid;
+            font-size: 11px;
         }
         
         .page-header {
             display: none;
+        }
+        
+        /* Compress spacing for single page */
+        .invoice-header {
+            padding-bottom: 10px;
+            margin-bottom: 10px;
+        }
+        
+        .company-name {
+            font-size: 22px;
+            margin-bottom: 5px;
+        }
+        
+        .invoice-title {
+            margin: 15px 0;
+        }
+        
+        .invoice-title h2 {
+            font-size: 20px;
+        }
+        
+        .invoice-info-row {
+            margin-bottom: 15px;
+        }
+        
+        .bill-to h3,
+        .invoice-details h3 {
+            padding: 6px 10px;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+        
+        .items-table th,
+        .items-table td {
+            padding: 6px 8px;
+            font-size: 11px;
+        }
+        
+        .totals-section {
+            margin: 15px 0;
+        }
+        
+        .signature-section {
+            margin: 20px 0 15px;
+            padding-top: 20px;
+        }
+        
+        .signature-section p {
+            margin-bottom: 25px;
+        }
+        
+        .invoice-footer {
+            padding-top: 10px;
+            margin-top: 15px;
+        }
+        
+        /* Ensure tables don't break */
+        table {
+            page-break-inside: avoid;
+        }
+        
+        /* Fit everything on one page */
+        @page {
+            size: A4 portrait;
+            margin: 10mm;
         }
     }
     
