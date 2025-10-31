@@ -119,8 +119,11 @@ def create():
             else:
                 invoice_date = date.today()
             
-            if due_date:
+            # Convert due_date, handling empty string
+            if due_date and due_date.strip():
                 due_date = datetime.strptime(due_date, '%Y-%m-%d').date()
+            else:
+                due_date = None
             
             # Create invoice
             invoice = Invoice(
@@ -154,6 +157,7 @@ def create():
             rates = request.form.getlist('rate[]')
             gst_rates = request.form.getlist('gst_rate[]')
             hsn_codes = request.form.getlist('hsn_code[]')
+            price_inclusives = request.form.getlist('price_inclusive[]')
             
             subtotal = 0
             total_cgst = 0
@@ -169,7 +173,23 @@ def create():
                 rate = float(rates[i])
                 gst_rate = float(gst_rates[i]) if gst_rates[i] else 18
                 
-                # Create invoice item
+                # Check if price is inclusive of GST (MRP mode)
+                price_inclusive = i < len(price_inclusives) and price_inclusives[i] == 'on'
+                
+                # Calculate based on price mode
+                if price_inclusive:
+                    # Rate is INCLUSIVE of GST (like MRP)
+                    total_amount = quantity * rate
+                    divisor = 1 + (gst_rate / 100)
+                    taxable_value = total_amount / divisor
+                    gst_amount = total_amount - taxable_value
+                else:
+                    # Rate is EXCLUSIVE of GST (traditional)
+                    taxable_value = quantity * rate
+                    gst_amount = taxable_value * (gst_rate / 100)
+                    total_amount = taxable_value + gst_amount
+                
+                # Create invoice item with calculated values
                 invoice_item = InvoiceItem(
                     item_id=item_id,
                     item_name=item_names[i],
@@ -177,12 +197,21 @@ def create():
                     hsn_code=hsn_codes[i] if i < len(hsn_codes) else '',
                     quantity=quantity,
                     unit=units[i] if i < len(units) else 'Nos',
-                    rate=rate,
+                    rate=taxable_value / quantity,  # Store base rate (before GST)
                     gst_rate=gst_rate
                 )
                 
-                # Calculate amounts
-                invoice_item.calculate_amounts(is_same_state=is_same_state)
+                # Manually set calculated amounts
+                invoice_item.taxable_value = taxable_value
+                
+                if is_same_state:
+                    invoice_item.cgst_amount = gst_amount / 2
+                    invoice_item.sgst_amount = gst_amount / 2
+                    invoice_item.igst_amount = 0
+                else:
+                    invoice_item.cgst_amount = 0
+                    invoice_item.sgst_amount = 0
+                    invoice_item.igst_amount = gst_amount
                 
                 # Add to invoice
                 invoice.items.append(invoice_item)
@@ -193,8 +222,20 @@ def create():
                 total_sgst += invoice_item.sgst_amount
                 total_igst += invoice_item.igst_amount
             
+            # Get discount
+            discount = float(request.form.get('discount', 0) or 0)
+            
+            # Apply discount to subtotal and recalculate GST proportionally
+            if discount > 0:
+                discount_ratio = (subtotal - discount) / subtotal if subtotal > 0 else 1
+                total_cgst = total_cgst * discount_ratio
+                total_sgst = total_sgst * discount_ratio
+                total_igst = total_igst * discount_ratio
+                subtotal = subtotal - discount
+            
             # Calculate invoice totals
             invoice.subtotal = subtotal
+            invoice.discount_amount = discount
             invoice.cgst_amount = total_cgst
             invoice.sgst_amount = total_sgst
             invoice.igst_amount = total_igst

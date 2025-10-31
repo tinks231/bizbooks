@@ -125,7 +125,13 @@
                         <th style="min-width: 100px;">HSN/SAC</th>
                         <th style="width: 80px;">Qty *</th>
                         <th style="width: 80px;">Unit</th>
-                        <th style="width: 100px;">Rate *</th>
+                        <th style="width: 120px;">
+                            Rate * 
+                            <label style="display: block; font-size: 11px; font-weight: normal; margin-top: 4px; cursor: pointer;" title="Check this if the rate you enter already includes GST (like MRP on products)">
+                                <input type="checkbox" id="priceInclusiveAll" onchange="toggleAllPriceInclusive(this.checked)" style="margin-right: 4px;">
+                                Tax Inclusive (MRP)
+                            </label>
+                        </th>
                         <th style="width: 100px;">GST % *</th>
                         <th style="width: 120px;">Amount</th>
                         <th style="width: 50px;">Action</th>
@@ -138,6 +144,16 @@
                     <tr>
                         <td colspan="7" style="text-align: right; font-weight: bold;">Subtotal:</td>
                         <td><span id="subtotalDisplay">₹0.00</span></td>
+                        <td></td>
+                    </tr>
+                    <tr>
+                        <td colspan="7" style="text-align: right;">
+                            Discount: 
+                            <input type="number" id="discountInput" name="discount" step="0.01" min="0" 
+                                   value="0" onchange="calculateTotal()" 
+                                   style="width: 100px; display: inline-block; margin-left: 10px; padding: 5px; text-align: right;">
+                        </td>
+                        <td><span id="discountDisplay">-₹0.00</span></td>
                         <td></td>
                     </tr>
                     <tr id="cgstRow">
@@ -394,8 +410,14 @@
                 </select>
             </td>
             <td>
-                <input type="number" name="rate[]" class="form-control" step="0.01" min="0.01" 
-                       placeholder="100" required onchange="calculateRow(${itemCount})">
+                <input type="number" name="rate[]" id="rate_${itemCount}" class="form-control" step="0.01" min="0.01" 
+                       placeholder="1200" required onchange="calculateRow(${itemCount})">
+                <label style="display: block; font-size: 11px; margin-top: 4px; cursor: pointer;">
+                    <input type="checkbox" name="price_inclusive[]" id="price_inclusive_${itemCount}" 
+                           class="price-inclusive-checkbox" onchange="calculateRow(${itemCount})" 
+                           style="margin-right: 4px;">
+                    <span style="color: #666;">Inc. tax</span>
+                </label>
             </td>
             <td>
                 <select name="gst_rate[]" class="form-control" onchange="calculateRow(${itemCount})">
@@ -519,18 +541,55 @@
         const qty = parseFloat(row.querySelector('input[name="quantity[]"]').value) || 0;
         const rate = parseFloat(row.querySelector('input[name="rate[]"]').value) || 0;
         const gstRate = parseFloat(row.querySelector('select[name="gst_rate[]"]').value) || 0;
+        const priceInclusive = row.querySelector('input[name="price_inclusive[]"]').checked;
         
-        const taxableValue = qty * rate;
-        const gstAmount = taxableValue * (gstRate / 100);
-        const total = taxableValue + gstAmount;
+        let taxableValue, gstAmount, total;
+        
+        if (priceInclusive) {
+            // Price is INCLUSIVE of GST (like MRP)
+            // Total amount per unit = rate
+            const ratePerUnit = rate;
+            total = qty * ratePerUnit;
+            
+            // Calculate base price (without GST)
+            const divisor = 1 + (gstRate / 100);
+            taxableValue = total / divisor;
+            gstAmount = total - taxableValue;
+        } else {
+            // Price is EXCLUSIVE of GST (traditional)
+            // Base price per unit = rate
+            taxableValue = qty * rate;
+            gstAmount = taxableValue * (gstRate / 100);
+            total = taxableValue + gstAmount;
+        }
         
         document.getElementById(`amount_${rowId}`).textContent = `₹${total.toFixed(2)}`;
+        
+        // Store calculated values as data attributes for total calculation
+        row.setAttribute('data-taxable', taxableValue.toFixed(2));
+        row.setAttribute('data-gst', gstAmount.toFixed(2));
+        row.setAttribute('data-total', total.toFixed(2));
         
         calculateTotal();
     }
     
+    function toggleAllPriceInclusive(checked) {
+        const checkboxes = document.querySelectorAll('.price-inclusive-checkbox');
+        checkboxes.forEach(checkbox => {
+            checkbox.checked = checked;
+        });
+        
+        // Recalculate all rows
+        const rows = document.querySelectorAll('#itemsTableBody tr');
+        rows.forEach((row, index) => {
+            const rowId = row.id.replace('row_', '');
+            calculateRow(rowId);
+        });
+    }
+    
     function calculateTotal() {
         let subtotal = 0;
+        let totalGSTAmount = 0;
         let totalCGST = 0;
         let totalSGST = 0;
         let totalIGST = 0;
@@ -543,16 +602,14 @@
         document.getElementById('sgstRow').style.display = isSameState ? '' : 'none';
         document.getElementById('igstRow').style.display = isSameState ? 'none' : '';
         
+        // Use stored calculated values from data attributes
         const rows = document.querySelectorAll('#itemsTableBody tr');
         rows.forEach(row => {
-            const qty = parseFloat(row.querySelector('input[name="quantity[]"]').value) || 0;
-            const rate = parseFloat(row.querySelector('input[name="rate[]"]').value) || 0;
-            const gstRate = parseFloat(row.querySelector('select[name="gst_rate[]"]').value) || 0;
-            
-            const taxableValue = qty * rate;
-            const gstAmount = taxableValue * (gstRate / 100);
+            const taxableValue = parseFloat(row.getAttribute('data-taxable')) || 0;
+            const gstAmount = parseFloat(row.getAttribute('data-gst')) || 0;
             
             subtotal += taxableValue;
+            totalGSTAmount += gstAmount;
             
             if (isSameState) {
                 totalCGST += gstAmount / 2;
@@ -562,9 +619,20 @@
             }
         });
         
-        const total = subtotal + totalCGST + totalSGST + totalIGST;
+        // Apply discount
+        const discount = parseFloat(document.getElementById('discountInput').value) || 0;
+        const subtotalAfterDiscount = subtotal - discount;
+        
+        // Recalculate GST after discount
+        const discountRatio = subtotalAfterDiscount / (subtotal || 1);
+        totalCGST = totalCGST * discountRatio;
+        totalSGST = totalSGST * discountRatio;
+        totalIGST = totalIGST * discountRatio;
+        
+        const total = subtotalAfterDiscount + totalCGST + totalSGST + totalIGST;
         
         document.getElementById('subtotalDisplay').textContent = `₹${subtotal.toFixed(2)}`;
+        document.getElementById('discountDisplay').textContent = discount > 0 ? `-₹${discount.toFixed(2)}` : `₹0.00`;
         document.getElementById('cgstDisplay').textContent = `₹${totalCGST.toFixed(2)}`;
         document.getElementById('sgstDisplay').textContent = `₹${totalSGST.toFixed(2)}`;
         document.getElementById('igstDisplay').textContent = `₹${totalIGST.toFixed(2)}`;
