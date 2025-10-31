@@ -1,8 +1,8 @@
 {% extends 'base_sidebar.html' %}
 
-{% block title %}Create Invoice - {{ tenant.company_name }}{% endblock %}
+{% block title %}{% if invoice %}Edit Invoice{% else %}Create Invoice{% endif %} - {{ tenant.company_name }}{% endblock %}
 
-{% block page_title %}Create New Invoice{% endblock %}
+{% block page_title %}{% if invoice %}Edit Invoice #{{ invoice.invoice_number }}{% else %}Create New Invoice{% endif %}{% endblock %}
 
 {% block header_actions %}
 <a href="{{ url_for('invoices.index') }}" class="btn btn-secondary">
@@ -11,7 +11,7 @@
 {% endblock %}
 
 {% block content %}
-<form method="POST" action="{{ url_for('invoices.create') }}" id="invoiceForm">
+<form method="POST" action="{% if invoice %}{{ url_for('invoices.edit', invoice_id=invoice.id) }}{% else %}{{ url_for('invoices.create') }}{% endif %}" id="invoiceForm">
     
     <!-- Customer Details Card -->
     <div class="card">
@@ -22,66 +22,71 @@
         <div class="form-row">
             <div class="form-group">
                 <label for="customer_name">Customer Name *</label>
-                <input type="text" id="customer_name" name="customer_name" class="form-control" required>
+                <input type="text" id="customer_name" name="customer_name" class="form-control" 
+                       value="{% if invoice %}{{ invoice.customer_name }}{% endif %}" required>
             </div>
             
             <div class="form-group">
                 <label for="customer_phone">Phone Number</label>
-                <input type="tel" id="customer_phone" name="customer_phone" class="form-control">
+                <input type="tel" id="customer_phone" name="customer_phone" class="form-control"
+                       value="{% if invoice %}{{ invoice.customer_phone or '' }}{% endif %}">
             </div>
         </div>
         
         <div class="form-row">
             <div class="form-group">
                 <label for="customer_email">Email Address</label>
-                <input type="email" id="customer_email" name="customer_email" class="form-control">
+                <input type="email" id="customer_email" name="customer_email" class="form-control"
+                       value="{% if invoice %}{{ invoice.customer_email or '' }}{% endif %}">
             </div>
             
             <div class="form-group">
                 <label for="customer_gstin">GSTIN (Optional)</label>
                 <input type="text" id="customer_gstin" name="customer_gstin" class="form-control" 
-                       placeholder="27XXXXX1234X1Z5" maxlength="15">
+                       placeholder="27XXXXX1234X1Z5" maxlength="15"
+                       value="{% if invoice %}{{ invoice.customer_gstin or '' }}{% endif %}">
             </div>
         </div>
         
         <div class="form-row">
             <div class="form-group">
                 <label for="customer_address">Address</label>
-                <textarea id="customer_address" name="customer_address" class="form-control" rows="2"></textarea>
+                <textarea id="customer_address" name="customer_address" class="form-control" rows="2">{% if invoice %}{{ invoice.customer_address or '' }}{% endif %}</textarea>
             </div>
             
             <div class="form-group">
                 <label for="customer_state">State *</label>
                 <select id="customer_state" name="customer_state" class="form-control" required>
-                    <option value="Andhra Pradesh">Andhra Pradesh</option>
-                    <option value="Arunachal Pradesh">Arunachal Pradesh</option>
-                    <option value="Assam">Assam</option>
-                    <option value="Bihar">Bihar</option>
-                    <option value="Chhattisgarh">Chhattisgarh</option>
-                    <option value="Goa">Goa</option>
-                    <option value="Gujarat">Gujarat</option>
-                    <option value="Haryana">Haryana</option>
-                    <option value="Himachal Pradesh">Himachal Pradesh</option>
-                    <option value="Jharkhand">Jharkhand</option>
-                    <option value="Karnataka">Karnataka</option>
-                    <option value="Kerala">Kerala</option>
-                    <option value="Madhya Pradesh">Madhya Pradesh</option>
-                    <option value="Maharashtra" selected>Maharashtra</option>
-                    <option value="Manipur">Manipur</option>
-                    <option value="Meghalaya">Meghalaya</option>
-                    <option value="Mizoram">Mizoram</option>
-                    <option value="Nagaland">Nagaland</option>
-                    <option value="Odisha">Odisha</option>
-                    <option value="Punjab">Punjab</option>
-                    <option value="Rajasthan">Rajasthan</option>
-                    <option value="Sikkim">Sikkim</option>
-                    <option value="Tamil Nadu">Tamil Nadu</option>
-                    <option value="Telangana">Telangana</option>
-                    <option value="Tripura">Tripura</option>
-                    <option value="Uttar Pradesh">Uttar Pradesh</option>
-                    <option value="Uttarakhand">Uttarakhand</option>
-                    <option value="West Bengal">West Bengal</option>
-                    <option value="Delhi">Delhi</option>
+                    {% set selected_state = invoice.customer_state if invoice else 'Maharashtra' %}
+                    <option value="Andhra Pradesh" {% if selected_state == 'Andhra Pradesh' %}selected{% endif %}>Andhra Pradesh</option>
+                    <option value="Arunachal Pradesh" {% if selected_state == 'Arunachal Pradesh' %}selected{% endif %}>Arunachal Pradesh</option>
+                    <option value="Assam" {% if selected_state == 'Assam' %}selected{% endif %}>Assam</option>
+                    <option value="Bihar" {% if selected_state == 'Bihar' %}selected{% endif %}>Bihar</option>
+                    <option value="Chhattisgarh" {% if selected_state == 'Chhattisgarh' %}selected{% endif %}>Chhattisgarh</option>
+                    <option value="Goa" {% if selected_state == 'Goa' %}selected{% endif %}>Goa</option>
+                    <option value="Gujarat" {% if selected_state == 'Gujarat' %}selected{% endif %}>Gujarat</option>
+                    <option value="Haryana" {% if selected_state == 'Haryana' %}selected{% endif %}>Haryana</option>
+                    <option value="Himachal Pradesh" {% if selected_state == 'Himachal Pradesh' %}selected{% endif %}>Himachal Pradesh</option>
+                    <option value="Jharkhand" {% if selected_state == 'Jharkhand' %}selected{% endif %}>Jharkhand</option>
+                    <option value="Karnataka" {% if selected_state == 'Karnataka' %}selected{% endif %}>Karnataka</option>
+                    <option value="Kerala" {% if selected_state == 'Kerala' %}selected{% endif %}>Kerala</option>
+                    <option value="Madhya Pradesh" {% if selected_state == 'Madhya Pradesh' %}selected{% endif %}>Madhya Pradesh</option>
+                    <option value="Maharashtra" {% if selected_state == 'Maharashtra' %}selected{% endif %}>Maharashtra</option>
+                    <option value="Manipur" {% if selected_state == 'Manipur' %}selected{% endif %}>Manipur</option>
+                    <option value="Meghalaya" {% if selected_state == 'Meghalaya' %}selected{% endif %}>Meghalaya</option>
+                    <option value="Mizoram" {% if selected_state == 'Mizoram' %}selected{% endif %}>Mizoram</option>
+                    <option value="Nagaland" {% if selected_state == 'Nagaland' %}selected{% endif %}>Nagaland</option>
+                    <option value="Odisha" {% if selected_state == 'Odisha' %}selected{% endif %}>Odisha</option>
+                    <option value="Punjab" {% if selected_state == 'Punjab' %}selected{% endif %}>Punjab</option>
+                    <option value="Rajasthan" {% if selected_state == 'Rajasthan' %}selected{% endif %}>Rajasthan</option>
+                    <option value="Sikkim" {% if selected_state == 'Sikkim' %}selected{% endif %}>Sikkim</option>
+                    <option value="Tamil Nadu" {% if selected_state == 'Tamil Nadu' %}selected{% endif %}>Tamil Nadu</option>
+                    <option value="Telangana" {% if selected_state == 'Telangana' %}selected{% endif %}>Telangana</option>
+                    <option value="Tripura" {% if selected_state == 'Tripura' %}selected{% endif %}>Tripura</option>
+                    <option value="Uttar Pradesh" {% if selected_state == 'Uttar Pradesh' %}selected{% endif %}>Uttar Pradesh</option>
+                    <option value="Uttarakhand" {% if selected_state == 'Uttarakhand' %}selected{% endif %}>Uttarakhand</option>
+                    <option value="West Bengal" {% if selected_state == 'West Bengal' %}selected{% endif %}>West Bengal</option>
+                    <option value="Delhi" {% if selected_state == 'Delhi' %}selected{% endif %}>Delhi</option>
                 </select>
             </div>
         </div>
@@ -97,12 +102,13 @@
             <div class="form-group">
                 <label for="invoice_date">Invoice Date *</label>
                 <input type="date" id="invoice_date" name="invoice_date" class="form-control" 
-                       value="{{ today }}" required>
+                       value="{% if invoice %}{{ invoice.invoice_date.strftime('%Y-%m-%d') }}{% else %}{{ today }}{% endif %}" required>
             </div>
             
             <div class="form-group">
                 <label for="due_date">Due Date (Optional)</label>
-                <input type="date" id="due_date" name="due_date" class="form-control">
+                <input type="date" id="due_date" name="due_date" class="form-control"
+                       value="{% if invoice and invoice.due_date %}{{ invoice.due_date.strftime('%Y-%m-%d') }}{% endif %}">
             </div>
         </div>
     </div>
@@ -191,30 +197,33 @@
         
         <div class="form-group">
             <label for="payment_received">Payment Status *</label>
+            {% set payment_status = invoice.payment_status if invoice else 'unpaid' %}
             <select id="payment_received" name="payment_received" class="form-control" required onchange="togglePaymentDetails(this.value)">
-                <option value="no">Credit Sale (Payment Pending)</option>
-                <option value="yes">Cash Sale (Payment Received)</option>
+                <option value="no" {% if payment_status == 'unpaid' %}selected{% endif %}>Credit Sale (Payment Pending)</option>
+                <option value="yes" {% if payment_status == 'paid' %}selected{% endif %}>Cash Sale (Payment Received)</option>
             </select>
             <small style="color: #666;">Select if payment has been received or it's a credit sale</small>
         </div>
         
-        <div id="paymentDetails" style="display: none;">
+        <div id="paymentDetails" style="{% if invoice and invoice.payment_status == 'paid' %}display: block;{% else %}display: none;{% endif %}">
             <div class="form-row">
                 <div class="form-group">
                     <label for="payment_method">Payment Method</label>
+                    {% set selected_method = invoice.payment_method if invoice else 'Cash' %}
                     <select id="payment_method" name="payment_method" class="form-control">
-                        <option value="Cash">Cash</option>
-                        <option value="UPI">UPI</option>
-                        <option value="Card">Card</option>
-                        <option value="Cheque">Cheque</option>
-                        <option value="Bank Transfer">Bank Transfer</option>
+                        <option value="Cash" {% if selected_method == 'Cash' %}selected{% endif %}>Cash</option>
+                        <option value="UPI" {% if selected_method == 'UPI' %}selected{% endif %}>UPI</option>
+                        <option value="Card" {% if selected_method == 'Card' %}selected{% endif %}>Card</option>
+                        <option value="Cheque" {% if selected_method == 'Cheque' %}selected{% endif %}>Cheque</option>
+                        <option value="Bank Transfer" {% if selected_method == 'Bank Transfer' %}selected{% endif %}>Bank Transfer</option>
                     </select>
                 </div>
                 
                 <div class="form-group">
                     <label for="payment_reference">Payment Reference (Optional)</label>
                     <input type="text" id="payment_reference" name="payment_reference" class="form-control" 
-                           placeholder="Transaction ID, Cheque No, etc.">
+                           placeholder="Transaction ID, Cheque No, etc."
+                           value="{% if invoice and invoice.internal_notes %}{{ invoice.internal_notes.replace('Payment Reference: ', '') }}{% endif %}">
                 </div>
             </div>
         </div>
@@ -222,14 +231,14 @@
         <div class="form-group">
             <label for="notes">Terms & Conditions / Notes</label>
             <textarea id="notes" name="notes" class="form-control" rows="3" 
-                      placeholder="Payment due within 30 days...">{{ tenant_settings.get('invoice_terms', 'Payment due within 30 days. Goods once sold will not be taken back.') }}</textarea>
+                      placeholder="Payment due within 30 days...">{% if invoice and invoice.notes %}{{ invoice.notes }}{% else %}{{ tenant_settings.get('invoice_terms', 'Payment due within 30 days. Goods once sold will not be taken back.') }}{% endif %}</textarea>
         </div>
     </div>
     
     <!-- Submit Buttons -->
     <div style="display: flex; gap: 15px; margin-bottom: 30px;">
         <button type="submit" class="btn btn-primary" style="flex: 1;">
-            💾 Save Invoice
+            {% if invoice %}✏️ Update Invoice{% else %}💾 Save Invoice{% endif %}
         </button>
         <a href="{{ url_for('invoices.index') }}" class="btn btn-secondary" style="flex: 1;">
             Cancel
@@ -688,8 +697,113 @@
     // Recalculate when state changes
     document.getElementById('customer_state').addEventListener('change', calculateTotal);
     
-    // Set today's date
+    // Set today's date (only for new invoices)
+    {% if not invoice %}
     document.getElementById('invoice_date').valueAsDate = new Date();
+    {% endif %}
+    
+    {% if invoice and invoice.items %}
+    // Edit mode: Pre-populate items
+    window.addEventListener('DOMContentLoaded', function() {
+        const existingItems = {{ invoice.items|tojson }};
+        const tbody = document.getElementById('itemsTableBody');
+        tbody.innerHTML = ''; // Clear the default row
+        itemCount = 0; // Reset counter
+        
+        existingItems.forEach(function(item) {
+            addItemRowWithData(item);
+        });
+        
+        // Set discount if exists
+        {% if invoice.discount_amount %}
+        document.getElementById('discountInput').value = {{ invoice.discount_amount }};
+        {% endif %}
+        
+        calculateTotal();
+    });
+    
+    function addItemRowWithData(itemData) {
+        itemCount++;
+        const tbody = document.getElementById('itemsTableBody');
+        const row = document.createElement('tr');
+        row.id = `row_${itemCount}`;
+        
+        // Determine if price was inclusive (reverse calculate)
+        const rate = itemData.rate || 0;
+        const quantity = itemData.quantity || 1;
+        const taxableValue = itemData.taxable_value || 0;
+        const gstRate = itemData.gst_rate || 0;
+        
+        // Check by comparing: if rate * quantity == taxable_value, it's exclusive
+        // if different, it was inclusive
+        const isExclusive = Math.abs((rate * quantity) - taxableValue) < 0.01;
+        const isPriceInclusive = !isExclusive;
+        
+        row.innerHTML = `
+            <td>${itemCount}</td>
+            <td style="position: relative;">
+                <input type="text" name="item_name[]" class="form-control item-search" 
+                       id="item_search_${itemCount}"
+                       value="${itemData.item_name || ''}"
+                       placeholder="Type to search items..." 
+                       required 
+                       autocomplete="off"
+                       oninput="searchItems(this, ${itemCount})"
+                       onfocus="searchItems(this, ${itemCount})"
+                       onblur="setTimeout(() => hideDropdown(${itemCount}), 200)">
+                <div class="autocomplete-dropdown" id="dropdown_${itemCount}"></div>
+                <input type="hidden" name="item_id[]" id="item_id_${itemCount}" value="${itemData.item_id || ''}">
+                <input type="hidden" name="description[]" id="description_${itemCount}" value="${itemData.description || ''}">
+            </td>
+            <td>
+                <input type="text" name="hsn_code[]" class="form-control" placeholder="8544" value="${itemData.hsn_code || ''}">
+            </td>
+            <td>
+                <input type="number" name="quantity[]" id="quantity_${itemCount}" class="form-control" step="0.01" min="0.01" 
+                       placeholder="1" value="${itemData.quantity || 1}" required onchange="calculateRow(${itemCount})">
+            </td>
+            <td>
+                <select name="unit[]" class="form-control">
+                    <option value="Nos" ${itemData.unit === 'Nos' ? 'selected' : ''}>Nos</option>
+                    <option value="Kg" ${itemData.unit === 'Kg' ? 'selected' : ''}>Kg</option>
+                    <option value="Ltr" ${itemData.unit === 'Ltr' ? 'selected' : ''}>Ltr</option>
+                    <option value="Mtr" ${itemData.unit === 'Mtr' ? 'selected' : ''}>Mtr</option>
+                    <option value="Box" ${itemData.unit === 'Box' ? 'selected' : ''}>Box</option>
+                    <option value="Pcs" ${itemData.unit === 'Pcs' ? 'selected' : ''}>Pcs</option>
+                </select>
+            </td>
+            <td>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <input type="number" name="rate[]" id="rate_${itemCount}" class="form-control" step="0.01" min="0.01" 
+                           placeholder="1200" value="${itemData.rate || 0}" required onchange="calculateRow(${itemCount})" 
+                           style="text-align: right; flex: 1; min-width: 80px;">
+                    <label style="display: flex; align-items: center; gap: 4px; margin: 0; cursor: pointer; white-space: nowrap;">
+                        <input type="checkbox" name="price_inclusive[]" id="price_inclusive_${itemCount}" 
+                               class="price-inclusive-checkbox" ${isPriceInclusive ? 'checked' : ''} onchange="calculateRow(${itemCount})">
+                        <span style="font-size: 11px; color: #666;">Inc</span>
+                    </label>
+                </div>
+            </td>
+            <td>
+                <select name="gst_rate[]" id="gst_rate_${itemCount}" class="form-control" onchange="calculateRow(${itemCount})">
+                    <option value="0" ${itemData.gst_rate === 0 ? 'selected' : ''}>0%</option>
+                    <option value="5" ${itemData.gst_rate === 5 ? 'selected' : ''}>5%</option>
+                    <option value="12" ${itemData.gst_rate === 12 ? 'selected' : ''}>12%</option>
+                    <option value="18" ${itemData.gst_rate === 18 ? 'selected' : ''}>18%</option>
+                    <option value="28" ${itemData.gst_rate === 28 ? 'selected' : ''}>28%</option>
+                </select>
+            </td>
+            <td>
+                <span id="amount_${itemCount}" style="font-weight: 600;">₹${itemData.total_amount ? itemData.total_amount.toFixed(2) : '0.00'}</span>
+            </td>
+            <td>
+                <button type="button" class="btn-remove" onclick="removeItem(${itemCount})" title="Remove item">🗑️</button>
+            </td>
+        `;
+        
+        tbody.appendChild(row);
+    }
+    {% endif %}
 </script>
 
 {% endblock %}

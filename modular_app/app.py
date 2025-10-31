@@ -28,8 +28,8 @@ app.config['SECRET_KEY'] = config.SECRET_KEY
 
 # Session configuration
 from datetime import timedelta
-app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=30)  # Session lasts 30 minutes
-app.config['SESSION_COOKIE_SECURE'] = True  # Only send cookie over HTTPS
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=2)  # Session lasts 2 hours
+app.config['SESSION_COOKIE_SECURE'] = False  # Set to True only in production HTTPS
 app.config['SESSION_COOKIE_HTTPONLY'] = True  # Prevent JavaScript access
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'  # CSRF protection
 app.config['SESSION_REFRESH_EACH_REQUEST'] = True  # Reset timer on each activity

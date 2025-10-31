@@ -353,8 +353,15 @@ def edit(invoice_id):
                 invoice.invoice_date = datetime.strptime(invoice_date, '%Y-%m-%d').date()
             
             due_date = request.form.get('due_date')
-            if due_date:
+            if due_date and due_date.strip():
                 invoice.due_date = datetime.strptime(due_date, '%Y-%m-%d').date()
+            else:
+                invoice.due_date = None
+            
+            # Store payment info for later (after total is calculated)
+            payment_received = request.form.get('payment_received', 'no')
+            payment_method = request.form.get('payment_method')
+            payment_reference = request.form.get('payment_reference')
             
             # Delete existing items
             InvoiceItem.query.filter_by(invoice_id=invoice.id).delete()
@@ -435,8 +442,20 @@ def edit(invoice_id):
                 total_sgst += invoice_item.sgst_amount
                 total_igst += invoice_item.igst_amount
             
+            # Get discount
+            discount = float(request.form.get('discount', 0) or 0)
+            
+            # Apply discount to subtotal and recalculate GST proportionally
+            if discount > 0:
+                discount_ratio = (subtotal - discount) / subtotal if subtotal > 0 else 1
+                total_cgst = total_cgst * discount_ratio
+                total_sgst = total_sgst * discount_ratio
+                total_igst = total_igst * discount_ratio
+                subtotal = subtotal - discount
+            
             # Update invoice totals
             invoice.subtotal = subtotal
+            invoice.discount_amount = discount
             invoice.cgst_amount = total_cgst
             invoice.sgst_amount = total_sgst
             invoice.igst_amount = total_igst
@@ -444,6 +463,21 @@ def edit(invoice_id):
             total_before_rounding = subtotal + total_cgst + total_sgst + total_igst
             invoice.total_amount = round(total_before_rounding)
             invoice.round_off = invoice.total_amount - total_before_rounding
+            
+            # Update payment status (after total is calculated)
+            if payment_received == 'yes':
+                invoice.status = 'sent'
+                invoice.payment_status = 'paid'
+                invoice.payment_method = payment_method
+                invoice.paid_amount = invoice.total_amount
+                if payment_reference:
+                    invoice.internal_notes = f"Payment Reference: {payment_reference}"
+            else:
+                invoice.status = 'draft'
+                invoice.payment_status = 'unpaid'
+                invoice.payment_method = None
+                invoice.paid_amount = 0
+                invoice.internal_notes = None
             
             db.session.commit()
             flash('Invoice updated successfully!', 'success')
