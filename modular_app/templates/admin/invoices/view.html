@@ -190,6 +190,16 @@
     
     <!-- Totals Section -->
     <div class="totals-section">
+        <div class="invoice-notes">
+            <h4>Amount in Words:</h4>
+            <p><em>{{ invoice.amount_in_words() }}</em></p>
+            
+            {% if invoice.notes %}
+            <h4 style="margin-top: 20px;">Terms & Conditions:</h4>
+            <p style="white-space: pre-line;">{{ invoice.notes }}</p>
+            {% endif %}
+        </div>
+        
         <div class="totals-table">
             <table>
                 <tr>
@@ -234,16 +244,6 @@
                     <td style="text-align: right;"><strong>₹{{ "%.2f"|format(invoice.total_amount) }}</strong></td>
                 </tr>
             </table>
-        </div>
-        
-        <div class="invoice-notes">
-            <h4>Amount in Words:</h4>
-            <p><em>{{ invoice.amount_in_words() }}</em></p>
-            
-            {% if invoice.notes %}
-            <h4 style="margin-top: 20px;">Terms & Conditions:</h4>
-            <p style="white-space: pre-line;">{{ invoice.notes }}</p>
-            {% endif %}
         </div>
     </div>
     
@@ -381,6 +381,15 @@
         
         .totals-section {
             margin: 10px 0;
+            display: grid !important;
+            grid-template-columns: 1fr 1fr !important;
+            gap: 15px !important;
+        }
+        
+        .invoice-info-row {
+            display: grid !important;
+            grid-template-columns: 1fr 1fr !important;
+            gap: 15px !important;
         }
         
         .invoice-notes h4 {
