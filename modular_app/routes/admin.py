@@ -793,3 +793,109 @@ def generate_qr():
                          subdomain=tenant.subdomain,
                          tenant=g.tenant)
 
+
+# ============================================
+# BULK IMPORT ROUTES
+# ============================================
+
+@admin_bp.route('/bulk-import')
+@require_tenant
+@login_required
+def bulk_import():
+    """Bulk import landing page"""
+    from models import Employee, Item, Customer
+    tenant_id = get_current_tenant_id()
+    
+    stats = {
+        'employees': Employee.query.filter_by(tenant_id=tenant_id).count(),
+        'inventory': Item.query.filter_by(tenant_id=tenant_id).count(),
+        'customers': Customer.query.filter_by(tenant_id=tenant_id).count()
+    }
+    
+    return render_template('admin/bulk_import.html', stats=stats, tenant=g.tenant)
+
+
+@admin_bp.route('/bulk-import/download/<template_type>')
+@require_tenant
+@login_required
+def download_template(template_type):
+    """Download Excel template for bulk import"""
+    from flask import send_file
+    from utils.excel_import import create_employee_template, create_inventory_template, create_customer_template
+    
+    templates = {
+        'employees': (create_employee_template, 'BizBooks_Employee_Import_Template.xlsx'),
+        'inventory': (create_inventory_template, 'BizBooks_Inventory_Import_Template.xlsx'),
+        'customers': (create_customer_template, 'BizBooks_Customer_Import_Template.xlsx')
+    }
+    
+    if template_type not in templates:
+        flash('Invalid template type', 'error')
+        return redirect(url_for('admin.bulk_import'))
+    
+    template_func, filename = templates[template_type]
+    excel_file = template_func()
+    
+    return send_file(
+        excel_file,
+        mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        as_attachment=True,
+        download_name=filename
+    )
+
+
+@admin_bp.route('/bulk-import/upload/<import_type>', methods=['POST'])
+@require_tenant
+@login_required
+def upload_import(import_type):
+    """Process bulk import upload"""
+    from utils.excel_import import import_employees_from_excel, import_inventory_from_excel, import_customers_from_excel
+    
+    if 'file' not in request.files:
+        flash('⚠️ No file uploaded', 'error')
+        return redirect(url_for('admin.bulk_import'))
+    
+    file = request.files['file']
+    
+    if file.filename == '':
+        flash('⚠️ No file selected', 'error')
+        return redirect(url_for('admin.bulk_import'))
+    
+    if not file.filename.endswith(('.xlsx', '.xls')):
+        flash('⚠️ Please upload an Excel file (.xlsx or .xls)', 'error')
+        return redirect(url_for('admin.bulk_import'))
+    
+    tenant_id = get_current_tenant_id()
+    
+    try:
+        if import_type == 'employees':
+            success_count, errors = import_employees_from_excel(file, tenant_id)
+            entity_name = 'employees'
+        elif import_type == 'inventory':
+            success_count, errors = import_inventory_from_excel(file, tenant_id)
+            entity_name = 'items'
+        elif import_type == 'customers':
+            success_count, errors = import_customers_from_excel(file, tenant_id)
+            entity_name = 'customers'
+        else:
+            flash('⚠️ Invalid import type', 'error')
+            return redirect(url_for('admin.bulk_import'))
+        
+        # Show results
+        if success_count > 0:
+            flash(f'✅ Successfully imported {success_count} {entity_name}!', 'success')
+        
+        if errors:
+            error_msg = f'⚠️ {len(errors)} errors occurred:<br>' + '<br>'.join(errors[:10])
+            if len(errors) > 10:
+                error_msg += f'<br>...and {len(errors) - 10} more errors'
+            flash(error_msg, 'warning')
+        
+        if success_count == 0 and not errors:
+            flash('⚠️ No data to import. Please check your file.', 'warning')
+        
+    except Exception as e:
+        flash(f'❌ Import failed: {str(e)}', 'error')
+    
+    return redirect(url_for('admin.bulk_import'))
+
