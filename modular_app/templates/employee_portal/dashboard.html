@@ -178,14 +178,12 @@
                 <div class="icon">📍</div>
                 <h2>Mark Attendance</h2>
                 <p>Clock in/out, view your attendance history, and track working hours.</p>
-                {% if today_attendance %}
-                    {% if today_attendance.check_out %}
+                {% if check_out %}
                     <span class="status-badge success">✅ Checked Out Today</span>
-                    {% else %}
-                    <span class="status-badge info">🔄 Checked In ({{ today_attendance.check_in_time.strftime('%I:%M %p') }})</span>
-                    {% endif %}
+                {% elif check_in %}
+                    <span class="status-badge info">🔄 Checked In ({{ check_in.timestamp.strftime('%I:%M %p') }})</span>
                 {% else %}
-                <span class="status-badge warning">⚠️ Not Marked Today</span>
+                    <span class="status-badge warning">⚠️ Not Marked Today</span>
                 {% endif %}
             </a>
             

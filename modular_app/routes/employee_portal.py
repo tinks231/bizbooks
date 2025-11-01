@@ -58,11 +58,23 @@ def dashboard():
     
     # Get today's attendance status
     from models import Attendance
+    from sqlalchemy import func, cast, Date
+    
     today = datetime.now().date()
-    today_attendance = Attendance.query.filter_by(
-        employee_id=employee.id,
-        date=today
-    ).first()
+    
+    # Find today's check-in (Attendance uses timestamp, not date)
+    check_in = Attendance.query.filter(
+        Attendance.employee_id == employee.id,
+        func.date(Attendance.timestamp) == today,
+        Attendance.type == 'check_in'
+    ).order_by(Attendance.timestamp.desc()).first()
+    
+    # Find today's check-out
+    check_out = Attendance.query.filter(
+        Attendance.employee_id == employee.id,
+        func.date(Attendance.timestamp) == today,
+        Attendance.type == 'check_out'
+    ).order_by(Attendance.timestamp.desc()).first()
     
     # Get pending tasks count
     from models import Task
@@ -74,7 +86,8 @@ def dashboard():
     return render_template('employee_portal/dashboard.html',
                          tenant=g.tenant,
                          employee=employee,
-                         today_attendance=today_attendance,
+                         check_in=check_in,
+                         check_out=check_out,
                          pending_tasks=pending_tasks)
 
 
