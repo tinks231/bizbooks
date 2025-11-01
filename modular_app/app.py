@@ -101,8 +101,10 @@ from routes.customers import customers_bp  # NEW: Customer management
 from routes.invoices import invoices_bp  # NEW: GST Invoicing
 from routes.tasks import tasks_bp  # NEW: Task management (admin)
 from routes.employee_tasks import employee_tasks_bp  # NEW: Task management (employee)
+from routes.employee_portal import employee_portal_bp  # NEW: Unified employee portal
 
 app.register_blueprint(registration_bp)
+app.register_blueprint(employee_portal_bp)  # Register unified portal
 app.register_blueprint(attendance_bp)
 app.register_blueprint(inventory_bp)
 app.register_blueprint(admin_bp)

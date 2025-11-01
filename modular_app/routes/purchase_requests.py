@@ -66,9 +66,9 @@ def employee_form():
             </div>
             """
         
-        # Store employee in session for the form
-        session['pr_employee_id'] = employee.id
-        session['pr_employee_name'] = employee.name
+        # Store employee in session for the form (use shared session from unified portal)
+        session['employee_id'] = employee.id
+        session['employee_name'] = employee.name
         return redirect(url_for('purchase_request.submit_form'))
     
     return render_template('purchase_request/employee_auth.html', tenant=tenant)
@@ -81,13 +81,13 @@ def submit_form():
     tenant_id = get_current_tenant_id()
     tenant = Tenant.query.get(tenant_id)
     
-    # Check if employee authenticated
-    if 'pr_employee_id' not in session:
+    # Check if employee authenticated (use shared session from unified portal)
+    if 'employee_id' not in session:
         flash('Please enter your PIN first', 'error')
         return redirect(url_for('purchase_request.employee_form'))
     
-    employee_id = session['pr_employee_id']
-    employee_name = session['pr_employee_name']
+    employee_id = session['employee_id']
+    employee_name = session['employee_name']
     
     if request.method == 'POST':
         try:
