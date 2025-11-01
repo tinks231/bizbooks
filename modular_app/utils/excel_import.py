@@ -7,7 +7,7 @@ from openpyxl import Workbook, load_workbook
 from openpyxl.styles import Font, PatternFill, Alignment
 from io import BytesIO
 from datetime import datetime
-from models import db, Employee, Item, Customer, Site, Category, Group
+from models import db, Employee, Item, Customer, Site, ItemCategory, ItemGroup
 from utils.helpers import generate_employee_number
 
 def create_employee_template():
@@ -420,13 +420,13 @@ def import_inventory_from_excel(file, tenant_id):
             
             try:
                 # Get or create group
-                group_obj = Group.query.filter_by(
+                group_obj = ItemGroup.query.filter_by(
                     tenant_id=tenant_id,
                     name=str(group).strip()
                 ).first()
                 
                 if not group_obj:
-                    group_obj = Group(
+                    group_obj = ItemGroup(
                         tenant_id=tenant_id,
                         name=str(group).strip()
                     )
@@ -434,14 +434,14 @@ def import_inventory_from_excel(file, tenant_id):
                     db.session.flush()
                 
                 # Get or create category
-                category_obj = Category.query.filter_by(
+                category_obj = ItemCategory.query.filter_by(
                     tenant_id=tenant_id,
                     name=str(category).strip(),
                     group_id=group_obj.id
                 ).first()
                 
                 if not category_obj:
-                    category_obj = Category(
+                    category_obj = ItemCategory(
                         tenant_id=tenant_id,
                         name=str(category).strip(),
                         group_id=group_obj.id
