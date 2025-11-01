@@ -283,8 +283,10 @@
         }
         
         /* Hide header elements from base_sidebar.html */
-        body > .header,
-        body > nav,
+        .header,
+        .header-title,
+        .header-actions,
+        nav,
         .page-header,
         .breadcrumb {
             display: none !important;
@@ -911,6 +913,17 @@
             display: grid !important;
             grid-template-columns: 1fr 1fr !important;
             gap: 15px !important;
+        }
+        
+        /* Ensure notes stay on left, totals on right */
+        .totals-section .invoice-notes {
+            grid-column: 1 !important;
+            order: 1 !important;
+        }
+        
+        .totals-section .totals-table {
+            grid-column: 2 !important;
+            order: 2 !important;
         }
         
         /* Keep logo on right side */
