@@ -8,6 +8,12 @@
 <a href="{{ url_for('tasks.create') }}" class="btn btn-primary">
     ➕ Create New Task
 </a>
+<form method="POST" action="{{ url_for('tasks.cleanup_old_media') }}" style="display: inline;" 
+      onsubmit="return confirm('This will delete all task photos/videos older than 30 days to save storage space. Continue?')">
+    <button type="submit" class="btn" style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); color: white; border: none;">
+        🧹 Cleanup Old Media (30+ days)
+    </button>
+</form>
 {% endblock %}
 
 {% block content %}

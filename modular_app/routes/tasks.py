@@ -33,6 +33,9 @@ def index():
     """List all tasks with filters"""
     tenant_id = g.tenant.id
     
+    # Auto-cleanup old media (once per day)
+    run_auto_cleanup(tenant_id)
+    
     # Get filters from query params
     status_filter = request.args.get('status', 'all')
     employee_filter = request.args.get('employee', 'all')
@@ -238,9 +241,134 @@ def cancel(task_id):
     return redirect(url_for('tasks.index'))
 
 
+@tasks_bp.route('/cleanup-old-media', methods=['POST'])
+@require_tenant
+@login_required
+def cleanup_old_media():
+    """Delete task media older than 30 days to save storage"""
+    tenant_id = g.tenant.id
+    
+    try:
+        from datetime import timedelta
+        from utils.vercel_blob import delete_from_vercel_blob
+        import os
+        
+        # Calculate cutoff date (30 days ago)
+        cutoff_date = datetime.utcnow() - timedelta(days=30)
+        
+        # Find all old media for this tenant's tasks
+        old_media = TaskMedia.query.join(Task).filter(
+            Task.tenant_id == tenant_id,
+            TaskMedia.created_at < cutoff_date
+        ).all()
+        
+        deleted_count = 0
+        failed_count = 0
+        storage_saved = 0
+        
+        for media in old_media:
+            try:
+                # Delete from Vercel Blob Storage (if on Vercel)
+                if os.environ.get('VERCEL') and media.file_path.startswith('http'):
+                    if delete_from_vercel_blob(media.file_path):
+                        deleted_count += 1
+                        # Estimate storage saved (assume 300KB per compressed image)
+                        storage_saved += 0.3
+                    else:
+                        failed_count += 1
+                
+                # Delete from database
+                db.session.delete(media)
+                
+            except Exception as e:
+                print(f"❌ Error deleting media {media.id}: {e}")
+                failed_count += 1
+                continue
+        
+        db.session.commit()
+        
+        if deleted_count > 0:
+            flash(f'✅ Cleaned up {deleted_count} old media files (saved ~{storage_saved:.1f}MB)', 'success')
+        else:
+            flash('No old media found to cleanup', 'info')
+            
+        if failed_count > 0:
+            flash(f'⚠️ {failed_count} files could not be deleted', 'warning')
+            
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error during cleanup: {str(e)}', 'error')
+    
+    return redirect(url_for('tasks.index'))
+
+
 # ============================================
 # HELPER FUNCTIONS
 # ============================================
+
+def run_auto_cleanup(tenant_id):
+    """
+    Automatically cleanup old media once per day
+    Lightweight check - only runs if last cleanup was >24 hours ago
+    """
+    try:
+        from models import Tenant
+        from datetime import timedelta
+        from utils.vercel_blob import delete_from_vercel_blob
+        import os
+        
+        tenant = Tenant.query.get(tenant_id)
+        if not tenant:
+            return
+        
+        # Check last cleanup date from tenant settings
+        settings = tenant.settings or {}
+        last_cleanup = settings.get('last_media_cleanup')
+        
+        # Convert string to datetime if exists
+        if last_cleanup:
+            try:
+                last_cleanup = datetime.fromisoformat(last_cleanup)
+            except:
+                last_cleanup = None
+        
+        # Only run if last cleanup was >24 hours ago (or never run)
+        now = datetime.utcnow()
+        if last_cleanup and (now - last_cleanup).total_seconds() < 86400:  # 24 hours
+            return  # Too soon, skip cleanup
+        
+        # Run cleanup
+        cutoff_date = now - timedelta(days=30)
+        old_media = TaskMedia.query.join(Task).filter(
+            Task.tenant_id == tenant_id,
+            TaskMedia.created_at < cutoff_date
+        ).all()
+        
+        deleted_count = 0
+        for media in old_media:
+            try:
+                # Delete from Vercel Blob (if on Vercel)
+                if os.environ.get('VERCEL') and media.file_path.startswith('http'):
+                    delete_from_vercel_blob(media.file_path)
+                
+                db.session.delete(media)
+                deleted_count += 1
+            except Exception as e:
+                print(f"❌ Auto-cleanup error for media {media.id}: {e}")
+                continue
+        
+        # Update last cleanup timestamp
+        settings['last_media_cleanup'] = now.isoformat()
+        tenant.settings = settings
+        db.session.commit()
+        
+        if deleted_count > 0:
+            print(f"✅ Auto-cleanup: Deleted {deleted_count} old media files for tenant {tenant_id}")
+        
+    except Exception as e:
+        print(f"❌ Auto-cleanup failed: {e}")
+        db.session.rollback()
+
 
 def send_task_assignment_email(task, employee):
     """Send email notification when task is assigned"""

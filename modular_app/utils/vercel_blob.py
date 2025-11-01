@@ -60,6 +60,42 @@ def upload_to_vercel_blob(file_data, filename, content_type='image/jpeg'):
         return None
 
 
+def delete_from_vercel_blob(file_url):
+    """
+    Delete file from Vercel Blob Storage
+    
+    Args:
+        file_url: Full URL of the file to delete
+    
+    Returns:
+        bool: True if deleted successfully, False otherwise
+    """
+    blob_token = os.environ.get('BLOB_READ_WRITE_TOKEN')
+    
+    if not blob_token:
+        print("⚠️  BLOB_READ_WRITE_TOKEN not found. Cannot delete from Vercel Blob.")
+        return False
+    
+    try:
+        headers = {
+            'Authorization': f'Bearer {blob_token}',
+        }
+        
+        # Delete request
+        response = requests.delete(file_url, headers=headers)
+        
+        if response.status_code in [200, 204]:
+            print(f"✅ Deleted from Vercel Blob: {file_url}")
+            return True
+        else:
+            print(f"⚠️ Vercel Blob delete failed: {response.status_code} - {response.text}")
+            return False
+            
+    except Exception as e:
+        print(f"❌ Error deleting from Vercel Blob: {e}")
+        return False
+
+
 def generate_blob_filename(prefix, employee_name=None, extension='jpg'):
     """
     Generate a unique filename for Vercel Blob Storage
