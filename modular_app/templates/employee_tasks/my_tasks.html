@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Tasks - BizBooks</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #f5f7fa;
+            padding-bottom: 80px;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .header h1 {
+            font-size: 24px;
+        }
+        
+        .logout-btn {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            padding: 8px 15px;
+            border-radius: 5px;
+            text-decoration: none;
+            font-size: 14px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        
+        .stat-card h3 {
+            font-size: 14px;
+            color: #7f8c8d;
+            margin-bottom: 10px;
+        }
+        
+        .stat-card p {
+            font-size: 32px;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        
+        .filter-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            overflow-x: auto;
+        }
+        
+        .filter-tab {
+            padding: 10px 20px;
+            background: white;
+            border: 2px solid #ecf0f1;
+            border-radius: 8px;
+            text-decoration: none;
+            color: #7f8c8d;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+        
+        .filter-tab.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+        
+        .task-card {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            border-left: 4px solid #667eea;
+        }
+        
+        .task-card.high {
+            border-left-color: #e74c3c;
+        }
+        
+        .task-card.medium {
+            border-left-color: #f39c12;
+        }
+        
+        .task-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 10px;
+        }
+        
+        .task-number {
+            background: #ecf0f1;
+            color: #7f8c8d;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        
+        .task-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 5px;
+        }
+        
+        .task-description {
+            color: #7f8c8d;
+            font-size: 14px;
+            margin-bottom: 15px;
+            line-height: 1.6;
+        }
+        
+        .task-meta {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            font-size: 14px;
+            color: #7f8c8d;
+            margin-bottom: 15px;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #ecf0f1;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 10px;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #3498db, #2ecc71);
+            transition: width 0.3s;
+        }
+        
+        .task-actions {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .btn {
+            padding: 10px 20px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            display: inline-block;
+            text-align: center;
+        }
+        
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+        
+        .btn-success {
+            background: #27ae60;
+            color: white;
+        }
+        
+        .status-badge {
+            padding: 4px 10px;
+            border-radius: 5px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        
+        .status-new {
+            background: #3498db;
+            color: white;
+        }
+        
+        .status-in-progress {
+            background: #f39c12;
+            color: white;
+        }
+        
+        .status-completed {
+            background: #27ae60;
+            color: white;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            background: white;
+            border-radius: 10px;
+        }
+        
+        .empty-state h2 {
+            font-size: 24px;
+            color: #7f8c8d;
+            margin-bottom: 10px;
+        }
+        
+        .overdue-badge {
+            background: #e74c3c;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        
+        @media (max-width: 768px) {
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .task-header {
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            .task-meta {
+                flex-direction: column;
+                gap: 8px;
+            }
+            
+            .task-actions {
+                flex-direction: column;
+            }
+            
+            .btn {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-content">
+            <h1>👷 My Tasks</h1>
+            <a href="{{ url_for('employee_tasks.logout') }}" class="logout-btn">Logout</a>
+        </div>
+    </div>
+    
+    <div class="container">
+        <!-- Welcome Message -->
+        <div style="background: white; padding: 20px; border-radius: 10px; margin-bottom: 20px;">
+            <h2 style="color: #2c3e50;">Welcome, {{ employee_name }}! 👋</h2>
+            <p style="color: #7f8c8d; margin-top: 5px;">Here are your assigned tasks</p>
+        </div>
+        
+        <!-- Stats -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <h3>Total</h3>
+                <p>{{ total_tasks }}</p>
+            </div>
+            <div class="stat-card">
+                <h3>🆕 New</h3>
+                <p>{{ new_tasks }}</p>
+            </div>
+            <div class="stat-card">
+                <h3>🔄 In Progress</h3>
+                <p>{{ in_progress }}</p>
+            </div>
+            <div class="stat-card">
+                <h3>✅ Completed</h3>
+                <p>{{ completed }}</p>
+            </div>
+        </div>
+        
+        <!-- Filter Tabs -->
+        <div class="filter-tabs">
+            <a href="{{ url_for('employee_tasks.my_tasks', status='all') }}" 
+               class="filter-tab {% if status_filter == 'all' %}active{% endif %}">
+                All Tasks
+            </a>
+            <a href="{{ url_for('employee_tasks.my_tasks', status='new') }}" 
+               class="filter-tab {% if status_filter == 'new' %}active{% endif %}">
+                🆕 New
+            </a>
+            <a href="{{ url_for('employee_tasks.my_tasks', status='in_progress') }}" 
+               class="filter-tab {% if status_filter == 'in_progress' %}active{% endif %}">
+                🔄 In Progress
+            </a>
+            <a href="{{ url_for('employee_tasks.my_tasks', status='completed') }}" 
+               class="filter-tab {% if status_filter == 'completed' %}active{% endif %}">
+                ✅ Completed
+            </a>
+        </div>
+        
+        <!-- Tasks List -->
+        {% if tasks %}
+            {% for task in tasks %}
+            <div class="task-card {% if task.priority == 'high' %}high{% elif task.priority == 'medium' %}medium{% endif %}">
+                <div class="task-header">
+                    <div style="flex: 1;">
+                        <div style="margin-bottom: 10px;">
+                            <span class="task-number">{{ task.task_number }}</span>
+                            {% if task.status == 'new' %}
+                            <span class="status-badge status-new">🆕 NEW</span>
+                            {% elif task.status == 'in_progress' %}
+                            <span class="status-badge status-in-progress">🔄 IN PROGRESS</span>
+                            {% elif task.status == 'completed' %}
+                            <span class="status-badge status-completed">✅ COMPLETED</span>
+                            {% endif %}
+                            
+                            {% if task.priority == 'high' %}
+                            <span style="background: #e74c3c; color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px; margin-left: 5px;">🔥 HIGH</span>
+                            {% endif %}
+                        </div>
+                        <h3 class="task-title">{{ task.title }}</h3>
+                    </div>
+                </div>
+                
+                {% if task.description %}
+                <p class="task-description">
+                    {{ task.description[:150] }}{% if task.description|length > 150 %}...{% endif %}
+                </p>
+                {% endif %}
+                
+                <div class="task-meta">
+                    {% if task.site %}
+                    <span>📍 {{ task.site.name }}</span>
+                    {% endif %}
+                    {% if task.deadline %}
+                    <span>📅 Deadline: {{ task.deadline.strftime('%d %b %Y') }}</span>
+                    {% if task.is_overdue() %}
+                    <span class="overdue-badge">⚠️ OVERDUE</span>
+                    {% endif %}
+                    {% endif %}
+                    <span>📊 {{ task.updates|length }} updates</span>
+                </div>
+                
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width: {{ task.get_progress_percentage() }}%;"></div>
+                </div>
+                <small style="color: #7f8c8d;">Progress: {{ task.get_progress_percentage() }}%</small>
+                
+                <div class="task-actions" style="margin-top: 15px;">
+                    <a href="{{ url_for('employee_tasks.view_task', task_id=task.id) }}" class="btn btn-primary">
+                        👁️ View Details
+                    </a>
+                    {% if task.status != 'completed' %}
+                    <a href="{{ url_for('employee_tasks.update_task', task_id=task.id) }}" class="btn btn-success">
+                        ✏️ Update Progress
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="empty-state">
+                <h2>📋 No tasks found</h2>
+                <p style="color: #7f8c8d;">You don't have any {{ status_filter if status_filter != 'all' else '' }} tasks at the moment.</p>
+            </div>
+        {% endif %}
+    </div>
+</body>
+</html>
+

@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ task.title }} - BizBooks</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/employee_task_view.css') }}">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f7fa; }
+        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+        .card { background: white; border-radius: 10px; padding: 20px; margin-bottom: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .btn { padding: 12px 20px; border-radius: 8px; text-decoration: none; font-weight: 600; display: inline-block; margin: 5px; }
+        .btn-primary { background: #667eea; color: white; }
+        .btn-success { background: #27ae60; color: white; }
+        .btn-secondary { background: #95a5a6; color: white; }
+        .badge { padding: 6px 12px; border-radius: 5px; font-size: 14px; font-weight: 600; display: inline-block; margin: 5px 0; }
+        .progress-bar { width: 100%; height: 30px; background: #ecf0f1; border-radius: 10px; overflow: hidden; margin: 10px 0; }
+        .progress-fill { height: 100%; background: linear-gradient(90deg, #3498db, #2ecc71); display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>📋 Task Details</h1>
+    </div>
+    
+    <div class="container">
+        <div class="card">
+            <h2 style="margin-bottom: 15px;">{{ task.title }}</h2>
+            <p style="color: #7f8c8d; margin-bottom: 10px;">{{ task.task_number }}</p>
+            
+            <div style="margin: 15px 0;">
+                {% if task.status == 'new' %}
+                <span class="badge" style="background: #3498db; color: white;">🆕 NEW</span>
+                {% elif task.status == 'in_progress' %}
+                <span class="badge" style="background: #f39c12; color: white;">🔄 IN PROGRESS</span>
+                {% elif task.status == 'completed' %}
+                <span class="badge" style="background: #27ae60; color: white;">✅ COMPLETED</span>
+                {% endif %}
+                
+                {% if task.priority == 'high' %}
+                <span class="badge" style="background: #e74c3c; color: white;">🔥 HIGH PRIORITY</span>
+                {% endif %}
+            </div>
+            
+            <div class="progress-bar">
+                <div class="progress-fill" style="width: {{ task.get_progress_percentage() }}%;">
+                    {{ task.get_progress_percentage() }}%
+                </div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <h3 style="margin-bottom: 15px;">📝 Description</h3>
+            <p style="line-height: 1.6; white-space: pre-line;">{{ task.description or 'No description provided' }}</p>
+        </div>
+        
+        <div class="card">
+            <h3 style="margin-bottom: 15px;">ℹ️ Task Information</h3>
+            {% if task.site %}<p><strong>Site:</strong> {{ task.site.name }}</p>{% endif %}
+            {% if task.start_date %}<p><strong>Start Date:</strong> {{ task.start_date.strftime('%d %B %Y') }}</p>{% endif %}
+            {% if task.deadline %}<p><strong>Deadline:</strong> {{ task.deadline.strftime('%d %B %Y') }}
+            {% if task.is_overdue() %}<span style="color: #e74c3c; font-weight: bold;"> ⚠️ OVERDUE</span>{% endif %}</p>{% endif %}
+        </div>
+        
+        {% if task.updates %}
+        <div class="card">
+            <h3 style="margin-bottom: 15px;">🔄 Your Updates ({{ task.updates|length }})</h3>
+            {% for update in task.updates|reverse %}
+            <div style="padding: 15px; background: #f8f9fa; border-left: 4px solid #3498db; margin-bottom: 15px; border-radius: 5px;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                    <strong>{{ update.created_at.strftime('%d %b %Y, %I:%M %p') }}</strong>
+                    <span class="badge" style="background: {% if update.status == 'completed' %}#27ae60{% else %}#f39c12{% endif %}; color: white;">
+                        {% if update.status == 'completed' %}✅{% else %}🔄{% endif %} {{ update.status.upper().replace('_', ' ') }}
+                    </span>
+                </div>
+                {% if update.notes %}<p style="margin: 10px 0;">{{ update.notes }}</p>{% endif %}
+                <div style="font-size: 14px; color: #7f8c8d; margin-top: 10px;">
+                    {% if update.progress_percentage %}<span>📊 {{ update.progress_percentage }}%</span> | {% endif %}
+                    <span>👷 {{ update.worker_count }} workers</span>
+                    {% if update.hours_worked %} | <span>⏰ {{ update.hours_worked }} hours</span>{% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        
+        {% if task.materials %}
+        <div class="card">
+            <h3 style="margin-bottom: 15px;">🧰 Materials Used ({{ task.materials|length }})</h3>
+            {% for material in task.materials %}
+            <p>• {{ material.material_name }} - {{ material.quantity }} {{ material.unit }}</p>
+            {% endfor %}
+        </div>
+        {% endif %}
+        
+        {% if task.media %}
+        <div class="card">
+            <h3 style="margin-bottom: 15px;">📷 Photos & Videos ({{ task.media|length }})</h3>
+            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px;">
+                {% for media in task.media %}
+                <div style="border: 1px solid #ddd; border-radius: 5px; overflow: hidden;">
+                    {% if media.media_type == 'photo' %}
+                    <img src="{{ media.file_path }}" style="width: 100%; height: 150px; object-fit: cover;">
+                    {% else %}
+                    <video src="{{ media.file_path }}" controls style="width: 100%; height: 150px;"></video>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+        
+        <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 20px;">
+            {% if task.status != 'completed' %}
+            <a href="{{ url_for('employee_tasks.update_task', task_id=task.id) }}" class="btn btn-success">✏️ Update Progress</a>
+            {% endif %}
+            <a href="{{ url_for('employee_tasks.my_tasks') }}" class="btn btn-secondary">← Back to My Tasks</a>
+        </div>
+    </div>
+</body>
+</html>
+
