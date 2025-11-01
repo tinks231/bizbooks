@@ -8,7 +8,6 @@ from openpyxl.styles import Font, PatternFill, Alignment
 from io import BytesIO
 from datetime import datetime
 from models import db, Employee, Item, Customer, Site, ItemCategory, ItemGroup
-from utils.helpers import generate_employee_number
 
 def create_employee_template():
     """
@@ -19,8 +18,8 @@ def create_employee_template():
     ws = wb.active
     ws.title = "Employee Import"
     
-    # Headers
-    headers = ['Name*', 'Phone*', 'PIN*', 'Designation', 'Salary', 'Site Name', 'Email', 'Address']
+    # Headers - match actual Employee model fields
+    headers = ['Name*', 'PIN*', 'Phone', 'Email', 'Site Name']
     
     # Style headers
     header_fill = PatternFill(start_color="4472C4", end_color="4472C4", fill_type="solid")
@@ -35,13 +34,10 @@ def create_employee_template():
     # Add sample data (row 2)
     sample_data = [
         'John Doe',
-        '9876543210',
         '1234',
-        'Manager',
-        '50000',
-        'Main Office',
+        '9876543210',
         'john@example.com',
-        'Mumbai, Maharashtra'
+        'Main Office'
     ]
     
     for col_num, value in enumerate(sample_data, 1):
@@ -50,22 +46,20 @@ def create_employee_template():
     
     # Add instructions
     ws.cell(row=4, column=1, value="INSTRUCTIONS:")
-    ws.cell(row=5, column=1, value="1. Fields marked with * are required")
-    ws.cell(row=6, column=1, value="2. Phone must be 10 digits")
-    ws.cell(row=7, column=1, value="3. PIN must be 4-6 digits")
-    ws.cell(row=8, column=1, value="4. If Site Name doesn't exist, it will be created")
-    ws.cell(row=9, column=1, value="5. Delete row 2 (sample data) before uploading")
-    ws.cell(row=10, column=1, value="6. You can add as many rows as you need")
+    ws.cell(row=5, column=1, value="1. Fields marked with * are required (Name, PIN)")
+    ws.cell(row=6, column=1, value="2. PIN must be 4 digits")
+    ws.cell(row=7, column=1, value="3. Phone should be 10 digits (optional)")
+    ws.cell(row=8, column=1, value="4. Email is optional (for purchase request notifications)")
+    ws.cell(row=9, column=1, value="5. If Site Name doesn't exist, it will be created")
+    ws.cell(row=10, column=1, value="6. Delete row 2 (sample data) before uploading")
+    ws.cell(row=11, column=1, value="7. You can add as many rows as you need")
     
     # Adjust column widths
     ws.column_dimensions['A'].width = 20
-    ws.column_dimensions['B'].width = 15
-    ws.column_dimensions['C'].width = 10
-    ws.column_dimensions['D'].width = 15
-    ws.column_dimensions['E'].width = 12
-    ws.column_dimensions['F'].width = 20
-    ws.column_dimensions['G'].width = 25
-    ws.column_dimensions['H'].width = 30
+    ws.column_dimensions['B'].width = 10
+    ws.column_dimensions['C'].width = 15
+    ws.column_dimensions['D'].width = 25
+    ws.column_dimensions['E'].width = 20
     
     # Save to BytesIO
     output = BytesIO()
@@ -214,25 +208,24 @@ def validate_employee_row(row_data, row_num):
     Validate a single employee row
     Returns: (is_valid, error_message)
     """
-    name, phone, pin, designation, salary, site_name, email, address = row_data
+    name, pin, phone, email, site_name = row_data
     
     # Required fields
     if not name or str(name).strip() == '':
         return False, f"Row {row_num}: Name is required"
     
-    if not phone:
-        return False, f"Row {row_num}: Phone is required"
-    
-    phone_str = str(phone).strip()
-    if len(phone_str) != 10 or not phone_str.isdigit():
-        return False, f"Row {row_num}: Phone must be 10 digits"
-    
     if not pin:
         return False, f"Row {row_num}: PIN is required"
     
     pin_str = str(pin).strip()
-    if len(pin_str) < 4 or len(pin_str) > 6 or not pin_str.isdigit():
-        return False, f"Row {row_num}: PIN must be 4-6 digits"
+    if len(pin_str) != 4 or not pin_str.isdigit():
+        return False, f"Row {row_num}: PIN must be exactly 4 digits"
+    
+    # Phone is optional, but if provided, validate it
+    if phone and str(phone).strip():
+        phone_str = str(phone).strip()
+        if len(phone_str) != 10 or not phone_str.isdigit():
+            return False, f"Row {row_num}: Phone must be 10 digits (or leave blank)"
     
     return True, None
 
@@ -316,24 +309,24 @@ def import_employees_from_excel(file, tenant_id):
                 continue
             
             # Extract data (pad with None if row is shorter)
-            row_data = list(row) + [None] * (8 - len(row))
-            name, phone, pin, designation, salary, site_name, email, address = row_data[:8]
+            row_data = list(row) + [None] * (5 - len(row))
+            name, pin, phone, email, site_name = row_data[:5]
             
             # Validate
-            is_valid, error_msg = validate_employee_row(row_data[:8], row_num)
+            is_valid, error_msg = validate_employee_row(row_data[:5], row_num)
             if not is_valid:
                 errors.append(error_msg)
                 continue
             
             try:
-                # Check if employee already exists
+                # Check if employee already exists (PIN is unique per tenant)
                 existing = Employee.query.filter_by(
                     tenant_id=tenant_id,
-                    phone=str(phone).strip()
+                    pin=str(pin).strip()
                 ).first()
                 
                 if existing:
-                    errors.append(f"Row {row_num}: Employee with phone {phone} already exists")
+                    errors.append(f"Row {row_num}: Employee with PIN {pin} already exists")
                     continue
                 
                 # Get or create site
@@ -355,21 +348,14 @@ def import_employees_from_excel(file, tenant_id):
                         db.session.add(site)
                         db.session.flush()
                 
-                # Generate employee number
-                emp_number = generate_employee_number(tenant_id)
-                
-                # Create employee
+                # Create employee (only with fields that exist in model)
                 employee = Employee(
                     tenant_id=tenant_id,
-                    employee_number=emp_number,
                     name=str(name).strip(),
-                    phone=str(phone).strip(),
                     pin=str(pin).strip(),
-                    designation=str(designation).strip() if designation else '',
-                    salary=float(salary) if salary else 0.0,
+                    phone=str(phone).strip() if phone else None,
+                    email=str(email).strip() if email else None,
                     site_id=site.id if site else None,
-                    email=str(email).strip() if email else '',
-                    address=str(address).strip() if address else '',
                     active=True
                 )
                 
