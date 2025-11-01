@@ -67,9 +67,11 @@
             {% endif %}
         </div>
         
+        {% if tenant_settings and tenant_settings.get('logo_url') %}
         <div class="logo-placeholder">
-            <div class="logo-box">LOGO</div>
+            <img src="{{ tenant_settings.get('logo_url') }}" alt="Company Logo" style="max-width: 100%; max-height: 100%; object-fit: contain;">
         </div>
+        {% endif %}
     </div>
     
     <!-- Tax Invoice Title -->
@@ -272,18 +274,35 @@
 <style>
     /* Hide navigation and buttons when printing */
     @media print {
+        /* Hide all non-invoice elements to prevent blank first page */
         .sidebar, 
         .header,
+        .page-header,
+        .page-title,
+        .header-actions,
         .no-print,
         .btn,
-        .theme-selector {
+        .theme-selector,
+        nav,
+        .breadcrumb {
             display: none !important;
+            height: 0 !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            visibility: hidden !important;
         }
         
         body {
-            background: white;
-            margin: 0;
-            padding: 0;
+            background: white !important;
+            margin: 0 !important;
+            padding: 0 !important;
+        }
+        
+        /* Ensure invoice starts at top of page */
+        .content,
+        .main-content {
+            margin: 0 !important;
+            padding: 0 !important;
         }
         
         .invoice-container {
@@ -293,6 +312,7 @@
             max-width: 100%;
             page-break-inside: avoid !important;
             page-break-after: avoid !important;
+            page-break-before: avoid !important;
             font-size: 10px;
         }
         
@@ -803,7 +823,20 @@
         }
         
         .totals-section {
-            grid-template-columns: 1fr !important;
+            display: flex !important;
+            flex-direction: column !important;
+            gap: 15px !important;
+        }
+        
+        /* Reorder: Totals first, then Amount in Words on mobile screen */
+        .totals-section .totals-table {
+            order: 1 !important; /* Show first */
+            margin-left: auto !important; /* Align to right */
+            max-width: 350px !important; /* Limit width for better right alignment */
+        }
+        
+        .totals-section .invoice-notes {
+            order: 2 !important; /* Show second */
         }
         
         .signature-section {
