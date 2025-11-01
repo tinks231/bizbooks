@@ -12,7 +12,7 @@
 
 {% block content %}
 
-<form method="POST" action="{{ url_for('invoices.settings') }}">
+<form method="POST" action="{{ url_for('invoices.settings') }}" enctype="multipart/form-data">
     
     <!-- Business Details Card -->
     <div class="card">
@@ -88,6 +88,23 @@
             </div>
             
             <div class="form-group">
+                <label for="phone">Contact Phone *</label>
+                <input type="tel" id="phone" name="phone" class="form-control" 
+                       value="{{ settings.get('phone', tenant.admin_phone) }}" 
+                       placeholder="9876543210" 
+                       maxlength="15" required>
+            </div>
+        </div>
+        
+        <div class="form-row">
+            <div class="form-group">
+                <label for="email">Contact Email *</label>
+                <input type="email" id="email" name="email" class="form-control" 
+                       value="{{ settings.get('email', tenant.admin_email) }}" 
+                       placeholder="contact@yourbusiness.com" required>
+            </div>
+            
+            <div class="form-group">
                 <label for="website">Website</label>
                 <input type="url" id="website" name="website" class="form-control" 
                        value="{{ settings.get('website', '') }}" 
@@ -103,6 +120,49 @@
             <p style="margin: 5px 0 0 0; font-size: 14px; color: #666;">
                 Customize how your invoices look
             </p>
+        </div>
+        
+        <!-- Logo Upload Section -->
+        <div class="form-group" style="border: 2px dashed #ddd; padding: 20px; border-radius: 8px; background: #f8f9fa;">
+            <label for="logo" style="font-size: 16px; display: flex; align-items: center; gap: 8px;">
+                🖼️ Company Logo
+            </label>
+            
+            {% if settings.get('logo_url') %}
+            <div style="margin: 15px 0; padding: 15px; background: white; border-radius: 5px; border: 1px solid #ddd;">
+                <p style="margin-bottom: 10px; font-weight: 600; color: #2c3e50;">Current Logo:</p>
+                <div style="display: flex; align-items: center; gap: 20px;">
+                    <img src="{{ settings.get('logo_url') }}" alt="Current Logo" 
+                         style="max-width: 150px; max-height: 100px; object-fit: contain; border: 1px solid #ddd; padding: 10px; background: white;">
+                    <div>
+                        <p style="margin: 0; color: #666; font-size: 14px;">✅ Logo uploaded successfully</p>
+                        <p style="margin: 5px 0 0 0; color: #999; font-size: 12px;">Upload a new image below to replace it</p>
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <div style="margin: 10px 0; padding: 15px; background: #fff3cd; border-radius: 5px; border: 1px solid #ffc107;">
+                <p style="margin: 0; color: #856404; font-size: 14px;">
+                    ⚠️ No logo uploaded yet. Your invoices will appear without a logo.
+                </p>
+            </div>
+            {% endif %}
+            
+            <input type="file" id="logo" name="logo" class="form-control" 
+                   accept="image/png,image/jpeg,image/jpg" 
+                   onchange="previewLogo(this)"
+                   style="margin-top: 15px;">
+            <small style="color: #666; margin-top: 8px;">
+                📌 Recommended: PNG or JPG, max 2MB, square format (e.g., 300x300px) for best results
+                <br>🔒 Secure: Files are stored securely and only visible on your invoices
+            </small>
+            
+            <!-- Logo Preview -->
+            <div id="logoPreview" style="margin-top: 15px; display: none;">
+                <p style="font-weight: 600; margin-bottom: 8px; color: #2c3e50;">Preview:</p>
+                <img id="logoPreviewImg" src="" alt="Logo Preview" 
+                     style="max-width: 150px; max-height: 100px; border: 2px solid #3498db; padding: 10px; background: white; border-radius: 5px;">
+            </div>
         </div>
         
         <div class="form-group">
@@ -211,6 +271,43 @@
         }
     }
 </style>
+
+<script>
+    function previewLogo(input) {
+        const preview = document.getElementById('logoPreview');
+        const previewImg = document.getElementById('logoPreviewImg');
+        
+        if (input.files && input.files[0]) {
+            const file = input.files[0];
+            
+            // Check file size (max 2MB)
+            if (file.size > 2 * 1024 * 1024) {
+                alert('⚠️ File too large! Please upload an image smaller than 2MB.');
+                input.value = '';
+                preview.style.display = 'none';
+                return;
+            }
+            
+            // Check file type
+            if (!file.type.match('image/(png|jpeg|jpg)')) {
+                alert('⚠️ Invalid file type! Please upload a PNG or JPG image.');
+                input.value = '';
+                preview.style.display = 'none';
+                return;
+            }
+            
+            // Show preview
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                previewImg.src = e.target.result;
+                preview.style.display = 'block';
+            };
+            reader.readAsDataURL(file);
+        } else {
+            preview.style.display = 'none';
+        }
+    }
+</script>
 
 {% endblock %}
 

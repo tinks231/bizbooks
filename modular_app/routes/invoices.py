@@ -624,6 +624,18 @@ def settings():
             # Get current settings
             tenant_settings = json.loads(tenant.settings) if tenant.settings else {}
             
+            # Handle logo upload
+            if 'logo' in request.files:
+                logo_file = request.files['logo']
+                if logo_file and logo_file.filename:
+                    from utils.helpers import save_uploaded_file
+                    logo_url = save_uploaded_file(logo_file, 'uploads/logos')
+                    if logo_url:
+                        tenant_settings['logo_url'] = logo_url
+                        flash('✅ Logo uploaded successfully!', 'success')
+                    else:
+                        flash('⚠️ Logo upload failed. Please try again.', 'warning')
+            
             # Update invoice settings
             tenant_settings['gstin'] = request.form.get('gstin', '')
             tenant_settings['pan'] = request.form.get('pan', '')
@@ -632,6 +644,8 @@ def settings():
             tenant_settings['state'] = request.form.get('state', 'Maharashtra')
             tenant_settings['pincode'] = request.form.get('pincode', '')
             tenant_settings['website'] = request.form.get('website', '')
+            tenant_settings['phone'] = request.form.get('phone', tenant.admin_phone)
+            tenant_settings['email'] = request.form.get('email', tenant.admin_email)
             tenant_settings['invoice_terms'] = request.form.get('invoice_terms', '')
             tenant_settings['invoice_footer'] = request.form.get('invoice_footer', 'Thank you for your business!')
             
