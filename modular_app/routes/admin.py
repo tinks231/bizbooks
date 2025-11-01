@@ -759,13 +759,14 @@ def manual_entry():
 @require_tenant
 @login_required
 def generate_qr():
-    """Generate QR code for tenant's attendance URL"""
+    """Generate QR code for tenant's unified employee portal"""
     import qrcode
     import io
     import base64
     
     tenant = get_current_tenant()
-    attendance_url = f"https://{tenant.subdomain}.bizbooks.co.in/attendance"
+    # Updated to use unified employee portal (provides access to all features)
+    employee_portal_url = f"https://{tenant.subdomain}.bizbooks.co.in/employee/login"
     
     # Create QR code
     qr = qrcode.QRCode(
@@ -774,7 +775,7 @@ def generate_qr():
         box_size=10,
         border=4,
     )
-    qr.add_data(attendance_url)
+    qr.add_data(employee_portal_url)
     qr.make(fit=True)
     
     img = qr.make_image(fill_color="black", back_color="white")
@@ -787,7 +788,7 @@ def generate_qr():
     
     return render_template('admin/qr_code.html',
                          qr_image=img_base64,
-                         url=attendance_url,
+                         url=employee_portal_url,
                          company=tenant.company_name,
                          subdomain=tenant.subdomain,
                          tenant=g.tenant)
