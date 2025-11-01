@@ -2,7 +2,7 @@
 Task Management Routes
 Handles both admin (create/assign) and employee (update/upload) operations
 """
-from flask import Blueprint, render_template, request, redirect, url_for, flash, g, jsonify
+from flask import Blueprint, render_template, request, redirect, url_for, flash, g, jsonify, session
 from models import db, Task, TaskUpdate, TaskMaterial, TaskMedia, Employee, Site
 from utils.tenant_middleware import require_tenant, get_current_tenant_id
 from datetime import datetime, date
@@ -10,12 +10,12 @@ from sqlalchemy import or_
 
 tasks_bp = Blueprint('tasks', __name__, url_prefix='/admin/tasks')
 
-# Login required decorator (same as other blueprints)
+# Login required decorator (matches admin.py)
 from functools import wraps
 def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        if 'admin_logged_in' not in g or not g.admin_logged_in:
+        if 'tenant_admin_id' not in session:
             flash('Please login to access this page', 'error')
             return redirect(url_for('admin.login'))
         return f(*args, **kwargs)
