@@ -712,6 +712,20 @@
                 </a>
             </div>
             
+            <!-- Tasks Section -->
+            <div class="nav-section">
+                <div class="nav-section-title">Task Management</div>
+                <a href="/admin/tasks" class="nav-item {% if '/admin/tasks' in request.path and 'create' not in request.path %}active{% endif %}">
+                    <i>📋</i> All Tasks
+                </a>
+                <a href="/admin/tasks/create" class="nav-item {% if '/admin/tasks/create' in request.path %}active{% endif %}">
+                    <i>➕</i> Create Task
+                </a>
+                <a href="/employee/tasks/login" class="nav-item" target="_blank">
+                    <i>👷</i> Employee Login
+                </a>
+            </div>
+            
             <!-- Expenses Section -->
             <div class="nav-section">
                 <div class="nav-section-title">Expenses</div>
