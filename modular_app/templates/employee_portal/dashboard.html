@@ -174,7 +174,7 @@
         <!-- Action Cards Grid -->
         <div class="action-grid">
             <!-- Attendance Card -->
-            <a href="{{ url_for('mark_attendance') }}" class="action-card attendance">
+            <a href="{{ url_for('attendance.index') }}" class="action-card attendance">
                 <div class="icon">📍</div>
                 <h2>Mark Attendance</h2>
                 <p>Clock in/out, view your attendance history, and track working hours.</p>
@@ -188,7 +188,7 @@
             </a>
             
             <!-- Purchase Requests Card -->
-            <a href="{{ url_for('employee_purchase_request.request_form') }}" class="action-card purchase">
+            <a href="{{ url_for('purchase_request.employee_form') }}" class="action-card purchase">
                 <div class="icon">🛒</div>
                 <h2>Purchase Request</h2>
                 <p>Submit purchase requests for materials, tools, or equipment you need.</p>
