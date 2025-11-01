@@ -52,13 +52,14 @@
     <div class="invoice-header">
         <div class="company-details">
             <h1 class="company-name">{{ tenant.company_name }}</h1>
-            {% if tenant.settings %}
-                {% set settings = tenant.settings|tojson|safe %}
-                <p class="company-info">{{ settings.address or '' }}</p>
-                <p class="company-info">📞 {{ settings.phone or tenant.admin_phone }}</p>
-                <p class="company-info">✉️ {{ settings.email or tenant.admin_email }}</p>
-                {% if settings.gstin %}
-                <p class="company-info"><strong>GSTIN:</strong> {{ settings.gstin }}</p>
+            {% if tenant_settings %}
+                {% if tenant_settings.get('address') %}
+                <p class="company-info">📍 {{ tenant_settings.get('address') }}</p>
+                {% endif %}
+                <p class="company-info">📞 {{ tenant_settings.get('phone', tenant.admin_phone) }}</p>
+                <p class="company-info">✉️ {{ tenant_settings.get('email', tenant.admin_email) }}</p>
+                {% if tenant_settings.get('gstin') %}
+                <p class="company-info"><strong>GSTIN:</strong> {{ tenant_settings.get('gstin') }}</p>
                 {% endif %}
             {% else %}
                 <p class="company-info">📞 {{ tenant.admin_phone }}</p>
@@ -726,39 +727,127 @@
     /* Mobile Responsive */
     @media (max-width: 768px) {
         .invoice-container {
-            padding: 20px;
+            padding: 15px;
             margin: 0;
             border-radius: 0;
         }
         
         .invoice-header {
-            flex-direction: column;
-            gap: 20px;
+            flex-direction: row !important;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 10px;
+        }
+        
+        .company-details {
+            flex: 1;
+            min-width: 0;
+        }
+        
+        .company-name {
+            font-size: 18px !important;
+            margin-bottom: 5px;
+        }
+        
+        .company-info {
+            font-size: 11px !important;
+            margin: 2px 0 !important;
         }
         
         .logo-placeholder {
-            width: 100px;
-            height: 100px;
+            width: 80px !important;
+            height: 80px !important;
+            flex-shrink: 0;
         }
         
-        .invoice-info-row,
-        .totals-section,
+        .invoice-title h2 {
+            font-size: 18px !important;
+            margin: 15px 0 10px !important;
+        }
+        
+        .invoice-info-row {
+            grid-template-columns: 1fr 1fr !important;
+            gap: 10px !important;
+        }
+        
+        .bill-to,
+        .invoice-details {
+            min-width: 0;
+        }
+        
+        .bill-to h3,
+        .invoice-details h3 {
+            font-size: 12px !important;
+            padding: 5px 8px !important;
+            margin-bottom: 8px !important;
+        }
+        
+        .customer-name {
+            font-size: 14px !important;
+        }
+        
+        .bill-to p,
+        .invoice-details p,
+        .details-table td {
+            font-size: 11px !important;
+            margin: 3px 0 !important;
+        }
+        
+        .totals-section {
+            grid-template-columns: 1fr !important;
+        }
+        
         .signature-section {
-            grid-template-columns: 1fr;
-            gap: 20px;
+            grid-template-columns: 1fr !important;
         }
         
         .items-table {
-            font-size: 12px;
+            font-size: 11px !important;
         }
         
         .items-table th,
         .items-table td {
-            padding: 8px 5px;
+            padding: 6px 4px !important;
+        }
+        
+        /* Make table scrollable on mobile if needed */
+        .items-section {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
         }
         
         .company-signature {
             text-align: left;
+        }
+    }
+    
+    /* Extra small mobile (portrait phones) */
+    @media (max-width: 480px) {
+        .invoice-info-row {
+            grid-template-columns: 1fr !important;
+            gap: 15px !important;
+        }
+        
+        .company-name {
+            font-size: 16px !important;
+        }
+        
+        .company-info {
+            font-size: 10px !important;
+        }
+        
+        .logo-placeholder {
+            width: 60px !important;
+            height: 60px !important;
+        }
+        
+        .items-table {
+            font-size: 10px !important;
+        }
+        
+        .items-table th,
+        .items-table td {
+            padding: 4px 3px !important;
         }
     }
 </style>
