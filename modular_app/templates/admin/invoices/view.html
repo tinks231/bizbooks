@@ -2,7 +2,7 @@
 
 {% block title %}Invoice #{{ invoice.invoice_number }} - {{ tenant.company_name }}{% endblock %}
 
-{% block page_title %}Invoice #{{ invoice.invoice_number }}{% endblock %}
+{% block page_title %}{% endblock %}
 
 {% block header_actions %}
 <div style="display: flex; gap: 10px; flex-wrap: wrap;">
@@ -274,15 +274,22 @@
 <style>
     /* Hide navigation and buttons when printing */
     @media print {
-        /* Hide navigation and UI elements only */
+        /* AGGRESSIVE: Hide EVERYTHING except invoice */
+        * {
+            visibility: hidden !important;
+        }
+        
+        /* SHOW: Only invoice and its children */
+        .invoice-container,
+        .invoice-container * {
+            visibility: visible !important;
+        }
+        
+        /* Hide UI elements */
         .sidebar, 
         .no-print,
         .btn,
-        .theme-selector {
-            display: none !important;
-        }
-        
-        /* Hide header elements from base_sidebar.html */
+        .theme-selector,
         .header,
         .header-title,
         .header-actions,
@@ -290,6 +297,7 @@
         .page-header,
         .breadcrumb {
             display: none !important;
+            visibility: hidden !important;
         }
         
         body {
@@ -305,8 +313,11 @@
             width: 100% !important;
         }
         
-        /* Invoice container should be the only thing visible */
+        /* Invoice container positioning */
         .invoice-container {
+            position: absolute !important;
+            top: 0 !important;
+            left: 0 !important;
             box-shadow: none !important;
             margin: 0 !important;
             padding: 8mm 10mm !important;
