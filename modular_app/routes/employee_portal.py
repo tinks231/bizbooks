@@ -56,32 +56,33 @@ def dashboard():
         flash('Session expired. Please login again.', 'error')
         return redirect(url_for('employee_portal.login'))
     
-    # Get today's attendance status
-    from models import Attendance
+    # Optimize: Get today's attendance with a single query
+    from models import Attendance, Task
     from datetime import date, timedelta
     
-    # Get start and end of today for database-agnostic query
+    # Get start and end of today
     today_start = datetime.combine(date.today(), datetime.min.time())
     today_end = datetime.combine(date.today(), datetime.max.time())
     
-    # Find today's check-in (Attendance uses timestamp, not date)
-    check_in = Attendance.query.filter(
+    # Single query to get all today's attendance (more efficient)
+    today_attendance = Attendance.query.filter(
         Attendance.employee_id == employee.id,
         Attendance.timestamp >= today_start,
-        Attendance.timestamp <= today_end,
-        Attendance.type == 'check_in'
-    ).order_by(Attendance.timestamp.desc()).first()
+        Attendance.timestamp <= today_end
+    ).order_by(Attendance.timestamp.desc()).all()
     
-    # Find today's check-out
-    check_out = Attendance.query.filter(
-        Attendance.employee_id == employee.id,
-        Attendance.timestamp >= today_start,
-        Attendance.timestamp <= today_end,
-        Attendance.type == 'check_out'
-    ).order_by(Attendance.timestamp.desc()).first()
+    # Process in Python (faster than 2 separate queries)
+    check_in = None
+    check_out = None
+    for record in today_attendance:
+        if record.type == 'check_in' and not check_in:
+            check_in = record
+        elif record.type == 'check_out' and not check_out:
+            check_out = record
+        if check_in and check_out:
+            break
     
-    # Get pending tasks count (new + in_progress, not completed or cancelled)
-    from models import Task
+    # Get pending tasks count (optimized with index)
     pending_tasks = Task.query.filter(
         Task.assigned_to == employee.id,
         Task.status.in_(['new', 'in_progress'])

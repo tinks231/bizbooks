@@ -48,6 +48,11 @@ def login_required(f):
 @require_tenant
 def employee_form():
     """Employee purchase request form (PIN-based auth like attendance)"""
+    # Check if employee already logged in via unified portal
+    if 'employee_id' in session and 'employee_name' in session:
+        # Already authenticated, go directly to form
+        return redirect(url_for('purchase_request.submit_form'))
+    
     tenant_id = get_current_tenant_id()
     tenant = Tenant.query.get(tenant_id)
     
