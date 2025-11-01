@@ -42,7 +42,7 @@ def index():
     
     # Base query with eager loading to avoid N+1 queries
     query = Task.query.options(
-        db.joinedload(Task.assignee),
+        db.joinedload(Task.employee),
         db.joinedload(Task.site)
     ).filter_by(tenant_id=tenant_id)
     
