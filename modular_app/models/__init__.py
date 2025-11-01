@@ -16,6 +16,7 @@ from .expense import Expense, ExpenseCategory
 from .purchase_request import PurchaseRequest
 from .customer import Customer
 from .invoice import Invoice, InvoiceItem
+from .task import Task, TaskUpdate, TaskMaterial, TaskMedia
 
 __all__ = [
     'db', 'init_db',
@@ -26,6 +27,7 @@ __all__ = [
     'Expense', 'ExpenseCategory',
     'PurchaseRequest',
     'Customer',
-    'Invoice', 'InvoiceItem'
+    'Invoice', 'InvoiceItem',
+    'Task', 'TaskUpdate', 'TaskMaterial', 'TaskMedia'
 ]
 

@@ -474,3 +474,107 @@ def add_customers_table():
             'message': f'Migration failed: {str(e)}',
             'details': str(e)
         }), 500
+
+
+@migration_bp.route('/add-tasks')
+def add_tasks():
+    """
+    Create task management tables
+    Safe migration - preserves existing data
+    Access this URL once: /migrate/add-tasks
+    """
+    try:
+        # Create tasks table
+        create_tasks_sql = text("""
+            CREATE TABLE IF NOT EXISTS tasks (
+                id SERIAL PRIMARY KEY,
+                tenant_id INTEGER NOT NULL REFERENCES tenants(id),
+                task_number VARCHAR(50) NOT NULL,
+                title VARCHAR(200) NOT NULL,
+                description TEXT,
+                priority VARCHAR(20) DEFAULT 'medium',
+                status VARCHAR(20) DEFAULT 'new',
+                assigned_to INTEGER NOT NULL REFERENCES employees(id),
+                site_id INTEGER REFERENCES sites(id),
+                start_date DATE,
+                deadline DATE,
+                completed_at TIMESTAMP,
+                created_by INTEGER REFERENCES employees(id),
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE (tenant_id, task_number)
+            );
+            
+            CREATE INDEX IF NOT EXISTS idx_task_status ON tasks(tenant_id, status);
+            CREATE INDEX IF NOT EXISTS idx_task_employee ON tasks(tenant_id, assigned_to);
+        """)
+        db.session.execute(create_tasks_sql)
+        
+        # Create task_updates table
+        create_task_updates_sql = text("""
+            CREATE TABLE IF NOT EXISTS task_updates (
+                id SERIAL PRIMARY KEY,
+                task_id INTEGER NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+                status VARCHAR(20) NOT NULL,
+                notes TEXT,
+                progress_percentage INTEGER DEFAULT 0,
+                worker_count INTEGER DEFAULT 1,
+                hours_worked FLOAT DEFAULT 0,
+                updated_by INTEGER NOT NULL REFERENCES employees(id),
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+            
+            CREATE INDEX IF NOT EXISTS idx_task_update_task ON task_updates(task_id);
+        """)
+        db.session.execute(create_task_updates_sql)
+        
+        # Create task_materials table
+        create_task_materials_sql = text("""
+            CREATE TABLE IF NOT EXISTS task_materials (
+                id SERIAL PRIMARY KEY,
+                task_id INTEGER NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+                material_name VARCHAR(200) NOT NULL,
+                quantity FLOAT NOT NULL,
+                unit VARCHAR(50) DEFAULT 'pcs',
+                cost_per_unit FLOAT DEFAULT 0,
+                total_cost FLOAT DEFAULT 0,
+                added_by INTEGER NOT NULL REFERENCES employees(id),
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+            
+            CREATE INDEX IF NOT EXISTS idx_task_material_task ON task_materials(task_id);
+        """)
+        db.session.execute(create_task_materials_sql)
+        
+        # Create task_media table
+        create_task_media_sql = text("""
+            CREATE TABLE IF NOT EXISTS task_media (
+                id SERIAL PRIMARY KEY,
+                task_id INTEGER NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+                media_type VARCHAR(20) NOT NULL,
+                file_path VARCHAR(500) NOT NULL,
+                caption TEXT,
+                uploaded_by INTEGER NOT NULL REFERENCES employees(id),
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+            
+            CREATE INDEX IF NOT EXISTS idx_task_media_task ON task_media(task_id);
+        """)
+        db.session.execute(create_task_media_sql)
+        
+        db.session.commit()
+        
+        return jsonify({
+            'status': 'success',
+            'message': '✅ Task management tables created successfully!',
+            'created_tables': ['tasks', 'task_updates', 'task_materials', 'task_media'],
+            'next_step': 'Go to /admin/tasks to start managing tasks!'
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({
+            'status': 'error',
+            'message': f'Migration failed: {str(e)}',
+            'details': str(e)
+        }), 500
