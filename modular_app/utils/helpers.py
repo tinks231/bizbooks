@@ -129,3 +129,27 @@ def is_within_radius(user_lat, user_lon, office_lat, office_lon, allowed_radius)
     distance = calculate_distance(user_lat, user_lon, office_lat, office_lon)
     return (distance <= allowed_radius, distance)
 
+def generate_employee_number(tenant_id):
+    """
+    Generate next employee number for a tenant
+    Format: EMP-0001, EMP-0002, etc.
+    """
+    from models import Employee
+    
+    # Get last employee for this tenant
+    last_employee = Employee.query.filter_by(tenant_id=tenant_id).order_by(Employee.id.desc()).first()
+    
+    if last_employee and last_employee.employee_number:
+        # Extract number from last employee number (e.g., EMP-0042 -> 42)
+        try:
+            last_num = int(last_employee.employee_number.split('-')[-1])
+            next_num = last_num + 1
+        except:
+            # If parsing fails, count all employees + 1
+            next_num = Employee.query.filter_by(tenant_id=tenant_id).count() + 1
+    else:
+        # First employee
+        next_num = 1
+    
+    return f"EMP-{next_num:04d}"
+
