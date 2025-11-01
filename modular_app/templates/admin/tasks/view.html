@@ -1,0 +1,258 @@
+{% extends 'base_sidebar.html' %}
+
+{% block title %}Task {{ task.task_number }} - {{ tenant.company_name }}{% endblock %}
+
+{% block page_title %}Task Details{% endblock %}
+
+{% block header_actions %}
+<div style="display: flex; gap: 10px; flex-wrap: wrap;">
+    {% if task.status not in ['completed', 'cancelled'] %}
+    <a href="{{ url_for('tasks.edit', task_id=task.id) }}" class="btn btn-primary">
+        ✏️ Edit Task
+    </a>
+    {% endif %}
+    
+    {% if task.status not in ['completed', 'cancelled'] %}
+    <form method="POST" action="{{ url_for('tasks.cancel', task_id=task.id) }}" style="display: inline;"
+          onsubmit="return confirm('Are you sure you want to cancel this task?')">
+        <button type="submit" class="btn" style="background: #e74c3c; color: white;">
+            ❌ Cancel Task
+        </button>
+    </form>
+    {% endif %}
+    
+    <a href="{{ url_for('tasks.index') }}" class="btn btn-secondary">
+        ← Back to Tasks
+    </a>
+</div>
+{% endblock %}
+
+{% block content %}
+
+<!-- Task Header Card -->
+<div class="card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none;">
+    <h2 style="margin: 0 0 10px 0;">{{ task.title }}</h2>
+    <p style="margin: 0; font-size: 18px; opacity: 0.9;">{{ task.task_number }}</p>
+</div>
+
+<!-- Status & Progress Card -->
+<div class="card">
+    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px;">
+        <div>
+            <h4 style="margin: 0 0 5px 0; color: #7f8c8d; font-size: 14px;">Status</h4>
+            {% if task.status == 'new' %}
+            <span style="background: #3498db; color: white; padding: 8px 12px; border-radius: 5px; font-size: 14px;">🆕 NEW</span>
+            {% elif task.status == 'in_progress' %}
+            <span style="background: #f39c12; color: white; padding: 8px 12px; border-radius: 5px; font-size: 14px;">🔄 IN PROGRESS</span>
+            {% elif task.status == 'completed' %}
+            <span style="background: #27ae60; color: white; padding: 8px 12px; border-radius: 5px; font-size: 14px;">✅ COMPLETED</span>
+            {% else %}
+            <span style="background: #95a5a6; color: white; padding: 8px 12px; border-radius: 5px; font-size: 14px;">❌ CANCELLED</span>
+            {% endif %}
+        </div>
+        
+        <div>
+            <h4 style="margin: 0 0 5px 0; color: #7f8c8d; font-size: 14px;">Priority</h4>
+            {% if task.priority == 'high' %}
+            <span style="background: #e74c3c; color: white; padding: 8px 12px; border-radius: 5px; font-size: 14px;">🔥 HIGH</span>
+            {% elif task.priority == 'medium' %}
+            <span style="background: #f39c12; color: white; padding: 8px 12px; border-radius: 5px; font-size: 14px;">⚠️ MEDIUM</span>
+            {% else %}
+            <span style="background: #95a5a6; color: white; padding: 8px 12px; border-radius: 5px; font-size: 14px;">LOW</span>
+            {% endif %}
+        </div>
+        
+        <div>
+            <h4 style="margin: 0 0 5px 0; color: #7f8c8d; font-size: 14px;">Progress</h4>
+            <div style="width: 100%; background: #ecf0f1; border-radius: 10px; height: 30px; overflow: hidden;">
+                <div style="width: {{ task.get_progress_percentage() }}%; background: linear-gradient(90deg, #3498db, #2ecc71); height: 100%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold;">
+                    {{ task.get_progress_percentage() }}%
+                </div>
+            </div>
+        </div>
+        
+        <div>
+            <h4 style="margin: 0 0 5px 0; color: #7f8c8d; font-size: 14px;">Updates</h4>
+            <p style="margin: 0; font-size: 24px; font-weight: bold; color: #2c3e50;">{{ task.updates|length }}</p>
+        </div>
+    </div>
+</div>
+
+<!-- Task Information -->
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+    
+    <!-- Left Column -->
+    <div class="card">
+        <h3 style="margin: 0 0 20px 0; padding-bottom: 15px; border-bottom: 2px solid #ecf0f1;">📋 Task Information</h3>
+        
+        <div style="margin-bottom: 15px;">
+            <strong style="color: #7f8c8d;">Assigned To:</strong><br>
+            <span style="font-size: 16px;">{{ task.employee.name }}</span><br>
+            <small style="color: #95a5a6;">📞 {{ task.employee.phone }}</small>
+        </div>
+        
+        {% if task.site %}
+        <div style="margin-bottom: 15px;">
+            <strong style="color: #7f8c8d;">Site/Location:</strong><br>
+            <span style="font-size: 16px;">{{ task.site.name }}</span>
+        </div>
+        {% endif %}
+        
+        {% if task.start_date %}
+        <div style="margin-bottom: 15px;">
+            <strong style="color: #7f8c8d;">Start Date:</strong><br>
+            <span>{{ task.start_date.strftime('%d %B %Y') }}</span>
+        </div>
+        {% endif %}
+        
+        {% if task.deadline %}
+        <div style="margin-bottom: 15px;">
+            <strong style="color: #7f8c8d;">Deadline:</strong><br>
+            <span>{{ task.deadline.strftime('%d %B %Y') }}</span>
+            {% if task.is_overdue() %}
+            <br><span style="color: #e74c3c; font-weight: bold;">⚠️ OVERDUE</span>
+            {% endif %}
+        </div>
+        {% endif %}
+        
+        {% if task.completed_at %}
+        <div style="margin-bottom: 15px;">
+            <strong style="color: #7f8c8d;">Completed At:</strong><br>
+            <span>{{ task.completed_at.strftime('%d %B %Y, %I:%M %p') }}</span>
+        </div>
+        {% endif %}
+        
+        <div>
+            <strong style="color: #7f8c8d;">Created:</strong><br>
+            <small>{{ task.created_at.strftime('%d %B %Y, %I:%M %p') }}</small>
+        </div>
+    </div>
+    
+    <!-- Right Column -->
+    <div class="card">
+        <h3 style="margin: 0 0 20px 0; padding-bottom: 15px; border-bottom: 2px solid #ecf0f1;">📝 Description</h3>
+        {% if task.description %}
+        <p style="white-space: pre-line; line-height: 1.6;">{{ task.description }}</p>
+        {% else %}
+        <p style="color: #95a5a6; font-style: italic;">No description provided</p>
+        {% endif %}
+    </div>
+    
+</div>
+
+<!-- Updates History -->
+{% if task.updates %}
+<div class="card">
+    <h3 style="margin: 0 0 20px 0; padding-bottom: 15px; border-bottom: 2px solid #ecf0f1;">
+        🔄 Progress Updates ({{ task.updates|length }})
+    </h3>
+    
+    {% for update in task.updates|reverse %}
+    <div style="padding: 15px; background: #f8f9fa; border-left: 4px solid {% if update.status == 'completed' %}#27ae60{% else %}#3498db{% endif %}; margin-bottom: 15px; border-radius: 5px;">
+        <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+            <div>
+                <strong>{{ update.employee.name }}</strong>
+                {% if update.status == 'completed' %}
+                <span style="background: #27ae60; color: white; padding: 3px 8px; border-radius: 3px; font-size: 12px; margin-left: 10px;">✅ COMPLETED</span>
+                {% elif update.status == 'in_progress' %}
+                <span style="background: #f39c12; color: white; padding: 3px 8px; border-radius: 3px; font-size: 12px; margin-left: 10px;">🔄 IN PROGRESS</span>
+                {% endif %}
+            </div>
+            <small style="color: #7f8c8d;">{{ update.created_at.strftime('%d %b %Y, %I:%M %p') }}</small>
+        </div>
+        
+        {% if update.notes %}
+        <p style="margin: 10px 0; line-height: 1.6;">{{ update.notes }}</p>
+        {% endif %}
+        
+        <div style="display: flex; gap: 20px; margin-top: 10px; font-size: 14px; color: #7f8c8d;">
+            {% if update.progress_percentage %}
+            <span>📊 Progress: <strong>{{ update.progress_percentage }}%</strong></span>
+            {% endif %}
+            <span>👷 Workers: <strong>{{ update.worker_count }}</strong></span>
+            {% if update.hours_worked %}
+            <span>⏰ Hours: <strong>{{ update.hours_worked }}</strong></span>
+            {% endif %}
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+<!-- Materials Used -->
+{% if task.materials %}
+<div class="card">
+    <h3 style="margin: 0 0 20px 0; padding-bottom: 15px; border-bottom: 2px solid #ecf0f1;">
+        🧰 Materials Used ({{ task.materials|length }})
+    </h3>
+    
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Material</th>
+                <th>Quantity</th>
+                <th>Unit</th>
+                <th>Added By</th>
+                <th>Date</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for material in task.materials %}
+            <tr>
+                <td><strong>{{ material.material_name }}</strong></td>
+                <td>{{ material.quantity }}</td>
+                <td>{{ material.unit }}</td>
+                <td>{{ material.employee.name }}</td>
+                <td>{{ material.created_at.strftime('%d %b %Y') }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endif %}
+
+<!-- Photos/Videos -->
+{% if task.media %}
+<div class="card">
+    <h3 style="margin: 0 0 20px 0; padding-bottom: 15px; border-bottom: 2px solid #ecf0f1;">
+        📷 Photos & Videos ({{ task.media|length }})
+    </h3>
+    
+    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px;">
+        {% for media in task.media %}
+        <div style="border: 1px solid #ddd; border-radius: 5px; overflow: hidden;">
+            {% if media.media_type == 'photo' %}
+            <img src="{{ media.file_path }}" alt="Task photo" style="width: 100%; height: 200px; object-fit: cover;">
+            {% else %}
+            <video src="{{ media.file_path }}" controls style="width: 100%; height: 200px;"></video>
+            {% endif %}
+            
+            <div style="padding: 10px; background: #f8f9fa;">
+                <small style="color: #7f8c8d;">
+                    📅 {{ media.created_at.strftime('%d %b %Y') }}<br>
+                    👤 {{ media.employee.name }}
+                </small>
+                {% if media.caption %}
+                <p style="margin: 5px 0 0 0; font-size: 13px;">{{ media.caption }}</p>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<style>
+@media (max-width: 768px) {
+    div[style*="grid-template-columns: 1fr 1fr"] {
+        grid-template-columns: 1fr !important;
+    }
+    
+    div[style*="grid-template-columns: repeat(4, 1fr)"] {
+        grid-template-columns: repeat(2, 1fr) !important;
+    }
+}
+</style>
+
+{% endblock %}
+

@@ -1,0 +1,180 @@
+{% extends 'base_sidebar.html' %}
+
+{% block title %}Create Task - {{ tenant.company_name }}{% endblock %}
+
+{% block page_title %}Create New Task{% endblock %}
+
+{% block header_actions %}
+<a href="{{ url_for('tasks.index') }}" class="btn btn-secondary">
+    ← Back to Tasks
+</a>
+{% endblock %}
+
+{% block content %}
+
+<form method="POST" action="{{ url_for('tasks.create') }}">
+    
+    <!-- Task Details Card -->
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">Task Details</h3>
+        </div>
+        
+        <div class="form-group">
+            <label for="title">Task Title *</label>
+            <input type="text" id="title" name="title" class="form-control" 
+                   placeholder="e.g., Install electrical wiring in Room 101" required>
+            <small style="color: #666;">Clear, descriptive title</small>
+        </div>
+        
+        <div class="form-group">
+            <label for="description">Description</label>
+            <textarea id="description" name="description" class="form-control" rows="4" 
+                      placeholder="Detailed task description, requirements, specifications..."></textarea>
+            <small style="color: #666;">Add any important details or instructions</small>
+        </div>
+        
+        <div class="form-row">
+            <div class="form-group">
+                <label for="priority">Priority *</label>
+                <select id="priority" name="priority" class="form-control" required>
+                    <option value="low">Low Priority</option>
+                    <option value="medium" selected>Medium Priority</option>
+                    <option value="high">🔥 High Priority</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="assigned_to">Assign To *</label>
+                <select id="assigned_to" name="assigned_to" class="form-control" required>
+                    <option value="">Select Employee</option>
+                    {% for employee in employees %}
+                    <option value="{{ employee.id }}">{{ employee.name }} - {{ employee.phone }}</option>
+                    {% endfor %}
+                </select>
+                <small style="color: #666;">Employee will receive email notification</small>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Location & Timeline Card -->
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">Location & Timeline</h3>
+        </div>
+        
+        <div class="form-row">
+            <div class="form-group">
+                <label for="site_id">Site/Location</label>
+                <select id="site_id" name="site_id" class="form-control">
+                    <option value="">No specific site</option>
+                    {% for site in sites %}
+                    <option value="{{ site.id }}">{{ site.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="start_date">Start Date</label>
+                <input type="date" id="start_date" name="start_date" class="form-control" value="{{ today }}">
+            </div>
+        </div>
+        
+        <div class="form-group">
+            <label for="deadline">Deadline</label>
+            <input type="date" id="deadline" name="deadline" class="form-control">
+            <small style="color: #666;">Optional - Set a deadline for this task</small>
+        </div>
+    </div>
+    
+    <!-- Submit Button -->
+    <div style="display: flex; gap: 15px; margin-bottom: 30px;">
+        <button type="submit" class="btn btn-primary" style="flex: 1;">
+            ✅ Create & Assign Task
+        </button>
+        <a href="{{ url_for('tasks.index') }}" class="btn btn-secondary" style="flex: 1;">
+            Cancel
+        </a>
+    </div>
+    
+</form>
+
+<!-- Help Section -->
+<div class="card" style="background: #f8f9fa; border-left: 4px solid #3498db;">
+    <h4 style="margin-bottom: 15px; color: #2c3e50;">💡 Task Management Tips</h4>
+    
+    <div style="margin-bottom: 15px;">
+        <strong>Priority Levels:</strong>
+        <p style="margin: 5px 0; color: #666;">
+            🔥 <strong>High:</strong> Urgent tasks, critical work<br>
+            ⚠️ <strong>Medium:</strong> Important but not urgent<br>
+            📌 <strong>Low:</strong> Can be done when time permits
+        </p>
+    </div>
+    
+    <div style="margin-bottom: 15px;">
+        <strong>Email Notifications:</strong>
+        <p style="margin: 5px 0; color: #666;">
+            Employee will receive an email with task details and login link.
+            Make sure employee email is configured!
+        </p>
+    </div>
+    
+    <div>
+        <strong>Employee Updates:</strong>
+        <p style="margin: 5px 0; color: #666;">
+            Employees can login with their PIN to:
+            • Update task status
+            • Add progress notes
+            • Upload photos/videos
+            • Track materials used
+        </p>
+    </div>
+</div>
+
+<style>
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin-bottom: 20px;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+}
+
+.form-group label {
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: #2c3e50;
+}
+
+.form-control {
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    font-size: 14px;
+}
+
+.form-control:focus {
+    outline: none;
+    border-color: #3498db;
+}
+
+small {
+    font-size: 12px;
+    margin-top: 5px;
+    display: block;
+}
+
+@media (max-width: 768px) {
+    .form-row {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
+
+{% endblock %}
+
