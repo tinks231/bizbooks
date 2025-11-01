@@ -50,10 +50,12 @@
             border-radius: 10px;
             box-shadow: 0 4px 6px rgba(0,0,0,0.1);
             margin-bottom: 20px;
+            max-width: 100%;
         }
         .qr-code img {
             display: block;
             max-width: 300px;
+            width: 100%;
             height: auto;
         }
         .url-box {
@@ -121,6 +123,30 @@
         .btn-secondary:hover {
             background: #5a6268;
         }
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+            }
+            .qr-code {
+                padding: 15px;
+            }
+            .qr-code img {
+                max-width: 250px;
+            }
+            .url-box .url {
+                font-size: 14px;
+            }
+            .instructions {
+                font-size: 14px;
+            }
+            .actions {
+                flex-direction: column;
+            }
+            .btn {
+                width: 100%;
+            }
+        }
+        
         @media print {
             body {
                 background: white;

@@ -58,21 +58,25 @@ def dashboard():
     
     # Get today's attendance status
     from models import Attendance
-    from sqlalchemy import func, cast, Date
+    from datetime import date, timedelta
     
-    today = datetime.now().date()
+    # Get start and end of today for database-agnostic query
+    today_start = datetime.combine(date.today(), datetime.min.time())
+    today_end = datetime.combine(date.today(), datetime.max.time())
     
     # Find today's check-in (Attendance uses timestamp, not date)
     check_in = Attendance.query.filter(
         Attendance.employee_id == employee.id,
-        func.date(Attendance.timestamp) == today,
+        Attendance.timestamp >= today_start,
+        Attendance.timestamp <= today_end,
         Attendance.type == 'check_in'
     ).order_by(Attendance.timestamp.desc()).first()
     
     # Find today's check-out
     check_out = Attendance.query.filter(
         Attendance.employee_id == employee.id,
-        func.date(Attendance.timestamp) == today,
+        Attendance.timestamp >= today_start,
+        Attendance.timestamp <= today_end,
         Attendance.type == 'check_out'
     ).order_by(Attendance.timestamp.desc()).first()
     
