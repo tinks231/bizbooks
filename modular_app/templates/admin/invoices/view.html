@@ -859,6 +859,149 @@
             padding: 4px 3px !important;
         }
     }
+    
+    /* ========================================
+       MOBILE PRINT FIX
+       When printing from mobile, force 2-column layout
+       This overrides the mobile screen CSS above
+       ======================================== */
+    @media print and (max-width: 768px) {
+        /* Force two-column layout for Bill To and Invoice Details when printing from mobile */
+        .invoice-info-row {
+            display: grid !important;
+            grid-template-columns: 1fr 1fr !important;
+            gap: 10px !important;
+        }
+        
+        /* Force two-column layout for Amount in Words and Totals when printing from mobile */
+        .totals-section {
+            display: grid !important;
+            grid-template-columns: 1fr 1fr !important;
+            gap: 15px !important;
+        }
+        
+        /* Keep logo on right side */
+        .invoice-header {
+            display: flex !important;
+            flex-direction: row !important;
+            justify-content: space-between !important;
+        }
+        
+        /* Reduce font sizes for mobile print to fit everything */
+        .company-name {
+            font-size: 14px !important;
+        }
+        
+        .company-info {
+            font-size: 9px !important;
+        }
+        
+        .invoice-title h2 {
+            font-size: 14px !important;
+        }
+        
+        .bill-to h3,
+        .invoice-details h3 {
+            font-size: 10px !important;
+            padding: 3px 5px !important;
+        }
+        
+        .bill-to p,
+        .invoice-details p,
+        .details-table td {
+            font-size: 8px !important;
+        }
+        
+        .customer-name {
+            font-size: 10px !important;
+        }
+        
+        .items-table th,
+        .items-table td {
+            font-size: 9px !important;
+            padding: 3px 4px !important;
+        }
+        
+        .invoice-notes h4 {
+            font-size: 10px !important;
+        }
+        
+        .invoice-notes p {
+            font-size: 8px !important;
+        }
+        
+        .totals-table td {
+            font-size: 9px !important;
+            padding: 3px 6px !important;
+        }
+        
+        .totals-table .total-row td {
+            font-size: 11px !important;
+            padding: 5px 8px !important;
+        }
+        
+        .logo-placeholder {
+            width: 60px !important;
+            height: 60px !important;
+        }
+        
+        /* Compress spacing */
+        .invoice-container {
+            padding: 5mm !important;
+        }
+        
+        .invoice-header {
+            margin-bottom: 5px !important;
+        }
+        
+        .invoice-title {
+            margin: 5px 0 !important;
+        }
+        
+        .invoice-info-row {
+            margin-bottom: 5px !important;
+        }
+        
+        .items-section {
+            margin: 8px 0 !important;
+        }
+        
+        .totals-section {
+            margin: 8px 0 !important;
+        }
+        
+        .signature-section {
+            margin: 8px 0 !important;
+            padding-top: 8px !important;
+        }
+        
+        .signature-section p {
+            margin-bottom: 15px !important;
+        }
+    }
+    
+    /* Extra small mobile print (portrait phones) */
+    @media print and (max-width: 480px) {
+        /* Keep two columns but make everything even smaller */
+        .invoice-info-row,
+        .totals-section {
+            grid-template-columns: 1fr 1fr !important;
+        }
+        
+        .company-name {
+            font-size: 12px !important;
+        }
+        
+        .invoice-title h2 {
+            font-size: 12px !important;
+        }
+        
+        .items-table th,
+        .items-table td {
+            font-size: 8px !important;
+            padding: 2px 3px !important;
+        }
+    }
 </style>
 
 <script>
