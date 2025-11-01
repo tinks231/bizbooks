@@ -8,6 +8,12 @@
 <a href="{{ url_for('tasks.create') }}" class="btn btn-primary">
     ➕ Create New Task
 </a>
+<form method="POST" action="{{ url_for('tasks.delete_all_completed') }}" style="display: inline;" 
+      onsubmit="return confirm('⚠️ DELETE ALL COMPLETED TASKS?\n\nThis will permanently delete:\n- All completed tasks\n- All their updates\n- All their materials\n- All their photos/videos\n\nThis is immediate and cannot be undone!\n\nContinue?')">
+    <button type="submit" class="btn" style="background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%); color: white; border: none;">
+        🗑️ Delete All Completed
+    </button>
+</form>
 <form method="POST" action="{{ url_for('tasks.cleanup_old_media') }}" style="display: inline;" 
       onsubmit="return confirm('This will delete all task photos/videos older than 30 days to save storage space. Continue?')">
     <button type="submit" class="btn" style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); color: white; border: none;">
@@ -181,6 +187,14 @@
                         <a href="{{ url_for('tasks.view', task_id=task.id) }}" class="btn btn-sm btn-primary" title="View">
                             👁️ View
                         </a>
+                        {% if task.status in ['completed', 'cancelled'] %}
+                        <form method="POST" action="{{ url_for('tasks.delete_task', task_id=task.id) }}" style="display: inline;"
+                              onsubmit="return confirm('⚠️ Delete {{ task.task_number }}?\n\nThis will permanently delete:\n- Task record\n- All updates\n- All materials\n- All photos/videos\n\nThis cannot be undone!')">
+                            <button type="submit" class="btn btn-sm" style="background: #e74c3c; color: white;" title="Delete">
+                                🗑️ Delete
+                            </button>
+                        </form>
+                        {% endif %}
                     </td>
                 </tr>
                 {% endfor %}

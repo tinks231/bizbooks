@@ -21,6 +21,15 @@
     </form>
     {% endif %}
     
+    {% if task.status in ['completed', 'cancelled'] %}
+    <form method="POST" action="{{ url_for('tasks.delete_task', task_id=task.id) }}" style="display: inline;"
+          onsubmit="return confirm('⚠️ DELETE TASK {{ task.task_number }}?\n\nThis will permanently delete:\n- Task record\n- All {{ task.updates|length }} updates\n- All {{ task.materials|length }} materials\n- All {{ task.media|length }} photos/videos\n\nThis is immediate and cannot be undone!\n\nContinue?')">
+        <button type="submit" class="btn" style="background: #e74c3c; color: white;">
+            🗑️ Delete Task
+        </button>
+    </form>
+    {% endif %}
+    
     <a href="{{ url_for('tasks.index') }}" class="btn btn-secondary">
         ← Back to Tasks
     </a>

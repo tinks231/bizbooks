@@ -241,6 +241,88 @@ def cancel(task_id):
     return redirect(url_for('tasks.index'))
 
 
+@tasks_bp.route('/<int:task_id>/delete', methods=['POST'])
+@require_tenant
+@login_required
+def delete_task(task_id):
+    """Delete a completed task and all its media"""
+    tenant_id = g.tenant.id
+    task = Task.query.filter_by(id=task_id, tenant_id=tenant_id).first_or_404()
+    
+    # Only allow deletion of completed or cancelled tasks
+    if task.status not in ['completed', 'cancelled']:
+        flash('⚠️ Only completed or cancelled tasks can be deleted', 'warning')
+        return redirect(url_for('tasks.view', task_id=task_id))
+    
+    try:
+        from utils.vercel_blob import delete_from_vercel_blob
+        import os
+        
+        # Delete all media files from Vercel Blob Storage
+        deleted_media = 0
+        for media in task.media:
+            if os.environ.get('VERCEL') and media.file_path.startswith('http'):
+                if delete_from_vercel_blob(media.file_path):
+                    deleted_media += 1
+        
+        # Delete task (cascade will delete updates, materials, media from DB)
+        task_number = task.task_number
+        db.session.delete(task)
+        db.session.commit()
+        
+        flash(f'✅ Task {task_number} deleted successfully (freed ~{deleted_media * 0.3:.1f}MB)', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error deleting task: {str(e)}', 'error')
+    
+    return redirect(url_for('tasks.index'))
+
+
+@tasks_bp.route('/delete-completed', methods=['POST'])
+@require_tenant
+@login_required
+def delete_all_completed():
+    """Delete all completed tasks and their media"""
+    tenant_id = g.tenant.id
+    
+    try:
+        from utils.vercel_blob import delete_from_vercel_blob
+        import os
+        
+        # Find all completed tasks
+        completed_tasks = Task.query.filter_by(
+            tenant_id=tenant_id,
+            status='completed'
+        ).all()
+        
+        if not completed_tasks:
+            flash('No completed tasks to delete', 'info')
+            return redirect(url_for('tasks.index'))
+        
+        deleted_count = 0
+        deleted_media = 0
+        
+        for task in completed_tasks:
+            # Delete all media files
+            for media in task.media:
+                if os.environ.get('VERCEL') and media.file_path.startswith('http'):
+                    if delete_from_vercel_blob(media.file_path):
+                        deleted_media += 1
+            
+            # Delete task
+            db.session.delete(task)
+            deleted_count += 1
+        
+        db.session.commit()
+        
+        flash(f'✅ Deleted {deleted_count} completed tasks (freed ~{deleted_media * 0.3:.1f}MB)', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error deleting tasks: {str(e)}', 'error')
+    
+    return redirect(url_for('tasks.index'))
+
+
 @tasks_bp.route('/cleanup-old-media', methods=['POST'])
 @require_tenant
 @login_required
