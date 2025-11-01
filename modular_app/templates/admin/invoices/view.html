@@ -274,22 +274,20 @@
 <style>
     /* Hide navigation and buttons when printing */
     @media print {
-        /* Hide all non-invoice elements to prevent blank first page */
+        /* Hide navigation and UI elements only */
         .sidebar, 
-        .header,
-        .page-header,
-        .page-title,
-        .header-actions,
         .no-print,
         .btn,
-        .theme-selector,
-        nav,
+        .theme-selector {
+            display: none !important;
+        }
+        
+        /* Hide header elements from base_sidebar.html */
+        body > .header,
+        body > nav,
+        .page-header,
         .breadcrumb {
             display: none !important;
-            height: 0 !important;
-            margin: 0 !important;
-            padding: 0 !important;
-            visibility: hidden !important;
         }
         
         body {
@@ -298,18 +296,20 @@
             padding: 0 !important;
         }
         
-        /* Ensure invoice starts at top of page */
-        .content,
-        .main-content {
+        /* Make content take full width */
+        .content {
             margin: 0 !important;
             padding: 0 !important;
+            width: 100% !important;
         }
         
+        /* Invoice container should be the only thing visible */
         .invoice-container {
-            box-shadow: none;
+            box-shadow: none !important;
             margin: 0 !important;
             padding: 8mm 10mm !important;
-            max-width: 100%;
+            max-width: 100% !important;
+            width: 100% !important;
             page-break-inside: avoid !important;
             page-break-after: avoid !important;
             page-break-before: avoid !important;
