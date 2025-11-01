@@ -273,7 +273,10 @@
     <div class="header">
         <div class="header-content">
             <h1>👷 My Tasks</h1>
-            <a href="{{ url_for('employee_tasks.logout') }}" class="logout-btn">Logout</a>
+            <div style="display: flex; gap: 10px;">
+                <a href="/employee/dashboard" class="logout-btn">← Portal</a>
+                <a href="{{ url_for('employee_tasks.logout') }}" class="logout-btn">Logout</a>
+            </div>
         </div>
     </div>
     

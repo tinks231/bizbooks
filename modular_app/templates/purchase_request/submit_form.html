@@ -17,6 +17,21 @@
             padding: 20px;
         }
         
+        .back-btn {
+            display: inline-block;
+            padding: 8px 15px;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            font-size: 14px;
+            margin-bottom: 15px;
+        }
+        
+        .back-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+        
         .header {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
@@ -165,6 +180,7 @@
 </head>
 <body>
     <div class="header">
+        <a href="/employee/dashboard" class="back-btn">← Back to Portal</a>
         <h1>🛒 Submit Purchase Request</h1>
         <p>Employee: <strong>{{ employee_name }}</strong></p>
     </div>

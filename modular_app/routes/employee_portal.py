@@ -80,11 +80,11 @@ def dashboard():
         Attendance.type == 'check_out'
     ).order_by(Attendance.timestamp.desc()).first()
     
-    # Get pending tasks count
+    # Get pending tasks count (new + in_progress, not completed or cancelled)
     from models import Task
-    pending_tasks = Task.query.filter_by(
-        assigned_to=employee.id,
-        status='in_progress'
+    pending_tasks = Task.query.filter(
+        Task.assigned_to == employee.id,
+        Task.status.in_(['new', 'in_progress'])
     ).count()
     
     return render_template('employee_portal/dashboard.html',

@@ -271,7 +271,7 @@ def submit():
     record = Attendance(
         tenant_id=tenant_id,
         employee_id=employee.id,
-        site_id=site_id,
+        site_id=site.id,
         employee_name=employee.name,
         type=action,
         timestamp=datetime.now(ist),
