@@ -253,7 +253,7 @@
                     <div id="upload-placeholder">
                         <label for="file-input" class="file-upload-label">
                             📎 <strong>Click to upload</strong><br>
-                            <span id="file-name" style="font-size: 13px; color: #999;">Accepted: Images, PDF (Max 4MB)</span>
+                            <span id="file-name" style="font-size: 13px; color: #999;">Accepted: Images (auto-compressed), PDF (Max 2MB)</span>
                         </label>
                     </div>
                     <div id="file-preview" style="display: none; text-align: center;">
@@ -291,25 +291,52 @@
             }
         }
         
-        function handleFileSelect(input) {
+        async function handleFileSelect(input) {
             const file = input.files[0];
             if (!file) return;
             
-            // Validate file size (4MB limit)
-            const maxSize = 4 * 1024 * 1024; // 4MB in bytes
-            if (file.size > maxSize) {
-                alert('❌ File too large! Maximum size is 4MB.\nYour file: ' + (file.size / 1024 / 1024).toFixed(2) + 'MB');
-                input.value = ''; // Clear the input
-                return;
-            }
-            
-            // Validate file type
+            // Validate file type first
             const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp', 'application/pdf'];
             if (!validTypes.includes(file.type)) {
                 alert('❌ Invalid file type!\nAccepted: Images (JPG, PNG, GIF, WebP) or PDF');
                 input.value = ''; // Clear the input
                 return;
             }
+            
+            // If it's an image, compress it first
+            let finalFile = file;
+            if (file.type.startsWith('image/')) {
+                try {
+                    const placeholder = document.getElementById('upload-placeholder');
+                    const fileInfo = document.getElementById('file-info');
+                    
+                    // Show compressing message
+                    placeholder.innerHTML = '<p style="color: #667eea;">⏳ Compressing image...</p>';
+                    
+                    // Compress image
+                    finalFile = await compressImage(file, 0.7, 1200); // 70% quality, max 1200px
+                    
+                    console.log('Original size:', (file.size / 1024 / 1024).toFixed(2) + 'MB');
+                    console.log('Compressed size:', (finalFile.size / 1024 / 1024).toFixed(2) + 'MB');
+                    console.log('Saved:', ((1 - finalFile.size / file.size) * 100).toFixed(1) + '%');
+                } catch (error) {
+                    console.error('Compression failed, using original:', error);
+                    finalFile = file; // Use original if compression fails
+                }
+            }
+            
+            // Validate final file size (2MB limit after compression)
+            const maxSize = 2 * 1024 * 1024; // 2MB in bytes
+            if (finalFile.size > maxSize) {
+                alert('❌ File too large! Maximum size is 2MB.\nYour file: ' + (finalFile.size / 1024 / 1024).toFixed(2) + 'MB\n\nTip: Take photo at lower resolution or use a different file.');
+                input.value = ''; // Clear the input
+                return;
+            }
+            
+            // Update the file input with compressed file
+            const dataTransfer = new DataTransfer();
+            dataTransfer.items.add(finalFile);
+            input.files = dataTransfer.files;
             
             // Show preview
             const placeholder = document.getElementById('upload-placeholder');
@@ -323,22 +350,75 @@
             uploadArea.onclick = null; // Disable click when file is selected
             
             // Show file info
-            const fileSizeMB = (file.size / 1024 / 1024).toFixed(2);
-            fileInfo.textContent = '✅ ' + file.name + ' (' + fileSizeMB + ' MB)';
+            const fileSizeMB = (finalFile.size / 1024 / 1024).toFixed(2);
+            const savedPercent = file.type.startsWith('image/') ? ((1 - finalFile.size / file.size) * 100).toFixed(0) : 0;
+            
+            if (file.type.startsWith('image/') && savedPercent > 10) {
+                fileInfo.innerHTML = '✅ <strong>' + finalFile.name + '</strong><br><span style="font-size: 12px;">' + fileSizeMB + ' MB (compressed ' + savedPercent + '%)</span>';
+            } else {
+                fileInfo.textContent = '✅ ' + finalFile.name + ' (' + fileSizeMB + ' MB)';
+            }
             
             // If it's an image, show preview
-            if (file.type.startsWith('image/')) {
+            if (finalFile.type.startsWith('image/')) {
                 const reader = new FileReader();
                 reader.onload = function(e) {
                     previewImage.src = e.target.result;
                     previewImage.style.display = 'block';
                 };
-                reader.readAsDataURL(file);
+                reader.readAsDataURL(finalFile);
             } else {
                 // For PDF, show icon
                 previewImage.style.display = 'none';
-                fileInfo.innerHTML = '📄 <strong>' + file.name + '</strong><br><span style="font-size: 12px;">(' + fileSizeMB + ' MB)</span>';
+                fileInfo.innerHTML = '📄 <strong>' + finalFile.name + '</strong><br><span style="font-size: 12px;">(' + fileSizeMB + ' MB)</span>';
             }
+        }
+        
+        async function compressImage(file, quality = 0.7, maxDimension = 1200) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const img = new Image();
+                    img.onload = function() {
+                        const canvas = document.createElement('canvas');
+                        let width = img.width;
+                        let height = img.height;
+                        
+                        // Calculate new dimensions
+                        if (width > maxDimension || height > maxDimension) {
+                            if (width > height) {
+                                height = (height / width) * maxDimension;
+                                width = maxDimension;
+                            } else {
+                                width = (width / height) * maxDimension;
+                                height = maxDimension;
+                            }
+                        }
+                        
+                        canvas.width = width;
+                        canvas.height = height;
+                        
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, width, height);
+                        
+                        canvas.toBlob(function(blob) {
+                            if (blob) {
+                                const compressedFile = new File([blob], file.name, {
+                                    type: 'image/jpeg',
+                                    lastModified: Date.now()
+                                });
+                                resolve(compressedFile);
+                            } else {
+                                reject(new Error('Compression failed'));
+                            }
+                        }, 'image/jpeg', quality);
+                    };
+                    img.onerror = reject;
+                    img.src = e.target.result;
+                };
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
         }
         
         function removeFile(event) {
