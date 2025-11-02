@@ -185,7 +185,7 @@ def verify_email(token):
     # Check if already verified
     if tenant.email_verified:
         flash('✅ Email already verified! You can login now.', 'success')
-        return redirect(f"{request.scheme}://{tenant.subdomain}.{request.host}/admin/login")
+        return redirect(f"{request.scheme}://{request.host}/admin/login")
     
     # Check if token expired
     if tenant.token_expiry and tenant.token_expiry < datetime.utcnow():
@@ -204,7 +204,7 @@ def verify_email(token):
     flash(f'🎉 Welcome to BizBooks! Trial period: {tenant.days_remaining} days remaining', 'info')
     
     # Redirect to login page
-    return redirect(f"{request.scheme}://{tenant.subdomain}.{request.host}/admin/login")
+    return redirect(f"{request.scheme}://{request.host}/admin/login")
 
 
 @registration_bp.route('/resend-verification', methods=['GET', 'POST'])
@@ -226,7 +226,7 @@ def resend_verification():
         
         if tenant.email_verified:
             flash('✅ Email already verified! You can login now.', 'success')
-            return redirect(f"{request.scheme}://{tenant.subdomain}.{request.host}/admin/login")
+            return redirect(f"{request.scheme}://{request.host}/admin/login")
         
         # Generate new token
         verification_token = secrets.token_urlsafe(32)
