@@ -148,8 +148,8 @@ def create_customer_template():
     ws = wb.active
     ws.title = "Customer Import"
     
-    # Headers
-    headers = ['Customer Name*', 'Phone*', 'Email', 'GSTIN', 'Address', 'City', 'State', 'Pincode']
+    # Headers - match Customer model fields
+    headers = ['Customer Name*', 'Phone*', 'Email', 'GSTIN', 'Address', 'State', 'Credit Limit', 'Payment Terms (Days)', 'Opening Balance', 'Notes']
     
     # Style headers
     header_fill = PatternFill(start_color="FFC000", end_color="FFC000", fill_type="solid")
@@ -167,10 +167,12 @@ def create_customer_template():
         '9876543210',
         'contact@abc.com',
         '27AABCU9603R1ZM',
-        '123 Business Park',
-        'Mumbai',
+        '123 Business Park, Mumbai, 400001',
         'Maharashtra',
-        '400001'
+        '50000',  # Credit Limit
+        '30',  # Payment Terms (Days)
+        '0',  # Opening Balance
+        'VIP Customer'  # Notes
     ]
     
     for col_num, value in enumerate(sample_data, 1):
@@ -179,21 +181,25 @@ def create_customer_template():
     
     # Add instructions
     ws.cell(row=4, column=1, value="INSTRUCTIONS:")
-    ws.cell(row=5, column=1, value="1. Fields marked with * are required")
+    ws.cell(row=5, column=1, value="1. Fields marked with * are required (Name, Phone)")
     ws.cell(row=6, column=1, value="2. Phone must be 10 digits")
     ws.cell(row=7, column=1, value="3. GSTIN format: 15 characters (optional)")
-    ws.cell(row=8, column=1, value="4. Customer code will be auto-generated")
-    ws.cell(row=9, column=1, value="5. Delete row 2 (sample data) before uploading")
+    ws.cell(row=8, column=1, value="4. Customer code will be auto-generated (CUST-0001, CUST-0002, etc.)")
+    ws.cell(row=9, column=1, value="5. Credit Limit, Payment Terms, Opening Balance are optional (default: 0, 30, 0)")
+    ws.cell(row=10, column=1, value="6. Payment Terms is in days (e.g., 30 = payment due in 30 days)")
+    ws.cell(row=11, column=1, value="7. Delete row 2 (sample data) before uploading")
     
     # Adjust column widths
-    ws.column_dimensions['A'].width = 25
-    ws.column_dimensions['B'].width = 15
-    ws.column_dimensions['C'].width = 25
-    ws.column_dimensions['D'].width = 20
-    ws.column_dimensions['E'].width = 30
-    ws.column_dimensions['F'].width = 15
-    ws.column_dimensions['G'].width = 15
-    ws.column_dimensions['H'].width = 10
+    ws.column_dimensions['A'].width = 25  # Customer Name
+    ws.column_dimensions['B'].width = 15  # Phone
+    ws.column_dimensions['C'].width = 25  # Email
+    ws.column_dimensions['D'].width = 20  # GSTIN
+    ws.column_dimensions['E'].width = 40  # Address
+    ws.column_dimensions['F'].width = 15  # State
+    ws.column_dimensions['G'].width = 15  # Credit Limit
+    ws.column_dimensions['H'].width = 20  # Payment Terms
+    ws.column_dimensions['I'].width = 18  # Opening Balance
+    ws.column_dimensions['J'].width = 25  # Notes
     
     # Save to BytesIO
     output = BytesIO()
@@ -281,7 +287,7 @@ def validate_customer_row(row_data, row_num):
     Validate a single customer row
     Returns: (is_valid, error_message)
     """
-    name, phone, email, gstin, address, city, state, pincode = row_data
+    name, phone, email, gstin, address, state, credit_limit, payment_terms, opening_balance, notes = row_data
     
     # Required fields
     if not name or str(name).strip() == '':
@@ -290,7 +296,14 @@ def validate_customer_row(row_data, row_num):
     if not phone:
         return False, f"Row {row_num}: Phone is required"
     
-    phone_str = str(phone).strip()
+    # Handle phone as float (Excel issue)
+    try:
+        if isinstance(phone, float):
+            phone = int(phone)
+        phone_str = str(phone).strip()
+    except:
+        return False, f"Row {row_num}: Phone must be a valid number"
+    
     if len(phone_str) != 10 or not phone_str.isdigit():
         return False, f"Row {row_num}: Phone must be 10 digits"
     
@@ -299,6 +312,25 @@ def validate_customer_row(row_data, row_num):
         gstin_str = str(gstin).strip()
         if len(gstin_str) != 15:
             return False, f"Row {row_num}: GSTIN must be 15 characters"
+    
+    # Validate numeric fields if provided
+    if credit_limit and credit_limit != '':
+        try:
+            float(credit_limit)
+        except:
+            return False, f"Row {row_num}: Credit Limit must be a number"
+    
+    if payment_terms and payment_terms != '':
+        try:
+            int(payment_terms)
+        except:
+            return False, f"Row {row_num}: Payment Terms must be a number (days)"
+    
+    if opening_balance and opening_balance != '':
+        try:
+            float(opening_balance)
+        except:
+            return False, f"Row {row_num}: Opening Balance must be a number"
     
     return True, None
 
@@ -538,12 +570,12 @@ def import_customers_from_excel(file, tenant_id):
             if all(cell is None or str(cell).strip() == '' for cell in row):
                 continue
             
-            # Extract data
-            row_data = list(row) + [None] * (8 - len(row))
-            name, phone, email, gstin, address, city, state, pincode = row_data[:8]
+            # Extract data - match new template format
+            row_data = list(row) + [None] * (10 - len(row))
+            name, phone, email, gstin, address, state, credit_limit, payment_terms, opening_balance, notes = row_data[:10]
             
             # Validate
-            is_valid, error_msg = validate_customer_row(row_data[:8], row_num)
+            is_valid, error_msg = validate_customer_row(row_data[:10], row_num)
             if not is_valid:
                 errors.append(error_msg)
                 continue
@@ -568,18 +600,23 @@ def import_customers_from_excel(file, tenant_id):
                     next_num = 1
                 customer_code = f"CUST-{next_num:04d}"
                 
-                # Create customer
+                # Handle phone as float (Excel issue)
+                phone_final = str(int(phone) if isinstance(phone, float) else phone).strip()
+                
+                # Create customer with all fields
                 customer = Customer(
                     tenant_id=tenant_id,
                     customer_code=customer_code,
                     name=str(name).strip(),
-                    phone=str(phone).strip(),
+                    phone=phone_final,
                     email=str(email).strip() if email else '',
                     gstin=str(gstin).strip() if gstin else '',
                     address=str(address).strip() if address else '',
-                    city=str(city).strip() if city else '',
                     state=str(state).strip() if state else '',
-                    pincode=str(pincode).strip() if pincode else ''
+                    credit_limit=float(credit_limit) if credit_limit else 0,
+                    payment_terms_days=int(payment_terms) if payment_terms else 30,
+                    opening_balance=float(opening_balance) if opening_balance else 0,
+                    notes=str(notes).strip() if notes else ''
                 )
                 
                 db.session.add(customer)
