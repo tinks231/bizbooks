@@ -217,13 +217,26 @@ def validate_employee_row(row_data, row_num):
     if not pin:
         return False, f"Row {row_num}: PIN is required"
     
-    pin_str = str(pin).strip()
+    # Handle PIN (might be float from Excel, e.g., 1111.0)
+    try:
+        if isinstance(pin, float):
+            pin = int(pin)  # Convert 1111.0 → 1111
+        pin_str = str(pin).strip()
+    except:
+        return False, f"Row {row_num}: PIN must be a valid number"
+    
     if len(pin_str) != 4 or not pin_str.isdigit():
         return False, f"Row {row_num}: PIN must be exactly 4 digits"
     
     # Phone is optional, but if provided, validate it
     if phone and str(phone).strip():
-        phone_str = str(phone).strip()
+        try:
+            if isinstance(phone, float):
+                phone = int(phone)  # Convert 9876543210.0 → 9876543210
+            phone_str = str(phone).strip()
+        except:
+            return False, f"Row {row_num}: Phone must be a valid number"
+        
         if len(phone_str) != 10 or not phone_str.isdigit():
             return False, f"Row {row_num}: Phone must be 10 digits (or leave blank)"
     
@@ -349,11 +362,15 @@ def import_employees_from_excel(file, tenant_id):
                         db.session.flush()
                 
                 # Create employee (only with fields that exist in model)
+                # Convert PIN and phone from float if needed
+                pin_final = str(int(pin) if isinstance(pin, float) else pin).strip()
+                phone_final = str(int(phone) if isinstance(phone, float) else phone).strip() if phone else None
+                
                 employee = Employee(
                     tenant_id=tenant_id,
                     name=str(name).strip(),
-                    pin=str(pin).strip(),
-                    phone=str(phone).strip() if phone else None,
+                    pin=pin_final,
+                    phone=phone_final,
                     email=str(email).strip() if email else None,
                     site_id=site.id if site else None,
                     active=True
