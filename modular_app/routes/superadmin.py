@@ -165,8 +165,116 @@ def delete_tenant(tenant_id):
                     except Exception as e:
                         print(f"Failed to delete file {doc_path}: {e}")
     
-    # Step 2: Delete database records (cascade will delete all related data)
+    # Step 2: Delete all tenant-related data explicitly
+    # (Some models don't have cascade deletion set up)
+    
+    # Import all models that need to be cleaned up
+    from models import (
+        Customer, Invoice, InvoiceItem, Item, ItemCategory, ItemGroup,
+        ItemStock, ItemStockMovement, InventoryAdjustment, InventoryAdjustmentLine,
+        Material, Stock, StockMovement, Transfer, PurchaseRequest, Expense,
+        ExpenseCategory, Task, TaskUpdate, TaskMaterial, TaskMedia
+    )
+    
+    # Delete in correct order (children first, parents last)
+    
+    # 1. Delete invoice items (child of invoices)
+    InvoiceItem.query.filter(
+        InvoiceItem.invoice_id.in_(
+            db.session.query(Invoice.id).filter_by(tenant_id=tenant_id)
+        )
+    ).delete(synchronize_session=False)
+    
+    # 2. Delete invoices
+    Invoice.query.filter_by(tenant_id=tenant_id).delete()
+    
+    # 3. Delete customers
+    Customer.query.filter_by(tenant_id=tenant_id).delete()
+    
+    # 4. Delete items
+    Item.query.filter_by(tenant_id=tenant_id).delete()
+    
+    # 5. Delete item categories
+    ItemCategory.query.filter_by(tenant_id=tenant_id).delete()
+    
+    # 6. Delete item groups
+    ItemGroup.query.filter_by(tenant_id=tenant_id).delete()
+    
+    # 7. Delete inventory adjustment lines (child of adjustments)
+    InventoryAdjustmentLine.query.filter(
+        InventoryAdjustmentLine.adjustment_id.in_(
+            db.session.query(InventoryAdjustment.id).filter_by(tenant_id=tenant_id)
+        )
+    ).delete(synchronize_session=False)
+    
+    # 8. Delete inventory adjustments
+    InventoryAdjustment.query.filter_by(tenant_id=tenant_id).delete()
+    
+    # 9. Delete item stock movements
+    ItemStockMovement.query.filter_by(tenant_id=tenant_id).delete()
+    
+    # 10. Delete item stock
+    ItemStock.query.filter_by(tenant_id=tenant_id).delete()
+    
+    # 11. Delete materials
+    Material.query.filter_by(tenant_id=tenant_id).delete()
+    
+    # 12. Delete stock records
+    Stock.query.filter_by(tenant_id=tenant_id).delete()
+    
+    # 13. Delete stock movements
+    StockMovement.query.filter_by(tenant_id=tenant_id).delete()
+    
+    # 14. Delete inventory transfers
+    Transfer.query.filter_by(tenant_id=tenant_id).delete()
+    
+    # 15. Delete purchase requests
+    PurchaseRequest.query.filter_by(tenant_id=tenant_id).delete()
+    
+    # 16. Delete expenses
+    Expense.query.filter_by(tenant_id=tenant_id).delete()
+    
+    # 17. Delete expense categories
+    ExpenseCategory.query.filter_by(tenant_id=tenant_id).delete()
+    
+    # 18. Delete task media (child of tasks)
+    TaskMedia.query.filter(
+        TaskMedia.task_id.in_(
+            db.session.query(Task.id).filter_by(tenant_id=tenant_id)
+        )
+    ).delete(synchronize_session=False)
+    
+    # 19. Delete task materials (child of tasks)
+    TaskMaterial.query.filter(
+        TaskMaterial.task_id.in_(
+            db.session.query(Task.id).filter_by(tenant_id=tenant_id)
+        )
+    ).delete(synchronize_session=False)
+    
+    # 20. Delete task updates (child of tasks)
+    TaskUpdate.query.filter(
+        TaskUpdate.task_id.in_(
+            db.session.query(Task.id).filter_by(tenant_id=tenant_id)
+        )
+    ).delete(synchronize_session=False)
+    
+    # 21. Delete tasks
+    Task.query.filter_by(tenant_id=tenant_id).delete()
+    
+    # 22. Delete attendance records (has cascade in model, but explicit for safety)
+    Attendance.query.filter_by(tenant_id=tenant_id).delete()
+    
+    # 23. Delete employees (has cascade in model)
+    Employee.query.filter_by(tenant_id=tenant_id).delete()
+    
+    # 24. Delete sites (has cascade in model)
+    from models import Site
+    Site.query.filter_by(tenant_id=tenant_id).delete()
+    
+    # 25. Finally, delete the tenant
     db.session.delete(tenant)
+    
+    # Commit all deletions
     db.session.commit()
     
     from flask import flash
