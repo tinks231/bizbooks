@@ -107,9 +107,16 @@ def submit_form():
             
             # Handle document upload (if provided)
             document_url = None
+            current_app.logger.info(f"📎 Checking for document upload...")
+            current_app.logger.info(f"📎 Files in request: {list(request.files.keys())}")
+            
             if 'document' in request.files:
                 file = request.files['document']
+                current_app.logger.info(f"📎 File object: {file}")
+                current_app.logger.info(f"📎 Filename: {file.filename}")
+                
                 if file and file.filename:
+                    current_app.logger.info(f"📤 Starting upload for: {file.filename}")
                     try:
                         from utils.vercel_blob import upload_to_vercel_blob, generate_blob_filename
                         from PIL import Image
@@ -176,7 +183,12 @@ def submit_form():
                             current_app.logger.warning(f"⚠️ Document upload failed for: {file.filename}")
                     except Exception as e:
                         current_app.logger.error(f"❌ Document upload error: {str(e)}")
+                        current_app.logger.error(f"❌ Full error: {repr(e)}")
+                        import traceback
+                        current_app.logger.error(f"❌ Traceback: {traceback.format_exc()}")
                         # Continue without document - don't fail the entire request
+            else:
+                current_app.logger.info(f"📎 No document in request.files")
             
             # Create purchase request
             purchase_request = PurchaseRequest(
