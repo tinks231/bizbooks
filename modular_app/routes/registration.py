@@ -95,7 +95,7 @@ def index():
                 admin_phone=admin_phone,
                 admin_password_hash=password_hash,
                 plan='trial',
-                status='active',  # Status is active, but can't login until email verified
+                status='trial',  # Trial status for 30-day free trial
                 max_employees=50,  # Free trial: 50 employees
                 max_sites=5,
                 email_verified=False,  # Require email verification
