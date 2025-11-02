@@ -172,7 +172,7 @@ def submit_form():
                             mime_type = 'application/pdf'
                         
                         # Generate blob filename
-                        blob_filename = generate_blob_filename('purchase_requests', tenant_id, file_ext)
+                        blob_filename = generate_blob_filename('purchase_requests', employee_name, file_ext)
                         
                         # Upload to Vercel Blob
                         document_url = upload_to_vercel_blob(file_to_upload, blob_filename, mime_type)
