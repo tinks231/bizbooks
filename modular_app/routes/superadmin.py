@@ -247,14 +247,14 @@ def delete_tenant(tenant_id):
     # 10. Delete item stock
     ItemStock.query.filter_by(tenant_id=tenant_id).delete()
     
-    # 11. Delete materials
-    Material.query.filter_by(tenant_id=tenant_id).delete()
-    
-    # 12. Delete stock records
+    # 11. Delete stock records (BEFORE materials - has FK to materials)
     Stock.query.filter_by(tenant_id=tenant_id).delete()
     
-    # 13. Delete stock movements
+    # 12. Delete stock movements (BEFORE materials - has FK to materials)
     StockMovement.query.filter_by(tenant_id=tenant_id).delete()
+    
+    # 13. Delete materials (AFTER stock/movements deleted)
+    Material.query.filter_by(tenant_id=tenant_id).delete()
     
     # 14. Delete inventory transfers
     Transfer.query.filter_by(tenant_id=tenant_id).delete()
