@@ -222,30 +222,30 @@ def delete_tenant(tenant_id):
     # 3. Delete customers
     Customer.query.filter_by(tenant_id=tenant_id).delete()
     
-    # 4. Delete items
-    Item.query.filter_by(tenant_id=tenant_id).delete()
-    
-    # 5. Delete item categories
-    ItemCategory.query.filter_by(tenant_id=tenant_id).delete()
-    
-    # 6. Delete item groups
-    ItemGroup.query.filter_by(tenant_id=tenant_id).delete()
-    
-    # 7. Delete inventory adjustment lines (child of adjustments)
+    # 4. Delete inventory adjustment lines (child of adjustments)
     InventoryAdjustmentLine.query.filter(
         InventoryAdjustmentLine.adjustment_id.in_(
             db.session.query(InventoryAdjustment.id).filter_by(tenant_id=tenant_id)
         )
     ).delete(synchronize_session=False)
     
-    # 8. Delete inventory adjustments
+    # 5. Delete inventory adjustments
     InventoryAdjustment.query.filter_by(tenant_id=tenant_id).delete()
     
-    # 9. Delete item stock movements
+    # 6. Delete item stock movements (BEFORE items - has FK to items)
     ItemStockMovement.query.filter_by(tenant_id=tenant_id).delete()
     
-    # 10. Delete item stock
+    # 7. Delete item stock (BEFORE items - has FK to items)
     ItemStock.query.filter_by(tenant_id=tenant_id).delete()
+    
+    # 8. Delete items (AFTER all children deleted)
+    Item.query.filter_by(tenant_id=tenant_id).delete()
+    
+    # 9. Delete item categories (AFTER items deleted)
+    ItemCategory.query.filter_by(tenant_id=tenant_id).delete()
+    
+    # 10. Delete item groups (AFTER categories deleted)
+    ItemGroup.query.filter_by(tenant_id=tenant_id).delete()
     
     # 11. Delete stock records (BEFORE materials - has FK to materials)
     Stock.query.filter_by(tenant_id=tenant_id).delete()
