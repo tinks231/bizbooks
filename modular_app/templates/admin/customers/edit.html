@@ -15,6 +15,27 @@
 
 {% block content %}
 
+<!-- Financial Summary (Read-only) -->
+<div class="card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; margin-bottom: 20px;">
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; padding: 20px;">
+        <div style="text-align: center;">
+            <div style="font-size: 14px; opacity: 0.9; margin-bottom: 5px;">Opening Balance</div>
+            <div style="font-size: 28px; font-weight: 700;">₹{{ "%.2f"|format(customer.opening_balance or 0) }}</div>
+            <div style="font-size: 12px; opacity: 0.7; margin-top: 3px;">Old dues before BizBooks</div>
+        </div>
+        <div style="text-align: center;">
+            <div style="font-size: 14px; opacity: 0.9; margin-bottom: 5px;">Outstanding</div>
+            <div style="font-size: 28px; font-weight: 700;">₹{{ "%.2f"|format(customer.get_outstanding_balance()) }}</div>
+            <div style="font-size: 12px; opacity: 0.7; margin-top: 3px;">Unpaid invoices in BizBooks</div>
+        </div>
+        <div style="text-align: center; background: rgba(255,255,255,0.15); border-radius: 10px; padding: 10px;">
+            <div style="font-size: 14px; opacity: 0.9; margin-bottom: 5px;">💰 Total Dues</div>
+            <div style="font-size: 32px; font-weight: 700;">₹{{ "%.2f"|format(customer.get_total_dues()) }}</div>
+            <div style="font-size: 12px; opacity: 0.7; margin-top: 3px;">Opening + Outstanding</div>
+        </div>
+    </div>
+</div>
+
 <form method="POST" action="{{ url_for('customers.edit', customer_id=customer.id) }}">
     
     <!-- Basic Details Card -->

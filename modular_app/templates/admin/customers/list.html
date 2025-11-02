@@ -62,7 +62,9 @@
                     <th>GST</th>
                     <th>State</th>
                     <th>Invoices</th>
+                    <th>Opening Balance</th>
                     <th>Outstanding</th>
+                    <th>Total Dues</th>
                     <th>Credit Limit</th>
                     <th>Status</th>
                     <th>Actions</th>
@@ -95,10 +97,25 @@
                         <span class="badge badge-info">{{ customer.invoice_count }}</span>
                     </td>
                     <td style="text-align: right;">
-                        {% if customer.outstanding > 0 %}
-                            <strong style="color: #e74c3c;">₹{{ "%.2f"|format(customer.outstanding) }}</strong>
+                        {% if customer.opening_balance > 0 %}
+                            <span style="color: #f39c12;">₹{{ "%.2f"|format(customer.opening_balance) }}</span>
                         {% else %}
-                            <span style="color: #27ae60;">₹0.00</span>
+                            <span style="color: #95a5a6;">₹0.00</span>
+                        {% endif %}
+                    </td>
+                    <td style="text-align: right;">
+                        {% if customer.outstanding > 0 %}
+                            <span style="color: #e67e22;">₹{{ "%.2f"|format(customer.outstanding) }}</span>
+                        {% else %}
+                            <span style="color: #95a5a6;">₹0.00</span>
+                        {% endif %}
+                    </td>
+                    <td style="text-align: right;">
+                        {% set total_dues = customer.opening_balance + customer.outstanding %}
+                        {% if total_dues > 0 %}
+                            <strong style="color: #e74c3c; font-size: 16px;">₹{{ "%.2f"|format(total_dues) }}</strong>
+                        {% else %}
+                            <span style="color: #27ae60; font-weight: 600;">✓ ₹0.00</span>
                         {% endif %}
                     </td>
                     <td style="text-align: right;">

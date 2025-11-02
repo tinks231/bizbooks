@@ -47,7 +47,7 @@ class Customer(db.Model):
         return f'<Customer {self.customer_code}: {self.name}>'
     
     def get_outstanding_balance(self):
-        """Calculate total outstanding amount for this customer"""
+        """Calculate total outstanding amount for this customer (unpaid invoices only)"""
         from models.invoice import Invoice
         unpaid_invoices = Invoice.query.filter_by(
             customer_id=self.id,
@@ -56,6 +56,12 @@ class Customer(db.Model):
         
         total_outstanding = sum(inv.total_amount for inv in unpaid_invoices)
         return total_outstanding
+    
+    def get_total_dues(self):
+        """Calculate total dues including opening balance + outstanding invoices"""
+        outstanding = self.get_outstanding_balance()
+        opening = self.opening_balance or 0
+        return opening + outstanding
     
     def get_total_invoices(self):
         """Get count of all invoices for this customer"""
