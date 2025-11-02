@@ -145,10 +145,21 @@ def create():
             
             # Send email notification
             employee = Employee.query.get(assigned_to)
-            if employee and employee.email:
-                send_task_assignment_email(task, employee)
+            email_sent = False
+            if employee:
+                if employee.email and employee.email.strip():
+                    email_sent = send_task_assignment_email(task, employee)
+                    if email_sent:
+                        flash(f'✅ Task {task_number} created and assigned to {employee.name}! Email sent.', 'success')
+                    else:
+                        flash(f'✅ Task {task_number} created and assigned to {employee.name}.', 'success')
+                        flash(f'⚠️ Email notification failed. Please check email configuration.', 'warning')
+                else:
+                    flash(f'✅ Task {task_number} created and assigned to {employee.name}.', 'success')
+                    flash(f'⚠️ No email sent - {employee.name} has no email address on file.', 'warning')
+            else:
+                flash(f'✅ Task {task_number} created!', 'success')
             
-            flash(f'✅ Task {task_number} created and assigned to {employee.name}!', 'success')
             return redirect(url_for('tasks.view', task_id=task.id))
             
         except Exception as e:
@@ -437,6 +448,11 @@ def check_and_trigger_cleanup(tenant_id):
 def send_task_assignment_email(task, employee):
     """Send email notification when task is assigned"""
     try:
+        # Check if employee has an email address
+        if not employee.email or employee.email.strip() == '':
+            print(f"⚠️  Cannot send email to {employee.name} - No email address on file")
+            return False
+        
         from utils.email_utils import send_email
         
         subject = f"New Task Assigned - {task.title}"
@@ -470,6 +486,10 @@ BizBooks Task Management
             body=body
         )
         
+        print(f"✅ Task assignment email sent to {employee.name} ({employee.email})")
+        return True
+        
     except Exception as e:
-        print(f"Email notification failed: {str(e)}")
+        print(f"❌ Email notification failed for {employee.name}: {str(e)}")
+        return False
 
