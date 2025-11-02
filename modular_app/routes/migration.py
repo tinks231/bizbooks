@@ -80,6 +80,60 @@ def add_email_verification():
             'help': 'If columns already exist, this is safe to ignore.'
         })
 
+@migration_bp.route('/add-category-group-link')
+def add_category_group_link():
+    """
+    Add group_id column to item_categories table
+    Safe migration - preserves existing data
+    Access this URL once: /migrate/add-category-group-link
+    """
+    try:
+        # Check if we're using PostgreSQL
+        db_url = db.engine.url.drivername
+        
+        if 'postgresql' in db_url:
+            # PostgreSQL syntax
+            add_group_id = text("""
+                -- Add group_id column to item_categories if it doesn't exist
+                DO $$ 
+                BEGIN
+                    IF NOT EXISTS (
+                        SELECT 1 FROM information_schema.columns 
+                        WHERE table_name='item_categories' AND column_name='group_id'
+                    ) THEN
+                        ALTER TABLE item_categories 
+                        ADD COLUMN group_id INTEGER REFERENCES item_groups(id);
+                        
+                        -- Add index for performance
+                        CREATE INDEX IF NOT EXISTS idx_category_group 
+                        ON item_categories(group_id);
+                    END IF;
+                END $$;
+            """)
+        else:
+            # SQLite syntax
+            add_group_id = text("""
+                -- Add group_id column (SQLite doesn't support IF NOT EXISTS in ALTER)
+                ALTER TABLE item_categories ADD COLUMN group_id INTEGER REFERENCES item_groups(id);
+            """)
+        
+        db.session.execute(add_group_id)
+        db.session.commit()
+        
+        return jsonify({
+            'status': 'success',
+            'message': '✅ group_id column added to item_categories successfully!',
+            'details': 'Categories can now be linked to groups for better organization.'
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({
+            'status': 'error',
+            'message': f'Migration failed: {str(e)}',
+            'help': 'If column already exists, this is safe to ignore.'
+        })
+
 @migration_bp.route('/recreate-all-tables')
 def recreate_all_tables():
     """

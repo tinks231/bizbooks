@@ -10,12 +10,14 @@ class ItemCategory(db.Model, TimestampMixin):
     __tablename__ = 'item_categories'
     __table_args__ = (
         db.Index('idx_category_tenant', 'tenant_id'),
+        db.Index('idx_category_group', 'group_id'),
     )
     
     id = db.Column(db.Integer, primary_key=True)
     tenant_id = db.Column(db.Integer, db.ForeignKey('tenants.id'), nullable=False, index=True)
     name = db.Column(db.String(100), nullable=False)
     description = db.Column(db.Text)
+    group_id = db.Column(db.Integer, db.ForeignKey('item_groups.id'))  # Link to group
     parent_category_id = db.Column(db.Integer, db.ForeignKey('item_categories.id'))
     
     # Relationships
@@ -27,7 +29,7 @@ class ItemCategory(db.Model, TimestampMixin):
 
 
 class ItemGroup(db.Model, TimestampMixin):
-    """Item Groups for variants (e.g., T-Shirt with sizes S, M, L)"""
+    """Item Groups for organizing products (e.g., Fans, Lighting, Wiring)"""
     __tablename__ = 'item_groups'
     __table_args__ = (
         db.Index('idx_group_tenant', 'tenant_id'),
@@ -40,6 +42,7 @@ class ItemGroup(db.Model, TimestampMixin):
     
     # Relationships
     items = db.relationship('Item', backref='item_group', lazy=True)
+    categories = db.relationship('ItemCategory', backref='group', lazy=True)
     
     def __repr__(self):
         return f'<ItemGroup {self.name} (Tenant: {self.tenant_id})>'
