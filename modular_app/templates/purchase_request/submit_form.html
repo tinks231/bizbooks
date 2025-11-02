@@ -249,7 +249,7 @@
             <div class="form-group">
                 <label>Upload Quotation/Invoice (Optional)</label>
                 <div class="file-upload" id="file-upload-area" onclick="document.getElementById('file-input').click()">
-                    <input type="file" id="file-input" name="document" accept="image/*,.pdf" style="display: none;">
+                    <input type="file" id="file-input" name="document" accept="image/*,.pdf" style="display: none;" onchange="handleFileSelect(this)">
                     <div id="upload-placeholder">
                         <label for="file-input" class="file-upload-label">
                             📎 <strong>Click to upload</strong><br>
