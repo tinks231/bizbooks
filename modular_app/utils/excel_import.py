@@ -460,15 +460,33 @@ def import_inventory_from_excel(file, tenant_id):
                     name=str(item_name).strip(),
                     sku=sku,
                     category_id=category_obj.id,
+                    item_group_id=group_obj.id,
                     unit=str(unit).strip(),
-                    stock_quantity=float(stock),
-                    price=float(price) if price else 0.0,
-                    tax_rate=float(tax_rate) if tax_rate else 18.0,
-                    hsn_code=str(hsn).strip() if hsn else '',
-                    description=str(description).strip() if description else ''
+                    opening_stock=float(stock) if stock else 0.0,
+                    selling_price=float(price) if price else 0.0,
+                    cost_price=float(price) if price else 0.0,  # Same as selling for now
+                    tax_preference=f"GST {tax_rate}%" if tax_rate else "GST 18%",
+                    sales_description=str(description).strip() if description else '',
+                    purchase_description=str(description).strip() if description else ''
                 )
                 
                 db.session.add(item)
+                db.session.flush()  # Get item.id
+                
+                # Create stock record for default site
+                from models import Site, ItemStock
+                default_site = Site.query.filter_by(tenant_id=tenant_id).first()
+                
+                if default_site and item.track_inventory:
+                    item_stock = ItemStock(
+                        tenant_id=tenant_id,
+                        item_id=item.id,
+                        site_id=default_site.id,
+                        quantity_available=float(stock) if stock else 0.0,
+                        stock_value=(float(stock) if stock else 0.0) * (float(price) if price else 0.0)
+                    )
+                    db.session.add(item_stock)
+                
                 success_count += 1
                 
             except Exception as e:
