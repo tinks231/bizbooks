@@ -133,7 +133,7 @@ def index():
             else:
                 base_domain = current_host
             
-            verification_url = f"{scheme}://{subdomain}.{base_domain}/verify-email/{verification_token}"
+            verification_url = f"{scheme}://{subdomain}.{base_domain}/register/verify-email/{verification_token}"
             
             # Send email
             email_sent = send_verification_email(
@@ -239,7 +239,7 @@ def resend_verification():
         # Send verification email
         from utils.email_utils import send_verification_email
         
-        verification_url = f"{request.scheme}://{tenant.subdomain}.{request.host}/verify-email/{verification_token}"
+        verification_url = f"{request.scheme}://{tenant.subdomain}.{request.host}/register/verify-email/{verification_token}"
         
         email_sent = send_verification_email(
             to_email=tenant.admin_email,
