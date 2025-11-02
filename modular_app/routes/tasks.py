@@ -457,7 +457,48 @@ def send_task_assignment_email(task, employee):
         
         subject = f"New Task Assigned - {task.title}"
         
-        body = f"""
+        # HTML email body
+        body_html = f"""
+        <html>
+        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+            <div style="max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 8px;">
+                <h2 style="color: #667eea; margin-bottom: 20px;">📋 New Task Assigned</h2>
+                
+                <p>Hi {employee.name},</p>
+                
+                <p>You have been assigned a new task:</p>
+                
+                <div style="background: #f8f9fa; padding: 15px; border-radius: 5px; margin: 20px 0;">
+                    <p style="margin: 5px 0;"><strong>Task Number:</strong> {task.task_number}</p>
+                    <p style="margin: 5px 0;"><strong>Title:</strong> {task.title}</p>
+                    <p style="margin: 5px 0;"><strong>Priority:</strong> <span style="color: {'#e74c3c' if task.priority == 'high' else '#f39c12' if task.priority == 'medium' else '#95a5a6'};">{task.priority.upper()}</span></p>
+                    {f'<p style="margin: 5px 0;"><strong>Site:</strong> {task.site.name}</p>' if task.site else ''}
+                    {f'<p style="margin: 5px 0;"><strong>Start Date:</strong> {task.start_date.strftime("%d-%b-%Y")}</p>' if task.start_date else ''}
+                    {f'<p style="margin: 5px 0;"><strong>Deadline:</strong> {task.deadline.strftime("%d-%b-%Y")}</p>' if task.deadline else ''}
+                </div>
+                
+                <div style="background: #fff; padding: 15px; border-left: 4px solid #667eea; margin: 20px 0;">
+                    <p style="margin: 0;"><strong>Description:</strong></p>
+                    <p style="margin: 10px 0 0 0;">{task.description}</p>
+                </div>
+                
+                <p>Please login to your account to view details and update progress.</p>
+                
+                <a href="{request.host_url}employee/tasks/login" 
+                   style="display: inline-block; padding: 12px 24px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; text-decoration: none; border-radius: 5px; margin-top: 15px;">
+                    View Task
+                </a>
+                
+                <p style="color: #666; font-size: 12px; margin-top: 30px; border-top: 1px solid #ddd; padding-top: 15px;">
+                    This is an automated notification from BizBooks Task Management.
+                </p>
+            </div>
+        </body>
+        </html>
+        """
+        
+        # Plain text fallback
+        body_text = f"""
 Hi {employee.name},
 
 You have been assigned a new task:
@@ -474,7 +515,7 @@ Description:
 
 Please login to your account to view details and update progress.
 
-Login: {request.host_url}
+Login: {request.host_url}employee/tasks/login
 
 ---
 BizBooks Task Management
@@ -483,7 +524,8 @@ BizBooks Task Management
         send_email(
             to_email=employee.email,
             subject=subject,
-            body=body
+            body_html=body_html,
+            body_text=body_text
         )
         
         print(f"✅ Task assignment email sent to {employee.name} ({employee.email})")
