@@ -1,7 +1,7 @@
 """
 Purchase Request routes - Employee & Admin
 """
-from flask import Blueprint, render_template, request, redirect, url_for, flash, g, session
+from flask import Blueprint, render_template, request, redirect, url_for, flash, g, session, current_app
 from models import db, PurchaseRequest, Employee, Tenant, Expense, ExpenseCategory, Item, ItemCategory, ItemStock
 from utils.tenant_middleware import require_tenant, get_current_tenant_id
 from utils.license_check import check_license
@@ -110,9 +110,38 @@ def submit_form():
             if 'document' in request.files:
                 file = request.files['document']
                 if file and file.filename:
-                    # Upload to Vercel Blob
-                    from utils.blob_upload import upload_to_blob
-                    document_url = upload_to_blob(file, f'purchase_requests/{tenant_id}')
+                    try:
+                        # Upload to Vercel Blob
+                        from utils.vercel_blob import upload_to_vercel_blob, generate_blob_filename
+                        import os
+                        
+                        # Get file extension
+                        file_ext = os.path.splitext(file.filename)[1].lower().replace('.', '')
+                        
+                        # Determine MIME type
+                        mime_types = {
+                            'pdf': 'application/pdf',
+                            'png': 'image/png',
+                            'jpg': 'image/jpeg',
+                            'jpeg': 'image/jpeg',
+                            'gif': 'image/gif',
+                            'webp': 'image/webp'
+                        }
+                        mime_type = mime_types.get(file_ext, 'application/octet-stream')
+                        
+                        # Generate blob filename
+                        blob_filename = generate_blob_filename('purchase_requests', tenant_id, file_ext)
+                        
+                        # Upload to Vercel Blob
+                        document_url = upload_to_vercel_blob(file, blob_filename, mime_type)
+                        
+                        if document_url:
+                            current_app.logger.info(f"✅ Document uploaded: {file.filename} → {document_url}")
+                        else:
+                            current_app.logger.warning(f"⚠️ Document upload failed for: {file.filename}")
+                    except Exception as e:
+                        current_app.logger.error(f"❌ Document upload error: {str(e)}")
+                        # Continue without document - don't fail the entire request
             
             # Create purchase request
             purchase_request = PurchaseRequest(
