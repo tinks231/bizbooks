@@ -43,6 +43,13 @@ def login():
         
         # Check if credentials match tenant admin
         if tenant.admin_email == email and tenant.admin_password_hash == password_hash:
+            # Check if email is verified
+            if not tenant.email_verified:
+                flash('⚠️ Please verify your email address before logging in', 'error')
+                flash(f'📧 Check your inbox: {email}', 'info')
+                flash('Didn\'t receive the email? <a href="/register/resend-verification" style="color: #667eea; text-decoration: underline;">Resend verification</a>', 'warning')
+                return render_template('admin/login.html', tenant=tenant, email=email)
+            
             # Make session permanent (lasts for PERMANENT_SESSION_LIFETIME)
             session.permanent = True
             session['tenant_admin_id'] = tenant.id

@@ -38,6 +38,11 @@ class Tenant(db.Model):
     # Settings
     settings = db.Column(db.Text)  # JSON string of tenant-specific settings
     
+    # Email Verification
+    email_verified = db.Column(db.Boolean, default=False)  # New accounts require verification
+    verification_token = db.Column(db.String(100))
+    token_expiry = db.Column(db.DateTime)
+    
     # Timestamps
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

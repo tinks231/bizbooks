@@ -6,6 +6,8 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash
 from models import db, Tenant, Site
 import hashlib
 import re
+import secrets
+from datetime import datetime, timedelta
 
 registration_bp = Blueprint('registration', __name__, url_prefix='/register')
 
@@ -81,6 +83,10 @@ def index():
         
         # Create tenant
         try:
+            # Generate verification token
+            verification_token = secrets.token_urlsafe(32)
+            token_expiry = datetime.utcnow() + timedelta(hours=24)  # 24-hour expiry
+            
             tenant = Tenant(
                 company_name=company_name,
                 subdomain=subdomain,
@@ -89,9 +95,12 @@ def index():
                 admin_phone=admin_phone,
                 admin_password_hash=password_hash,
                 plan='trial',
-                status='active',
+                status='active',  # Status is active, but can't login until email verified
                 max_employees=50,  # Free trial: 50 employees
-                max_sites=5
+                max_sites=5,
+                email_verified=False,  # Require email verification
+                verification_token=verification_token,
+                token_expiry=token_expiry
             )
             db.session.add(tenant)
             db.session.flush()  # Get tenant.id
@@ -110,32 +119,43 @@ def index():
             
             db.session.commit()
             
-            flash(f'🎉 Welcome to BizBooks! Your account has been created successfully!', 'success')
-            flash(f'Trial period: {tenant.days_remaining} days remaining', 'info')
+            # Send verification email
+            from utils.email_utils import send_verification_email
             
-            # Redirect to their subdomain (use current host's base domain)
-            # For local testing: subdomain.lvh.me:5001
-            # For Vercel: subdomain.bizbooks-dun.vercel.app
-            # For production: subdomain.bizbooks.co.in
-            current_host = request.host  # e.g., "bizbooks-dun.vercel.app" or "bizbooks.co.in"
-            scheme = request.scheme  # http or https
+            # Determine base domain for verification link
+            current_host = request.host
+            scheme = request.scheme
             
-            # Determine base domain
             if 'localhost' in current_host or '127.0.0.1' in current_host:
-                # Local development
                 base_domain = 'lvh.me:5001'
             elif 'vercel.app' in current_host:
-                # Vercel deployment: keep full host as base
-                # bizbooks-dun.vercel.app -> subdomain.bizbooks-dun.vercel.app
                 base_domain = current_host
             else:
-                # Production domain (bizbooks.co.in)
-                # Keep the full domain as-is (don't split it)
                 base_domain = current_host
             
-            redirect_url = f"{scheme}://{subdomain}.{base_domain}/admin/login"
+            verification_url = f"{scheme}://{subdomain}.{base_domain}/verify-email/{verification_token}"
             
-            return redirect(redirect_url)
+            # Send email
+            email_sent = send_verification_email(
+                to_email=admin_email,
+                admin_name=admin_name,
+                company_name=company_name,
+                verification_url=verification_url
+            )
+            
+            if email_sent:
+                flash(f'🎉 Account created successfully!', 'success')
+                flash(f'📧 Please check your email ({admin_email}) to verify your account.', 'info')
+                flash(f'⏰ Verification link expires in 24 hours.', 'warning')
+            else:
+                flash(f'⚠️ Account created but verification email failed to send.', 'warning')
+                flash(f'Please contact support: bizbooks.notifications@gmail.com', 'error')
+            
+            # Redirect to verification pending page
+            return render_template('registration/verification_sent.html',
+                                 email=admin_email,
+                                 subdomain=subdomain,
+                                 company_name=company_name)
             
         except Exception as e:
             db.session.rollback()
@@ -149,6 +169,98 @@ def index():
     
     # GET - show form
     return render_template('registration/form.html')
+
+
+@registration_bp.route('/verify-email/<token>')
+def verify_email(token):
+    """Verify email address from verification link"""
+    # Find tenant with this token
+    tenant = Tenant.query.filter_by(verification_token=token).first()
+    
+    if not tenant:
+        flash('⚠️ Invalid verification link', 'error')
+        return render_template('registration/verification_failed.html',
+                             reason='invalid_token')
+    
+    # Check if already verified
+    if tenant.email_verified:
+        flash('✅ Email already verified! You can login now.', 'success')
+        return redirect(f"{request.scheme}://{tenant.subdomain}.{request.host}/admin/login")
+    
+    # Check if token expired
+    if tenant.token_expiry and tenant.token_expiry < datetime.utcnow():
+        flash('⚠️ Verification link has expired', 'error')
+        return render_template('registration/verification_failed.html',
+                             reason='expired',
+                             tenant=tenant)
+    
+    # Verify the account
+    tenant.email_verified = True
+    tenant.verification_token = None  # Clear token after use
+    tenant.token_expiry = None
+    db.session.commit()
+    
+    flash('✅ Email verified successfully! You can now login.', 'success')
+    flash(f'🎉 Welcome to BizBooks! Trial period: {tenant.days_remaining} days remaining', 'info')
+    
+    # Redirect to login page
+    return redirect(f"{request.scheme}://{tenant.subdomain}.{request.host}/admin/login")
+
+
+@registration_bp.route('/resend-verification', methods=['GET', 'POST'])
+def resend_verification():
+    """Resend verification email"""
+    if request.method == 'POST':
+        email = request.form.get('email', '').strip().lower()
+        
+        if not email:
+            flash('Please enter your email address', 'error')
+            return render_template('registration/resend_verification.html')
+        
+        # Find tenant by email
+        tenant = Tenant.query.filter_by(admin_email=email).first()
+        
+        if not tenant:
+            flash('⚠️ No account found with this email', 'error')
+            return render_template('registration/resend_verification.html')
+        
+        if tenant.email_verified:
+            flash('✅ Email already verified! You can login now.', 'success')
+            return redirect(f"{request.scheme}://{tenant.subdomain}.{request.host}/admin/login")
+        
+        # Generate new token
+        verification_token = secrets.token_urlsafe(32)
+        token_expiry = datetime.utcnow() + timedelta(hours=24)
+        
+        tenant.verification_token = verification_token
+        tenant.token_expiry = token_expiry
+        db.session.commit()
+        
+        # Send verification email
+        from utils.email_utils import send_verification_email
+        
+        verification_url = f"{request.scheme}://{tenant.subdomain}.{request.host}/verify-email/{verification_token}"
+        
+        email_sent = send_verification_email(
+            to_email=tenant.admin_email,
+            admin_name=tenant.admin_name,
+            company_name=tenant.company_name,
+            verification_url=verification_url
+        )
+        
+        if email_sent:
+            flash(f'✅ Verification email sent to {email}!', 'success')
+            flash('📧 Please check your inbox and spam folder.', 'info')
+        else:
+            flash('⚠️ Failed to send verification email. Please try again or contact support.', 'error')
+        
+        return render_template('registration/verification_sent.html',
+                             email=tenant.admin_email,
+                             subdomain=tenant.subdomain,
+                             company_name=tenant.company_name)
+    
+    # GET - show resend form
+    return render_template('registration/resend_verification.html')
 
 
 @registration_bp.route('/check-subdomain', methods=['POST'])

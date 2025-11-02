@@ -8,6 +8,78 @@ from sqlalchemy import text
 
 migration_bp = Blueprint('migration', __name__, url_prefix='/migrate')
 
+@migration_bp.route('/add-email-verification')
+def add_email_verification():
+    """
+    Add email verification fields to tenants table
+    Safe migration - preserves existing data, marks old accounts as verified
+    Access this URL once: /migrate/add-email-verification
+    """
+    try:
+        # Check if we're using PostgreSQL
+        db_url = db.engine.url.drivername
+        
+        if 'postgresql' in db_url:
+            # PostgreSQL syntax
+            add_verification_fields = text("""
+                -- Add email verification fields if they don't exist
+                DO $$ 
+                BEGIN
+                    -- Add email_verified column (default TRUE for existing accounts)
+                    IF NOT EXISTS (
+                        SELECT 1 FROM information_schema.columns 
+                        WHERE table_name='tenants' AND column_name='email_verified'
+                    ) THEN
+                        ALTER TABLE tenants ADD COLUMN email_verified BOOLEAN DEFAULT TRUE;
+                    END IF;
+                    
+                    -- Add verification_token column
+                    IF NOT EXISTS (
+                        SELECT 1 FROM information_schema.columns 
+                        WHERE table_name='tenants' AND column_name='verification_token'
+                    ) THEN
+                        ALTER TABLE tenants ADD COLUMN verification_token VARCHAR(100);
+                    END IF;
+                    
+                    -- Add token_expiry column
+                    IF NOT EXISTS (
+                        SELECT 1 FROM information_schema.columns 
+                        WHERE table_name='tenants' AND column_name='token_expiry'
+                    ) THEN
+                        ALTER TABLE tenants ADD COLUMN token_expiry TIMESTAMP;
+                    END IF;
+                END $$;
+            """)
+        else:
+            # SQLite syntax
+            add_verification_fields = text("""
+                -- Add email_verified column (default 1/TRUE for existing accounts)
+                ALTER TABLE tenants ADD COLUMN email_verified INTEGER DEFAULT 1;
+                
+                -- Add verification_token column
+                ALTER TABLE tenants ADD COLUMN verification_token TEXT;
+                
+                -- Add token_expiry column
+                ALTER TABLE tenants ADD COLUMN token_expiry TEXT;
+            """)
+        
+        db.session.execute(add_verification_fields)
+        db.session.commit()
+        
+        return jsonify({
+            'status': 'success',
+            'message': '✅ Email verification fields added successfully!',
+            'details': 'Existing accounts are automatically marked as verified.'
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({
+            'status': 'error',
+            'message': f'Migration failed: {str(e)}',
+            'help': 'If columns already exist, this is safe to ignore.'
+        })
+
 @migration_bp.route('/recreate-all-tables')
 def recreate_all_tables():
     """

@@ -194,3 +194,111 @@ Please contact your supervisor for more details.
     
     return send_email(employee_email, subject, body_html, body_text)
 
+
+def send_verification_email(to_email, admin_name, company_name, verification_url):
+    """Send email verification link to new tenant"""
+    
+    subject = f"🔐 Verify Your BizBooks Account - {company_name}"
+    
+    body_html = f"""
+    <html>
+    <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; background: #f4f4f4; padding: 20px;">
+        <div style="max-width: 600px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+            <!-- Header -->
+            <div style="text-align: center; margin-bottom: 30px;">
+                <h1 style="color: #667eea; margin: 0; font-size: 28px;">📚 BizBooks</h1>
+                <p style="color: #888; font-size: 14px; margin: 5px 0 0 0;">Business Management Made Simple</p>
+            </div>
+            
+            <!-- Welcome Message -->
+            <h2 style="color: #333; margin-bottom: 20px; font-size: 24px;">Welcome, {admin_name}! 🎉</h2>
+            
+            <p style="font-size: 16px; line-height: 1.8; margin-bottom: 20px;">
+                Thank you for signing up for <strong>{company_name}</strong>'s BizBooks account!
+            </p>
+            
+            <p style="font-size: 16px; line-height: 1.8; margin-bottom: 30px;">
+                To get started, please verify your email address by clicking the button below:
+            </p>
+            
+            <!-- Verification Button -->
+            <div style="text-align: center; margin: 40px 0;">
+                <a href="{verification_url}" 
+                   style="display: inline-block; padding: 16px 40px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; text-decoration: none; border-radius: 8px; font-size: 18px; font-weight: bold; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);">
+                    ✅ Verify Email Address
+                </a>
+            </div>
+            
+            <!-- Alternative Link -->
+            <p style="font-size: 14px; color: #666; margin-top: 30px;">
+                If the button doesn't work, copy and paste this link in your browser:
+            </p>
+            <p style="background: #f8f9fa; padding: 12px; border-radius: 5px; word-break: break-all; font-size: 13px; color: #667eea; border: 1px dashed #667eea;">
+                {verification_url}
+            </p>
+            
+            <!-- Important Notice -->
+            <div style="background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 30px 0; border-radius: 5px;">
+                <p style="margin: 0; font-size: 14px; color: #856404;">
+                    <strong>⏰ Important:</strong> This verification link will expire in <strong>24 hours</strong>.
+                </p>
+            </div>
+            
+            <!-- Features Preview -->
+            <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 30px 0;">
+                <h3 style="color: #667eea; margin-top: 0;">What's Next?</h3>
+                <ul style="padding-left: 20px; margin: 10px 0;">
+                    <li style="margin: 8px 0;">📊 <strong>30-Day Free Trial</strong> - Full access to all features</li>
+                    <li style="margin: 8px 0;">👥 <strong>Manage up to 50 employees</strong></li>
+                    <li style="margin: 8px 0;">📦 <strong>Inventory & Stock Management</strong></li>
+                    <li style="margin: 8px 0;">📄 <strong>GST Invoicing</strong></li>
+                    <li style="margin: 8px 0;">📋 <strong>Task Management</strong></li>
+                    <li style="margin: 8px 0;">📍 <strong>GPS Attendance Tracking</strong></li>
+                </ul>
+            </div>
+            
+            <!-- Support -->
+            <div style="margin-top: 40px; padding-top: 20px; border-top: 2px solid #eee;">
+                <p style="color: #666; font-size: 14px; margin: 5px 0;">
+                    <strong>Need Help?</strong>
+                </p>
+                <p style="color: #666; font-size: 14px; margin: 5px 0;">
+                    📧 Email: <a href="mailto:bizbooks.notifications@gmail.com" style="color: #667eea; text-decoration: none;">bizbooks.notifications@gmail.com</a>
+                </p>
+                <p style="color: #999; font-size: 12px; margin-top: 20px;">
+                    This is an automated message from BizBooks. Please do not reply to this email.
+                </p>
+            </div>
+        </div>
+    </body>
+    </html>
+    """
+    
+    body_text = f"""
+Welcome to BizBooks!
+
+Hello {admin_name},
+
+Thank you for signing up for {company_name}'s BizBooks account!
+
+To get started, please verify your email address by visiting this link:
+{verification_url}
+
+⏰ This link will expire in 24 hours.
+
+What's Next?
+- 30-Day Free Trial with full access to all features
+- Manage up to 50 employees
+- Inventory & Stock Management
+- GST Invoicing
+- Task Management
+- GPS Attendance Tracking
+
+Need help? Email us at bizbooks.notifications@gmail.com
+
+---
+This is an automated message from BizBooks.
+    """
+    
+    return send_email(to_email, subject, body_html, body_text)
+

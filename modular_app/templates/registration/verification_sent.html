@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verify Your Email - BizBooks</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 550px;
+            width: 100%;
+            padding: 50px 40px;
+            text-align: center;
+        }
+        .icon {
+            font-size: 80px;
+            margin-bottom: 20px;
+            animation: bounce 1s ease-in-out;
+        }
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-20px); }
+        }
+        h1 {
+            color: #2c3e50;
+            font-size: 32px;
+            margin-bottom: 15px;
+        }
+        .subtitle {
+            color: #7f8c8d;
+            font-size: 16px;
+            margin-bottom: 30px;
+        }
+        .email-box {
+            background: linear-gradient(135deg, #667eea22 0%, #764ba222 100%);
+            padding: 20px;
+            border-radius: 10px;
+            border-left: 4px solid #667eea;
+            margin: 30px 0;
+            text-align: left;
+        }
+        .email-box strong {
+            color: #667eea;
+            font-size: 18px;
+        }
+        .email-box p {
+            color: #555;
+            margin: 10px 0 0 0;
+            line-height: 1.6;
+        }
+        .info-box {
+            background: #fff3cd;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #ffc107;
+            margin: 20px 0;
+            text-align: left;
+        }
+        .info-box strong {
+            color: #856404;
+        }
+        .btn {
+            display: inline-block;
+            padding: 15px 35px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-size: 16px;
+            margin-top: 20px;
+            transition: all 0.3s ease;
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
+        }
+        .help-text {
+            color: #7f8c8d;
+            font-size: 14px;
+            margin-top: 30px;
+        }
+        .help-text a {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 600;
+        }
+        .help-text a:hover {
+            text-decoration: underline;
+        }
+        @media (max-width: 600px) {
+            .container {
+                padding: 30px 20px;
+            }
+            h1 {
+                font-size: 24px;
+            }
+            .icon {
+                font-size: 60px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="icon">📧</div>
+        <h1>Check Your Email!</h1>
+        <p class="subtitle">We've sent a verification link to your email address</p>
+        
+        <div class="email-box">
+            <strong>📧 {{ email }}</strong>
+            <p>Click the verification link in your email to activate your account and start your 30-day free trial!</p>
+        </div>
+        
+        <div class="info-box">
+            <p><strong>⏰ Important:</strong> The verification link will expire in <strong>24 hours</strong>.</p>
+        </div>
+        
+        <p style="color: #7f8c8d; margin: 20px 0;">
+            Can't find the email? Check your <strong>spam/junk folder</strong> 📬
+        </p>
+        
+        <a href="/register/resend-verification" class="btn">📮 Resend Verification Email</a>
+        
+        <div class="help-text">
+            <p>Need help? Contact us at <a href="mailto:bizbooks.notifications@gmail.com">bizbooks.notifications@gmail.com</a></p>
+        </div>
+    </div>
+</body>
+</html>
+
