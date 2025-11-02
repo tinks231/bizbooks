@@ -137,6 +137,23 @@ def delete_tenant(tenant_id):
                             deleted_files += 1
                     except Exception as e:
                         print(f"Failed to delete blob {employee.document_path}: {e}")
+            
+            # Delete task media (photos/videos from task updates)
+            from models import Task, TaskMedia
+            tasks = Task.query.filter_by(tenant_id=tenant_id).all()
+            for task in tasks:
+                for media in task.media:
+                    if media.file_path and media.file_path.startswith('http'):
+                        # It's a Blob URL, delete it
+                        try:
+                            response = requests.delete(
+                                media.file_path,
+                                headers={'Authorization': f'Bearer {blob_token}'}
+                            )
+                            if response.status_code == 200:
+                                deleted_files += 1
+                        except Exception as e:
+                            print(f"Failed to delete blob {media.file_path}: {e}")
     else:
         # Local development: Delete files from filesystem
         import os as os_module
@@ -164,6 +181,20 @@ def delete_tenant(tenant_id):
                         deleted_files += 1
                     except Exception as e:
                         print(f"Failed to delete file {doc_path}: {e}")
+        
+        # Delete task media (photos/videos from task updates)
+        from models import Task, TaskMedia
+        tasks = Task.query.filter_by(tenant_id=tenant_id).all()
+        for task in tasks:
+            for media in task.media:
+                if media.file_path and not media.file_path.startswith('http'):
+                    media_path = os_module.path.join(os_module.path.dirname(os_module.path.abspath(__file__)), '..', 'uploads', 'task_media', media.file_path)
+                    if os_module.path.exists(media_path):
+                        try:
+                            os_module.remove(media_path)
+                            deleted_files += 1
+                        except Exception as e:
+                            print(f"Failed to delete file {media_path}: {e}")
     
     # Step 2: Delete all tenant-related data explicitly
     # (Some models don't have cascade deletion set up)
