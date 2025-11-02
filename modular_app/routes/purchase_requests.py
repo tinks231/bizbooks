@@ -111,29 +111,64 @@ def submit_form():
                 file = request.files['document']
                 if file and file.filename:
                     try:
-                        # Upload to Vercel Blob
                         from utils.vercel_blob import upload_to_vercel_blob, generate_blob_filename
+                        from PIL import Image
                         import os
+                        import io
                         
                         # Get file extension
                         file_ext = os.path.splitext(file.filename)[1].lower().replace('.', '')
                         
-                        # Determine MIME type
-                        mime_types = {
-                            'pdf': 'application/pdf',
-                            'png': 'image/png',
-                            'jpg': 'image/jpeg',
-                            'jpeg': 'image/jpeg',
-                            'gif': 'image/gif',
-                            'webp': 'image/webp'
-                        }
-                        mime_type = mime_types.get(file_ext, 'application/octet-stream')
+                        # Compress images before upload (save storage!)
+                        if file_ext in ['jpg', 'jpeg', 'png', 'gif', 'webp']:
+                            try:
+                                # Read image
+                                image = Image.open(file.stream)
+                                original_size = file.content_length or 0
+                                
+                                # Convert RGBA to RGB if needed (for JPEG)
+                                if image.mode in ('RGBA', 'LA', 'P'):
+                                    background = Image.new('RGB', image.size, (255, 255, 255))
+                                    if image.mode == 'P':
+                                        image = image.convert('RGBA')
+                                    background.paste(image, mask=image.split()[-1] if image.mode in ('RGBA', 'LA') else None)
+                                    image = background
+                                
+                                # Resize if too large (max 1600px)
+                                max_dimension = 1600
+                                if image.width > max_dimension or image.height > max_dimension:
+                                    image.thumbnail((max_dimension, max_dimension), Image.Resampling.LANCZOS)
+                                    current_app.logger.info(f"📐 Resized image to {image.width}x{image.height}")
+                                
+                                # Save compressed to BytesIO
+                                output = io.BytesIO()
+                                image.save(output, format='JPEG', quality=75, optimize=True)
+                                output.seek(0)
+                                
+                                compressed_size = len(output.getvalue())
+                                savings = ((1 - compressed_size / original_size) * 100) if original_size > 0 else 0
+                                
+                                current_app.logger.info(f"🗜️ Compressed: {original_size/1024/1024:.2f}MB → {compressed_size/1024/1024:.2f}MB (saved {savings:.0f}%)")
+                                
+                                # Use compressed image for upload
+                                file_to_upload = output
+                                file_ext = 'jpg'  # Always save as JPEG after compression
+                                mime_type = 'image/jpeg'
+                            except Exception as e:
+                                current_app.logger.warning(f"⚠️ Compression failed, using original: {str(e)}")
+                                file.stream.seek(0)  # Reset stream
+                                file_to_upload = file
+                                mime_type = 'image/jpeg' if file_ext in ['jpg', 'jpeg'] else f'image/{file_ext}'
+                        else:
+                            # PDF - no compression
+                            file_to_upload = file
+                            mime_type = 'application/pdf'
                         
                         # Generate blob filename
                         blob_filename = generate_blob_filename('purchase_requests', tenant_id, file_ext)
                         
                         # Upload to Vercel Blob
-                        document_url = upload_to_vercel_blob(file, blob_filename, mime_type)
+                        document_url = upload_to_vercel_blob(file_to_upload, blob_filename, mime_type)
                         
                         if document_url:
                             current_app.logger.info(f"✅ Document uploaded: {file.filename} → {document_url}")
