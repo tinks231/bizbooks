@@ -242,53 +242,6 @@ def migrate_radius_column():
             'details': str(e)
         }), 500
 
-
-@migration_bp.route('/add-hsn-code-to-items')
-def add_hsn_code_to_items():
-    """
-    Add hsn_code field to items table for GST compliance
-    HSN = Harmonized System of Nomenclature (required for Indian GST)
-    Access this URL once: /migrate/add-hsn-code-to-items
-    """
-    try:
-        # Check if column already exists
-        check_sql = text("""
-            SELECT column_name 
-            FROM information_schema.columns 
-            WHERE table_name='items' AND column_name='hsn_code'
-        """)
-        result = db.session.execute(check_sql).fetchone()
-        
-        if result:
-            return jsonify({
-                'status': 'success',
-                'message': '✅ HSN Code column already exists in items table',
-                'action': 'No changes needed'
-            })
-        
-        # Add hsn_code column
-        add_column_sql = text("""
-            ALTER TABLE items 
-            ADD COLUMN hsn_code VARCHAR(20)
-        """)
-        db.session.execute(add_column_sql)
-        db.session.commit()
-        
-        return jsonify({
-            'status': 'success',
-            'message': '✅ HSN Code column added to items table successfully!',
-            'field_added': 'hsn_code VARCHAR(20)',
-            'next_step': 'You can now create invoices with HSN codes'
-        })
-        
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({
-            'status': 'error',
-            'message': f'Migration failed: {str(e)}',
-            'details': str(e)
-        }), 500
-
 @migration_bp.route('/add-purchase-requests')
 def add_purchase_requests():
     """
@@ -591,53 +544,6 @@ def add_invoices():
         }), 500
 
 
-@migration_bp.route('/add-hsn-code-to-items')
-def add_hsn_code_to_items():
-    """
-    Add hsn_code field to items table for GST compliance
-    HSN = Harmonized System of Nomenclature (required for Indian GST)
-    Access this URL once: /migrate/add-hsn-code-to-items
-    """
-    try:
-        # Check if column already exists
-        check_sql = text("""
-            SELECT column_name 
-            FROM information_schema.columns 
-            WHERE table_name='items' AND column_name='hsn_code'
-        """)
-        result = db.session.execute(check_sql).fetchone()
-        
-        if result:
-            return jsonify({
-                'status': 'success',
-                'message': '✅ HSN Code column already exists in items table',
-                'action': 'No changes needed'
-            })
-        
-        # Add hsn_code column
-        add_column_sql = text("""
-            ALTER TABLE items 
-            ADD COLUMN hsn_code VARCHAR(20)
-        """)
-        db.session.execute(add_column_sql)
-        db.session.commit()
-        
-        return jsonify({
-            'status': 'success',
-            'message': '✅ HSN Code column added to items table successfully!',
-            'field_added': 'hsn_code VARCHAR(20)',
-            'next_step': 'You can now create invoices with HSN codes'
-        })
-        
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({
-            'status': 'error',
-            'message': f'Migration failed: {str(e)}',
-            'details': str(e)
-        }), 500
-
-
 @migration_bp.route('/add-customers')
 def add_customers_table():
     """
@@ -685,53 +591,6 @@ def add_customers_table():
             'message': '✅ Customers table created and invoices updated!',
             'created': ['customers table', 'invoices.customer_id column'],
             'next_step': 'Go to /admin/customers to add your first customer!'
-        })
-        
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({
-            'status': 'error',
-            'message': f'Migration failed: {str(e)}',
-            'details': str(e)
-        }), 500
-
-
-@migration_bp.route('/add-hsn-code-to-items')
-def add_hsn_code_to_items():
-    """
-    Add hsn_code field to items table for GST compliance
-    HSN = Harmonized System of Nomenclature (required for Indian GST)
-    Access this URL once: /migrate/add-hsn-code-to-items
-    """
-    try:
-        # Check if column already exists
-        check_sql = text("""
-            SELECT column_name 
-            FROM information_schema.columns 
-            WHERE table_name='items' AND column_name='hsn_code'
-        """)
-        result = db.session.execute(check_sql).fetchone()
-        
-        if result:
-            return jsonify({
-                'status': 'success',
-                'message': '✅ HSN Code column already exists in items table',
-                'action': 'No changes needed'
-            })
-        
-        # Add hsn_code column
-        add_column_sql = text("""
-            ALTER TABLE items 
-            ADD COLUMN hsn_code VARCHAR(20)
-        """)
-        db.session.execute(add_column_sql)
-        db.session.commit()
-        
-        return jsonify({
-            'status': 'success',
-            'message': '✅ HSN Code column added to items table successfully!',
-            'field_added': 'hsn_code VARCHAR(20)',
-            'next_step': 'You can now create invoices with HSN codes'
         })
         
     except Exception as e:
