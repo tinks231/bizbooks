@@ -92,6 +92,7 @@ class Item(db.Model, TimestampMixin):
     ean = db.Column(db.String(50))  # European Article Number
     mpn = db.Column(db.String(50))  # Manufacturer Part Number
     isbn = db.Column(db.String(50))  # For books
+    hsn_code = db.Column(db.String(20))  # HSN/SAC Code for GST (India)
     
     # ===== Sales Information =====
     selling_price = db.Column(db.Float, default=0.0)
