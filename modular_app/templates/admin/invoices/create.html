@@ -552,57 +552,97 @@
             return;
         }
         
-        // Build dropdown HTML
+        // Build dropdown HTML using data attributes (safer than inline onclick with special chars)
         let html = '';
         filteredItems.slice(0, 10).forEach(item => { // Show max 10 results
+            // Escape for HTML display (not for onclick)
+            const escapedName = item.name.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            const escapedHsn = (item.hsn_code || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            
             html += `
-                <div class="autocomplete-item" onclick="selectItemFromDropdown(${rowId}, ${item.id}, '${item.name.replace(/'/g, "\\'")}', ${item.selling_price}, '${item.hsn_code || ''}')">
-                    <div class="autocomplete-item-name">${item.name}</div>
+                <div class="autocomplete-item" 
+                     data-row-id="${rowId}"
+                     data-item-id="${item.id}"
+                     data-item-name="${escapedName}"
+                     data-item-price="${item.selling_price || 0}"
+                     data-item-hsn="${escapedHsn}">
+                    <div class="autocomplete-item-name">${escapedName}</div>
                     <div class="autocomplete-item-details">
                         <span>💰 Rate: ₹${item.selling_price || 0}</span>
-                        ${item.hsn_code ? `<span>📋 HSN: ${item.hsn_code}</span>` : ''}
+                        ${item.hsn_code ? `<span>📋 HSN: ${escapedHsn}</span>` : ''}
                     </div>
                 </div>
             `;
         });
         
         dropdown.innerHTML = html;
+        
+        // Add click event listeners to all autocomplete items
+        dropdown.querySelectorAll('.autocomplete-item').forEach(itemDiv => {
+            itemDiv.addEventListener('click', function() {
+                const rowId = this.dataset.rowId;
+                const itemId = this.dataset.itemId;
+                const itemName = this.dataset.itemName;
+                const price = this.dataset.itemPrice;
+                const hsn = this.dataset.itemHsn;
+                selectItemFromDropdown(rowId, itemId, itemName, price, hsn);
+            });
+        });
+        
         dropdown.style.display = 'block';
     }
     
     function selectItemFromDropdown(rowId, itemId, itemName, price, hsnCode) {
+        console.log('🔍 Selecting item:', { rowId, itemId, itemName, price, hsnCode });
+        
         const row = document.getElementById(`row_${rowId}`);
-        if (!row) return;
+        if (!row) {
+            console.error('❌ Row not found:', rowId);
+            return;
+        }
         
         // Set item name
         const itemInput = document.getElementById(`item_search_${rowId}`);
-        itemInput.value = itemName;
+        if (itemInput) {
+            itemInput.value = itemName;
+            console.log('✅ Item name set:', itemName);
+        }
         
         // Set hidden item ID
-        document.getElementById(`item_id_${rowId}`).value = itemId;
+        const itemIdInput = document.getElementById(`item_id_${rowId}`);
+        if (itemIdInput) {
+            itemIdInput.value = itemId;
+            console.log('✅ Item ID set:', itemId);
+        }
         
         // Set HSN code
         const hsnInput = row.querySelector('input[name="hsn_code[]"]');
         if (hsnInput && hsnCode) {
             hsnInput.value = hsnCode;
+            console.log('✅ HSN code set:', hsnCode);
         }
         
-        // Set rate
-        const rateInput = row.querySelector('input[name="rate[]"]');
+        // Set rate (use ID for more reliable selection)
+        const rateInput = document.getElementById(`rate_${rowId}`);
         if (rateInput) {
             rateInput.value = price || 0;
+            console.log('✅ Rate set:', price);
+        } else {
+            console.error('❌ Rate input not found for row:', rowId);
         }
         
         // Hide dropdown
         hideDropdown(rowId);
         
         // Calculate row totals
+        console.log('🧮 Calculating row:', rowId);
         calculateRow(rowId);
         
         // Focus on quantity field
-        const qtyInput = row.querySelector('input[name="quantity[]"]');
+        const qtyInput = document.getElementById(`quantity_${rowId}`);
         if (qtyInput) {
             qtyInput.focus();
+            qtyInput.select();  // Select the default value for easy override
         }
     }
     
