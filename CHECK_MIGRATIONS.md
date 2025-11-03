@@ -40,6 +40,7 @@ https://mahaveerelectricals.bizbooks-dun.vercel.app/migrate/add-purchase-request
 4. `/migrate/add-invoices` - Invoicing system
 5. `/migrate/add-customers` - Customer management
 6. `/migrate/add-tasks` - Task management
+7. `/migrate/add-hsn-code-to-items` - HSN code for GST invoices ⭐ NEW!
 
 ## ⚠️ Important:
 - Run each migration **ONLY ONCE** per database
