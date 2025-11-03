@@ -2,7 +2,7 @@
 Invoice management routes
 """
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, g, session
-from models import db, Invoice, InvoiceItem, Item, ItemStock, Tenant
+from models import db, Invoice, InvoiceItem, Item, ItemStock, ItemStockMovement, Site, Tenant
 from utils.tenant_middleware import require_tenant, get_current_tenant_id
 from utils.license_check import check_license
 from sqlalchemy import func, desc
@@ -241,6 +241,55 @@ def create():
                 # Add to invoice
                 invoice.items.append(invoice_item)
                 
+                # 🔥 REDUCE STOCK FOR THIS ITEM 🔥
+                if item_id:  # Only reduce stock if item is from inventory (not manual entry)
+                    item_obj = Item.query.get(item_id)
+                    if item_obj and item_obj.track_inventory:
+                        # Get default site (or first site)
+                        default_site = Site.query.filter_by(tenant_id=tenant_id).first()
+                        if default_site:
+                            # Get or create stock record
+                            item_stock = ItemStock.query.filter_by(
+                                tenant_id=tenant_id,
+                                item_id=item_id,
+                                site_id=default_site.id
+                            ).first()
+                            
+                            if item_stock:
+                                # Check if sufficient stock available
+                                if item_stock.quantity_available < quantity:
+                                    # Allow negative stock but log warning
+                                    print(f"⚠️  WARNING: Insufficient stock for {item_obj.name}! Available: {item_stock.quantity_available}, Requested: {quantity}")
+                                
+                                # Reduce stock (allow negative for flexibility)
+                                old_qty = item_stock.quantity_available
+                                item_stock.quantity_available -= quantity
+                                new_qty = item_stock.quantity_available
+                                
+                                # Update stock value
+                                if item_obj.cost_price:
+                                    item_stock.stock_value = new_qty * item_obj.cost_price
+                                
+                                # Create stock movement record for audit trail
+                                stock_movement = ItemStockMovement(
+                                    tenant_id=tenant_id,
+                                    item_id=item_id,
+                                    site_id=default_site.id,
+                                    movement_type='stock_out',
+                                    quantity=quantity,  # Quantity sold (positive number)
+                                    unit_cost=item_obj.cost_price or 0,
+                                    total_value=quantity * (item_obj.cost_price or 0),
+                                    reference_type='invoice',
+                                    reference_number=None,  # Will be updated after invoice is saved
+                                    reference_id=None,  # Will be updated after invoice is saved
+                                    reason='Sale',
+                                    notes=f'Sold via Invoice (Customer: {customer_name})',
+                                    created_by=g.tenant.company_name
+                                )
+                                db.session.add(stock_movement)
+                                
+                                print(f"📦 Stock reduced: {item_obj.name} - {old_qty} → {new_qty} (Sold: {quantity})")
+                
                 # Update totals
                 subtotal += invoice_item.taxable_value
                 total_cgst += invoice_item.cgst_amount
@@ -282,7 +331,19 @@ def create():
             db.session.add(invoice)
             db.session.commit()
             
-            flash('Invoice created successfully!', 'success')
+            # Update stock movement records with invoice reference
+            ItemStockMovement.query.filter_by(
+                reference_type='invoice',
+                reference_number=None
+            ).filter(
+                ItemStockMovement.created_at >= datetime.now(pytz.timezone('Asia/Kolkata')).replace(second=0, microsecond=0)
+            ).update({
+                'reference_number': invoice.invoice_number,
+                'reference_id': invoice.id
+            })
+            db.session.commit()
+            
+            flash('Invoice created successfully! Stock updated.', 'success')
             return redirect(url_for('invoices.view', invoice_id=invoice.id))
             
         except Exception as e:
