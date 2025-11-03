@@ -473,8 +473,8 @@
                 <input type="text" name="hsn_code[]" class="form-control" placeholder="8544">
             </td>
             <td>
-                <input type="number" name="quantity[]" class="form-control" step="0.01" min="0.01" 
-                       placeholder="1" required onchange="calculateRow(${itemCount})">
+                <input type="number" name="quantity[]" id="quantity_${itemCount}" class="form-control" step="0.01" min="0.01" 
+                       value="1" placeholder="1" required oninput="calculateRow(${itemCount})">
             </td>
             <td>
                 <select name="unit[]" class="form-control">
@@ -489,17 +489,17 @@
             <td>
                 <div style="display: flex; align-items: center; gap: 8px;">
                     <input type="number" name="rate[]" id="rate_${itemCount}" class="form-control" step="0.01" min="0.01" 
-                           placeholder="1200" required onchange="calculateRow(${itemCount})" 
+                           placeholder="1200" required oninput="calculateRow(${itemCount})" 
                            style="text-align: right; flex: 1; min-width: 80px;">
                     <label style="display: flex; align-items: center; gap: 4px; margin: 0; cursor: pointer; white-space: nowrap;">
                         <input type="checkbox" name="price_inclusive[]" id="price_inclusive_${itemCount}" 
-                               class="price-inclusive-checkbox" onchange="calculateRow(${itemCount})" value="off">
+                               class="price-inclusive-checkbox" onchange="calculateRow(${itemCount})">
                         <span style="font-size: 11px; color: #666;">Inc</span>
                     </label>
                 </div>
             </td>
             <td>
-                <select name="gst_rate[]" class="form-control" onchange="calculateRow(${itemCount})">
+                <select name="gst_rate[]" id="gst_rate_${itemCount}" class="form-control" onchange="calculateRow(${itemCount})">
                     <option value="0">0%</option>
                     <option value="5">5%</option>
                     <option value="12">12%</option>
@@ -617,11 +617,16 @@
         const row = document.getElementById(`row_${rowId}`);
         if (!row) return;
         
-        const qty = parseFloat(row.querySelector('input[name="quantity[]"]').value) || 0;
-        const rate = parseFloat(row.querySelector('input[name="rate[]"]').value) || 0;
-        const gstRate = parseFloat(row.querySelector('select[name="gst_rate[]"]').value) || 0;
-        const priceInclusiveCheckbox = row.querySelector('input[name="price_inclusive[]"]');
-        const priceInclusive = priceInclusiveCheckbox && priceInclusiveCheckbox.checked;
+        // Use IDs for more reliable element selection
+        const qtyInput = document.getElementById(`quantity_${rowId}`);
+        const rateInput = document.getElementById(`rate_${rowId}`);
+        const gstRateSelect = document.getElementById(`gst_rate_${rowId}`);
+        const priceInclusiveCheckbox = document.getElementById(`price_inclusive_${rowId}`);
+        
+        const qty = qtyInput ? parseFloat(qtyInput.value) || 0 : 0;
+        const rate = rateInput ? parseFloat(rateInput.value) || 0 : 0;
+        const gstRate = gstRateSelect ? parseFloat(gstRateSelect.value) || 0 : 0;
+        const priceInclusive = priceInclusiveCheckbox ? priceInclusiveCheckbox.checked : false;
         
         let taxableValue, gstAmount, total;
         
