@@ -50,6 +50,7 @@ class DeliveryChallan(db.Model, TimestampMixin):
     lr_number = db.Column(db.String(50))  # Lorry Receipt Number
     transporter_name = db.Column(db.String(200))
     delivery_note = db.Column(db.Text)  # Special instructions
+    purpose = db.Column(db.String(100), default='Sale')  # Temporary: for old schema compatibility
     
     # Status Tracking
     status = db.Column(db.String(20), default='draft')  # draft, dispatched, delivered, invoiced, cancelled

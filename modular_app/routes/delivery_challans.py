@@ -109,6 +109,9 @@ def create_challan():
         # Sales Order reference
         sales_order_id = request.form.get('sales_order_id') or None
         
+        # Purpose (for old schema compatibility)
+        purpose = request.form.get('purpose', 'Sale')
+        
         # Create delivery challan
         challan = DeliveryChallan(
             tenant_id=tenant_id,
@@ -126,6 +129,7 @@ def create_challan():
             lr_number=lr_number,
             transporter_name=transporter_name,
             delivery_note=delivery_note,
+            purpose=purpose,  # Temporary: for old schema compatibility
             notes=notes,
             terms=terms,
             status='draft'
