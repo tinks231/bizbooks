@@ -14,7 +14,7 @@ class SalesOrder(db.Model):
     expected_delivery_date = db.Column(db.Date)
     
     # Customer
-    customer_id = db.Column(db.Integer, db.ForeignKey('parties.id'))
+    customer_id = db.Column(db.Integer, db.ForeignKey('customers.id'))
     customer_name = db.Column(db.String(255), nullable=False)
     customer_phone = db.Column(db.String(20))
     customer_email = db.Column(db.String(255))
@@ -55,7 +55,7 @@ class SalesOrder(db.Model):
     # Relationships
     items = db.relationship('SalesOrderItem', backref='sales_order', lazy=True, cascade='all, delete-orphan')
     tenant = db.relationship('Tenant', backref='sales_orders')
-    customer = db.relationship('Party', backref='sales_orders', foreign_keys=[customer_id])
+    customer = db.relationship('Customer', backref='sales_orders', foreign_keys=[customer_id])
     quotation = db.relationship('Quotation', backref='sales_orders')
     
     def __repr__(self):

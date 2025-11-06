@@ -777,7 +777,7 @@ def add_sales_order_module():
                     expected_delivery_date DATE,
                     
                     -- Customer
-                    customer_id INTEGER REFERENCES parties(id),
+                    customer_id INTEGER REFERENCES customers(id),
                     customer_name VARCHAR(255) NOT NULL,
                     customer_phone VARCHAR(20),
                     customer_email VARCHAR(255),
@@ -865,7 +865,7 @@ def add_sales_order_module():
                     challan_date DATE NOT NULL,
                     
                     -- Customer
-                    customer_id INTEGER REFERENCES parties(id),
+                    customer_id INTEGER REFERENCES customers(id),
                     customer_name VARCHAR(255) NOT NULL,
                     customer_phone VARCHAR(20),
                     customer_gstin VARCHAR(15),
@@ -1008,7 +1008,7 @@ def add_sales_order_module():
                     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     created_by VARCHAR(255),
                     FOREIGN KEY (tenant_id) REFERENCES tenants(id),
-                    FOREIGN KEY (customer_id) REFERENCES parties(id),
+                    FOREIGN KEY (customer_id) REFERENCES customers(id),
                     FOREIGN KEY (quotation_id) REFERENCES quotations(id)
                 );
                 
@@ -1069,7 +1069,7 @@ def add_sales_order_module():
                     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     created_by VARCHAR(255),
                     FOREIGN KEY (tenant_id) REFERENCES tenants(id),
-                    FOREIGN KEY (customer_id) REFERENCES parties(id),
+                    FOREIGN KEY (customer_id) REFERENCES customers(id),
                     FOREIGN KEY (sales_order_id) REFERENCES sales_orders(id)
                 );
                 
