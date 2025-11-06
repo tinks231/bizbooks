@@ -1,0 +1,215 @@
+{% extends 'base_sidebar.html' %}
+
+{% block title %}Vendors - {{ tenant.company_name }}{% endblock %}
+
+{% block page_title %}Vendor Management{% endblock %}
+
+{% block header_actions %}
+<a href="{{ url_for('vendors.add') }}" class="btn btn-primary">
+    + Add New Vendor
+</a>
+{% endblock %}
+
+{% block content %}
+
+<!-- Search and Filter Card -->
+<div class="card" style="margin-bottom: 20px;">
+    <form method="GET" action="{{ url_for('vendors.index') }}" style="display: flex; gap: 15px; flex-wrap: wrap; align-items: flex-end;">
+        <div class="form-group" style="flex: 1; min-width: 250px; margin-bottom: 0;">
+            <label for="search">Search Vendor</label>
+            <input type="text" id="search" name="search" class="form-control" 
+                   placeholder="Name, Code, Company, Phone..." value="{{ search }}">
+        </div>
+        
+        <div class="form-group" style="min-width: 150px; margin-bottom: 0;">
+            <label for="status">Status</label>
+            <select id="status" name="status" class="form-control">
+                <option value="all" {% if status_filter == 'all' %}selected{% endif %}>All</option>
+                <option value="active" {% if status_filter == 'active' %}selected{% endif %}>Active</option>
+                <option value="inactive" {% if status_filter == 'inactive' %}selected{% endif %}>Inactive</option>
+            </select>
+        </div>
+        
+        <button type="submit" class="btn btn-primary">
+            🔍 Search
+        </button>
+        
+        {% if search or status_filter != 'all' %}
+        <a href="{{ url_for('vendors.index') }}" class="btn btn-secondary">
+            Clear
+        </a>
+        {% endif %}
+    </form>
+</div>
+
+<!-- Vendors Table -->
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">All Vendors ({{ vendors|length }})</h3>
+    </div>
+    
+    {% if vendors %}
+    <div style="overflow-x: auto;">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Code</th>
+                    <th>Name / Company</th>
+                    <th>Contact</th>
+                    <th>GST</th>
+                    <th>State</th>
+                    <th>Purchases</th>
+                    <th>Payment Terms</th>
+                    <th>Credit Limit</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for vendor in vendors %}
+                <tr>
+                    <td>
+                        <strong>{{ vendor.vendor_code }}</strong>
+                    </td>
+                    <td>
+                        <strong>{{ vendor.name }}</strong>
+                        {% if vendor.company_name and vendor.company_name != vendor.name %}
+                            <br><small style="color: #7f8c8d;">{{ vendor.company_name }}</small>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if vendor.phone %}
+                            📞 {{ vendor.phone }}<br>
+                        {% endif %}
+                        {% if vendor.email %}
+                            ✉️ {{ vendor.email }}
+                        {% endif %}
+                    </td>
+                    <td>
+                        {{ vendor.gstin or '-' }}
+                    </td>
+                    <td>
+                        {{ vendor.state or '-' }}
+                    </td>
+                    <td style="text-align: center;">
+                        <span class="badge badge-info">{{ vendor.purchase_count or 0 }}</span>
+                    </td>
+                    <td style="text-align: center;">
+                        {% if vendor.payment_terms_days %}
+                            {{ vendor.payment_terms_days }} days
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                    <td style="text-align: right;">
+                        {% if vendor.credit_limit > 0 %}
+                            ₹{{ "%.0f"|format(vendor.credit_limit) }}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if vendor.is_active %}
+                            <span class="badge badge-success">Active</span>
+                        {% else %}
+                            <span class="badge badge-secondary">Inactive</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div style="display: flex; gap: 8px;">
+                            <a href="{{ url_for('vendors.view', vendor_id=vendor.id) }}" 
+                               class="btn btn-sm btn-info" title="View Details">
+                                👁️
+                            </a>
+                            <a href="{{ url_for('vendors.edit', vendor_id=vendor.id) }}" 
+                               class="btn btn-sm btn-primary" title="Edit">
+                                ✏️
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div style="padding: 40px; text-align: center; color: #7f8c8d;">
+        <p style="font-size: 48px; margin-bottom: 10px;">🏭</p>
+        <p style="font-size: 18px; margin-bottom: 20px;">No vendors found</p>
+        <a href="{{ url_for('vendors.add') }}" class="btn btn-primary">
+            + Add Your First Vendor
+        </a>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+    .badge {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: 600;
+    }
+    
+    .badge-success {
+        background: #d4edda;
+        color: #155724;
+    }
+    
+    .badge-secondary {
+        background: #e2e3e5;
+        color: #383d41;
+    }
+    
+    .badge-info {
+        background: #d1ecf1;
+        color: #0c5460;
+    }
+    
+    .btn-sm {
+        padding: 6px 12px;
+        font-size: 14px;
+    }
+    
+    .table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    
+    .table th {
+        background: #f8f9fa;
+        padding: 12px;
+        text-align: left;
+        font-weight: 600;
+        border-bottom: 2px solid #dee2e6;
+    }
+    
+    .table td {
+        padding: 12px;
+        border-bottom: 1px solid #dee2e6;
+    }
+    
+    .table tbody tr:hover {
+        background: #f8f9fa;
+    }
+    
+    @media (max-width: 768px) {
+        .table {
+            font-size: 13px;
+        }
+        
+        .table th,
+        .table td {
+            padding: 8px;
+        }
+        
+        .btn-sm {
+            padding: 4px 8px;
+            font-size: 12px;
+        }
+    }
+</style>
+
+{% endblock %}
+

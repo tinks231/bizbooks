@@ -98,6 +98,7 @@ from routes.items import items_bp  # NEW: Professional items management
 from routes.expenses import expenses_bp  # NEW: Expenses tracking
 from routes.purchase_requests import purchase_request_bp, admin_purchase_bp  # NEW: Purchase requests
 from routes.customers import customers_bp  # NEW: Customer management
+from routes.vendors import vendors_bp  # NEW: Vendor management
 from routes.invoices import invoices_bp  # NEW: GST Invoicing
 from routes.tasks import tasks_bp  # NEW: Task management (admin)
 from routes.employee_tasks import employee_tasks_bp  # NEW: Task management (employee)
@@ -117,6 +118,7 @@ app.register_blueprint(expenses_bp)  # NEW: Register expenses blueprint
 app.register_blueprint(purchase_request_bp)  # NEW: Employee purchase requests
 app.register_blueprint(admin_purchase_bp)  # NEW: Admin purchase management
 app.register_blueprint(customers_bp)  # NEW: Customer management
+app.register_blueprint(vendors_bp)  # NEW: Vendor management
 app.register_blueprint(invoices_bp)  # NEW: GST invoicing
 app.register_blueprint(tasks_bp)  # NEW: Task management (admin)
 app.register_blueprint(employee_tasks_bp)  # NEW: Task management (employee)

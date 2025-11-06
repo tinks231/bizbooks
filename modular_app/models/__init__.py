@@ -15,6 +15,7 @@ from .item import (
 from .expense import Expense, ExpenseCategory
 from .purchase_request import PurchaseRequest
 from .customer import Customer
+from .vendor import Vendor
 from .invoice import Invoice, InvoiceItem
 from .task import Task, TaskUpdate, TaskMaterial, TaskMedia
 # Temporarily disabled until quotations module is fully implemented
@@ -35,7 +36,7 @@ __all__ = [
     'ItemStockMovement', 'InventoryAdjustment', 'InventoryAdjustmentLine',
     'Expense', 'ExpenseCategory',
     'PurchaseRequest',
-    'Customer', 'Party',
+    'Customer', 'Vendor', 'Party',
     'Invoice', 'InvoiceItem',
     'Task', 'TaskUpdate', 'TaskMaterial', 'TaskMedia',
     # 'Quotation', 'QuotationItem',  # Temporarily disabled
