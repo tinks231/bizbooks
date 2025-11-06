@@ -106,7 +106,15 @@ def list_orders():
 @sales_order_bp.route('/create', methods=['GET', 'POST'])
 def create_order():
     """Create a new sales order"""
-    tenant_id = session['tenant_admin_id']
+    try:
+        tenant_id = session['tenant_admin_id']
+        print(f"🔍 Sales Order Create - Tenant ID: {tenant_id}")
+    except Exception as e:
+        print(f"❌ Error getting tenant_id: {e}")
+        import traceback
+        traceback.print_exc()
+        flash('Session error. Please login again.', 'error')
+        return redirect(url_for('admin.login'))
     
     if request.method == 'POST':
         try:
@@ -276,22 +284,40 @@ def create_order():
             return redirect(url_for('sales_orders.create_order'))
     
     # GET request - show form
-    ist = pytz.timezone('Asia/Kolkata')
-    today = datetime.now(ist).date()
-    
-    # Get all customers
-    customers = Customer.query.filter_by(tenant_id=tenant_id).order_by(Customer.name).all()
-    
-    # Get all items
-    items = Item.query.filter_by(tenant_id=tenant_id).order_by(Item.name).all()
-    
-    return render_template(
-        'sales_orders/create.html',
-        customers=customers,
-        items=items,
-        today=today,
-        quotation_id=request.args.get('from_quotation')
-    )
+    try:
+        print(f"🔍 Loading Sales Order Create Form for tenant: {tenant_id}")
+        
+        ist = pytz.timezone('Asia/Kolkata')
+        today = datetime.now(ist).date()
+        print(f"📅 Today's date: {today}")
+        
+        # Get all customers
+        print(f"🔍 Fetching customers for tenant {tenant_id}...")
+        customers = Customer.query.filter_by(tenant_id=tenant_id).order_by(Customer.name).all()
+        print(f"✅ Found {len(customers)} customers")
+        
+        # Get all items
+        print(f"🔍 Fetching items for tenant {tenant_id}...")
+        items = Item.query.filter_by(tenant_id=tenant_id).order_by(Item.name).all()
+        print(f"✅ Found {len(items)} items")
+        
+        print(f"🔍 Rendering template: sales_orders/create.html")
+        return render_template(
+            'sales_orders/create.html',
+            customers=customers,
+            items=items,
+            today=today,
+            quotation_id=request.args.get('from_quotation')
+        )
+    except Exception as e:
+        print(f"❌ CRITICAL ERROR in create_order GET:")
+        print(f"❌ Error type: {type(e).__name__}")
+        print(f"❌ Error message: {str(e)}")
+        import traceback
+        print(f"❌ Full traceback:")
+        traceback.print_exc()
+        flash(f'Error loading sales order form: {str(e)}', 'error')
+        return redirect(url_for('sales_orders.list_orders'))
 
 
 @sales_order_bp.route('/<int:order_id>')
