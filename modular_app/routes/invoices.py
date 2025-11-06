@@ -156,7 +156,7 @@ def create():
             invoice = Invoice(
                 tenant_id=tenant_id,
                 customer_id=customer_id,  # NEW: Link to customer master
-                # sales_order_id=sales_order_id,  # DISABLED: Need to run migration first
+                sales_order_id=sales_order_id,  # ✅ RE-ENABLED: Migration completed!
                 customer_name=customer_name,
                 customer_phone=customer_phone,
                 customer_email=customer_email,
@@ -352,9 +352,23 @@ def create():
             
             # Update sales order status if linked
             if sales_order_id:
-                from models import SalesOrder
+                from models import SalesOrder, SalesOrderItem
                 sales_order = SalesOrder.query.get(sales_order_id)
                 if sales_order:
+                    # 🔥 UPDATE SALES ORDER ITEMS WITH INVOICED QUANTITIES
+                    for invoice_item in invoice.items:
+                        # Find matching sales order item by item_id
+                        if invoice_item.item_id:
+                            so_item = SalesOrderItem.query.filter_by(
+                                sales_order_id=sales_order_id,
+                                item_id=invoice_item.item_id
+                            ).first()
+                            
+                            if so_item:
+                                # Increment quantity_invoiced
+                                so_item.quantity_invoiced += invoice_item.quantity
+                                print(f"📋 Updated SO item {so_item.item_name}: invoiced {so_item.quantity_invoiced}/{so_item.quantity}")
+                    
                     # Update fulfillment tracking
                     sales_order.update_fulfillment_status()
                     flash(f'✅ Invoice created successfully! Linked to Sales Order {sales_order.order_number}', 'success')
