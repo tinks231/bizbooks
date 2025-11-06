@@ -2,16 +2,16 @@
 
 {% block title %}Create Sales Order{% endblock %}
 
-{% block content %}
-<div class="container-fluid mt-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2>📋 Create Sales Order</h2>
-        <a href="{{ url_for('sales_orders.list_orders') }}" class="btn btn-secondary">
-            <i class="fas fa-arrow-left"></i> Back to Orders
-        </a>
-    </div>
+{% block page_title %}📋 Create New Sales Order{% endblock %}
 
-    <form method="POST" action="{{ url_for('sales_orders.create_order') }}" id="salesOrderForm">
+{% block header_actions %}
+<a href="{{ url_for('sales_orders.list_orders') }}" class="btn btn-secondary">
+    ← Back to Orders
+</a>
+{% endblock %}
+
+{% block content %}
+<form method="POST" action="{{ url_for('sales_orders.create_order') }}" id="salesOrderForm">
         <!-- Customer Details -->
         <div class="card mb-4">
             <div class="card-header">
@@ -179,7 +179,6 @@
             </button>
         </div>
     </form>
-</div>
 
 <style>
 .card {

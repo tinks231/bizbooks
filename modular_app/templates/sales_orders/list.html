@@ -2,20 +2,15 @@
 
 {% block title %}Sales Orders{% endblock %}
 
+{% block page_title %}📋 Sales Orders{% endblock %}
+
+{% block header_actions %}
+<a href="{{ url_for('sales_orders.create_order') }}" class="btn btn-primary">
+    + New Sales Order
+</a>
+{% endblock %}
+
 {% block content %}
-<div class="container-fluid mt-4">
-    <!-- Page Header -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <h2>📋 Sales Orders</h2>
-            <p class="text-muted">Track and manage customer orders</p>
-        </div>
-        <div>
-            <a href="{{ url_for('sales_orders.create_order') }}" class="btn btn-primary">
-                <i class="fas fa-plus"></i> New Sales Order
-            </a>
-        </div>
-    </div>
 
     <!-- Statistics Cards -->
     <div class="row mb-4">
@@ -274,7 +269,6 @@
             {% endif %}
         </div>
     </div>
-</div>
 
 <style>
 .card {

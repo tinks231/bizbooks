@@ -2,79 +2,68 @@
 
 {% block title %}Sales Order {{ order.order_number }}{% endblock %}
 
-{% block content %}
-<div class="container-fluid mt-4">
-    <!-- Header with Actions -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <h2>📋 Sales Order {{ order.order_number }}</h2>
-            <p class="text-muted mb-0">
-                Created on {{ order.order_date.strftime('%d %b %Y') }}
-                {% if order.expected_delivery_date %}
-                • Expected: {{ order.expected_delivery_date.strftime('%d %b %Y') }}
-                {% endif %}
-            </p>
-        </div>
-        <div>
-            <a href="{{ url_for('sales_orders.list_orders') }}" class="btn btn-secondary">
-                <i class="fas fa-arrow-left"></i> Back to Orders
-            </a>
-            {% if order.status not in ['invoiced', 'cancelled'] %}
-            <a href="{{ url_for('sales_orders.edit_order', order_id=order.id) }}" class="btn btn-warning">
-                <i class="fas fa-edit"></i> Edit
-            </a>
-            {% endif %}
-            <div class="btn-group">
-                <button type="button" class="btn btn-primary dropdown-toggle" data-bs-toggle="dropdown">
-                    <i class="fas fa-ellipsis-v"></i> Actions
-                </button>
-                <ul class="dropdown-menu">
-                    {% if order.status == 'pending' %}
-                    <li>
-                        <form method="POST" action="{{ url_for('sales_orders.update_status', order_id=order.id) }}" style="display: inline;">
-                            <input type="hidden" name="status" value="confirmed">
-                            <button type="submit" class="dropdown-item">
-                                <i class="fas fa-check text-success"></i> Confirm Order (Reserve Stock)
-                            </button>
-                        </form>
-                    </li>
-                    {% endif %}
-                    {% if order.status not in ['invoiced', 'cancelled'] %}
-                    <li>
-                        <a class="dropdown-item" href="{{ url_for('sales_orders.convert_to_invoice', order_id=order.id) }}">
-                            <i class="fas fa-file-invoice text-primary"></i> Convert to Invoice
-                        </a>
-                    </li>
-                    <li><hr class="dropdown-divider"></li>
-                    <li>
-                        <form method="POST" action="{{ url_for('sales_orders.update_status', order_id=order.id) }}" 
-                              style="display: inline;"
-                              onsubmit="return confirm('Are you sure you want to cancel this order?')">
-                            <input type="hidden" name="status" value="cancelled">
-                            <button type="submit" class="dropdown-item text-danger">
-                                <i class="fas fa-times"></i> Cancel Order
-                            </button>
-                        </form>
-                    </li>
-                    {% endif %}
-                    {% if order.status in ['draft', 'pending', 'cancelled'] %}
-                    <li><hr class="dropdown-divider"></li>
-                    <li>
-                        <form method="POST" action="{{ url_for('sales_orders.delete_order', order_id=order.id) }}" 
-                              style="display: inline;"
-                              onsubmit="return confirm('Delete this order permanently?')">
-                            <button type="submit" class="dropdown-item text-danger">
-                                <i class="fas fa-trash"></i> Delete Order
-                            </button>
-                        </form>
-                    </li>
-                    {% endif %}
-                </ul>
-            </div>
-        </div>
-    </div>
+{% block page_title %}📋 Sales Order {{ order.order_number }}{% endblock %}
 
-    <div class="row">
+{% block header_actions %}
+<a href="{{ url_for('sales_orders.list_orders') }}" class="btn btn-secondary">
+    ← Back to Orders
+</a>
+{% if order.status not in ['invoiced', 'cancelled'] %}
+<a href="{{ url_for('sales_orders.edit_order', order_id=order.id) }}" class="btn btn-warning">
+    Edit
+</a>
+{% endif %}
+<div class="btn-group">
+    <button type="button" class="btn btn-primary dropdown-toggle" data-bs-toggle="dropdown">
+        Actions
+    </button>
+    <ul class="dropdown-menu">
+        {% if order.status == 'pending' %}
+        <li>
+            <form method="POST" action="{{ url_for('sales_orders.update_status', order_id=order.id) }}" style="display: inline;">
+                <input type="hidden" name="status" value="confirmed">
+                <button type="submit" class="dropdown-item">
+                    Confirm Order (Reserve Stock)
+                </button>
+            </form>
+        </li>
+        {% endif %}
+        {% if order.status not in ['invoiced', 'cancelled'] %}
+        <li>
+            <a class="dropdown-item" href="{{ url_for('sales_orders.convert_to_invoice', order_id=order.id) }}">
+                Convert to Invoice
+            </a>
+        </li>
+        <li><hr class="dropdown-divider"></li>
+        <li>
+            <form method="POST" action="{{ url_for('sales_orders.update_status', order_id=order.id) }}" 
+                  style="display: inline;"
+                  onsubmit="return confirm('Are you sure you want to cancel this order?')">
+                <input type="hidden" name="status" value="cancelled">
+                <button type="submit" class="dropdown-item text-danger">
+                    Cancel Order
+                </button>
+            </form>
+        </li>
+        {% endif %}
+        {% if order.status in ['draft', 'pending', 'cancelled'] %}
+        <li><hr class="dropdown-divider"></li>
+        <li>
+            <form method="POST" action="{{ url_for('sales_orders.delete_order', order_id=order.id) }}" 
+                  style="display: inline;"
+                  onsubmit="return confirm('Delete this order permanently?')">
+                <button type="submit" class="dropdown-item text-danger">
+                    Delete Order
+                </button>
+            </form>
+        </li>
+        {% endif %}
+    </ul>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="row">
         <!-- Left Column -->
         <div class="col-md-8">
             <!-- Status & Tracking -->
@@ -353,7 +342,6 @@
             </div>
         </div>
     </div>
-</div>
 
 <style>
 .card {
