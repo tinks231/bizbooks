@@ -1577,6 +1577,30 @@ def fix_delivery_challan_columns():
                         ALTER TABLE delivery_challan_items ADD COLUMN notes TEXT;
                     END IF;
                 END $$;
+                """,
+                # Add created_at (TimestampMixin)
+                """
+                DO $$ 
+                BEGIN
+                    IF NOT EXISTS (
+                        SELECT 1 FROM information_schema.columns 
+                        WHERE table_name='delivery_challan_items' AND column_name='created_at'
+                    ) THEN
+                        ALTER TABLE delivery_challan_items ADD COLUMN created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
+                    END IF;
+                END $$;
+                """,
+                # Add updated_at (TimestampMixin)
+                """
+                DO $$ 
+                BEGIN
+                    IF NOT EXISTS (
+                        SELECT 1 FROM information_schema.columns 
+                        WHERE table_name='delivery_challan_items' AND column_name='updated_at'
+                    ) THEN
+                        ALTER TABLE delivery_challan_items ADD COLUMN updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
+                    END IF;
+                END $$;
                 """
             ]
             
@@ -1619,7 +1643,9 @@ def fix_delivery_challan_columns():
                 'quantity_invoiced',
                 'batch_number',
                 'serial_number',
-                'notes'
+                'notes',
+                'created_at',
+                'updated_at'
             ]
         })
         
