@@ -3,7 +3,7 @@ Sales Order Management Routes
 Complete CRUD operations, conversions, and tracking
 """
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, g, session
-from models import db, SalesOrder, SalesOrderItem, Quotation, QuotationItem, Party, Item, ItemStock, Site
+from models import db, SalesOrder, SalesOrderItem, Quotation, QuotationItem, Customer, Item, ItemStock, Site
 from models import Invoice, InvoiceItem, Tenant
 from datetime import datetime, timedelta
 from sqlalchemy import or_, and_, func
@@ -18,14 +18,14 @@ def check_auth():
     """Ensure user is logged in for all sales order routes"""
     if 'tenant_id' not in session:
         flash('Please login to access sales orders', 'error')
-        return redirect(url_for('auth.login'))
+        return redirect(url_for('admin.login'))
     
     # Load tenant into g for easy access
     g.tenant = Tenant.query.get(session['tenant_id'])
     if not g.tenant:
         session.clear()
         flash('Session expired. Please login again.', 'error')
-        return redirect(url_for('auth.login'))
+        return redirect(url_for('admin.login'))
 
 
 @sales_order_bp.route('/')
@@ -86,7 +86,7 @@ def list_orders():
     stats['pending_value'] = sum(float(order.total_amount or 0) for order in pending_orders)
     
     # Get all customers for filter dropdown
-    customers = Party.query.filter_by(tenant_id=tenant_id).order_by(Party.name).all()
+    customers = Customer.query.filter_by(tenant_id=tenant_id).order_by(Customer.name).all()
     
     return render_template(
         'sales_orders/list.html',
@@ -278,7 +278,7 @@ def create_order():
     today = datetime.now(ist).date()
     
     # Get all customers
-    customers = Party.query.filter_by(tenant_id=tenant_id).order_by(Party.name).all()
+    customers = Customer.query.filter_by(tenant_id=tenant_id).order_by(Customer.name).all()
     
     # Get all items
     items = Item.query.filter_by(tenant_id=tenant_id).order_by(Item.name).all()
@@ -364,7 +364,7 @@ def edit_order(order_id):
             return redirect(url_for('sales_orders.edit_order', order_id=order_id))
     
     # GET - show edit form
-    customers = Party.query.filter_by(tenant_id=tenant_id).order_by(Party.name).all()
+    customers = Customer.query.filter_by(tenant_id=tenant_id).order_by(Customer.name).all()
     items = Item.query.filter_by(tenant_id=tenant_id).order_by(Item.name).all()
     
     return render_template(
@@ -503,7 +503,7 @@ def convert_from_quotation(quotation_id):
         db.session.rollback()
         flash(f'Error converting quotation: {str(e)}', 'error')
         print(f"❌ Error converting quotation: {e}")
-        return redirect(url_for('quotations.view_quotation', quotation_id=quotation_id))
+        return redirect(url_for('sales_orders.list_orders'))
 
 
 @sales_order_bp.route('/<int:order_id>/convert-to-invoice')
@@ -513,7 +513,7 @@ def convert_to_invoice(order_id):
     order = SalesOrder.query.filter_by(id=order_id, tenant_id=tenant_id).first_or_404()
     
     # Redirect to invoice creation with pre-filled data
-    return redirect(url_for('invoices.create_invoice', from_order=order_id))
+    return redirect(url_for('invoices.create', from_order=order_id))
 
 
 # Helper functions
