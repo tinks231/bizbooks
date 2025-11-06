@@ -1129,3 +1129,303 @@ def add_sales_order_module():
             'details': str(e),
             'help': 'If tables already exist, this is safe to ignore.'
         }), 500
+
+@migration_bp.route('/fix-delivery-challan-columns')
+def fix_delivery_challan_columns():
+    """
+    Fix delivery_challans table by adding missing columns
+    This updates the table to match the new DeliveryChallan model
+    Access this URL once: /migrate/fix-delivery-challan-columns
+    """
+    try:
+        db_url = db.engine.url.drivername
+        
+        if 'postgresql' in db_url:
+            # PostgreSQL - Add missing columns
+            fix_queries = [
+                # Add customer_email
+                """
+                DO $$ 
+                BEGIN
+                    IF NOT EXISTS (
+                        SELECT 1 FROM information_schema.columns 
+                        WHERE table_name='delivery_challans' AND column_name='customer_email'
+                    ) THEN
+                        ALTER TABLE delivery_challans ADD COLUMN customer_email VARCHAR(120);
+                    END IF;
+                END $$;
+                """,
+                # Add customer_state
+                """
+                DO $$ 
+                BEGIN
+                    IF NOT EXISTS (
+                        SELECT 1 FROM information_schema.columns 
+                        WHERE table_name='delivery_challans' AND column_name='customer_state'
+                    ) THEN
+                        ALTER TABLE delivery_challans ADD COLUMN customer_state VARCHAR(50) DEFAULT 'Maharashtra';
+                    END IF;
+                END $$;
+                """,
+                # Rename billing_address to customer_billing_address
+                """
+                DO $$ 
+                BEGIN
+                    IF EXISTS (
+                        SELECT 1 FROM information_schema.columns 
+                        WHERE table_name='delivery_challans' AND column_name='billing_address'
+                    ) AND NOT EXISTS (
+                        SELECT 1 FROM information_schema.columns 
+                        WHERE table_name='delivery_challans' AND column_name='customer_billing_address'
+                    ) THEN
+                        ALTER TABLE delivery_challans RENAME COLUMN billing_address TO customer_billing_address;
+                    END IF;
+                END $$;
+                """,
+                # Rename shipping_address to customer_shipping_address
+                """
+                DO $$ 
+                BEGIN
+                    IF EXISTS (
+                        SELECT 1 FROM information_schema.columns 
+                        WHERE table_name='delivery_challans' AND column_name='shipping_address'
+                    ) AND NOT EXISTS (
+                        SELECT 1 FROM information_schema.columns 
+                        WHERE table_name='delivery_challans' AND column_name='customer_shipping_address'
+                    ) THEN
+                        ALTER TABLE delivery_challans RENAME COLUMN shipping_address TO customer_shipping_address;
+                    END IF;
+                END $$;
+                """,
+                # Add subtotal
+                """
+                DO $$ 
+                BEGIN
+                    IF NOT EXISTS (
+                        SELECT 1 FROM information_schema.columns 
+                        WHERE table_name='delivery_challans' AND column_name='subtotal'
+                    ) THEN
+                        ALTER TABLE delivery_challans ADD COLUMN subtotal NUMERIC(15,2) DEFAULT 0;
+                    END IF;
+                END $$;
+                """,
+                # Add cgst_amount
+                """
+                DO $$ 
+                BEGIN
+                    IF NOT EXISTS (
+                        SELECT 1 FROM information_schema.columns 
+                        WHERE table_name='delivery_challans' AND column_name='cgst_amount'
+                    ) THEN
+                        ALTER TABLE delivery_challans ADD COLUMN cgst_amount NUMERIC(15,2) DEFAULT 0;
+                    END IF;
+                END $$;
+                """,
+                # Add sgst_amount
+                """
+                DO $$ 
+                BEGIN
+                    IF NOT EXISTS (
+                        SELECT 1 FROM information_schema.columns 
+                        WHERE table_name='delivery_challans' AND column_name='sgst_amount'
+                    ) THEN
+                        ALTER TABLE delivery_challans ADD COLUMN sgst_amount NUMERIC(15,2) DEFAULT 0;
+                    END IF;
+                END $$;
+                """,
+                # Add igst_amount
+                """
+                DO $$ 
+                BEGIN
+                    IF NOT EXISTS (
+                        SELECT 1 FROM information_schema.columns 
+                        WHERE table_name='delivery_challans' AND column_name='igst_amount'
+                    ) THEN
+                        ALTER TABLE delivery_challans ADD COLUMN igst_amount NUMERIC(15,2) DEFAULT 0;
+                    END IF;
+                END $$;
+                """,
+                # Rename total_value to total_amount
+                """
+                DO $$ 
+                BEGIN
+                    IF EXISTS (
+                        SELECT 1 FROM information_schema.columns 
+                        WHERE table_name='delivery_challans' AND column_name='total_value'
+                    ) AND NOT EXISTS (
+                        SELECT 1 FROM information_schema.columns 
+                        WHERE table_name='delivery_challans' AND column_name='total_amount'
+                    ) THEN
+                        ALTER TABLE delivery_challans RENAME COLUMN total_value TO total_amount;
+                    END IF;
+                END $$;
+                """,
+                # Add delivery_note
+                """
+                DO $$ 
+                BEGIN
+                    IF NOT EXISTS (
+                        SELECT 1 FROM information_schema.columns 
+                        WHERE table_name='delivery_challans' AND column_name='delivery_note'
+                    ) THEN
+                        ALTER TABLE delivery_challans ADD COLUMN delivery_note TEXT;
+                    END IF;
+                END $$;
+                """,
+                # Add dispatched_at
+                """
+                DO $$ 
+                BEGIN
+                    IF NOT EXISTS (
+                        SELECT 1 FROM information_schema.columns 
+                        WHERE table_name='delivery_challans' AND column_name='dispatched_at'
+                    ) THEN
+                        ALTER TABLE delivery_challans ADD COLUMN dispatched_at TIMESTAMP;
+                    END IF;
+                END $$;
+                """,
+                # Add delivered_at
+                """
+                DO $$ 
+                BEGIN
+                    IF NOT EXISTS (
+                        SELECT 1 FROM information_schema.columns 
+                        WHERE table_name='delivery_challans' AND column_name='delivered_at'
+                    ) THEN
+                        ALTER TABLE delivery_challans ADD COLUMN delivered_at TIMESTAMP;
+                    END IF;
+                END $$;
+                """,
+                # Add invoiced_at
+                """
+                DO $$ 
+                BEGIN
+                    IF NOT EXISTS (
+                        SELECT 1 FROM information_schema.columns 
+                        WHERE table_name='delivery_challans' AND column_name='invoiced_at'
+                    ) THEN
+                        ALTER TABLE delivery_challans ADD COLUMN invoiced_at TIMESTAMP;
+                    END IF;
+                END $$;
+                """,
+                # Rename notes to terms (if exists)
+                """
+                DO $$ 
+                BEGIN
+                    IF EXISTS (
+                        SELECT 1 FROM information_schema.columns 
+                        WHERE table_name='delivery_challans' AND column_name='terms_and_conditions'
+                    ) AND NOT EXISTS (
+                        SELECT 1 FROM information_schema.columns 
+                        WHERE table_name='delivery_challans' AND column_name='terms'
+                    ) THEN
+                        ALTER TABLE delivery_challans RENAME COLUMN terms_and_conditions TO terms;
+                    END IF;
+                END $$;
+                """
+            ]
+            
+            for query in fix_queries:
+                db.session.execute(text(query))
+        
+        else:
+            # SQLite - Add missing columns (no conditional ADD COLUMN in SQLite)
+            fix_queries = []
+            
+            # Check and add columns one by one
+            try:
+                db.session.execute(text("ALTER TABLE delivery_challans ADD COLUMN customer_email VARCHAR(120)"))
+            except:
+                pass
+            
+            try:
+                db.session.execute(text("ALTER TABLE delivery_challans ADD COLUMN customer_state VARCHAR(50) DEFAULT 'Maharashtra'"))
+            except:
+                pass
+            
+            try:
+                db.session.execute(text("ALTER TABLE delivery_challans ADD COLUMN customer_billing_address TEXT"))
+            except:
+                pass
+            
+            try:
+                db.session.execute(text("ALTER TABLE delivery_challans ADD COLUMN customer_shipping_address TEXT"))
+            except:
+                pass
+            
+            try:
+                db.session.execute(text("ALTER TABLE delivery_challans ADD COLUMN subtotal NUMERIC(15,2) DEFAULT 0"))
+            except:
+                pass
+            
+            try:
+                db.session.execute(text("ALTER TABLE delivery_challans ADD COLUMN cgst_amount NUMERIC(15,2) DEFAULT 0"))
+            except:
+                pass
+            
+            try:
+                db.session.execute(text("ALTER TABLE delivery_challans ADD COLUMN sgst_amount NUMERIC(15,2) DEFAULT 0"))
+            except:
+                pass
+            
+            try:
+                db.session.execute(text("ALTER TABLE delivery_challans ADD COLUMN igst_amount NUMERIC(15,2) DEFAULT 0"))
+            except:
+                pass
+            
+            try:
+                db.session.execute(text("ALTER TABLE delivery_challans ADD COLUMN total_amount NUMERIC(15,2) DEFAULT 0"))
+            except:
+                pass
+            
+            try:
+                db.session.execute(text("ALTER TABLE delivery_challans ADD COLUMN delivery_note TEXT"))
+            except:
+                pass
+            
+            try:
+                db.session.execute(text("ALTER TABLE delivery_challans ADD COLUMN dispatched_at TIMESTAMP"))
+            except:
+                pass
+            
+            try:
+                db.session.execute(text("ALTER TABLE delivery_challans ADD COLUMN delivered_at TIMESTAMP"))
+            except:
+                pass
+            
+            try:
+                db.session.execute(text("ALTER TABLE delivery_challans ADD COLUMN invoiced_at TIMESTAMP"))
+            except:
+                pass
+        
+        db.session.commit()
+        
+        return jsonify({
+            'status': 'success',
+            'message': '✅ Delivery Challan table updated successfully!',
+            'columns_added': [
+                'customer_email',
+                'customer_state',
+                'customer_billing_address',
+                'customer_shipping_address',
+                'subtotal',
+                'cgst_amount',
+                'sgst_amount',
+                'igst_amount',
+                'total_amount',
+                'delivery_note',
+                'dispatched_at',
+                'delivered_at',
+                'invoiced_at',
+                'terms'
+            ]
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({
+            'status': 'error',
+            'message': f'Migration failed: {str(e)}',
+            'details': str(e),
+            'help': 'Some columns may already exist, which is safe to ignore.'
+        }), 500
