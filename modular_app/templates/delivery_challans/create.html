@@ -160,18 +160,21 @@
                                 <input type="text" name="hsn_code[]" class="form-control" value="{{ item.hsn_code or '' }}">
                             </td>
                             <td>
-                                <input type="number" name="quantity[]" class="form-control" step="0.01" value="{{ item.quantity }}" required>
+                                <input type="number" name="quantity[]" class="form-control" step="0.01" value="{{ item.quantity }}" required
+                                       oninput="calculateRowAmount(this)">
                             </td>
                             <td>
                                 <input type="text" name="unit[]" class="form-control" value="{{ item.unit }}" required>
                             </td>
                             <td>
-                                <input type="number" name="rate[]" class="form-control" step="0.01" value="{{ item.rate }}" required>
+                                <input type="number" name="rate[]" class="form-control" step="0.01" value="{{ item.rate }}" required
+                                       oninput="calculateRowAmount(this)">
                             </td>
                             <td>
-                                <input type="number" name="gst_rate[]" class="form-control" value="{{ item.gst_rate }}" required>
+                                <input type="number" name="gst_rate[]" class="form-control" value="{{ item.gst_rate }}" required
+                                       oninput="calculateRowAmount(this)">
                             </td>
-                            <td class="text-end">
+                            <td class="text-end amount-display">
                                 ₹{{ "{:,.2f}".format(item.total_amount) }}
                             </td>
                             <td>
@@ -192,18 +195,21 @@
                                 <input type="text" name="hsn_code[]" class="form-control" value="{{ item.hsn_code or '' }}">
                             </td>
                             <td>
-                                <input type="number" name="quantity[]" class="form-control" step="0.01" value="{{ item.quantity }}" required>
+                                <input type="number" name="quantity[]" class="form-control" step="0.01" value="{{ item.quantity }}" required
+                                       oninput="calculateRowAmount(this)">
                             </td>
                             <td>
                                 <input type="text" name="unit[]" class="form-control" value="{{ item.unit }}" required>
                             </td>
                             <td>
-                                <input type="number" name="rate[]" class="form-control" step="0.01" value="{{ item.rate }}" required>
+                                <input type="number" name="rate[]" class="form-control" step="0.01" value="{{ item.rate }}" required
+                                       oninput="calculateRowAmount(this)">
                             </td>
                             <td>
-                                <input type="number" name="gst_rate[]" class="form-control" value="{{ item.gst_rate }}" required>
+                                <input type="number" name="gst_rate[]" class="form-control" value="{{ item.gst_rate }}" required
+                                       oninput="calculateRowAmount(this)">
                             </td>
-                            <td class="text-end">
+                            <td class="text-end amount-display">
                                 ₹{{ "{:,.2f}".format(item.total_amount) }}
                             </td>
                             <td>
@@ -222,18 +228,21 @@
                                 <input type="text" name="hsn_code[]" class="form-control">
                             </td>
                             <td>
-                                <input type="number" name="quantity[]" class="form-control" step="0.01" value="1" required>
+                                <input type="number" name="quantity[]" class="form-control" step="0.01" value="1" required
+                                       oninput="calculateRowAmount(this)">
                             </td>
                             <td>
                                 <input type="text" name="unit[]" class="form-control" value="Nos" required>
                             </td>
                             <td>
-                                <input type="number" name="rate[]" class="form-control" step="0.01" value="0" required>
+                                <input type="number" name="rate[]" class="form-control" step="0.01" value="0" required
+                                       oninput="calculateRowAmount(this)">
                             </td>
                             <td>
-                                <input type="number" name="gst_rate[]" class="form-control" value="18" required>
+                                <input type="number" name="gst_rate[]" class="form-control" value="18" required
+                                       oninput="calculateRowAmount(this)">
                             </td>
-                            <td class="text-end">₹0.00</td>
+                            <td class="text-end amount-display">₹0.00</td>
                             <td>
                                 <button type="button" class="btn-danger-small" onclick="removeItemRow(this)">🗑️</button>
                             </td>
@@ -602,18 +611,21 @@ function addItemRow() {
             <input type="text" name="hsn_code[]" class="form-control" placeholder="HSN">
         </td>
         <td>
-            <input type="number" name="quantity[]" class="form-control" step="0.01" value="1" required>
+            <input type="number" name="quantity[]" class="form-control" step="0.01" value="1" required
+                   oninput="calculateRowAmount(this)">
         </td>
         <td>
             <input type="text" name="unit[]" class="form-control" value="Nos" required>
         </td>
         <td>
-            <input type="number" name="rate[]" class="form-control" step="0.01" value="0" required>
+            <input type="number" name="rate[]" class="form-control" step="0.01" value="0" required
+                   oninput="calculateRowAmount(this)">
         </td>
         <td>
-            <input type="number" name="gst_rate[]" class="form-control" value="18" required>
+            <input type="number" name="gst_rate[]" class="form-control" value="18" required
+                   oninput="calculateRowAmount(this)">
         </td>
-        <td class="text-end">₹0.00</td>
+        <td class="text-end amount-display">₹0.00</td>
         <td>
             <button type="button" class="btn-danger-small" onclick="removeItemRow(this)">🗑️</button>
         </td>
@@ -639,6 +651,38 @@ function updateRowNumbers() {
     rows.forEach((row, index) => {
         row.querySelector('td:first-child').textContent = index + 1;
     });
+}
+
+// Calculate Row Amount
+function calculateRowAmount(input) {
+    const row = input.closest('tr');
+    
+    // Get values from the row
+    const qtyInput = row.querySelector('input[name="quantity[]"]');
+    const rateInput = row.querySelector('input[name="rate[]"]');
+    const gstRateInput = row.querySelector('input[name="gst_rate[]"]');
+    const amountDisplay = row.querySelector('.amount-display');
+    
+    if (!qtyInput || !rateInput || !gstRateInput || !amountDisplay) {
+        console.error('Missing required inputs in row');
+        return;
+    }
+    
+    const qty = parseFloat(qtyInput.value) || 0;
+    const rate = parseFloat(rateInput.value) || 0;
+    const gstRate = parseFloat(gstRateInput.value) || 0;
+    
+    // Calculate taxable value
+    const taxableValue = qty * rate;
+    
+    // Calculate GST amount
+    const gstAmount = (taxableValue * gstRate) / 100;
+    
+    // Calculate total amount
+    const totalAmount = taxableValue + gstAmount;
+    
+    // Update display
+    amountDisplay.textContent = '₹' + totalAmount.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 }
 
 // Item Search for Rows
@@ -717,6 +761,12 @@ function selectItemForRow(rowId, itemId, itemName, hsnCode, unit, rate, gstRate,
         dropdown.style.display = 'none';
     }
     
+    // Calculate the amount after filling in the fields
+    const rateInput = row.querySelector('input[name="rate[]"]');
+    if (rateInput) {
+        calculateRowAmount(rateInput);
+    }
+    
     // Show stock warning if low
     if (stock < 5 && stock > 0) {
         alert(`⚠️ Low stock alert: Only ${stock} ${unit} available`);
@@ -740,7 +790,7 @@ document.addEventListener('click', function(e) {
     }
 });
 
-// On page load, add autocomplete to existing item rows
+// On page load, add autocomplete to existing item rows and calculate amounts
 document.addEventListener('DOMContentLoaded', function() {
     const existingItemInputs = document.querySelectorAll('input[name="item_name[]"]');
     existingItemInputs.forEach((input, index) => {
@@ -765,6 +815,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 dropdown.style.display = 'none';
                 parent.appendChild(dropdown);
             }
+        }
+        
+        // Calculate amount for existing rows on page load
+        const rateInput = row.querySelector('input[name="rate[]"]');
+        if (rateInput) {
+            calculateRowAmount(rateInput);
         }
     });
 });
