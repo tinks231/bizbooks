@@ -207,11 +207,13 @@
                                         </button>
                                         <ul class="dropdown-menu">
                                             {% if order.status not in ['invoiced', 'cancelled'] %}
+                                            {% if not order.delivery_challans %}
                                             <li>
                                                 <a class="dropdown-item" href="{{ url_for('delivery_challans.create_challan_form', from_order=order.id) }}">
                                                     <i class="fas fa-truck"></i> Create Delivery Challan
                                                 </a>
                                             </li>
+                                            {% endif %}
                                             <li>
                                                 <a class="dropdown-item" href="{{ url_for('sales_orders.convert_to_invoice', order_id=order.id) }}">
                                                     <i class="fas fa-file-invoice"></i> Convert to Invoice

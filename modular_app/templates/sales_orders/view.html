@@ -29,11 +29,13 @@
         </li>
         {% endif %}
         {% if order.status not in ['invoiced', 'cancelled'] %}
+        {% if not order.delivery_challans %}
         <li>
             <a class="dropdown-item" href="{{ url_for('delivery_challans.create_challan_form', from_order=order.id) }}">
                 Create Delivery Challan
             </a>
         </li>
+        {% endif %}
         <li>
             <a class="dropdown-item" href="{{ url_for('sales_orders.convert_to_invoice', order_id=order.id) }}">
                 Convert to Invoice

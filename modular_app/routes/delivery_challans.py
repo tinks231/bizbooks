@@ -355,3 +355,53 @@ def convert_to_invoice(challan_id):
     
     return redirect(url_for('invoices.create', from_challan=challan_id))
 
+@delivery_challan_bp.route('/<int:challan_id>/edit', methods=['GET'])
+def edit_challan(challan_id):
+    """Edit existing delivery challan (only in draft status)"""
+    auth_check = check_auth()
+    if auth_check:
+        return auth_check
+    
+    tenant_id = g.tenant.id
+    
+    challan = DeliveryChallan.query.filter_by(id=challan_id, tenant_id=tenant_id).first()
+    
+    if not challan:
+        flash('Delivery Challan not found', 'error')
+        return redirect(url_for('delivery_challans.list_challans'))
+    
+    if challan.status != 'draft':
+        flash('Only draft delivery challans can be edited', 'warning')
+        return redirect(url_for('delivery_challans.view_challan', challan_id=challan_id))
+    
+    return render_template('delivery_challans/create.html',
+                         tenant=g.tenant,
+                         challan=challan,
+                         edit_mode=True,
+                         today=date.today().strftime('%Y-%m-%d'))
+
+@delivery_challan_bp.route('/<int:challan_id>/print')
+def print_challan(challan_id):
+    """Print-friendly view of delivery challan"""
+    auth_check = check_auth()
+    if auth_check:
+        return auth_check
+    
+    tenant_id = g.tenant.id
+    
+    challan = DeliveryChallan.query.filter_by(id=challan_id, tenant_id=tenant_id).first()
+    
+    if not challan:
+        flash('Delivery Challan not found', 'error')
+        return redirect(url_for('delivery_challans.list_challans'))
+    
+    # Get sales order if linked
+    sales_order = None
+    if challan.sales_order_id:
+        sales_order = SalesOrder.query.get(challan.sales_order_id)
+    
+    return render_template('delivery_challans/print.html',
+                         tenant=g.tenant,
+                         challan=challan,
+                         sales_order=sales_order)
+

@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Delivery Challan {{ challan.challan_number }}</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            padding: 20mm;
+            font-size: 12pt;
+            line-height: 1.4;
+            color: #333;
+        }
+        
+        .header {
+            text-align: center;
+            border-bottom: 3px solid #007bff;
+            padding-bottom: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .company-name {
+            font-size: 24pt;
+            font-weight: bold;
+            color: #007bff;
+            margin-bottom: 5px;
+        }
+        
+        .company-details {
+            font-size: 10pt;
+            color: #666;
+        }
+        
+        .doc-title {
+            text-align: center;
+            font-size: 18pt;
+            font-weight: bold;
+            margin: 20px 0;
+            color: #333;
+        }
+        
+        .info-section {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+        
+        .info-box {
+            width: 48%;
+            border: 1px solid #ddd;
+            padding: 15px;
+            background: #f9f9f9;
+        }
+        
+        .info-box h3 {
+            font-size: 11pt;
+            color: #007bff;
+            margin-bottom: 10px;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 5px;
+        }
+        
+        .info-row {
+            margin: 5px 0;
+            font-size: 10pt;
+        }
+        
+        .info-row strong {
+            display: inline-block;
+            width: 120px;
+            color: #555;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        
+        thead {
+            background: #007bff;
+            color: white;
+        }
+        
+        thead th {
+            padding: 10px;
+            text-align: left;
+            font-size: 10pt;
+            font-weight: 600;
+        }
+        
+        tbody td {
+            padding: 8px 10px;
+            border-bottom: 1px solid #eee;
+            font-size: 10pt;
+        }
+        
+        tbody tr:nth-child(even) {
+            background: #f9f9f9;
+        }
+        
+        .text-right {
+            text-align: right;
+        }
+        
+        .text-center {
+            text-align: center;
+        }
+        
+        .totals-section {
+            width: 50%;
+            margin-left: auto;
+            margin-top: 20px;
+        }
+        
+        .totals-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 10px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .totals-row.total {
+            background: #007bff;
+            color: white;
+            font-weight: bold;
+            font-size: 12pt;
+            border-bottom: none;
+        }
+        
+        .footer {
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 2px solid #ddd;
+        }
+        
+        .signature-box {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 50px;
+        }
+        
+        .signature {
+            text-align: center;
+            width: 45%;
+            border-top: 1px solid #333;
+            padding-top: 10px;
+        }
+        
+        .notes-section {
+            margin-top: 30px;
+            padding: 15px;
+            background: #f9f9f9;
+            border-left: 4px solid #007bff;
+        }
+        
+        .notes-section h4 {
+            font-size: 11pt;
+            margin-bottom: 10px;
+            color: #007bff;
+        }
+        
+        .notes-section p {
+            font-size: 10pt;
+            line-height: 1.6;
+        }
+        
+        @media print {
+            body {
+                padding: 0;
+            }
+            
+            .no-print {
+                display: none;
+            }
+            
+            @page {
+                margin: 20mm;
+            }
+        }
+        
+        .print-button {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 12px 24px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 14pt;
+            cursor: pointer;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        
+        .print-button:hover {
+            background: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <!-- Print Button (hidden in print) -->
+    <button class="print-button no-print" onclick="window.print()">🖨️ Print</button>
+    
+    <!-- Company Header -->
+    <div class="header">
+        <div class="company-name">{{ tenant.company_name }}</div>
+        <div class="company-details">
+            {% if tenant.address %}{{ tenant.address }}<br>{% endif %}
+            {% if tenant.email %}Email: {{ tenant.email }}{% endif %}
+            {% if tenant.phone %} | Phone: {{ tenant.phone }}{% endif %}
+            {% if tenant.gstin %}<br>GSTIN: {{ tenant.gstin }}{% endif %}
+        </div>
+    </div>
+    
+    <!-- Document Title -->
+    <div class="doc-title">DELIVERY CHALLAN</div>
+    
+    <!-- DC Info & Customer Info -->
+    <div class="info-section">
+        <div class="info-box">
+            <h3>DC Details</h3>
+            <div class="info-row">
+                <strong>DC Number:</strong> {{ challan.challan_number }}
+            </div>
+            <div class="info-row">
+                <strong>DC Date:</strong> {{ challan.challan_date.strftime('%d %b %Y') }}
+            </div>
+            {% if sales_order %}
+            <div class="info-row">
+                <strong>Sales Order:</strong> {{ sales_order.order_number }}
+            </div>
+            <div class="info-row">
+                <strong>Order Date:</strong> {{ sales_order.order_date.strftime('%d %b %Y') }}
+            </div>
+            {% endif %}
+        </div>
+        
+        <div class="info-box">
+            <h3>Customer Details</h3>
+            <div class="info-row">
+                <strong>Name:</strong> {{ challan.customer_name }}
+            </div>
+            {% if challan.customer_phone %}
+            <div class="info-row">
+                <strong>Phone:</strong> {{ challan.customer_phone }}
+            </div>
+            {% endif %}
+            {% if challan.customer_email %}
+            <div class="info-row">
+                <strong>Email:</strong> {{ challan.customer_email }}
+            </div>
+            {% endif %}
+            {% if challan.customer_gstin %}
+            <div class="info-row">
+                <strong>GSTIN:</strong> {{ challan.customer_gstin }}
+            </div>
+            {% endif %}
+            {% if challan.customer_billing_address %}
+            <div class="info-row">
+                <strong>Address:</strong> {{ challan.customer_billing_address }}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- Transport Details (if any) -->
+    {% if challan.vehicle_number or challan.lr_number or challan.transporter_name %}
+    <div class="info-section">
+        <div class="info-box" style="width: 100%;">
+            <h3>Transport Details</h3>
+            <div style="display: flex; justify-content: space-between;">
+                {% if challan.vehicle_number %}
+                <div class="info-row">
+                    <strong>Vehicle Number:</strong> {{ challan.vehicle_number }}
+                </div>
+                {% endif %}
+                {% if challan.lr_number %}
+                <div class="info-row">
+                    <strong>LR Number:</strong> {{ challan.lr_number }}
+                </div>
+                {% endif %}
+                {% if challan.transporter_name %}
+                <div class="info-row">
+                    <strong>Transporter:</strong> {{ challan.transporter_name }}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- Items Table -->
+    <table>
+        <thead>
+            <tr>
+                <th style="width: 5%;">#</th>
+                <th style="width: 35%;">Item Description</th>
+                <th style="width: 12%;">HSN/SAC</th>
+                <th style="width: 12%;" class="text-right">Quantity</th>
+                <th style="width: 10%;" class="text-right">Rate</th>
+                <th style="width: 8%;" class="text-center">GST%</th>
+                <th style="width: 18%;" class="text-right">Amount</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in challan.items %}
+            <tr>
+                <td class="text-center">{{ loop.index }}</td>
+                <td>
+                    <strong>{{ item.item_name }}</strong>
+                    {% if item.description %}<br><small style="color: #666;">{{ item.description }}</small>{% endif %}
+                </td>
+                <td>{{ item.hsn_code or '-' }}</td>
+                <td class="text-right">{{ item.quantity }} {{ item.unit }}</td>
+                <td class="text-right">₹{{ "{:,.2f}".format(item.rate) }}</td>
+                <td class="text-center">{{ item.gst_rate }}%</td>
+                <td class="text-right">₹{{ "{:,.2f}".format(item.total_amount) }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    
+    <!-- Totals Section -->
+    <div class="totals-section">
+        <div class="totals-row">
+            <span>Subtotal:</span>
+            <span>₹{{ "{:,.2f}".format(challan.subtotal) }}</span>
+        </div>
+        {% if challan.cgst_amount > 0 %}
+        <div class="totals-row">
+            <span>CGST:</span>
+            <span>₹{{ "{:,.2f}".format(challan.cgst_amount) }}</span>
+        </div>
+        <div class="totals-row">
+            <span>SGST:</span>
+            <span>₹{{ "{:,.2f}".format(challan.sgst_amount) }}</span>
+        </div>
+        {% endif %}
+        {% if challan.igst_amount > 0 %}
+        <div class="totals-row">
+            <span>IGST:</span>
+            <span>₹{{ "{:,.2f}".format(challan.igst_amount) }}</span>
+        </div>
+        {% endif %}
+        <div class="totals-row total">
+            <span>Total Amount:</span>
+            <span>₹{{ "{:,.2f}".format(challan.total_amount) }}</span>
+        </div>
+    </div>
+    
+    <!-- Notes -->
+    {% if challan.delivery_note or challan.terms %}
+    <div class="notes-section">
+        {% if challan.delivery_note %}
+        <h4>Delivery Instructions:</h4>
+        <p>{{ challan.delivery_note }}</p>
+        {% endif %}
+        {% if challan.terms %}
+        <h4 style="margin-top: 15px;">Terms & Conditions:</h4>
+        <p>{{ challan.terms }}</p>
+        {% endif %}
+    </div>
+    {% endif %}
+    
+    <!-- Footer & Signatures -->
+    <div class="footer">
+        <div class="signature-box">
+            <div class="signature">
+                <strong>Receiver's Signature</strong><br>
+                <small style="color: #666;">Date: ______________</small>
+            </div>
+            <div class="signature">
+                <strong>Authorized Signatory</strong><br>
+                <small style="color: #666;">{{ tenant.company_name }}</small>
+            </div>
+        </div>
+        
+        <div style="text-align: center; margin-top: 30px; font-size: 9pt; color: #999;">
+            This is a computer-generated Delivery Challan and does not require a signature.
+        </div>
+    </div>
+</body>
+</html>
+
