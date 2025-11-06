@@ -420,7 +420,7 @@ def update_challan(challan_id):
         # Delete existing items and add updated ones
         DeliveryChallanItem.query.filter_by(delivery_challan_id=challan.id).delete()
         
-        # Add updated items (similar to create logic)
+        # Add updated items (calculate values on backend)
         item_names = request.form.getlist('item_name[]')
         item_ids = request.form.getlist('item_id[]')
         hsn_codes = request.form.getlist('hsn_code[]')
@@ -428,11 +428,6 @@ def update_challan(challan_id):
         units = request.form.getlist('unit[]')
         rates = request.form.getlist('rate[]')
         gst_rates = request.form.getlist('gst_rate[]')
-        taxable_values = request.form.getlist('taxable_value[]')
-        cgst_amounts = request.form.getlist('cgst_amount[]')
-        sgst_amounts = request.form.getlist('sgst_amount[]')
-        igst_amounts = request.form.getlist('igst_amount[]')
-        totals = request.form.getlist('total_amount[]')
         
         subtotal = Decimal('0')
         total_cgst = Decimal('0')
@@ -440,43 +435,62 @@ def update_challan(challan_id):
         total_igst = Decimal('0')
         total_amount = Decimal('0')
         
+        # Get customer state for GST calculation
+        customer_state = challan.customer_state or 'Maharashtra'
+        is_interstate = (customer_state.upper() != 'MAHARASHTRA')
+        
         for i in range(len(item_names)):
-            if not item_names[i]:
+            if not item_names[i].strip():
                 continue
             
-            item_id = int(item_ids[i]) if item_ids[i] and item_ids[i].isdigit() else None
-            quantity = Decimal(quantities[i] or '0')
-            rate = Decimal(rates[i] or '0')
-            gst_rate = Decimal(gst_rates[i] or '0')
-            taxable_value = Decimal(taxable_values[i] or '0')
-            cgst = Decimal(cgst_amounts[i] or '0')
-            sgst = Decimal(sgst_amounts[i] or '0')
-            igst = Decimal(igst_amounts[i] or '0')
-            total = Decimal(totals[i] or '0')
+            # Safe access to form arrays
+            item_id = int(item_ids[i]) if (i < len(item_ids) and item_ids[i] and item_ids[i].isdigit()) else None
+            hsn_code = hsn_codes[i].strip() if (i < len(hsn_codes) and hsn_codes[i]) else ''
+            unit = units[i] if (i < len(units) and units[i]) else 'Nos'
+            
+            quantity = Decimal(quantities[i]) if (i < len(quantities) and quantities[i]) else Decimal('0')
+            rate = Decimal(rates[i]) if (i < len(rates) and rates[i]) else Decimal('0')
+            gst_rate = Decimal(gst_rates[i]) if (i < len(gst_rates) and gst_rates[i]) else Decimal('0')
+            
+            # Calculate amounts on backend
+            taxable_value = quantity * rate
+            
+            # Calculate GST based on state
+            if is_interstate:
+                igst_amount = taxable_value * gst_rate / Decimal('100')
+                cgst_amount = Decimal('0')
+                sgst_amount = Decimal('0')
+            else:
+                cgst_amount = taxable_value * gst_rate / Decimal('200')
+                sgst_amount = cgst_amount
+                igst_amount = Decimal('0')
+            
+            item_total = taxable_value + cgst_amount + sgst_amount + igst_amount
             
             item = DeliveryChallanItem(
                 tenant_id=tenant_id,
                 delivery_challan_id=challan.id,
                 item_id=item_id,
-                item_name=item_names[i],
-                hsn_code=hsn_codes[i] if i < len(hsn_codes) else '',
+                item_name=item_names[i].strip(),
+                hsn_code=hsn_code,
                 quantity=quantity,
-                unit=units[i] if i < len(units) else 'pcs',
+                unit=unit,
                 rate=rate,
                 taxable_value=taxable_value,
                 gst_rate=gst_rate,
-                cgst_amount=cgst,
-                sgst_amount=sgst,
-                igst_amount=igst,
-                total_amount=total
+                cgst_amount=cgst_amount,
+                sgst_amount=sgst_amount,
+                igst_amount=igst_amount,
+                total_amount=item_total
             )
             db.session.add(item)
             
+            # Update totals
             subtotal += taxable_value
-            total_cgst += cgst
-            total_sgst += sgst
-            total_igst += igst
-            total_amount += total
+            total_cgst += cgst_amount
+            total_sgst += sgst_amount
+            total_igst += igst_amount
+            total_amount += item_total
         
         # Update challan totals
         challan.subtotal = subtotal
