@@ -520,3 +520,63 @@ def print_challan(challan_id):
                          challan=challan,
                          sales_order=sales_order)
 
+@delivery_challan_bp.route('/api/search-items')
+def api_search_items():
+    """API endpoint for item search with stock information"""
+    auth_check = check_auth()
+    if auth_check:
+        return jsonify({'error': 'Unauthorized'}), 401
+    
+    tenant_id = g.tenant.id
+    search_term = request.args.get('q', '').strip()
+    
+    if len(search_term) < 2:
+        return jsonify([])
+    
+    from sqlalchemy import or_
+    items = Item.query.filter_by(tenant_id=tenant_id).filter(
+        or_(
+            Item.name.ilike(f'%{search_term}%'),
+            Item.hsn_code.ilike(f'%{search_term}%')
+        )
+    ).limit(20).all()
+    
+    result = []
+    for item in items:
+        # Extract GST rate from tax_preference if available
+        gst_rate = 18  # Default to 18%
+        if item.tax_preference:
+            try:
+                import re
+                match = re.search(r'(\d+)', item.tax_preference)
+                if match:
+                    gst_rate = int(match.group(1))
+            except:
+                pass
+        
+        # Get available stock
+        available_stock = 0
+        if item.track_inventory:
+            default_site = Site.query.filter_by(tenant_id=tenant_id).first()
+            if default_site:
+                item_stock = ItemStock.query.filter_by(
+                    tenant_id=tenant_id,
+                    item_id=item.id,
+                    site_id=default_site.id
+                ).first()
+                if item_stock:
+                    available_stock = float(item_stock.quantity_available)
+        
+        result.append({
+            'id': item.id,
+            'name': item.name,
+            'hsn_code': item.hsn_code or '',
+            'unit': item.unit or 'pcs',
+            'selling_price': float(item.selling_price or 0),
+            'gst_rate': gst_rate,
+            'stock': available_stock,
+            'track_inventory': item.track_inventory
+        })
+    
+    return jsonify(result)
+

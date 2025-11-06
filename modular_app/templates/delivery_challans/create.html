@@ -472,6 +472,53 @@ textarea.form-control {
     background: #c82333;
     transform: scale(1.1);
 }
+
+/* Item Dropdown */
+.item-dropdown {
+    position: absolute;
+    z-index: 9999;
+    background: white;
+    border: 2px solid #007bff;
+    max-height: 350px;
+    overflow-y: auto;
+    width: 500px;
+    display: none;
+    box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+    margin-top: 2px;
+    border-radius: 8px;
+    left: 0;
+}
+
+.item-name-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 4px;
+}
+
+.item-details-row {
+    color: #666;
+}
+
+/* Stock Badges */
+.stock-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    margin-left: 8px;
+}
+
+.stock-available {
+    background: #d4edda;
+    color: #155724;
+}
+
+.stock-out {
+    background: #f8d7da;
+    color: #721c24;
+}
 </style>
 
 <script>
@@ -537,14 +584,22 @@ function addItemRow() {
     rowCount++;
     const tbody = document.getElementById('items-tbody');
     const newRow = document.createElement('tr');
+    const newRowId = `row_${rowCount}_${Date.now()}`;
+    newRow.setAttribute('data-row-id', newRowId);
     newRow.innerHTML = `
         <td>${rowCount}</td>
-        <td>
-            <input type="text" name="item_name[]" class="form-control" placeholder="Item name" required>
+        <td style="position: relative;">
+            <input type="text" name="item_name[]" class="form-control item-name-input" 
+                   placeholder="Type to search items..." required
+                   data-row-id="${newRowId}"
+                   oninput="searchItemsForRow(this)"
+                   onfocus="searchItemsForRow(this)"
+                   autocomplete="off">
             <input type="hidden" name="item_id[]">
+            <div class="item-dropdown" id="item_dropdown_${newRowId}" style="display: none;"></div>
         </td>
         <td>
-            <input type="text" name="hsn_code[]" class="form-control">
+            <input type="text" name="hsn_code[]" class="form-control" placeholder="HSN">
         </td>
         <td>
             <input type="number" name="quantity[]" class="form-control" step="0.01" value="1" required>
@@ -585,6 +640,134 @@ function updateRowNumbers() {
         row.querySelector('td:first-child').textContent = index + 1;
     });
 }
+
+// Item Search for Rows
+function searchItemsForRow(input) {
+    const query = input.value.trim();
+    const rowId = input.getAttribute('data-row-id');
+    const dropdown = document.getElementById(`item_dropdown_${rowId}`);
+    
+    if (!dropdown) {
+        console.error('Dropdown not found for row:', rowId);
+        return;
+    }
+    
+    if (query.length < 2) {
+        dropdown.style.display = 'none';
+        return;
+    }
+    
+    fetch(`/delivery-challans/api/search-items?q=${encodeURIComponent(query)}`)
+        .then(response => response.json())
+        .then(items => {
+            if (items.length === 0) {
+                dropdown.innerHTML = '<div class="autocomplete-item">No items found</div>';
+                dropdown.style.display = 'block';
+                return;
+            }
+            
+            let html = '';
+            items.forEach(item => {
+                const stockBadge = item.track_inventory 
+                    ? `<span class="stock-badge ${item.stock > 0 ? 'stock-available' : 'stock-out'}">
+                         📦 Stock: ${item.stock} ${item.unit}
+                       </span>`
+                    : '';
+                
+                html += `
+                    <div class="autocomplete-item" onclick="selectItemForRow('${rowId}', ${item.id}, '${item.name.replace(/'/g, "\\'")}', '${item.hsn_code}', '${item.unit}', ${item.selling_price}, ${item.gst_rate}, ${item.stock})">
+                        <div class="item-name-row">
+                            <strong>${item.name}</strong>
+                            ${stockBadge}
+                        </div>
+                        <div class="item-details-row">
+                            <small>💰 ₹${item.selling_price} | 📋 HSN: ${item.hsn_code || 'N/A'} | 🏷️ GST: ${item.gst_rate}%</small>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            dropdown.innerHTML = html;
+            dropdown.style.display = 'block';
+        })
+        .catch(error => {
+            console.error('Error fetching items:', error);
+        });
+}
+
+// Select Item for Row
+function selectItemForRow(rowId, itemId, itemName, hsnCode, unit, rate, gstRate, stock) {
+    const row = document.querySelector(`tr[data-row-id="${rowId}"]`);
+    if (!row) {
+        console.error('Row not found:', rowId);
+        return;
+    }
+    
+    // Fill in item details
+    row.querySelector('input[name="item_name[]"]').value = itemName;
+    row.querySelector('input[name="item_id[]"]').value = itemId;
+    row.querySelector('input[name="hsn_code[]"]').value = hsnCode;
+    row.querySelector('input[name="unit[]"]').value = unit;
+    row.querySelector('input[name="rate[]"]').value = rate;
+    row.querySelector('input[name="gst_rate[]"]').value = gstRate;
+    
+    // Hide dropdown
+    const dropdown = document.getElementById(`item_dropdown_${rowId}`);
+    if (dropdown) {
+        dropdown.style.display = 'none';
+    }
+    
+    // Show stock warning if low
+    if (stock < 5 && stock > 0) {
+        alert(`⚠️ Low stock alert: Only ${stock} ${unit} available`);
+    } else if (stock === 0) {
+        if (confirm(`❌ Out of stock! Only 0 ${unit} available. Continue anyway?`)) {
+            // Continue
+        } else {
+            // Clear the selection
+            row.querySelector('input[name="item_name[]"]').value = '';
+            row.querySelector('input[name="item_id[]"]').value = '';
+        }
+    }
+}
+
+// Close all item dropdowns when clicking outside
+document.addEventListener('click', function(e) {
+    if (!e.target.closest('.item-name-input')) {
+        document.querySelectorAll('.item-dropdown').forEach(dropdown => {
+            dropdown.style.display = 'none';
+        });
+    }
+});
+
+// On page load, add autocomplete to existing item rows
+document.addEventListener('DOMContentLoaded', function() {
+    const existingItemInputs = document.querySelectorAll('input[name="item_name[]"]');
+    existingItemInputs.forEach((input, index) => {
+        const row = input.closest('tr');
+        if (!row.getAttribute('data-row-id')) {
+            const rowId = `row_existing_${index}_${Date.now()}`;
+            row.setAttribute('data-row-id', rowId);
+            input.setAttribute('data-row-id', rowId);
+            input.setAttribute('oninput', 'searchItemsForRow(this)');
+            input.setAttribute('onfocus', 'searchItemsForRow(this)');
+            input.setAttribute('autocomplete', 'off');
+            input.classList.add('item-name-input');
+            input.placeholder = 'Type to search items...';
+            
+            // Add dropdown div if not exists
+            const parent = input.parentElement;
+            parent.style.position = 'relative';
+            if (!parent.querySelector('.item-dropdown')) {
+                const dropdown = document.createElement('div');
+                dropdown.className = 'item-dropdown';
+                dropdown.id = `item_dropdown_${rowId}`;
+                dropdown.style.display = 'none';
+                parent.appendChild(dropdown);
+            }
+        }
+    });
+});
 </script>
 {% endblock %}
 
