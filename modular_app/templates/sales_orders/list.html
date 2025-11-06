@@ -447,6 +447,11 @@ input[type="date"] {
     display: inline-flex;
     vertical-align: middle;
     position: relative; /* For dropdown positioning */
+    z-index: 100; /* Higher than table rows */
+}
+
+.btn-group:hover, .btn-group-sm:hover {
+    z-index: 10000; /* Even higher when dropdown is shown */
 }
 
 .btn-group .btn, .btn-group-sm .btn {
@@ -475,15 +480,15 @@ input[type="date"] {
 
 .dropdown-menu {
     position: absolute;
-    z-index: 9999; /* High z-index to appear above all elements */
+    z-index: 99999 !important; /* Maximum z-index to appear above all elements */
     display: none;
-    min-width: 200px;
+    min-width: 220px;
     padding: 8px 0;
     margin: 4px 0 0;
     background: white;
     border: 1px solid rgba(0,0,0,0.15);
     border-radius: 8px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    box-shadow: 0 6px 16px rgba(0,0,0,0.2);
     /* RIGHT ALIGN - Prevent overflow */
     right: 0;
     left: auto;
@@ -585,12 +590,15 @@ input[type="date"] {
 
 .table-hover tbody tr {
     transition: all 0.2s ease;
+    position: relative;
+    z-index: 1;
 }
 
 .table-hover tbody tr:hover {
     background-color: #f1f8ff;
     transform: scale(1.01);
     box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    z-index: 10; /* Elevated on hover to show dropdown above other rows */
 }
 
 /* ========================================

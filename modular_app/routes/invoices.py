@@ -607,12 +607,60 @@ def edit(invoice_id):
             }
             for item in items
         ]
+        
+        # Convert invoice items to JSON-serializable format
+        invoice_items_json = [
+            {
+                'id': item.id,
+                'item_id': item.item_id,
+                'item_name': item.item_name,
+                'description': item.description or '',
+                'hsn_code': item.hsn_code or '',
+                'quantity': float(item.quantity),
+                'unit': item.unit or 'Nos',
+                'rate': float(item.rate),
+                'gst_rate': float(item.gst_rate),
+                'taxable_value': float(item.taxable_value),
+                'cgst_amount': float(item.cgst_amount),
+                'sgst_amount': float(item.sgst_amount),
+                'igst_amount': float(item.igst_amount),
+                'total_amount': float(item.total_amount)
+            }
+            for item in invoice.items
+        ]
+        
+        # Create a serializable invoice object
+        invoice_dict = {
+            'id': invoice.id,
+            'invoice_number': invoice.invoice_number,
+            'invoice_date': invoice.invoice_date.strftime('%Y-%m-%d'),
+            'due_date': invoice.due_date.strftime('%Y-%m-%d') if invoice.due_date else '',
+            'customer_id': invoice.customer_id,
+            'customer_name': invoice.customer_name,
+            'customer_phone': invoice.customer_phone or '',
+            'customer_email': invoice.customer_email or '',
+            'customer_address': invoice.customer_address or '',
+            'customer_gstin': invoice.customer_gstin or '',
+            'customer_state': invoice.customer_state or 'Maharashtra',
+            'subtotal': float(invoice.subtotal),
+            'discount_amount': float(invoice.discount_amount),
+            'cgst_amount': float(invoice.cgst_amount),
+            'sgst_amount': float(invoice.sgst_amount),
+            'igst_amount': float(invoice.igst_amount),
+            'total_amount': float(invoice.total_amount),
+            'round_off': float(invoice.round_off),
+            'payment_status': invoice.payment_status,
+            'status': invoice.status,
+            'notes': invoice.notes or '',
+            'items': invoice_items_json
+        }
+        
         tenant_settings = json.loads(g.tenant.settings) if g.tenant.settings else {}
         
         flash('Edit mode: Modify invoice details below', 'info')
         return render_template('admin/invoices/create.html',
                              tenant=g.tenant,
-                             invoice=invoice,
+                             invoice=invoice_dict,  # Pass serializable dict instead of model
                              items=items_json,
                              today=date.today().strftime('%Y-%m-%d'),
                              tenant_settings=tenant_settings,
