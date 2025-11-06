@@ -1055,30 +1055,17 @@
                         </select>
                     </td>
                     <td>
-                        <div style="display: flex; align-items: center; gap: 4px;">
+                        <div style="display: flex; align-items: center; gap: 8px;">
                             <input type="number" name="rate[]" id="rate_${currentRowId}" class="form-control" 
                                    step="0.01" min="0.01" value="${orderItem.rate}" placeholder="1200" required 
                                    oninput="calculateRow(${currentRowId})"
                                    style="text-align: right; flex: 1; min-width: 80px;">
-                            <input type="checkbox" name="price_inclusive[]" id="price_inclusive_${currentRowId}" 
-                                   class="price-inclusive-checkbox" ${orderItem.price_inclusive ? 'checked' : ''}
-                                   onchange="calculateRow(${currentRowId})" 
-                                   title="Price includes GST" 
-                                   style="width: 16px; height: 16px; cursor: pointer; flex-shrink: 0;">
-                        </div>
-                    </td>
-                    <td>
-                        <div style="display: flex; align-items: center; gap: 4px;">
-                            <input type="number" name="discount_value[]" id="discount_value_${currentRowId}" class="form-control" 
-                                   step="0.01" min="0" value="${orderItem.discount_value}" placeholder="0" 
-                                   oninput="calculateRow(${currentRowId})"
-                                   style="text-align: right; flex: 1; min-width: 60px;">
-                            <select name="discount_type[]" id="discount_type_${currentRowId}" class="form-control" 
-                                    onchange="calculateRow(${currentRowId})"
-                                    style="flex-shrink: 0; width: 70px; padding: 6px;">
-                                <option value="percentage" ${orderItem.discount_type === 'percentage' ? 'selected' : ''}>%</option>
-                                <option value="amount" ${orderItem.discount_type === 'amount' ? 'selected' : ''}>₹</option>
-                            </select>
+                            <label style="display: flex; align-items: center; gap: 4px; margin: 0; cursor: pointer; white-space: nowrap;">
+                                <input type="checkbox" name="price_inclusive[]" id="price_inclusive_${currentRowId}" 
+                                       class="price-inclusive-checkbox" ${orderItem.price_inclusive ? 'checked' : ''}
+                                       onchange="calculateRow(${currentRowId})">
+                                <span style="font-size: 11px; color: #666;">Inc</span>
+                            </label>
                         </div>
                     </td>
                     <td>
@@ -1091,10 +1078,12 @@
                         </select>
                     </td>
                     <td>
-                        <span id="amount_${currentRowId}" style="font-weight: 600;">₹0.00</span>
+                        <span id="amount_${currentRowId}">₹0.00</span>
                     </td>
                     <td>
-                        <button type="button" class="btn-remove" onclick="removeItem(${currentRowId})" title="Remove item">🗑️</button>
+                        <button type="button" class="btn-danger-small" onclick="removeItemRow(${currentRowId})">
+                            🗑️
+                        </button>
                     </td>
                 `;
                 

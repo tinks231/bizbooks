@@ -7,6 +7,7 @@ from utils.tenant_middleware import require_tenant, get_current_tenant_id
 from utils.license_check import check_license
 from sqlalchemy import func, desc
 from datetime import datetime, date
+from decimal import Decimal
 import pytz
 import json
 
@@ -365,8 +366,8 @@ def create():
                             ).first()
                             
                             if so_item:
-                                # Increment quantity_invoiced
-                                so_item.quantity_invoiced += invoice_item.quantity
+                                # Increment quantity_invoiced (convert to Decimal to avoid type error)
+                                so_item.quantity_invoiced += Decimal(str(invoice_item.quantity))
                                 print(f"📋 Updated SO item {so_item.item_name}: invoiced {so_item.quantity_invoiced}/{so_item.quantity}")
                     
                     # Update fulfillment tracking
