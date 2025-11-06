@@ -5,59 +5,57 @@
 {% block page_title %}📦 {{ challan.challan_number }}{% endblock %}
 
 {% block header_actions %}
-<div style="display: flex; gap: 10px; align-items: center;">
-    <a href="{{ url_for('delivery_challans.list_challans') }}" class="btn btn-secondary">
-        ← Back
-    </a>
-    {% if challan.status not in ['invoiced', 'cancelled'] %}
-    <div class="btn-group">
-        <button type="button" class="btn btn-primary dropdown-toggle" data-bs-toggle="dropdown">
-            Actions
-        </button>
-        <ul class="dropdown-menu dropdown-menu-end">
+<a href="{{ url_for('delivery_challans.list_challans') }}" class="btn btn-secondary" style="margin-right: 10px;">
+    ← Back
+</a>
+{% if challan.status not in ['invoiced', 'cancelled'] %}
+<div class="btn-group">
+    <button type="button" class="btn btn-primary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+        Actions
+    </button>
+    <ul class="dropdown-menu dropdown-menu-end">
         {% if challan.status == 'draft' %}
         <li>
-            <form method="POST" action="{{ url_for('delivery_challans.update_status', challan_id=challan.id) }}" style="display: inline;">
+            <form method="POST" action="{{ url_for('delivery_challans.update_status', challan_id=challan.id) }}" style="margin: 0;">
                 <input type="hidden" name="status" value="dispatched">
-                <button type="submit" class="dropdown-item">Mark as Dispatched</button>
+                <button type="submit" class="dropdown-item">📤 Mark as Dispatched</button>
             </form>
         </li>
         {% endif %}
         {% if challan.status in ['draft', 'dispatched'] %}
         <li>
-            <form method="POST" action="{{ url_for('delivery_challans.update_status', challan_id=challan.id) }}" style="display: inline;">
+            <form method="POST" action="{{ url_for('delivery_challans.update_status', challan_id=challan.id) }}" style="margin: 0;">
                 <input type="hidden" name="status" value="delivered">
-                <button type="submit" class="dropdown-item">Mark as Delivered</button>
+                <button type="submit" class="dropdown-item">✅ Mark as Delivered</button>
             </form>
         </li>
         {% endif %}
         {% if challan.status in ['delivered', 'partially_invoiced'] %}
         <li>
             <a class="dropdown-item" href="{{ url_for('delivery_challans.convert_to_invoice', challan_id=challan.id) }}">
-                Convert to Invoice
+                💰 Convert to Invoice
             </a>
         </li>
         {% endif %}
         <li><hr class="dropdown-divider"></li>
         <li>
             <form method="POST" action="{{ url_for('delivery_challans.update_status', challan_id=challan.id) }}" 
-                  onsubmit="return confirm('Cancel this delivery challan?')">
+                  onsubmit="return confirm('Cancel this delivery challan?')" style="margin: 0;">
                 <input type="hidden" name="status" value="cancelled">
-                <button type="submit" class="dropdown-item text-danger">Cancel DC</button>
+                <button type="submit" class="dropdown-item text-danger">❌ Cancel DC</button>
             </form>
         </li>
         {% if challan.status in ['draft', 'cancelled'] %}
         <li>
             <form method="POST" action="{{ url_for('delivery_challans.delete_challan', challan_id=challan.id) }}" 
-                  onsubmit="return confirm('Delete this delivery challan permanently?')">
-                <button type="submit" class="dropdown-item text-danger">Delete DC</button>
+                  onsubmit="return confirm('Delete this delivery challan permanently?')" style="margin: 0;">
+                <button type="submit" class="dropdown-item text-danger">🗑️ Delete DC</button>
             </form>
         </li>
         {% endif %}
-        </ul>
-    </div>
-    {% endif %}
+    </ul>
 </div>
+{% endif %}
 {% endblock %}
 
 {% block content %}
@@ -521,9 +519,19 @@ strong {
     border-top: 1px solid #e9ecef;
 }
 
+/* Forms inside dropdown items - remove extra spacing */
+.dropdown-menu li {
+    list-style: none;
+}
+.dropdown-menu li form {
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
 /* Header Actions Wrapper */
 .btn-group {
     position: relative;
+    display: inline-block;
 }
 .btn {
     white-space: nowrap;
