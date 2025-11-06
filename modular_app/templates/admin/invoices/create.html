@@ -443,9 +443,47 @@
     const items = {{ items|tojson }};
     const tenantState = "{{ tenant_settings.get('state', 'Maharashtra') }}";
     
-    // Add first item row on page load
+    {% if sales_order %}
+    // Sales Order data for pre-filling
+    const salesOrderData = {
+        customer: {
+            id: {{ sales_order.customer_id or 'null' }},
+            name: "{{ sales_order.customer_name | replace('"', '\\"') }}",
+            phone: "{{ sales_order.customer_phone or '' }}",
+            email: "{{ sales_order.customer_email or '' }}",
+            gstin: "{{ sales_order.customer_gstin or '' }}",
+            address: "{{ sales_order.customer_billing_address or '' }}",
+            state: "{{ sales_order.customer_state or 'Maharashtra' }}"
+        },
+        items: [
+            {% for item in sales_order.items %}
+            {
+                item_id: {{ item.item_id or 'null' }},
+                item_name: "{{ item.item_name | replace('"', '\\"') }}",
+                hsn_code: "{{ item.hsn_code or '' }}",
+                quantity: {{ item.quantity }},
+                unit: "{{ item.unit or 'Nos' }}",
+                rate: {{ item.rate }},
+                gst_rate: {{ item.gst_rate }},
+                price_inclusive: {{ 'true' if item.price_inclusive else 'false' }},
+                discount_value: {{ item.discount_value or 0 }},
+                discount_type: "{{ item.discount_type or 'percentage' }}"
+            }{% if not loop.last %},{% endif %}
+            {% endfor %}
+        ],
+        notes: "{{ sales_order.terms or '' }}"
+    };
+    {% else %}
+    const salesOrderData = null;
+    {% endif %}
+    
+    // Add first item row on page load (or pre-fill from sales order)
     window.addEventListener('DOMContentLoaded', function() {
+        {% if sales_order %}
+        preFillFromSalesOrder();
+        {% else %}
         addItemRow();
+        {% endif %}
     });
     
     function addItemRow() {
@@ -943,6 +981,142 @@
     
     function hideCustomerDropdown() {
         document.getElementById('customer_dropdown').style.display = 'none';
+    }
+    
+    // Pre-fill form from Sales Order data
+    function preFillFromSalesOrder() {
+        if (!salesOrderData) return;
+        
+        console.log('📋 Pre-filling invoice from Sales Order...', salesOrderData);
+        
+        // Fill customer details
+        if (salesOrderData.customer) {
+            document.getElementById('customer_id').value = salesOrderData.customer.id || '';
+            document.getElementById('customer_name').value = salesOrderData.customer.name || '';
+            document.getElementById('customer_phone').value = salesOrderData.customer.phone || '';
+            document.getElementById('customer_email').value = salesOrderData.customer.email || '';
+            document.getElementById('customer_address').value = salesOrderData.customer.address || '';
+            document.getElementById('customer_gstin').value = salesOrderData.customer.gstin || '';
+            document.getElementById('customer_state').value = salesOrderData.customer.state || 'Maharashtra';
+            
+            // Update search field
+            document.getElementById('customer_search').value = salesOrderData.customer.name;
+            console.log('✅ Customer details filled:', salesOrderData.customer.name);
+        }
+        
+        // Fill items
+        if (salesOrderData.items && salesOrderData.items.length > 0) {
+            salesOrderData.items.forEach((orderItem, index) => {
+                console.log(`📦 Adding item ${index + 1}:`, orderItem.item_name);
+                
+                // Add item row
+                itemCount++;
+                const tbody = document.getElementById('itemsTableBody');
+                const row = document.createElement('tr');
+                row.id = `row_${itemCount}`;
+                const currentRowId = itemCount;
+                
+                row.innerHTML = `
+                    <td>${currentRowId}</td>
+                    <td style="position: relative;">
+                        <input type="text" name="item_name[]" class="form-control item-search" 
+                               id="item_search_${currentRowId}"
+                               value="${orderItem.item_name}"
+                               placeholder="Type to search items..." 
+                               required 
+                               autocomplete="off"
+                               oninput="searchItems(this, ${currentRowId})"
+                               onfocus="searchItems(this, ${currentRowId})"
+                               onblur="setTimeout(() => hideDropdown(${currentRowId}), 200)">
+                        <div class="autocomplete-dropdown" id="dropdown_${currentRowId}"></div>
+                        <input type="hidden" name="item_id[]" id="item_id_${currentRowId}" value="${orderItem.item_id || ''}">
+                        <input type="hidden" name="description[]" id="description_${currentRowId}">
+                    </td>
+                    <td>
+                        <input type="text" name="hsn_code[]" class="form-control" placeholder="8544" value="${orderItem.hsn_code || ''}">
+                    </td>
+                    <td>
+                        <input type="number" name="quantity[]" id="quantity_${currentRowId}" class="form-control" 
+                               step="0.01" min="0.01" value="${orderItem.quantity}" required oninput="calculateRow(${currentRowId})">
+                    </td>
+                    <td>
+                        <select name="unit[]" class="form-control">
+                            <option value="Nos" ${orderItem.unit === 'Nos' ? 'selected' : ''}>Nos</option>
+                            <option value="Kg" ${orderItem.unit === 'Kg' ? 'selected' : ''}>Kg</option>
+                            <option value="Ltr" ${orderItem.unit === 'Ltr' ? 'selected' : ''}>Ltr</option>
+                            <option value="Mtr" ${orderItem.unit === 'Mtr' ? 'selected' : ''}>Mtr</option>
+                            <option value="Box" ${orderItem.unit === 'Box' ? 'selected' : ''}>Box</option>
+                            <option value="Pcs" ${orderItem.unit === 'Pcs' ? 'selected' : ''}>Pcs</option>
+                        </select>
+                    </td>
+                    <td>
+                        <div style="display: flex; align-items: center; gap: 4px;">
+                            <input type="number" name="rate[]" id="rate_${currentRowId}" class="form-control" 
+                                   step="0.01" min="0.01" value="${orderItem.rate}" placeholder="1200" required 
+                                   oninput="calculateRow(${currentRowId})"
+                                   style="text-align: right; flex: 1; min-width: 80px;">
+                            <input type="checkbox" name="price_inclusive[]" id="price_inclusive_${currentRowId}" 
+                                   class="price-inclusive-checkbox" ${orderItem.price_inclusive ? 'checked' : ''}
+                                   onchange="calculateRow(${currentRowId})" 
+                                   title="Price includes GST" 
+                                   style="width: 16px; height: 16px; cursor: pointer; flex-shrink: 0;">
+                        </div>
+                    </td>
+                    <td>
+                        <div style="display: flex; align-items: center; gap: 4px;">
+                            <input type="number" name="discount_value[]" id="discount_value_${currentRowId}" class="form-control" 
+                                   step="0.01" min="0" value="${orderItem.discount_value}" placeholder="0" 
+                                   oninput="calculateRow(${currentRowId})"
+                                   style="text-align: right; flex: 1; min-width: 60px;">
+                            <select name="discount_type[]" id="discount_type_${currentRowId}" class="form-control" 
+                                    onchange="calculateRow(${currentRowId})"
+                                    style="flex-shrink: 0; width: 70px; padding: 6px;">
+                                <option value="percentage" ${orderItem.discount_type === 'percentage' ? 'selected' : ''}>%</option>
+                                <option value="amount" ${orderItem.discount_type === 'amount' ? 'selected' : ''}>₹</option>
+                            </select>
+                        </div>
+                    </td>
+                    <td>
+                        <select name="gst_rate[]" id="gst_rate_${currentRowId}" class="form-control" onchange="calculateRow(${currentRowId})">
+                            <option value="0" ${orderItem.gst_rate === 0 ? 'selected' : ''}>0%</option>
+                            <option value="5" ${orderItem.gst_rate === 5 ? 'selected' : ''}>5%</option>
+                            <option value="12" ${orderItem.gst_rate === 12 ? 'selected' : ''}>12%</option>
+                            <option value="18" ${orderItem.gst_rate === 18 ? 'selected' : ''}>18%</option>
+                            <option value="28" ${orderItem.gst_rate === 28 ? 'selected' : ''}>28%</option>
+                        </select>
+                    </td>
+                    <td>
+                        <span id="amount_${currentRowId}" style="font-weight: 600;">₹0.00</span>
+                    </td>
+                    <td>
+                        <button type="button" class="btn-remove" onclick="removeItem(${currentRowId})" title="Remove item">🗑️</button>
+                    </td>
+                `;
+                
+                tbody.appendChild(row);
+                
+                // Calculate totals for this row
+                setTimeout(() => {
+                    calculateRow(currentRowId);
+                }, 100);
+            });
+            
+            console.log(`✅ Added ${salesOrderData.items.length} items from sales order`);
+        }
+        
+        // Fill notes/terms
+        if (salesOrderData.notes) {
+            const termsField = document.getElementById('terms_conditions') || document.getElementById('notes');
+            if (termsField) {
+                termsField.value = salesOrderData.notes;
+            }
+        }
+        
+        // Calculate grand total
+        setTimeout(() => {
+            calculateTotals();
+            console.log('✅ Invoice pre-filled from Sales Order successfully!');
+        }, 200);
     }
 </script>
 
