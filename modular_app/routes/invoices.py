@@ -596,26 +596,34 @@ def edit(invoice_id):
             flash(f'Error updating invoice: {str(e)}', 'error')
     
     # GET - show edit form (using create template)
-    items = Item.query.filter_by(tenant_id=tenant_id, is_active=True).all()
-    items_json = [
-        {
-            'id': item.id,
-            'name': item.name,
-            'selling_price': item.selling_price or 0,
-            'hsn_code': item.hsn_code or ''
-        }
-        for item in items
-    ]
-    tenant_settings = json.loads(g.tenant.settings) if g.tenant.settings else {}
-    
-    flash('Edit mode: Modify invoice details below', 'info')
-    return render_template('admin/invoices/create.html',
-                         tenant=g.tenant,
-                         invoice=invoice,
-                         items=items_json,
-                         today=date.today().strftime('%Y-%m-%d'),
-                         tenant_settings=tenant_settings,
-                         edit_mode=True)
+    try:
+        items = Item.query.filter_by(tenant_id=tenant_id, is_active=True).all()
+        items_json = [
+            {
+                'id': item.id,
+                'name': item.name,
+                'selling_price': item.selling_price or 0,
+                'hsn_code': item.hsn_code or ''
+            }
+            for item in items
+        ]
+        tenant_settings = json.loads(g.tenant.settings) if g.tenant.settings else {}
+        
+        flash('Edit mode: Modify invoice details below', 'info')
+        return render_template('admin/invoices/create.html',
+                             tenant=g.tenant,
+                             invoice=invoice,
+                             items=items_json,
+                             today=date.today().strftime('%Y-%m-%d'),
+                             tenant_settings=tenant_settings,
+                             edit_mode=True,
+                             sales_order=None)  # Explicitly set sales_order to None for edit mode
+    except Exception as e:
+        print(f"❌ Error loading edit form: {e}")
+        import traceback
+        traceback.print_exc()
+        flash(f'Error loading invoice for editing: {str(e)}', 'error')
+        return redirect(url_for('invoices.view', invoice_id=invoice_id))
 
 
 @invoices_bp.route('/<int:invoice_id>/mark-sent', methods=['POST'])

@@ -494,33 +494,41 @@ input[type="date"] {
 }
 
 .dropdown-item {
-    display: block;
+    display: block !important;
     width: 100%;
-    padding: 8px 16px;
+    padding: 10px 16px;
     clear: both;
     font-weight: 400;
     color: #212529;
-    text-align: inherit;
+    text-align: left;
     text-decoration: none;
     white-space: nowrap;
     background-color: transparent;
     border: 0;
     cursor: pointer;
     transition: background-color 0.2s ease;
+    line-height: 1.5;
 }
 
 .dropdown-item:hover {
-    background-color: #f8f9fa;
+    background-color: #e3f2fd;
+    color: #212529;
 }
 
 .dropdown-item i {
-    margin-right: 8px;
-    width: 16px;
+    margin-right: 10px;
+    width: 18px;
     display: inline-block;
+    text-align: center;
 }
 
 .dropdown-item.text-danger {
-    color: #dc3545;
+    color: #dc3545 !important;
+}
+
+.dropdown-item.text-danger:hover {
+    background-color: #ffebee;
+    color: #dc3545 !important;
 }
 
 .dropdown-divider {
@@ -528,6 +536,19 @@ input[type="date"] {
     margin: 8px 0;
     overflow: hidden;
     border-top: 1px solid #e9ecef;
+}
+
+/* Ensure form buttons inside dropdown display correctly */
+.dropdown-item button {
+    display: block;
+    width: 100%;
+    text-align: left;
+    background: none;
+    border: none;
+    padding: 0;
+    color: inherit;
+    font: inherit;
+    cursor: pointer;
 }
 
 /* ========================================
