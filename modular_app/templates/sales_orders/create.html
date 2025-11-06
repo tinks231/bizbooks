@@ -12,173 +12,191 @@
 
 {% block content %}
 <form method="POST" action="{{ url_for('sales_orders.create_order') }}" id="salesOrderForm">
-        <!-- Customer Details -->
-        <div class="card mb-4">
-            <div class="card-header">
-                <h5 class="mb-0">Customer Information</h5>
-            </div>
-            <div class="card-body">
-                <div class="row mb-3">
-                    <div class="col-md-6">
-                        <label class="form-label">Search Existing Customer</label>
+    
+    <!-- Customer Information Card -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">Customer Information</h5>
+        </div>
+        <div class="card-body">
+            <!-- Customer Search -->
+            <div class="row mb-3">
+                <div class="col-md-12">
+                    <label class="form-label">Search Existing Customer</label>
+                    <div style="position: relative;">
                         <input type="text" id="customer_search" class="form-control" 
                                placeholder="Type customer name or phone..."
                                autocomplete="off"
                                oninput="searchCustomers(this.value)">
                         <div id="customer_dropdown" class="autocomplete-dropdown"></div>
-                        <input type="hidden" id="customer_id" name="customer_id">
                     </div>
-                    <div class="col-md-6">
-                        <label class="form-label">Customer Name *</label>
-                        <input type="text" id="customer_name" name="customer_name" 
-                               class="form-control" required>
-                    </div>
-                </div>
-                <div class="row mb-3">
-                    <div class="col-md-4">
-                        <label class="form-label">Phone</label>
-                        <input type="tel" id="customer_phone" name="customer_phone" class="form-control">
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label">Email</label>
-                        <input type="email" id="customer_email" name="customer_email" class="form-control">
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label">GSTIN</label>
-                        <input type="text" id="customer_gstin" name="customer_gstin" 
-                               class="form-control" maxlength="15" placeholder="27XXXXX1234X1Z5">
-                    </div>
-                </div>
-                <div class="row">
-                    <div class="col-md-6">
-                        <label class="form-label">Billing Address</label>
-                        <textarea id="billing_address" name="billing_address" 
-                                  class="form-control" rows="2"></textarea>
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label">Shipping Address</label>
-                        <textarea id="shipping_address" name="shipping_address" 
-                                  class="form-control" rows="2"></textarea>
-                        <small class="text-muted">
-                            <a href="#" onclick="copyBillingToShipping(); return false;">Copy from billing</a>
-                        </small>
-                    </div>
+                    <input type="hidden" id="customer_id" name="customer_id">
                 </div>
             </div>
-        </div>
-
-        <!-- Order Details -->
-        <div class="card mb-4">
-            <div class="card-header">
-                <h5 class="mb-0">Order Details</h5>
+            
+            <!-- Customer Details - 2 Column Layout -->
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Customer Name <span class="text-danger">*</span></label>
+                    <input type="text" id="customer_name" name="customer_name" 
+                           class="form-control" required placeholder="Customer Name">
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Phone</label>
+                    <input type="tel" id="customer_phone" name="customer_phone" 
+                           class="form-control" placeholder="Phone Number">
+                </div>
             </div>
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-3">
-                        <label class="form-label">Order Date *</label>
-                        <input type="date" name="order_date" class="form-control" 
-                               value="{{ today }}" required>
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label">Expected Delivery</label>
-                        <input type="date" name="expected_delivery_date" class="form-control">
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label">Status *</label>
-                        <select name="status" class="form-select" required>
-                            <option value="draft">Draft</option>
-                            <option value="pending">Pending Confirmation</option>
-                            <option value="confirmed" selected>Confirmed (Reserve Stock)</option>
-                        </select>
-                    </div>
+            
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Email</label>
+                    <input type="email" id="customer_email" name="customer_email" 
+                           class="form-control" placeholder="Email Address">
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">GSTIN</label>
+                    <input type="text" id="customer_gstin" name="customer_gstin" 
+                           class="form-control" placeholder="27XXXXX1234X1Z5" maxlength="15">
+                </div>
+            </div>
+            
+            <!-- Addresses - 2 Column Layout -->
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Billing Address</label>
+                    <textarea id="billing_address" name="billing_address" 
+                              class="form-control" rows="3" 
+                              placeholder="Enter billing address"></textarea>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Shipping Address</label>
+                    <textarea id="shipping_address" name="shipping_address" 
+                              class="form-control" rows="3" 
+                              placeholder="Enter shipping address"></textarea>
+                    <a href="javascript:void(0)" onclick="copyBillingToShipping()" 
+                       class="text-primary small">
+                        📋 Copy from billing
+                    </a>
                 </div>
             </div>
         </div>
+    </div>
 
-        <!-- Order Items -->
-        <div class="card mb-4">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <h5 class="mb-0">Order Items</h5>
-                <button type="button" class="btn btn-primary btn-sm" onclick="addItemRow()">
-                    <i class="fas fa-plus"></i> Add Item
-                </button>
+    <!-- Order Details Card -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">Order Details</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Order Date <span class="text-danger">*</span></label>
+                    <input type="date" name="order_date" class="form-control" 
+                           value="{{ today }}" required>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Expected Delivery</label>
+                    <input type="date" name="expected_delivery_date" class="form-control">
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Status <span class="text-danger">*</span></label>
+                    <select name="status" class="form-select" required>
+                        <option value="draft">Draft</option>
+                        <option value="confirmed" selected>Confirmed (Reserve Stock)</option>
+                    </select>
+                </div>
             </div>
-            <div class="card-body">
-                <div class="table-responsive">
-                    <table class="table" id="items_table">
-                        <thead>
-                            <tr>
-                                <th style="width: 30%;">Item *</th>
-                                <th style="width: 10%;">HSN Code</th>
-                                <th style="width: 10%;">Qty *</th>
-                                <th style="width: 10%;">Unit</th>
-                                <th style="width: 12%;">Rate *</th>
-                                <th style="width: 10%;">GST %</th>
-                                <th style="width: 3%;"><input type="checkbox" title="Price includes tax"></th>
-                                <th style="width: 15%;">Amount</th>
-                                <th style="width: 5%;"></th>
-                            </tr>
-                        </thead>
-                        <tbody id="items_body">
-                            <!-- Initial row will be added by JavaScript -->
-                        </tbody>
+        </div>
+    </div>
+
+    <!-- Order Items Card -->
+    <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Order Items</h5>
+            <button type="button" class="btn btn-sm btn-primary" onclick="addItemRow()">
+                + Add Item
+            </button>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered">
+                    <thead class="table-light">
+                        <tr>
+                            <th style="width: 25%;">ITEM <span class="text-danger">*</span></th>
+                            <th style="width: 12%;">HSN CODE</th>
+                            <th style="width: 10%;">QTY <span class="text-danger">*</span></th>
+                            <th style="width: 8%;">UNIT</th>
+                            <th style="width: 12%;">RATE <span class="text-danger">*</span></th>
+                            <th style="width: 10%;">GST %</th>
+                            <th style="width: 8%;" class="text-center">Incl.</th>
+                            <th style="width: 12%;" class="text-end">AMOUNT</th>
+                            <th style="width: 3%;"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="items_body">
+                        <!-- Items added by JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Totals -->
+            <div class="row justify-content-end">
+                <div class="col-md-4">
+                    <table class="table table-sm">
+                        <tr>
+                            <td><strong>Subtotal:</strong></td>
+                            <td class="text-end"><strong id="display_subtotal">₹0.00</strong></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Tax (GST):</strong></td>
+                            <td class="text-end"><strong id="display_tax">₹0.00</strong></td>
+                        </tr>
+                        <tr class="table-active">
+                            <td><strong>Total:</strong></td>
+                            <td class="text-end"><strong id="display_total">₹0.00</strong></td>
+                        </tr>
                     </table>
                 </div>
+            </div>
+        </div>
+    </div>
 
-                <!-- Totals -->
-                <div class="row mt-4">
-                    <div class="col-md-8"></div>
-                    <div class="col-md-4">
-                        <table class="table table-sm">
-                            <tr>
-                                <td><strong>Subtotal:</strong></td>
-                                <td class="text-end" id="display_subtotal">₹0.00</td>
-                            </tr>
-                            <tr>
-                                <td><strong>Tax (GST):</strong></td>
-                                <td class="text-end" id="display_tax">₹0.00</td>
-                            </tr>
-                            <tr style="border-top: 2px solid #000;">
-                                <td><strong>Total:</strong></td>
-                                <td class="text-end"><h4 id="display_total">₹0.00</h4></td>
-                            </tr>
-                        </table>
-                    </div>
+    <!-- Additional Information Card -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">Additional Information</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Terms & Conditions</label>
+                    <textarea name="terms_and_conditions" class="form-control" rows="4"
+                              placeholder="Payment terms, delivery conditions, etc.">Payment within 30 days
+Delivery as per schedule
+Subject to Mumbai jurisdiction</textarea>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Internal Notes</label>
+                    <textarea name="notes" class="form-control" rows="4"
+                              placeholder="Notes for internal reference..."></textarea>
                 </div>
             </div>
         </div>
+    </div>
 
-        <!-- Terms & Notes -->
-        <div class="card mb-4">
-            <div class="card-header">
-                <h5 class="mb-0">Additional Information</h5>
-            </div>
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-6">
-                        <label class="form-label">Terms & Conditions</label>
-                        <textarea name="terms_and_conditions" class="form-control" rows="3"
-                                  placeholder="Payment terms, delivery conditions, etc."></textarea>
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label">Internal Notes</label>
-                        <textarea name="notes" class="form-control" rows="3"
-                                  placeholder="Notes for internal reference..."></textarea>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Action Buttons -->
-        <div class="text-end mb-5">
-            <a href="{{ url_for('sales_orders.list_orders') }}" class="btn btn-secondary">
-                <i class="fas fa-times"></i> Cancel
+    <!-- Form Actions -->
+    <div class="card mb-4">
+        <div class="card-body text-end">
+            <a href="{{ url_for('sales_orders.list_orders') }}" class="btn btn-secondary btn-lg">
+                Cancel
             </a>
             <button type="submit" class="btn btn-success btn-lg">
                 <i class="fas fa-save"></i> Create Sales Order
             </button>
         </div>
-    </form>
+    </div>
+</form>
 
 <style>
 .card {
@@ -191,30 +209,32 @@
     border-bottom: 2px solid #dee2e6;
 }
 
+.form-label {
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+}
+
 .autocomplete-dropdown {
     position: absolute;
-    z-index: 1000;
+    z-index: 999;
     background: white;
     border: 1px solid #ddd;
     max-height: 300px;
     overflow-y: auto;
-    width: calc(100% - 30px);
+    width: 100%;
     display: none;
     box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    margin-top: 2px;
 }
 
 .autocomplete-item {
-    padding: 10px;
+    padding: 12px;
     cursor: pointer;
     border-bottom: 1px solid #f0f0f0;
 }
 
 .autocomplete-item:hover {
     background-color: #f8f9fa;
-}
-
-.item-row {
-    position: relative;
 }
 
 .item-autocomplete-dropdown {
@@ -224,9 +244,19 @@
     border: 1px solid #ddd;
     max-height: 200px;
     overflow-y: auto;
-    width: 100%;
+    width: 300px;
     display: none;
     box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    margin-top: 2px;
+}
+
+.table th {
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+textarea.form-control {
+    resize: vertical;
 }
 </style>
 
@@ -248,23 +278,22 @@ function addItemRow() {
     row.innerHTML = `
         <td style="position: relative;">
             <input type="text" name="item_name[]" id="item_name_${itemCount}" 
-                   class="form-control" placeholder="Start typing item name..." 
+                   class="form-control form-control-sm" placeholder="Start typing..." 
                    required oninput="searchItems(${itemCount}, this.value)">
             <div id="item_dropdown_${itemCount}" class="item-autocomplete-dropdown"></div>
             <input type="hidden" name="item_id[]" id="item_id_${itemCount}">
-            <input type="hidden" name="description[]" id="description_${itemCount}">
         </td>
         <td>
             <input type="text" name="hsn_code[]" id="hsn_code_${itemCount}" 
-                   class="form-control" placeholder="HSN">
+                   class="form-control form-control-sm" placeholder="HSN">
         </td>
         <td>
             <input type="number" name="quantity[]" id="quantity_${itemCount}" 
-                   class="form-control" step="0.01" min="0.01" value="1" 
+                   class="form-control form-control-sm" step="0.01" min="0.01" value="1" 
                    required oninput="calculateRow(${itemCount})">
         </td>
         <td>
-            <select name="unit[]" id="unit_${itemCount}" class="form-select">
+            <select name="unit[]" id="unit_${itemCount}" class="form-select form-select-sm">
                 <option value="pcs">pcs</option>
                 <option value="box">box</option>
                 <option value="kg">kg</option>
@@ -274,12 +303,12 @@ function addItemRow() {
         </td>
         <td>
             <input type="number" name="rate[]" id="rate_${itemCount}" 
-                   class="form-control" step="0.01" min="0" 
+                   class="form-control form-control-sm" step="0.01" min="0" 
                    placeholder="0.00" required oninput="calculateRow(${itemCount})">
         </td>
         <td>
             <select name="gst_rate[]" id="gst_rate_${itemCount}" 
-                    class="form-select" onchange="calculateRow(${itemCount})">
+                    class="form-select form-select-sm" onchange="calculateRow(${itemCount})">
                 <option value="0">0%</option>
                 <option value="5">5%</option>
                 <option value="12">12%</option>
@@ -294,10 +323,10 @@ function addItemRow() {
         <td class="text-end">
             <strong id="amount_${itemCount}">₹0.00</strong>
         </td>
-        <td>
+        <td class="text-center">
             <button type="button" class="btn btn-sm btn-danger" 
-                    onclick="removeItemRow(${itemCount})">
-                <i class="fas fa-trash"></i>
+                    onclick="removeItemRow(${itemCount})" title="Remove">
+                ×
             </button>
         </td>
     `;
@@ -307,9 +336,11 @@ function addItemRow() {
 
 function removeItemRow(rowId) {
     const row = document.getElementById(`item_row_${rowId}`);
-    if (row) {
+    if (row && document.querySelectorAll('.item-row').length > 1) {
         row.remove();
         calculateTotals();
+    } else {
+        alert('At least one item is required');
     }
 }
 
@@ -323,11 +354,9 @@ function calculateRow(rowId) {
     let tax = 0;
     
     if (priceInclusive) {
-        // Tax is included in rate
         tax = taxable - (taxable / (1 + (gstRate / 100)));
         taxable = taxable - tax;
     } else {
-        // Tax is on top
         tax = taxable * (gstRate / 100);
     }
     
@@ -371,14 +400,14 @@ function calculateTotals() {
     document.getElementById('display_total').textContent = `₹${grandTotal.toFixed(2)}`;
 }
 
-// Customer search
+// Customer search - FIXED API PATH
 function searchCustomers(query) {
     if (query.length < 2) {
         document.getElementById('customer_dropdown').style.display = 'none';
         return;
     }
     
-    fetch(`/api/customers/search?q=${encodeURIComponent(query)}`)
+    fetch(`/customers/api/search?q=${encodeURIComponent(query)}`)
         .then(response => response.json())
         .then(customers => {
             const dropdown = document.getElementById('customer_dropdown');
@@ -389,10 +418,16 @@ function searchCustomers(query) {
             
             let html = '';
             customers.forEach(customer => {
+                const name = escapeHtml(customer.name || '');
+                const phone = escapeHtml(customer.phone || '');
+                const email = escapeHtml(customer.email || '');
+                const gstin = escapeHtml(customer.gstin || '');
+                const address = escapeHtml(customer.address || '');
+                
                 html += `
-                    <div class="autocomplete-item" onclick="selectCustomer(${customer.id}, '${escapeHtml(customer.name)}', '${escapeHtml(customer.phone || '')}', '${escapeHtml(customer.email || '')}', '${escapeHtml(customer.gstin || '')}', '${escapeHtml(customer.address || '')}')">
+                    <div class="autocomplete-item" onclick='selectCustomer(${customer.id}, "${name}", "${phone}", "${email}", "${gstin}", "${address}")'>
                         <strong>${customer.name}</strong><br>
-                        <small>${customer.phone || ''} ${customer.email ? '• ' + customer.email : ''}</small>
+                        <small class="text-muted">${customer.phone || ''} ${customer.email ? '• ' + customer.email : ''}</small>
                     </div>
                 `;
             });
@@ -400,7 +435,10 @@ function searchCustomers(query) {
             dropdown.innerHTML = html;
             dropdown.style.display = 'block';
         })
-        .catch(error => console.error('Error searching customers:', error));
+        .catch(error => {
+            console.error('Error searching customers:', error);
+            alert('Error searching customers. Please try again.');
+        });
 }
 
 function selectCustomer(id, name, phone, email, gstin, address) {
@@ -432,11 +470,17 @@ function searchItems(rowId, query) {
             
             let html = '';
             items.forEach(item => {
+                const name = escapeHtml(item.name || '');
+                const hsn = escapeHtml(item.hsn_code || '');
+                const unit = item.unit || 'pcs';
+                const rate = item.selling_price || 0;
+                const gstRate = item.gst_rate || 0;
+                
                 html += `
-                    <div class="autocomplete-item" onclick="selectItem(${rowId}, ${item.id}, '${escapeHtml(item.name)}', '${escapeHtml(item.hsn_code)}', '${item.unit}', ${item.selling_price}, ${item.gst_rate})">
+                    <div class="autocomplete-item" onclick='selectItem(${rowId}, ${item.id}, "${name}", "${hsn}", "${unit}", ${rate}, ${gstRate})'>
                         <strong>${item.name}</strong>
-                        ${item.hsn_code ? `<span class="badge bg-secondary">${item.hsn_code}</span>` : ''}
-                        <span class="float-end">₹${item.selling_price}</span>
+                        ${item.hsn_code ? `<span class="badge bg-secondary ms-2">${item.hsn_code}</span>` : ''}
+                        <br><small class="text-muted">Rate: ₹${item.selling_price || 0} • GST: ${item.gst_rate || 0}%</small>
                     </div>
                 `;
             });
@@ -444,7 +488,9 @@ function searchItems(rowId, query) {
             dropdown.innerHTML = html;
             dropdown.style.display = 'block';
         })
-        .catch(error => console.error('Error searching items:', error));
+        .catch(error => {
+            console.error('Error searching items:', error);
+        });
 }
 
 function selectItem(rowId, itemId, name, hsn, unit, rate, gstRate) {
@@ -464,9 +510,10 @@ function copyBillingToShipping() {
 }
 
 function escapeHtml(text) {
+    if (!text) return '';
     const div = document.createElement('div');
     div.textContent = text;
-    return div.innerHTML.replace(/'/g, "\\'");
+    return div.innerHTML.replace(/'/g, "\\'").replace(/"/g, '&quot;');
 }
 
 // Hide dropdowns when clicking outside
@@ -474,7 +521,14 @@ document.addEventListener('click', function(e) {
     if (!e.target.closest('.autocomplete-dropdown') && !e.target.closest('#customer_search')) {
         document.getElementById('customer_dropdown').style.display = 'none';
     }
+    
+    // Hide all item dropdowns
+    document.querySelectorAll('.item-autocomplete-dropdown').forEach(dropdown => {
+        if (!e.target.closest('.item-autocomplete-dropdown') && 
+            !e.target.closest(`#${dropdown.id.replace('_dropdown', '')}`)) {
+            dropdown.style.display = 'none';
+        }
+    });
 });
 </script>
 {% endblock %}
-
