@@ -1419,10 +1419,165 @@ def fix_delivery_challan_columns():
         
         db.session.commit()
         
+        # Also fix delivery_challan_items table
+        if 'postgresql' in db_url:
+            items_fix_queries = [
+                # Add sales_order_id
+                """
+                DO $$ 
+                BEGIN
+                    IF NOT EXISTS (
+                        SELECT 1 FROM information_schema.columns 
+                        WHERE table_name='delivery_challan_items' AND column_name='sales_order_id'
+                    ) THEN
+                        ALTER TABLE delivery_challan_items ADD COLUMN sales_order_id INTEGER;
+                    END IF;
+                END $$;
+                """,
+                # Add sales_order_item_id
+                """
+                DO $$ 
+                BEGIN
+                    IF NOT EXISTS (
+                        SELECT 1 FROM information_schema.columns 
+                        WHERE table_name='delivery_challan_items' AND column_name='sales_order_item_id'
+                    ) THEN
+                        ALTER TABLE delivery_challan_items ADD COLUMN sales_order_item_id INTEGER;
+                    END IF;
+                END $$;
+                """,
+                # Add description
+                """
+                DO $$ 
+                BEGIN
+                    IF NOT EXISTS (
+                        SELECT 1 FROM information_schema.columns 
+                        WHERE table_name='delivery_challan_items' AND column_name='description'
+                    ) THEN
+                        ALTER TABLE delivery_challan_items ADD COLUMN description TEXT;
+                    END IF;
+                END $$;
+                """,
+                # Add taxable_value
+                """
+                DO $$ 
+                BEGIN
+                    IF NOT EXISTS (
+                        SELECT 1 FROM information_schema.columns 
+                        WHERE table_name='delivery_challan_items' AND column_name='taxable_value'
+                    ) THEN
+                        ALTER TABLE delivery_challan_items ADD COLUMN taxable_value NUMERIC(15,2) DEFAULT 0;
+                    END IF;
+                END $$;
+                """,
+                # Add gst_rate
+                """
+                DO $$ 
+                BEGIN
+                    IF NOT EXISTS (
+                        SELECT 1 FROM information_schema.columns 
+                        WHERE table_name='delivery_challan_items' AND column_name='gst_rate'
+                    ) THEN
+                        ALTER TABLE delivery_challan_items ADD COLUMN gst_rate NUMERIC(5,2) DEFAULT 0;
+                    END IF;
+                END $$;
+                """,
+                # Add cgst_amount
+                """
+                DO $$ 
+                BEGIN
+                    IF NOT EXISTS (
+                        SELECT 1 FROM information_schema.columns 
+                        WHERE table_name='delivery_challan_items' AND column_name='cgst_amount'
+                    ) THEN
+                        ALTER TABLE delivery_challan_items ADD COLUMN cgst_amount NUMERIC(15,2) DEFAULT 0;
+                    END IF;
+                END $$;
+                """,
+                # Add sgst_amount
+                """
+                DO $$ 
+                BEGIN
+                    IF NOT EXISTS (
+                        SELECT 1 FROM information_schema.columns 
+                        WHERE table_name='delivery_challan_items' AND column_name='sgst_amount'
+                    ) THEN
+                        ALTER TABLE delivery_challan_items ADD COLUMN sgst_amount NUMERIC(15,2) DEFAULT 0;
+                    END IF;
+                END $$;
+                """,
+                # Add igst_amount
+                """
+                DO $$ 
+                BEGIN
+                    IF NOT EXISTS (
+                        SELECT 1 FROM information_schema.columns 
+                        WHERE table_name='delivery_challan_items' AND column_name='igst_amount'
+                    ) THEN
+                        ALTER TABLE delivery_challan_items ADD COLUMN igst_amount NUMERIC(15,2) DEFAULT 0;
+                    END IF;
+                END $$;
+                """,
+                # Add total_amount
+                """
+                DO $$ 
+                BEGIN
+                    IF NOT EXISTS (
+                        SELECT 1 FROM information_schema.columns 
+                        WHERE table_name='delivery_challan_items' AND column_name='total_amount'
+                    ) THEN
+                        ALTER TABLE delivery_challan_items ADD COLUMN total_amount NUMERIC(15,2) DEFAULT 0;
+                    END IF;
+                END $$;
+                """,
+                # Add quantity_invoiced
+                """
+                DO $$ 
+                BEGIN
+                    IF NOT EXISTS (
+                        SELECT 1 FROM information_schema.columns 
+                        WHERE table_name='delivery_challan_items' AND column_name='quantity_invoiced'
+                    ) THEN
+                        ALTER TABLE delivery_challan_items ADD COLUMN quantity_invoiced NUMERIC(15,3) DEFAULT 0;
+                    END IF;
+                END $$;
+                """,
+                # Add batch_number
+                """
+                DO $$ 
+                BEGIN
+                    IF NOT EXISTS (
+                        SELECT 1 FROM information_schema.columns 
+                        WHERE table_name='delivery_challan_items' AND column_name='batch_number'
+                    ) THEN
+                        ALTER TABLE delivery_challan_items ADD COLUMN batch_number VARCHAR(50);
+                    END IF;
+                END $$;
+                """,
+                # Add serial_number
+                """
+                DO $$ 
+                BEGIN
+                    IF NOT EXISTS (
+                        SELECT 1 FROM information_schema.columns 
+                        WHERE table_name='delivery_challan_items' AND column_name='serial_number'
+                    ) THEN
+                        ALTER TABLE delivery_challan_items ADD COLUMN serial_number VARCHAR(100);
+                    END IF;
+                END $$;
+                """
+            ]
+            
+            for query in items_fix_queries:
+                db.session.execute(text(query))
+        
+        db.session.commit()
+        
         return jsonify({
             'status': 'success',
-            'message': '✅ Delivery Challan table updated successfully!',
-            'columns_added': [
+            'message': '✅ Delivery Challan tables updated successfully!',
+            'tables_fixed': ['delivery_challans', 'delivery_challan_items'],
+            'dc_columns_added': [
                 'customer_email',
                 'customer_state',
                 'customer_billing_address',
@@ -1436,7 +1591,22 @@ def fix_delivery_challan_columns():
                 'dispatched_at',
                 'delivered_at',
                 'invoiced_at',
-                'terms'
+                'terms',
+                'purpose (made nullable)'
+            ],
+            'dc_items_columns_added': [
+                'sales_order_id',
+                'sales_order_item_id',
+                'description',
+                'taxable_value',
+                'gst_rate',
+                'cgst_amount',
+                'sgst_amount',
+                'igst_amount',
+                'total_amount',
+                'quantity_invoiced',
+                'batch_number',
+                'serial_number'
             ]
         })
         
