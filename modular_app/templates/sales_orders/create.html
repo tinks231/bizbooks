@@ -400,19 +400,26 @@ function calculateTotals() {
     document.getElementById('display_total').textContent = `₹${grandTotal.toFixed(2)}`;
 }
 
-// Customer search - FIXED API PATH
+// Customer search - CORRECT API PATH
 function searchCustomers(query) {
     if (query.length < 2) {
         document.getElementById('customer_dropdown').style.display = 'none';
         return;
     }
     
-    fetch(`/customers/api/search?q=${encodeURIComponent(query)}`)
-        .then(response => response.json())
+    console.log('🔍 Searching customers:', query);
+    
+    fetch(`/admin/customers/api/search?q=${encodeURIComponent(query)}`)
+        .then(response => {
+            console.log('✅ Response status:', response.status);
+            return response.json();
+        })
         .then(customers => {
+            console.log('✅ Found customers:', customers.length);
             const dropdown = document.getElementById('customer_dropdown');
             if (customers.length === 0) {
-                dropdown.style.display = 'none';
+                dropdown.innerHTML = '<div class="autocomplete-item text-muted">No customers found</div>';
+                dropdown.style.display = 'block';
                 return;
             }
             
@@ -436,8 +443,10 @@ function searchCustomers(query) {
             dropdown.style.display = 'block';
         })
         .catch(error => {
-            console.error('Error searching customers:', error);
-            alert('Error searching customers. Please try again.');
+            console.error('❌ Error searching customers:', error);
+            const dropdown = document.getElementById('customer_dropdown');
+            dropdown.innerHTML = '<div class="autocomplete-item text-danger">Error loading customers</div>';
+            dropdown.style.display = 'block';
         });
 }
 
@@ -459,12 +468,19 @@ function searchItems(rowId, query) {
         return;
     }
     
+    console.log('🔍 Searching items:', query);
+    
     fetch(`/sales-orders/api/search-items?q=${encodeURIComponent(query)}`)
-        .then(response => response.json())
+        .then(response => {
+            console.log('✅ Items response status:', response.status);
+            return response.json();
+        })
         .then(items => {
+            console.log('✅ Found items:', items.length);
             const dropdown = document.getElementById(`item_dropdown_${rowId}`);
             if (items.length === 0) {
-                dropdown.style.display = 'none';
+                dropdown.innerHTML = '<div class="autocomplete-item text-muted">No items found</div>';
+                dropdown.style.display = 'block';
                 return;
             }
             
@@ -489,7 +505,10 @@ function searchItems(rowId, query) {
             dropdown.style.display = 'block';
         })
         .catch(error => {
-            console.error('Error searching items:', error);
+            console.error('❌ Error searching items:', error);
+            const dropdown = document.getElementById(`item_dropdown_${rowId}`);
+            dropdown.innerHTML = '<div class="autocomplete-item text-danger">Error loading items</div>';
+            dropdown.style.display = 'block';
         });
 }
 
