@@ -24,6 +24,10 @@ class Invoice(db.Model, TimestampMixin):
     # Customer Reference (NEW: Link to customer master)
     customer_id = db.Column(db.Integer, db.ForeignKey('customers.id'), nullable=True)  # Optional: Link to customer master
     
+    # Sales Order & Delivery Challan References (NEW: Track source documents)
+    sales_order_id = db.Column(db.Integer, db.ForeignKey('sales_orders.id'), nullable=True)  # Link to sales order
+    delivery_challan_id = db.Column(db.Integer, db.ForeignKey('delivery_challans.id'), nullable=True)  # Link to delivery challan
+    
     # Customer Details (kept for backward compatibility and one-time customers)
     customer_name = db.Column(db.String(200), nullable=False)
     customer_phone = db.Column(db.String(20))
@@ -58,6 +62,9 @@ class Invoice(db.Model, TimestampMixin):
     # Relationships
     tenant = db.relationship('Tenant', backref='invoices', lazy=True)
     items = db.relationship('InvoiceItem', backref='invoice', lazy=True, cascade='all, delete-orphan')
+    customer = db.relationship('Customer', backref='invoices', foreign_keys=[customer_id])
+    sales_order = db.relationship('SalesOrder', backref='invoices', foreign_keys=[sales_order_id])
+    # delivery_challan = db.relationship('DeliveryChallan', backref='invoices', foreign_keys=[delivery_challan_id])  # Uncomment when DeliveryChallan model is ready
     
     def __repr__(self):
         return f'<Invoice {self.invoice_number} - {self.customer_name} - ₹{self.total_amount}>'
