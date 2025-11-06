@@ -56,7 +56,7 @@ class SalesOrder(db.Model):
     items = db.relationship('SalesOrderItem', backref='sales_order', lazy=True, cascade='all, delete-orphan')
     tenant = db.relationship('Tenant', backref='sales_orders')
     customer = db.relationship('Customer', backref='sales_orders', foreign_keys=[customer_id])
-    quotation = db.relationship('Quotation', backref='sales_orders')
+    # quotation = db.relationship('Quotation', backref='sales_orders')  # Disabled until Quotation model is implemented
     
     def __repr__(self):
         return f'<SalesOrder {self.order_number}>'

@@ -3,8 +3,10 @@ Sales Order Management Routes
 Complete CRUD operations, conversions, and tracking
 """
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, g, session
-from models import db, SalesOrder, SalesOrderItem, Quotation, QuotationItem, Customer, Item, ItemStock, Site
+from models import db, SalesOrder, SalesOrderItem, Customer, Item, ItemStock, Site
 from models import Invoice, InvoiceItem, Tenant
+# Temporarily disabled until quotations module is ready
+# from models import Quotation, QuotationItem
 from datetime import datetime, timedelta
 from sqlalchemy import or_, and_, func
 import pytz
@@ -428,82 +430,12 @@ def delete_order(order_id):
     return redirect(url_for('sales_orders.list_orders'))
 
 
-@sales_order_bp.route('/convert-quotation/<int:quotation_id>')
-def convert_from_quotation(quotation_id):
-    """Convert quotation to sales order"""
-    tenant_id = session['tenant_id']
-    quotation = Quotation.query.filter_by(id=quotation_id, tenant_id=tenant_id).first_or_404()
-    
-    # Check if already converted
-    existing_order = SalesOrder.query.filter_by(quotation_id=quotation_id, tenant_id=tenant_id).first()
-    if existing_order:
-        flash(f'This quotation has already been converted to Sales Order {existing_order.order_number}', 'warning')
-        return redirect(url_for('sales_orders.view_order', order_id=existing_order.id))
-    
-    try:
-        # Create sales order from quotation
-        order_number = SalesOrder.generate_order_number(tenant_id)
-        ist = pytz.timezone('Asia/Kolkata')
-        
-        order = SalesOrder(
-            tenant_id=tenant_id,
-            order_number=order_number,
-            order_date=datetime.now(ist).date(),
-            expected_delivery_date=None,  # User can set later
-            customer_id=quotation.customer_id,
-            customer_name=quotation.customer_name,
-            customer_phone=quotation.customer_phone,
-            customer_email=quotation.customer_email,
-            customer_gstin=quotation.customer_gstin,
-            billing_address=quotation.billing_address,
-            shipping_address=quotation.shipping_address,
-            subtotal=quotation.subtotal,
-            discount_amount=quotation.discount_amount,
-            tax_amount=quotation.tax_amount,
-            total_amount=quotation.total_amount,
-            status='pending',
-            quantity_ordered=sum(int(item.quantity) for item in quotation.items),
-            quotation_id=quotation_id,
-            terms_and_conditions=quotation.terms_and_conditions,
-            notes=f'Converted from Quotation {quotation.quotation_number}',
-            created_by=g.tenant.company_name
-        )
-        
-        db.session.add(order)
-        db.session.flush()
-        
-        # Copy quotation items to order items
-        for q_item in quotation.items:
-            order_item = SalesOrderItem(
-                sales_order_id=order.id,
-                tenant_id=tenant_id,
-                item_id=q_item.item_id,
-                item_name=q_item.item_name,
-                description=q_item.description,
-                hsn_code=q_item.hsn_code,
-                quantity=q_item.quantity,
-                unit=q_item.unit,
-                rate=q_item.rate,
-                gst_rate=q_item.gst_rate,
-                price_inclusive=q_item.price_inclusive,
-                discount_type=q_item.discount_type,
-                discount_value=q_item.discount_value,
-                taxable_amount=q_item.taxable_amount,
-                tax_amount=q_item.tax_amount,
-                total_amount=q_item.total_amount
-            )
-            db.session.add(order_item)
-        
-        db.session.commit()
-        
-        flash(f'✅ Quotation converted to Sales Order {order_number} successfully!', 'success')
-        return redirect(url_for('sales_orders.view_order', order_id=order.id))
-        
-    except Exception as e:
-        db.session.rollback()
-        flash(f'Error converting quotation: {str(e)}', 'error')
-        print(f"❌ Error converting quotation: {e}")
-        return redirect(url_for('sales_orders.list_orders'))
+# Temporarily disabled - Quotation module not yet implemented
+# @sales_order_bp.route('/convert-quotation/<int:quotation_id>')
+# def convert_from_quotation(quotation_id):
+#     """Convert quotation to sales order"""
+#     flash('Quotation conversion feature coming soon!', 'info')
+#     return redirect(url_for('sales_orders.list_orders'))
 
 
 @sales_order_bp.route('/<int:order_id>/convert-to-invoice')

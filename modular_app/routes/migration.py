@@ -802,7 +802,7 @@ def add_sales_order_module():
                     quantity_invoiced INTEGER DEFAULT 0,
                     
                     -- References
-                    quotation_id INTEGER REFERENCES quotations(id),
+                    quotation_id INTEGER,  -- Will link to quotations table when implemented
                     
                     -- Notes
                     terms_and_conditions TEXT,
@@ -1009,7 +1009,7 @@ def add_sales_order_module():
                     created_by VARCHAR(255),
                     FOREIGN KEY (tenant_id) REFERENCES tenants(id),
                     FOREIGN KEY (customer_id) REFERENCES customers(id),
-                    FOREIGN KEY (quotation_id) REFERENCES quotations(id)
+                    -- FOREIGN KEY (quotation_id) REFERENCES quotations(id)  -- Disabled until quotations implemented
                 );
                 
                 CREATE TABLE IF NOT EXISTS sales_order_items (
