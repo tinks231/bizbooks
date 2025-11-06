@@ -1,0 +1,119 @@
+{% extends 'base_sidebar.html' %}
+
+{% block title %}GSTR-3B Report - {{ tenant.company_name }}{% endblock %}
+
+{% block page_title %}📊 GSTR-3B - Monthly Summary{% endblock %}
+
+{% block header_actions %}
+<a href="{{ url_for('gst_reports.index') }}" class="btn btn-secondary">
+    ← Back to GST Reports
+</a>
+<button onclick="window.print()" class="btn btn-primary">
+    🖨️ Print Report
+</button>
+{% endblock %}
+
+{% block content %}
+
+<!-- Period Header -->
+<div class="card" style="margin-bottom: 20px;">
+    <h2 style="margin: 0; color: #2c3e50;">{{ month_name }}</h2>
+    <p style="margin: 5px 0 0 0; color: #7f8c8d;">GSTR-3B Summary Return | {{ invoice_count }} Invoices</p>
+</div>
+
+<!-- Outward Supplies (Sales) -->
+<div class="card" style="margin-bottom: 20px;">
+    <h3 style="margin-bottom: 15px; color: #27ae60;">📤 Outward Supplies (Sales)</h3>
+    
+    <table class="table">
+        <tr>
+            <td style="width: 60%;">Taxable Value of Supplies</td>
+            <td style="text-align: right; font-weight: 600;">₹{{ "{:,.2f}".format(outward_taxable) }}</td>
+        </tr>
+        <tr>
+            <td>Central Tax (CGST)</td>
+            <td style="text-align: right; color: #e74c3c; font-weight: 600;">₹{{ "{:,.2f}".format(outward_cgst) }}</td>
+        </tr>
+        <tr>
+            <td>State Tax (SGST)</td>
+            <td style="text-align: right; color: #f39c12; font-weight: 600;">₹{{ "{:,.2f}".format(outward_sgst) }}</td>
+        </tr>
+        <tr>
+            <td>Integrated Tax (IGST)</td>
+            <td style="text-align: right; color: #9b59b6; font-weight: 600;">₹{{ "{:,.2f}".format(outward_igst) }}</td>
+        </tr>
+        <tr style="background: #d4edda; font-weight: 700;">
+            <td>Total Tax on Outward Supplies</td>
+            <td style="text-align: right;">₹{{ "{:,.2f}".format(outward_cgst + outward_sgst + outward_igst) }}</td>
+        </tr>
+    </table>
+</div>
+
+<!-- Inward Supplies (Purchases) -->
+<div class="card" style="margin-bottom: 20px;">
+    <h3 style="margin-bottom: 15px; color: #3498db;">📥 Inward Supplies & ITC (Input Tax Credit)</h3>
+    
+    {% if inward_taxable == 0 %}
+    <div style="padding: 40px; text-align: center; background: #fff3cd; border-radius: 8px;">
+        <p style="margin: 0; color: #856404;">
+            <strong>⚠️ Purchase Bills module not yet implemented</strong><br>
+            <small>ITC (Input Tax Credit) will be calculated once purchase bills are recorded in the system.</small>
+        </p>
+    </div>
+    {% else %}
+    <table class="table">
+        <tr>
+            <td style="width: 60%;">Total Input Tax Credit Availed</td>
+            <td style="text-align: right; color: #27ae60; font-weight: 600;">₹{{ "{:,.2f}".format(inward_cgst + inward_sgst + inward_igst) }}</td>
+        </tr>
+    </table>
+    {% endif %}
+</div>
+
+<!-- Net Tax Liability -->
+<div class="card" style="border: 2px solid #e74c3c;">
+    <h3 style="margin-bottom: 15px; color: #e74c3c;">💰 Net Tax Liability (Payable)</h3>
+    
+    <table class="table">
+        <tr>
+            <td style="width: 60%;">Net CGST Payable</td>
+            <td style="text-align: right; font-weight: 600;">₹{{ "{:,.2f}".format(net_cgst if net_cgst > 0 else 0) }}</td>
+        </tr>
+        <tr>
+            <td>Net SGST Payable</td>
+            <td style="text-align: right; font-weight: 600;">₹{{ "{:,.2f}".format(net_sgst if net_sgst > 0 else 0) }}</td>
+        </tr>
+        <tr>
+            <td>Net IGST Payable</td>
+            <td style="text-align: right; font-weight: 600;">₹{{ "{:,.2f}".format(net_igst if net_igst > 0 else 0) }}</td>
+        </tr>
+        <tr style="background: #f8d7da; font-weight: 700; font-size: 18px;">
+            <td>TOTAL TAX PAYABLE</td>
+            <td style="text-align: right; color: #e74c3c;">₹{{ "{:,.2f}".format(total_tax_liability if total_tax_liability > 0 else 0) }}</td>
+        </tr>
+    </table>
+</div>
+
+<style>
+    .table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    
+    .table tr {
+        border-bottom: 1px solid #e9ecef;
+    }
+    
+    .table td {
+        padding: 15px;
+    }
+    
+    @media print {
+        .btn {
+            display: none !important;
+        }
+    }
+</style>
+
+{% endblock %}
+

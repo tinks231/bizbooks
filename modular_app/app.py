@@ -105,6 +105,7 @@ from routes.employee_tasks import employee_tasks_bp  # NEW: Task management (emp
 from routes.employee_portal import employee_portal_bp  # NEW: Unified employee portal
 from routes.sales_orders import sales_order_bp  # NEW: Sales Order management
 from routes.delivery_challans import delivery_challan_bp  # NEW: Delivery Challan management
+from routes.gst_reports import gst_reports_bp  # NEW: GST Reports
 
 app.register_blueprint(registration_bp)
 app.register_blueprint(employee_portal_bp)  # Register unified portal
@@ -124,6 +125,7 @@ app.register_blueprint(tasks_bp)  # NEW: Task management (admin)
 app.register_blueprint(employee_tasks_bp)  # NEW: Task management (employee)
 app.register_blueprint(sales_order_bp)  # NEW: Sales Order management
 app.register_blueprint(delivery_challan_bp)  # NEW: Delivery Challan management
+app.register_blueprint(gst_reports_bp)  # NEW: GST Reports
 
 # ============================================================
 # Main route

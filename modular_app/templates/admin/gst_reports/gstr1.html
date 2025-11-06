@@ -1,0 +1,247 @@
+{% extends 'base_sidebar.html' %}
+
+{% block title %}GSTR-1 Report - {{ tenant.company_name }}{% endblock %}
+
+{% block page_title %}📄 GSTR-1 - Outward Supplies{% endblock %}
+
+{% block header_actions %}
+<a href="{{ url_for('gst_reports.index') }}" class="btn btn-secondary">
+    ← Back to GST Reports
+</a>
+<button onclick="window.print()" class="btn btn-primary">
+    🖨️ Print Report
+</button>
+{% endblock %}
+
+{% block content %}
+
+<!-- Date Range & Summary Card -->
+<div class="card" style="margin-bottom: 20px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px;">
+        <div>
+            <h3 style="margin: 0; color: #2c3e50;">Period: {{ start_date }} to {{ end_date }}</h3>
+            <p style="margin: 5px 0 0 0; color: #7f8c8d;">Total Invoices: {{ (b2b_invoices|length) + (b2c_invoices|length) }}</p>
+        </div>
+        
+        <form method="GET" style="display: flex; gap: 10px;">
+            <input type="date" name="start_date" value="{{ start_date }}" class="form-control">
+            <input type="date" name="end_date" value="{{ end_date }}" class="form-control">
+            <button type="submit" class="btn btn-primary">Update</button>
+        </form>
+    </div>
+</div>
+
+<!-- Summary Totals -->
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px;">
+    <div class="stat-card">
+        <div class="stat-label">Total Invoice Value</div>
+        <div class="stat-value" style="color: #667eea;">₹{{ "{:,.2f}".format(total_invoice_value) }}</div>
+    </div>
+    
+    <div class="stat-card">
+        <div class="stat-label">Taxable Value</div>
+        <div class="stat-value" style="color: #2ecc71;">₹{{ "{:,.2f}".format(total_taxable) }}</div>
+    </div>
+    
+    <div class="stat-card">
+        <div class="stat-label">Total CGST</div>
+        <div class="stat-value" style="color: #e74c3c;">₹{{ "{:,.2f}".format(total_cgst) }}</div>
+    </div>
+    
+    <div class="stat-card">
+        <div class="stat-label">Total SGST</div>
+        <div class="stat-value" style="color: #f39c12;">₹{{ "{:,.2f}".format(total_sgst) }}</div>
+    </div>
+    
+    <div class="stat-card">
+        <div class="stat-label">Total IGST</div>
+        <div class="stat-value" style="color: #9b59b6;">₹{{ "{:,.2f}".format(total_igst) }}</div>
+    </div>
+    
+    <div class="stat-card">
+        <div class="stat-label">Total GST</div>
+        <div class="stat-value" style="color: #e74c3c; font-weight: 700;">₹{{ "{:,.2f}".format(total_tax) }}</div>
+    </div>
+</div>
+
+<!-- GST Rate-wise Summary -->
+<div class="card" style="margin-bottom: 20px;">
+    <h3 style="margin-bottom: 15px;">📊 GST Rate-wise Summary</h3>
+    
+    <table class="table">
+        <thead>
+            <tr>
+                <th>GST Rate</th>
+                <th style="text-align: right;">Taxable Value</th>
+                <th style="text-align: right;">CGST</th>
+                <th style="text-align: right;">SGST</th>
+                <th style="text-align: right;">IGST</th>
+                <th style="text-align: right;">Total Tax</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for rate, data in gst_summary.items() %}
+            <tr>
+                <td><strong>{{ rate }}%</strong></td>
+                <td style="text-align: right;">₹{{ "{:,.2f}".format(data.taxable_value) }}</td>
+                <td style="text-align: right;">₹{{ "{:,.2f}".format(data.cgst) }}</td>
+                <td style="text-align: right;">₹{{ "{:,.2f}".format(data.sgst) }}</td>
+                <td style="text-align: right;">₹{{ "{:,.2f}".format(data.igst) }}</td>
+                <td style="text-align: right;"><strong>₹{{ "{:,.2f}".format(data.total_tax) }}</strong></td>
+            </tr>
+            {% endfor %}
+        </tbody>
+        <tfoot>
+            <tr style="background: #f8f9fa; font-weight: 700;">
+                <td>TOTAL</td>
+                <td style="text-align: right;">₹{{ "{:,.2f}".format(total_taxable) }}</td>
+                <td style="text-align: right;">₹{{ "{:,.2f}".format(total_cgst) }}</td>
+                <td style="text-align: right;">₹{{ "{:,.2f}".format(total_sgst) }}</td>
+                <td style="text-align: right;">₹{{ "{:,.2f}".format(total_igst) }}</td>
+                <td style="text-align: right;">₹{{ "{:,.2f}".format(total_tax) }}</td>
+            </tr>
+        </tfoot>
+    </table>
+</div>
+
+<!-- B2B Invoices (with GSTIN) -->
+<div class="card" style="margin-bottom: 20px;">
+    <h3 style="margin-bottom: 15px;">📋 B2B Transactions ({{ b2b_invoices|length }} invoices)</h3>
+    <p style="color: #7f8c8d; margin-bottom: 20px;">Invoices issued to registered businesses (with GSTIN)</p>
+    
+    {% if b2b_invoices %}
+    <div style="overflow-x: auto;">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Invoice No</th>
+                    <th>Date</th>
+                    <th>Customer</th>
+                    <th>GSTIN</th>
+                    <th style="text-align: right;">Taxable</th>
+                    <th style="text-align: right;">CGST</th>
+                    <th style="text-align: right;">SGST</th>
+                    <th style="text-align: right;">IGST</th>
+                    <th style="text-align: right;">Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for invoice in b2b_invoices %}
+                <tr>
+                    <td><strong>{{ invoice.invoice_number }}</strong></td>
+                    <td>{{ invoice.invoice_date.strftime('%d-%m-%Y') }}</td>
+                    <td>{{ invoice.customer_name }}</td>
+                    <td><code style="font-size: 11px;">{{ invoice.customer_gstin }}</code></td>
+                    <td style="text-align: right;">₹{{ "{:,.2f}".format(invoice.subtotal or 0) }}</td>
+                    <td style="text-align: right;">₹{{ "{:,.2f}".format(invoice.cgst_amount or 0) }}</td>
+                    <td style="text-align: right;">₹{{ "{:,.2f}".format(invoice.sgst_amount or 0) }}</td>
+                    <td style="text-align: right;">₹{{ "{:,.2f}".format(invoice.igst_amount or 0) }}</td>
+                    <td style="text-align: right;"><strong>₹{{ "{:,.2f}".format(invoice.total_amount or 0) }}</strong></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p style="text-align: center; color: #7f8c8d; padding: 20px;">No B2B transactions in this period</p>
+    {% endif %}
+</div>
+
+<!-- B2C Invoices (without GSTIN) -->
+<div class="card">
+    <h3 style="margin-bottom: 15px;">🛒 B2C Transactions ({{ b2c_invoices|length }} invoices)</h3>
+    <p style="color: #7f8c8d; margin-bottom: 20px;">Invoices issued to consumers (without GSTIN)</p>
+    
+    {% if b2c_invoices %}
+    <div style="overflow-x: auto;">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Invoice No</th>
+                    <th>Date</th>
+                    <th>Customer</th>
+                    <th style="text-align: right;">Taxable</th>
+                    <th style="text-align: right;">CGST</th>
+                    <th style="text-align: right;">SGST</th>
+                    <th style="text-align: right;">IGST</th>
+                    <th style="text-align: right;">Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for invoice in b2c_invoices %}
+                <tr>
+                    <td><strong>{{ invoice.invoice_number }}</strong></td>
+                    <td>{{ invoice.invoice_date.strftime('%d-%m-%Y') }}</td>
+                    <td>{{ invoice.customer_name }}</td>
+                    <td style="text-align: right;">₹{{ "{:,.2f}".format(invoice.subtotal or 0) }}</td>
+                    <td style="text-align: right;">₹{{ "{:,.2f}".format(invoice.cgst_amount or 0) }}</td>
+                    <td style="text-align: right;">₹{{ "{:,.2f}".format(invoice.sgst_amount or 0) }}</td>
+                    <td style="text-align: right;">₹{{ "{:,.2f}".format(invoice.igst_amount or 0) }}</td>
+                    <td style="text-align: right;"><strong>₹{{ "{:,.2f}".format(invoice.total_amount or 0) }}</strong></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p style="text-align: center; color: #7f8c8d; padding: 20px;">No B2C transactions in this period</p>
+    {% endif %}
+</div>
+
+<style>
+    .stat-card {
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+    }
+    
+    .stat-label {
+        font-size: 12px;
+        color: #7f8c8d;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 8px;
+    }
+    
+    .stat-value {
+        font-size: 24px;
+        font-weight: 700;
+    }
+    
+    .table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 0;
+    }
+    
+    .table th,
+    .table td {
+        padding: 12px;
+        border-bottom: 1px solid #e9ecef;
+    }
+    
+    .table thead th {
+        background: #f8f9fa;
+        font-weight: 600;
+        color: #2c3e50;
+        text-align: left;
+    }
+    
+    .table tbody tr:hover {
+        background: #f8f9fa;
+    }
+    
+    @media print {
+        .btn, form, .card-header {
+            display: none !important;
+        }
+        
+        .stat-card {
+            break-inside: avoid;
+        }
+    }
+</style>
+
+{% endblock %}
+

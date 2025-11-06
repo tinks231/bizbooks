@@ -1,0 +1,174 @@
+{% extends 'base_sidebar.html' %}
+
+{% block title %}GST Reports - {{ tenant.company_name }}{% endblock %}
+
+{% block page_title %}📊 GST Reports{% endblock %}
+
+{% block content %}
+
+<!-- Date Filter Card -->
+<div class="card" style="margin-bottom: 30px;">
+    <form method="GET" action="{{ url_for('gst_reports.index') }}" style="display: flex; gap: 15px; align-items: flex-end; flex-wrap: wrap;">
+        <div class="form-group" style="margin-bottom: 0;">
+            <label>Start Date</label>
+            <input type="date" name="start_date" value="{{ start_date }}" class="form-control">
+        </div>
+        
+        <div class="form-group" style="margin-bottom: 0;">
+            <label>End Date</label>
+            <input type="date" name="end_date" value="{{ end_date }}" class="form-control">
+        </div>
+        
+        <button type="submit" class="btn btn-primary">
+            🔍 Apply Filter
+        </button>
+    </form>
+</div>
+
+<!-- GST Reports Grid -->
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-bottom: 30px;">
+    
+    <!-- GSTR-1 Card -->
+    <div class="report-card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+        <div class="report-icon">📄</div>
+        <h3>GSTR-1</h3>
+        <p>Outward Supplies (Sales)</p>
+        <p class="report-desc">Details of all sales invoices, B2B and B2C transactions</p>
+        <a href="{{ url_for('gst_reports.gstr1', start_date=start_date, end_date=end_date) }}" 
+           class="btn-report">
+            View Report →
+        </a>
+    </div>
+    
+    <!-- GSTR-3B Card -->
+    <div class="report-card" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+        <div class="report-icon">📊</div>
+        <h3>GSTR-3B</h3>
+        <p>Monthly Summary</p>
+        <p class="report-desc">Summary return for tax liability and input tax credit</p>
+        <a href="{{ url_for('gst_reports.gstr3b', start_date=start_date) }}" 
+           class="btn-report">
+            View Report →
+        </a>
+    </div>
+    
+    <!-- GST Summary Card -->
+    <div class="report-card" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
+        <div class="report-icon">💰</div>
+        <h3>GST Summary</h3>
+        <p>Quick Overview</p>
+        <p class="report-desc">Overall GST collected, rate-wise breakdown and trends</p>
+        <a href="{{ url_for('gst_reports.summary', start_date=start_date, end_date=end_date) }}" 
+           class="btn-report">
+            View Report →
+        </a>
+    </div>
+    
+</div>
+
+<!-- Info Card -->
+<div class="card">
+    <h3 style="margin-bottom: 15px; color: #2c3e50;">📋 About GST Reports</h3>
+    
+    <div style="display: grid; gap: 15px;">
+        <div style="border-left: 4px solid #667eea; padding-left: 15px;">
+            <h4 style="color: #667eea; margin-bottom: 5px;">GSTR-1 - Sales Report</h4>
+            <p style="color: #7f8c8d; margin: 0;">Details of outward supplies of goods and services. Use this to file your monthly/quarterly GSTR-1 return.</p>
+        </div>
+        
+        <div style="border-left: 4px solid #f5576c; padding-left: 15px;">
+            <h4 style="color: #f5576c; margin-bottom: 5px;">GSTR-3B - Monthly Summary</h4>
+            <p style="color: #7f8c8d; margin: 0;">Summary return with tax liability and input tax credit. Filed monthly by most businesses.</p>
+        </div>
+        
+        <div style="border-left: 4px solid #00f2fe; padding-left: 15px;">
+            <h4 style="color: #00f2fe; margin-bottom: 5px;">GST Summary</h4>
+            <p style="color: #7f8c8d; margin: 0;">Quick overview of GST collected, trends, and rate-wise breakdown for internal analysis.</p>
+        </div>
+    </div>
+    
+    <div style="margin-top: 20px; padding: 15px; background: #fff3cd; border-radius: 8px; border-left: 4px solid #ffc107;">
+        <p style="margin: 0; color: #856404;">
+            <strong>💡 Note:</strong> GSTR-2 (Purchase) reports will be available once the Purchase Bills module is implemented. Currently, only sales-based reports are available.
+        </p>
+    </div>
+</div>
+
+<style>
+    .report-card {
+        padding: 30px;
+        border-radius: 12px;
+        color: white;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    
+    .report-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 20px rgba(0,0,0,0.25);
+    }
+    
+    .report-icon {
+        font-size: 48px;
+        margin-bottom: 15px;
+    }
+    
+    .report-card h3 {
+        margin: 0 0 5px 0;
+        font-size: 24px;
+        font-weight: 700;
+    }
+    
+    .report-card p {
+        margin: 0 0 10px 0;
+        opacity: 0.9;
+        font-size: 14px;
+    }
+    
+    .report-desc {
+        opacity: 0.8;
+        font-size: 13px;
+        margin-bottom: 20px !important;
+        min-height: 40px;
+    }
+    
+    .btn-report {
+        display: inline-block;
+        padding: 10px 20px;
+        background: rgba(255,255,255,0.2);
+        color: white;
+        text-decoration: none;
+        border-radius: 6px;
+        font-weight: 600;
+        transition: background 0.3s;
+        border: 1px solid rgba(255,255,255,0.3);
+    }
+    
+    .btn-report:hover {
+        background: rgba(255,255,255,0.3);
+    }
+    
+    .card {
+        background: white;
+        padding: 25px;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+    
+    @media (max-width: 768px) {
+        .report-card {
+            padding: 20px;
+        }
+        
+        .report-icon {
+            font-size: 36px;
+        }
+        
+        .report-card h3 {
+            font-size: 20px;
+        }
+    }
+</style>
+
+{% endblock %}
+

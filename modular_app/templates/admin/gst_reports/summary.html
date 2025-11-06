@@ -1,0 +1,136 @@
+{% extends 'base_sidebar.html' %}
+
+{% block title %}GST Summary - {{ tenant.company_name }}{% endblock %}
+
+{% block page_title %}💰 GST Summary{% endblock %}
+
+{% block header_actions %}
+<a href="{{ url_for('gst_reports.index') }}" class="btn btn-secondary">
+    ← Back to GST Reports
+</a>
+{% endblock %}
+
+{% block content %}
+
+<!-- Date Filter -->
+<div class="card" style="margin-bottom: 20px;">
+    <form method="GET" style="display: flex; gap: 15px; align-items: flex-end; flex-wrap: wrap;">
+        <div class="form-group" style="margin-bottom: 0;">
+            <label>Start Date</label>
+            <input type="date" name="start_date" value="{{ start_date }}" class="form-control">
+        </div>
+        
+        <div class="form-group" style="margin-bottom: 0;">
+            <label>End Date</label>
+            <input type="date" name="end_date" value="{{ end_date }}" class="form-control">
+        </div>
+        
+        <button type="submit" class="btn btn-primary">Update</button>
+    </form>
+</div>
+
+<!-- Summary Stats -->
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px;">
+    <div class="stat-card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+        <div style="font-size: 12px; opacity: 0.9; margin-bottom: 8px;">Total Sales</div>
+        <div style="font-size: 28px; font-weight: 700;">₹{{ "{:,.0f}".format(total_sales) }}</div>
+    </div>
+    
+    <div class="stat-card" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white;">
+        <div style="font-size: 12px; opacity: 0.9; margin-bottom: 8px;">Taxable Value</div>
+        <div style="font-size: 28px; font-weight: 700;">₹{{ "{:,.0f}".format(total_taxable) }}</div>
+    </div>
+    
+    <div class="stat-card" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: white;">
+        <div style="font-size: 12px; opacity: 0.9; margin-bottom: 8px;">Total GST</div>
+        <div style="font-size: 28px; font-weight: 700;">₹{{ "{:,.0f}".format(total_gst) }}</div>
+    </div>
+    
+    <div class="stat-card" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); color: white;">
+        <div style="font-size: 12px; opacity: 0.9; margin-bottom: 8px;">Invoices</div>
+        <div style="font-size: 28px; font-weight: 700;">{{ invoice_count }}</div>
+    </div>
+</div>
+
+<!-- GST Breakdown -->
+<div class="card" style="margin-bottom: 20px;">
+    <h3 style="margin-bottom: 20px;">📊 GST Breakdown</h3>
+    
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;">
+        <div style="text-align: center; padding: 20px; background: #fff5f5; border-radius: 8px;">
+            <div style="font-size: 14px; color: #e74c3c; font-weight: 600; margin-bottom: 8px;">CGST</div>
+            <div style="font-size: 24px; font-weight: 700; color: #e74c3c;">₹{{ "{:,.2f}".format(total_cgst) }}</div>
+        </div>
+        
+        <div style="text-align: center; padding: 20px; background: #fff9f0; border-radius: 8px;">
+            <div style="font-size: 14px; color: #f39c12; font-weight: 600; margin-bottom: 8px;">SGST</div>
+            <div style="font-size: 24px; font-weight: 700; color: #f39c12;">₹{{ "{:,.2f}".format(total_sgst) }}</div>
+        </div>
+        
+        <div style="text-align: center; padding: 20px; background: #f5f0ff; border-radius: 8px;">
+            <div style="font-size: 14px; color: #9b59b6; font-weight: 600; margin-bottom: 8px;">IGST</div>
+            <div style="font-size: 24px; font-weight: 700; color: #9b59b6;">₹{{ "{:,.2f}".format(total_igst) }}</div>
+        </div>
+    </div>
+</div>
+
+<!-- Monthly Trend (if available) -->
+{% if monthly_data %}
+<div class="card">
+    <h3 style="margin-bottom: 20px;">📈 Monthly Trend</h3>
+    
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Month</th>
+                <th style="text-align: right;">Sales</th>
+                <th style="text-align: right;">Taxable</th>
+                <th style="text-align: right;">GST Collected</th>
+                <th style="text-align: center;">Invoices</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for month, data in monthly_data.items() %}
+            <tr>
+                <td><strong>{{ month }}</strong></td>
+                <td style="text-align: right;">₹{{ "{:,.0f}".format(data.sales) }}</td>
+                <td style="text-align: right;">₹{{ "{:,.0f}".format(data.taxable) }}</td>
+                <td style="text-align: right;">₹{{ "{:,.0f}".format(data.gst) }}</td>
+                <td style="text-align: center;">{{ data.count }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endif %}
+
+<style>
+    .stat-card {
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+    
+    .table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    
+    .table th,
+    .table td {
+        padding: 12px;
+        border-bottom: 1px solid #e9ecef;
+    }
+    
+    .table thead th {
+        background: #f8f9fa;
+        font-weight: 600;
+    }
+    
+    .table tbody tr:hover {
+        background: #f8f9fa;
+    }
+</style>
+
+{% endblock %}
+
