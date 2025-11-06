@@ -62,8 +62,8 @@ class Invoice(db.Model, TimestampMixin):
     # Relationships
     tenant = db.relationship('Tenant', backref='invoices', lazy=True)
     items = db.relationship('InvoiceItem', backref='invoice', lazy=True, cascade='all, delete-orphan')
-    customer = db.relationship('Customer', backref='invoices', foreign_keys=[customer_id])
-    sales_order = db.relationship('SalesOrder', backref='invoices', foreign_keys=[sales_order_id])
+    # customer = db.relationship('Customer', backref='invoices', foreign_keys=[customer_id])  # Disabled to avoid circular import
+    # sales_order = db.relationship('SalesOrder', backref='invoices', foreign_keys=[sales_order_id])  # Disabled to avoid circular import
     # delivery_challan = db.relationship('DeliveryChallan', backref='invoices', foreign_keys=[delivery_challan_id])  # Uncomment when DeliveryChallan model is ready
     
     def __repr__(self):
