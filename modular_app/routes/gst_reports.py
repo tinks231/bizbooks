@@ -89,11 +89,11 @@ def gstr1():
     
     try:
         for invoice in invoices:
-            # Calculate totals
-            taxable = invoice.subtotal or Decimal('0')
-            cgst = invoice.cgst_amount or Decimal('0')
-            sgst = invoice.sgst_amount or Decimal('0')
-            igst = invoice.igst_amount or Decimal('0')
+            # Calculate totals - Convert all to Decimal to avoid type mismatch
+            taxable = Decimal(str(invoice.subtotal)) if invoice.subtotal else Decimal('0')
+            cgst = Decimal(str(invoice.cgst_amount)) if invoice.cgst_amount else Decimal('0')
+            sgst = Decimal(str(invoice.sgst_amount)) if invoice.sgst_amount else Decimal('0')
+            igst = Decimal(str(invoice.igst_amount)) if invoice.igst_amount else Decimal('0')
             tax = cgst + sgst + igst
             
             total_taxable += taxable
@@ -101,7 +101,7 @@ def gstr1():
             total_sgst += sgst
             total_igst += igst
             total_tax += tax
-            total_invoice_value += invoice.total_amount or Decimal('0')
+            total_invoice_value += Decimal(str(invoice.total_amount)) if invoice.total_amount else Decimal('0')
             
             # Categorize as B2B or B2C
             if invoice.customer_gstin and invoice.customer_gstin.strip():
@@ -112,6 +112,7 @@ def gstr1():
             # Group by GST rates
             try:
                 for item in invoice.items:
+                    # Convert gst_rate to Decimal for consistency
                     gst_rate = float(item.gst_rate or 0)
                     if gst_rate not in gst_summary:
                         gst_summary[gst_rate] = {
@@ -122,11 +123,17 @@ def gstr1():
                             'total_tax': Decimal('0')
                         }
                     
-                    gst_summary[gst_rate]['taxable_value'] += item.taxable_value or Decimal('0')
-                    gst_summary[gst_rate]['cgst'] += item.cgst_amount or Decimal('0')
-                    gst_summary[gst_rate]['sgst'] += item.sgst_amount or Decimal('0')
-                    gst_summary[gst_rate]['igst'] += item.igst_amount or Decimal('0')
-                    gst_summary[gst_rate]['total_tax'] += (item.cgst_amount or Decimal('0')) + (item.sgst_amount or Decimal('0')) + (item.igst_amount or Decimal('0'))
+                    # Convert all values to Decimal to avoid type mismatch
+                    taxable_val = Decimal(str(item.taxable_value)) if item.taxable_value else Decimal('0')
+                    cgst_val = Decimal(str(item.cgst_amount)) if item.cgst_amount else Decimal('0')
+                    sgst_val = Decimal(str(item.sgst_amount)) if item.sgst_amount else Decimal('0')
+                    igst_val = Decimal(str(item.igst_amount)) if item.igst_amount else Decimal('0')
+                    
+                    gst_summary[gst_rate]['taxable_value'] += taxable_val
+                    gst_summary[gst_rate]['cgst'] += cgst_val
+                    gst_summary[gst_rate]['sgst'] += sgst_val
+                    gst_summary[gst_rate]['igst'] += igst_val
+                    gst_summary[gst_rate]['total_tax'] += cgst_val + sgst_val + igst_val
             except Exception as item_error:
                 print(f"⚠️  Error processing items for invoice {invoice.invoice_number}: {str(item_error)}")
                 continue
@@ -192,10 +199,11 @@ def gstr3b():
     
     try:
         for invoice in invoices:
-            outward_taxable += invoice.subtotal or Decimal('0')
-            outward_cgst += invoice.cgst_amount or Decimal('0')
-            outward_sgst += invoice.sgst_amount or Decimal('0')
-            outward_igst += invoice.igst_amount or Decimal('0')
+            # Convert to Decimal to avoid type mismatch
+            outward_taxable += Decimal(str(invoice.subtotal)) if invoice.subtotal else Decimal('0')
+            outward_cgst += Decimal(str(invoice.cgst_amount)) if invoice.cgst_amount else Decimal('0')
+            outward_sgst += Decimal(str(invoice.sgst_amount)) if invoice.sgst_amount else Decimal('0')
+            outward_igst += Decimal(str(invoice.igst_amount)) if invoice.igst_amount else Decimal('0')
     except Exception as e:
         print(f"❌ Error calculating outward supplies: {str(e)}")
         flash(f'Error: {str(e)}', 'error')
@@ -256,12 +264,12 @@ def summary():
             Invoice.invoice_date <= end_date
         ).all()
         
-        # Calculate totals
-        total_sales = sum([inv.total_amount or Decimal('0') for inv in invoices])
-        total_taxable = sum([inv.subtotal or Decimal('0') for inv in invoices])
-        total_cgst = sum([inv.cgst_amount or Decimal('0') for inv in invoices])
-        total_sgst = sum([inv.sgst_amount or Decimal('0') for inv in invoices])
-        total_igst = sum([inv.igst_amount or Decimal('0') for inv in invoices])
+        # Calculate totals - Convert all to Decimal to avoid type mismatch
+        total_sales = sum([Decimal(str(inv.total_amount)) if inv.total_amount else Decimal('0') for inv in invoices])
+        total_taxable = sum([Decimal(str(inv.subtotal)) if inv.subtotal else Decimal('0') for inv in invoices])
+        total_cgst = sum([Decimal(str(inv.cgst_amount)) if inv.cgst_amount else Decimal('0') for inv in invoices])
+        total_sgst = sum([Decimal(str(inv.sgst_amount)) if inv.sgst_amount else Decimal('0') for inv in invoices])
+        total_igst = sum([Decimal(str(inv.igst_amount)) if inv.igst_amount else Decimal('0') for inv in invoices])
         total_gst = total_cgst + total_sgst + total_igst
         
         # Group by month
@@ -275,9 +283,13 @@ def summary():
                     'gst': Decimal('0'),
                     'count': 0
                 }
-            monthly_data[month_key]['sales'] += invoice.total_amount or Decimal('0')
-            monthly_data[month_key]['taxable'] += invoice.subtotal or Decimal('0')
-            monthly_data[month_key]['gst'] += (invoice.cgst_amount or Decimal('0')) + (invoice.sgst_amount or Decimal('0')) + (invoice.igst_amount or Decimal('0'))
+            # Convert to Decimal to avoid type mismatch
+            monthly_data[month_key]['sales'] += Decimal(str(invoice.total_amount)) if invoice.total_amount else Decimal('0')
+            monthly_data[month_key]['taxable'] += Decimal(str(invoice.subtotal)) if invoice.subtotal else Decimal('0')
+            cgst_dec = Decimal(str(invoice.cgst_amount)) if invoice.cgst_amount else Decimal('0')
+            sgst_dec = Decimal(str(invoice.sgst_amount)) if invoice.sgst_amount else Decimal('0')
+            igst_dec = Decimal(str(invoice.igst_amount)) if invoice.igst_amount else Decimal('0')
+            monthly_data[month_key]['gst'] += cgst_dec + sgst_dec + igst_dec
             monthly_data[month_key]['count'] += 1
     except Exception as e:
         print(f"❌ Error in summary report: {str(e)}")
