@@ -26,7 +26,7 @@ class Invoice(db.Model, TimestampMixin):
     
     # Sales Order & Delivery Challan References (NEW: Track source documents)
     sales_order_id = db.Column(db.Integer, db.ForeignKey('sales_orders.id'), nullable=True)  # Link to sales order
-    delivery_challan_id = db.Column(db.Integer, db.ForeignKey('delivery_challans.id'), nullable=True)  # Link to delivery challan
+    delivery_challan_id = db.Column(db.Integer, nullable=True)  # Link to delivery challan (No FK until table is created)
     
     # Customer Details (kept for backward compatibility and one-time customers)
     customer_name = db.Column(db.String(200), nullable=False)
