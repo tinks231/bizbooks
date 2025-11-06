@@ -1,5 +1,5 @@
 from datetime import datetime
-from modular_app import db
+from models.database import db
 import pytz
 
 class SalesOrder(db.Model):
