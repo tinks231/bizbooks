@@ -1565,6 +1565,18 @@ def fix_delivery_challan_columns():
                         ALTER TABLE delivery_challan_items ADD COLUMN serial_number VARCHAR(100);
                     END IF;
                 END $$;
+                """,
+                # Add notes
+                """
+                DO $$ 
+                BEGIN
+                    IF NOT EXISTS (
+                        SELECT 1 FROM information_schema.columns 
+                        WHERE table_name='delivery_challan_items' AND column_name='notes'
+                    ) THEN
+                        ALTER TABLE delivery_challan_items ADD COLUMN notes TEXT;
+                    END IF;
+                END $$;
                 """
             ]
             
@@ -1606,7 +1618,8 @@ def fix_delivery_challan_columns():
                 'total_amount',
                 'quantity_invoiced',
                 'batch_number',
-                'serial_number'
+                'serial_number',
+                'notes'
             ]
         })
         
