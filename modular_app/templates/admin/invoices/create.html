@@ -18,6 +18,11 @@
     <input type="hidden" name="sales_order_id" value="{{ sales_order.id }}">
     {% endif %}
     
+    {% if delivery_challan %}
+    <!-- Hidden field to link invoice to delivery challan -->
+    <input type="hidden" name="delivery_challan_id" value="{{ delivery_challan.id }}">
+    {% endif %}
+    
     <!-- Customer Details Card -->
     <div class="card">
         <div class="card-header">
@@ -482,10 +487,46 @@
     const salesOrderData = null;
     {% endif %}
     
-    // Add first item row on page load (or pre-fill from sales order)
+    // Delivery Challan data for pre-filling
+    {% if delivery_challan %}
+    const deliveryChallanData = {
+        customer: {
+            id: {{ delivery_challan.customer_id or 'null' }},
+            name: "{{ delivery_challan.customer_name | replace('"', '\\"') }}",
+            phone: "{{ delivery_challan.customer_phone or '' }}",
+            email: "{{ delivery_challan.customer_email or '' }}",
+            gstin: "{{ delivery_challan.customer_gstin or '' }}",
+            address: "{{ delivery_challan.customer_billing_address or '' }}",
+            state: "{{ delivery_challan.customer_state or 'Maharashtra' }}"
+        },
+        items: [
+            {% for item in delivery_challan.items %}
+            {
+                item_id: {{ item.item_id or 'null' }},
+                item_name: "{{ item.item_name | replace('"', '\\"') }}",
+                hsn_code: "{{ item.hsn_code or '' }}",
+                quantity: {{ item.quantity }},
+                unit: "{{ item.unit or 'Nos' }}",
+                rate: {{ item.rate }},
+                gst_rate: {{ item.gst_rate }},
+                price_inclusive: false,
+                discount_value: 0,
+                discount_type: "percentage"
+            }{% if not loop.last %},{% endif %}
+            {% endfor %}
+        ],
+        notes: "{{ delivery_challan.notes or '' }}"
+    };
+    {% else %}
+    const deliveryChallanData = null;
+    {% endif %}
+    
+    // Add first item row on page load (or pre-fill from sales order/delivery challan)
     window.addEventListener('DOMContentLoaded', function() {
         {% if sales_order %}
         preFillFromSalesOrder();
+        {% elif delivery_challan %}
+        preFillFromDeliveryChallan();
         {% else %}
         addItemRow();
         {% endif %}
@@ -1110,6 +1151,127 @@
         setTimeout(() => {
             calculateTotals();
             console.log('✅ Invoice pre-filled from Sales Order successfully!');
+        }, 200);
+    }
+    
+    // Pre-fill form from Delivery Challan data
+    function preFillFromDeliveryChallan() {
+        if (!deliveryChallanData) return;
+        
+        console.log('📦 Pre-filling invoice from Delivery Challan...', deliveryChallanData);
+        
+        // Fill customer details
+        if (deliveryChallanData.customer) {
+            document.getElementById('customer_id').value = deliveryChallanData.customer.id || '';
+            document.getElementById('customer_name').value = deliveryChallanData.customer.name || '';
+            document.getElementById('customer_phone').value = deliveryChallanData.customer.phone || '';
+            document.getElementById('customer_email').value = deliveryChallanData.customer.email || '';
+            document.getElementById('customer_address').value = deliveryChallanData.customer.address || '';
+            document.getElementById('customer_gstin').value = deliveryChallanData.customer.gstin || '';
+            document.getElementById('customer_state').value = deliveryChallanData.customer.state || 'Maharashtra';
+            
+            // Update search field
+            document.getElementById('customer_search').value = deliveryChallanData.customer.name;
+            console.log('✅ Customer details filled:', deliveryChallanData.customer.name);
+        }
+        
+        // Fill items
+        if (deliveryChallanData.items && deliveryChallanData.items.length > 0) {
+            deliveryChallanData.items.forEach((challanItem, index) => {
+                console.log(`📦 Adding item ${index + 1}:`, challanItem.item_name);
+                
+                // Add item row
+                itemCount++;
+                const tbody = document.getElementById('itemsTableBody');
+                const row = document.createElement('tr');
+                row.id = `row_${itemCount}`;
+                const currentRowId = itemCount;
+                
+                row.innerHTML = `
+                    <td>${currentRowId}</td>
+                    <td style="position: relative;">
+                        <input type="text" name="item_name[]" class="form-control item-search" 
+                               id="item_search_${currentRowId}"
+                               value="${challanItem.item_name}"
+                               placeholder="Type to search items..." 
+                               required 
+                               autocomplete="off"
+                               oninput="searchItems(this, ${currentRowId})"
+                               onfocus="searchItems(this, ${currentRowId})"
+                               onblur="setTimeout(() => hideDropdown(${currentRowId}), 200)">
+                        <div class="autocomplete-dropdown" id="dropdown_${currentRowId}"></div>
+                        <input type="hidden" name="item_id[]" id="item_id_${currentRowId}" value="${challanItem.item_id || ''}">
+                        <input type="hidden" name="description[]" id="description_${currentRowId}">
+                    </td>
+                    <td>
+                        <input type="text" name="hsn_code[]" class="form-control" placeholder="8544" value="${challanItem.hsn_code || ''}">
+                    </td>
+                    <td>
+                        <input type="number" name="quantity[]" id="quantity_${currentRowId}" class="form-control" 
+                               step="0.01" min="0.01" value="${challanItem.quantity}" required oninput="calculateRow(${currentRowId})">
+                    </td>
+                    <td>
+                        <select name="unit[]" class="form-control">
+                            <option value="Nos" ${challanItem.unit === 'Nos' ? 'selected' : ''}>Nos</option>
+                            <option value="Kg" ${challanItem.unit === 'Kg' ? 'selected' : ''}>Kg</option>
+                            <option value="Ltr" ${challanItem.unit === 'Ltr' ? 'selected' : ''}>Ltr</option>
+                            <option value="Mtr" ${challanItem.unit === 'Mtr' ? 'selected' : ''}>Mtr</option>
+                            <option value="Box" ${challanItem.unit === 'Box' ? 'selected' : ''}>Box</option>
+                            <option value="Pcs" ${challanItem.unit === 'Pcs' ? 'selected' : ''}>Pcs</option>
+                        </select>
+                    </td>
+                    <td>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <input type="number" name="rate[]" id="rate_${currentRowId}" class="form-control" 
+                                   step="0.01" min="0.01" value="${challanItem.rate}" placeholder="1200" required 
+                                   oninput="calculateRow(${currentRowId})"
+                                   style="text-align: right; flex: 1; min-width: 80px;">
+                            <label style="display: flex; align-items: center; gap: 4px; margin: 0; cursor: pointer; white-space: nowrap;">
+                                <input type="checkbox" name="price_inclusive[]" id="price_inclusive_${currentRowId}" 
+                                       class="price-inclusive-checkbox" ${challanItem.price_inclusive ? 'checked' : ''}
+                                       onchange="calculateRow(${currentRowId})">
+                                <span style="font-size: 11px; color: #666;">Inc</span>
+                            </label>
+                        </div>
+                    </td>
+                    <td>
+                        <select name="gst_rate[]" id="gst_rate_${currentRowId}" class="form-control" onchange="calculateRow(${currentRowId})">
+                            <option value="0" ${challanItem.gst_rate === 0 ? 'selected' : ''}>0%</option>
+                            <option value="5" ${challanItem.gst_rate === 5 ? 'selected' : ''}>5%</option>
+                            <option value="12" ${challanItem.gst_rate === 12 ? 'selected' : ''}>12%</option>
+                            <option value="18" ${challanItem.gst_rate === 18 ? 'selected' : ''}>18%</option>
+                            <option value="28" ${challanItem.gst_rate === 28 ? 'selected' : ''}>28%</option>
+                        </select>
+                    </td>
+                    <td>
+                        <span id="amount_${currentRowId}" style="font-weight: 600;">₹0.00</span>
+                    </td>
+                    <td>
+                        <button type="button" class="btn-danger-small" onclick="removeItemRow(${currentRowId})">🗑️</button>
+                    </td>
+                `;
+                
+                tbody.appendChild(row);
+                
+                // Calculate row amount after adding
+                setTimeout(() => calculateRow(currentRowId), 50);
+            });
+            
+            console.log(`✅ Added ${deliveryChallanData.items.length} items from delivery challan`);
+        }
+        
+        // Fill notes/terms
+        if (deliveryChallanData.notes) {
+            const termsField = document.getElementById('terms_conditions') || document.getElementById('notes');
+            if (termsField) {
+                termsField.value = deliveryChallanData.notes;
+            }
+        }
+        
+        // Calculate grand total
+        setTimeout(() => {
+            calculateTotals();
+            console.log('✅ Invoice pre-filled from Delivery Challan successfully!');
         }, 200);
     }
 </script>

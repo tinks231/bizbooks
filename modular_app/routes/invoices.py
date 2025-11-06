@@ -154,10 +154,18 @@ def create():
             else:
                 sales_order_id = None
             
+            # Get delivery_challan_id if converting from challan
+            delivery_challan_id = request.form.get('delivery_challan_id')
+            if delivery_challan_id and delivery_challan_id.strip():
+                delivery_challan_id = int(delivery_challan_id)
+            else:
+                delivery_challan_id = None
+            
             invoice = Invoice(
                 tenant_id=tenant_id,
                 customer_id=customer_id,  # NEW: Link to customer master
                 sales_order_id=sales_order_id,  # ✅ RE-ENABLED: Migration completed!
+                delivery_challan_id=delivery_challan_id,  # Link to delivery challan if converting
                 customer_name=customer_name,
                 customer_phone=customer_phone,
                 customer_email=customer_email,
@@ -378,6 +386,17 @@ def create():
             else:
                 flash('Invoice created successfully! Stock updated.', 'success')
             
+            # Update delivery challan status if linked
+            if delivery_challan_id:
+                from models import DeliveryChallan
+                delivery_challan = DeliveryChallan.query.get(delivery_challan_id)
+                if delivery_challan:
+                    # Update DC status to invoiced
+                    delivery_challan.status = 'invoiced'
+                    delivery_challan.invoiced_at = datetime.now(pytz.timezone('Asia/Kolkata'))
+                    flash(f'✅ Invoice created successfully! Linked to Delivery Challan {delivery_challan.challan_number}', 'success')
+                    print(f"📦 Delivery Challan {delivery_challan.challan_number} marked as invoiced")
+            
             db.session.commit()
             
             return redirect(url_for('invoices.view', invoice_id=invoice.id))
@@ -411,6 +430,16 @@ def create():
             tenant_id=tenant_id
         ).first()
     
+    # Check if converting from delivery challan
+    from_challan = request.args.get('from_challan')
+    delivery_challan = None
+    if from_challan:
+        from models import DeliveryChallan
+        delivery_challan = DeliveryChallan.query.filter_by(
+            id=int(from_challan),
+            tenant_id=tenant_id
+        ).first()
+    
     # Get tenant settings
     tenant_settings = json.loads(g.tenant.settings) if g.tenant.settings else {}
     
@@ -419,7 +448,8 @@ def create():
                          items=items_json,
                          today=date.today().strftime('%Y-%m-%d'),
                          tenant_settings=tenant_settings,
-                         sales_order=sales_order)
+                         sales_order=sales_order,
+                         delivery_challan=delivery_challan)
 
 
 @invoices_bp.route('/<int:invoice_id>')
