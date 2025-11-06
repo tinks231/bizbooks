@@ -177,9 +177,13 @@ def create_order():
                 qty = Decimal(quantities[i] or '0')
                 rate = Decimal(rates[i] or '0')
                 gst_rate = Decimal(gst_rates[i] or '0')
-                disc_value = Decimal(discount_values[i] or '0')
+                
+                # Safely get discount values (may not exist in form)
+                disc_value = Decimal(discount_values[i] or '0') if i < len(discount_values) else Decimal('0')
                 disc_type = discount_types[i] if i < len(discount_types) else 'percentage'
-                price_inclusive = str(i) in price_inclusives or f'price_inclusive_{i}' in request.form
+                
+                # Check if price inclusive checkbox is checked
+                price_inclusive = f'price_inclusive_{i+1}' in request.form or str(i) in price_inclusives
                 
                 # Calculate item amount
                 item_subtotal = qty * rate
@@ -208,13 +212,19 @@ def create_order():
                 discount_amount += item_discount
                 total_quantity += int(qty)
                 
+                # Safely get all optional fields
+                item_id_val = int(item_ids[i]) if (i < len(item_ids) and item_ids[i] and item_ids[i].isdigit()) else None
+                description_val = descriptions[i].strip() if (i < len(descriptions) and descriptions[i]) else ''
+                hsn_code_val = hsn_codes[i].strip() if (i < len(hsn_codes) and hsn_codes[i]) else ''
+                unit_val = units[i] if (i < len(units) and units[i]) else 'pcs'
+                
                 order_items_data.append({
-                    'item_id': int(item_ids[i]) if item_ids[i] and item_ids[i].isdigit() else None,
+                    'item_id': item_id_val,
                     'item_name': item_names[i].strip(),
-                    'description': descriptions[i].strip() if i < len(descriptions) else '',
-                    'hsn_code': hsn_codes[i].strip() if i < len(hsn_codes) else '',
+                    'description': description_val,
+                    'hsn_code': hsn_code_val,
                     'quantity': qty,
-                    'unit': units[i] if i < len(units) else 'pcs',
+                    'unit': unit_val,
                     'rate': rate,
                     'gst_rate': gst_rate,
                     'price_inclusive': price_inclusive,

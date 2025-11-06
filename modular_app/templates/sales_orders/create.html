@@ -314,13 +314,16 @@ Subject to Mumbai jurisdiction</textarea>
     z-index: 999;
     background: white;
     border: 2px solid #007bff;
-    max-height: 400px;
+    max-height: 350px;
     overflow-y: auto;
-    width: 500px;
+    width: 600px;  /* Wider to show full item names */
+    min-width: 400px;
     display: none;
     box-shadow: 0 8px 16px rgba(0,0,0,0.2);
     margin-top: 2px;
     border-radius: 8px;
+    left: 0;
+    white-space: normal;  /* Allow text wrapping */
 }
 
 .table th {
