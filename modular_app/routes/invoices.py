@@ -156,7 +156,7 @@ def create():
             invoice = Invoice(
                 tenant_id=tenant_id,
                 customer_id=customer_id,  # NEW: Link to customer master
-                sales_order_id=sales_order_id,  # NEW: Link to sales order
+                # sales_order_id=sales_order_id,  # DISABLED: Need to run migration first
                 customer_name=customer_name,
                 customer_phone=customer_phone,
                 customer_email=customer_email,

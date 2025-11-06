@@ -13,6 +13,11 @@
 {% block content %}
 <form method="POST" action="{% if invoice %}{{ url_for('invoices.edit', invoice_id=invoice.id) }}{% else %}{{ url_for('invoices.create') }}{% endif %}" id="invoiceForm">
     
+    {% if sales_order %}
+    <!-- Hidden field to link invoice to sales order -->
+    <input type="hidden" name="sales_order_id" value="{{ sales_order.id }}">
+    {% endif %}
+    
     <!-- Customer Details Card -->
     <div class="card">
         <div class="card-header">
