@@ -2,25 +2,16 @@
 
 {% block title %}Create Purchase Bill{% endblock %}
 
+{% block page_title %}💼 Create New Purchase Bill{% endblock %}
+
+{% block header_actions %}
+<a href="{{ url_for('purchase_bills.list_bills') }}" class="btn btn-secondary">
+    ← Back to Bills
+</a>
+{% endblock %}
+
 {% block content %}
 <style>
-    .card {
-        background: white;
-        border-radius: 12px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        margin-bottom: 25px;
-    }
-    .card-header {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        padding: 15px 20px;
-        border-radius: 12px 12px 0 0;
-        font-size: 18px;
-        font-weight: 600;
-    }
-    .card-body {
-        padding: 25px;
-    }
     .autocomplete-dropdown {
         position: absolute;
         background: white;
@@ -46,23 +37,13 @@
     }
 </style>
 
-<div class="container-fluid" style="padding: 30px;">
-    <!-- Header -->
-    <div style="display: flex; justify-content: between; align-items: center; margin-bottom: 25px;">
-        <div>
-            <h2 style="margin: 0; color: #333;">📝 Create Purchase Bill</h2>
-            <p style="color: #666; margin: 5px 0 0 0;">Record vendor bill for purchases</p>
+<form method="POST">
+    <!-- Vendor Information Card -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">Vendor Information</h5>
         </div>
-        <a href="{{ url_for('purchase_bills.list_bills') }}" class="btn btn-secondary">
-            ← Back to Bills
-        </a>
-    </div>
-
-    <form method="POST">
-        <!-- Vendor Information -->
-        <div class="card">
-            <div class="card-header">🏭 Vendor Information</div>
-            <div class="card-body">
+        <div class="card-body">
                 <!-- Vendor Search -->
                 <div class="row mb-3">
                     <div class="col-md-12">
@@ -110,9 +91,11 @@
             </div>
         </div>
 
-        <!-- Bill Details -->
-        <div class="card">
-            <div class="card-header">📄 Bill Details</div>
+        <!-- Bill Details Card -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Bill Details</h5>
+            </div>
             <div class="card-body">
                 <div class="row">
                     <div class="col-md-3 mb-3">
@@ -135,23 +118,29 @@
             </div>
         </div>
 
-        <!-- Line Items -->
-        <div class="card">
-            <div class="card-header">📦 Line Items</div>
+        <!-- Line Items Card -->
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Line Items</h5>
+                <button type="button" class="btn btn-sm btn-primary" onclick="addRow()">
+                    + Add Item
+                </button>
+            </div>
             <div class="card-body">
-                <table class="table" id="items_table">
-                    <thead>
-                        <tr>
-                            <th style="width: 30%;">Item</th>
-                            <th style="width: 15%;">HSN</th>
-                            <th style="width: 10%;">Qty</th>
-                            <th style="width: 10%;">Unit</th>
-                            <th style="width: 12%;">Rate</th>
-                            <th style="width: 8%;">GST%</th>
-                            <th style="width: 12%;">Amount</th>
-                            <th style="width: 3%;"></th>
-                        </tr>
-                    </thead>
+                <div class="table-responsive">
+                    <table class="table table-bordered" id="items_table">
+                        <thead class="table-light">
+                            <tr>
+                                <th style="width: 25%;">ITEM <span class="text-danger">*</span></th>
+                                <th style="width: 12%;">HSN CODE</th>
+                                <th style="width: 10%;">QTY <span class="text-danger">*</span></th>
+                                <th style="width: 8%;">UNIT</th>
+                                <th style="width: 12%;">RATE <span class="text-danger">*</span></th>
+                                <th style="width: 10%;">GST %</th>
+                                <th style="width: 12%;" class="text-end">AMOUNT</th>
+                                <th style="width: 3%;"></th>
+                            </tr>
+                        </thead>
                     <tbody id="items_body">
                         <!-- Template row -->
                         <tr class="item-row">
@@ -190,21 +179,17 @@
                                 </button>
                             </td>
                         </tr>
-                    </tbody>
-                </table>
-
-                <button type="button" class="btn btn-success" onclick="addRow()">
-                    <i class="fas fa-plus"></i> Add Item
-                </button>
-
+                        </tbody>
+                    </table>
+                </div>
+                
                 <!-- Totals -->
-                <div class="row mt-4">
-                    <div class="col-md-6"></div>
-                    <div class="col-md-6">
-                        <table class="table">
+                <div class="row justify-content-end mt-3">
+                    <div class="col-md-4">
+                        <table class="table table-sm">
                             <tr>
-                                <td>Subtotal:</td>
-                                <td class="text-end" id="subtotal_display">₹0.00</td>
+                                <td><strong>Subtotal:</strong></td>
+                                <td class="text-end"><strong id="subtotal_display">₹0.00</strong></td>
                             </tr>
                             <tr>
                                 <td>CGST:</td>
@@ -221,13 +206,15 @@
                             <tr>
                                 <td>
                                     Other Charges:
-                                    <input type="number" name="other_charges" class="form-control form-control-sm" step="0.01" value="0" oninput="calculateTotal()" style="width: 120px; display: inline-block;">
+                                    <input type="number" name="other_charges" class="form-control form-control-sm" 
+                                           step="0.01" value="0" oninput="calculateTotal()" 
+                                           style="width: 120px; display: inline-block; margin-left: 5px;">
                                 </td>
                                 <td></td>
                             </tr>
-                            <tr style="font-weight: bold; font-size: 18px;">
-                                <td>Total Amount:</td>
-                                <td class="text-end" id="total_display">₹0.00</td>
+                            <tr class="table-active">
+                                <td><strong>Total Amount:</strong></td>
+                                <td class="text-end"><strong id="total_display" style="font-size: 18px;">₹0.00</strong></td>
                             </tr>
                         </table>
                     </div>
@@ -235,9 +222,11 @@
             </div>
         </div>
 
-        <!-- Additional Details -->
-        <div class="card">
-            <div class="card-header">📝 Additional Details</div>
+        <!-- Additional Details Card -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Additional Details</h5>
+            </div>
             <div class="card-body">
                 <div class="row">
                     <div class="col-md-6 mb-3">
@@ -252,13 +241,18 @@
             </div>
         </div>
 
-        <!-- Submit -->
-        <div class="text-end" style="margin-bottom: 100px; padding-top: 20px;">
-            <a href="{{ url_for('purchase_bills.list_bills') }}" class="btn btn-secondary">Cancel</a>
-            <button type="submit" class="btn btn-primary">Create Purchase Bill</button>
+    <!-- Form Actions -->
+    <div class="card" style="margin-bottom: 100px;">
+        <div class="card-body text-end">
+            <a href="{{ url_for('purchase_bills.list_bills') }}" class="btn btn-secondary btn-lg me-2">
+                Cancel
+            </a>
+            <button type="submit" class="btn btn-success btn-lg">
+                <i class="fas fa-save"></i> Create Purchase Bill
+            </button>
         </div>
-    </form>
-</div>
+    </div>
+</form>
 
 <script>
 // Vendor Autocomplete
