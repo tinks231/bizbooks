@@ -285,17 +285,16 @@ Subject to Mumbai jurisdiction</textarea>
 }
 
 .autocomplete-item {
-    padding: 15px;
+    padding: 10px 12px;  /* Reduced padding */
     cursor: pointer;
     border-bottom: 1px solid #e9ecef;
     transition: all 0.2s ease;
-    font-size: 1rem;
+    font-size: 0.95rem;
 }
 
 .autocomplete-item:hover {
     background-color: #e3f2fd;
-    border-left: 4px solid #007bff;
-    padding-left: 20px;
+    border-left: 3px solid #007bff;
 }
 
 .autocomplete-item:last-child {
@@ -303,10 +302,10 @@ Subject to Mumbai jurisdiction</textarea>
 }
 
 .autocomplete-item strong {
-    font-size: 1.1rem;
+    font-size: 1rem;
     color: #2c3e50;
     display: block;
-    margin-bottom: 4px;
+    margin-bottom: 3px;
 }
 
 .item-autocomplete-dropdown {
@@ -713,12 +712,23 @@ function searchItems(rowId, query) {
                 console.log(`✅ Added ${items.length} items to dropdown`);
             }
             
-            // Position dropdown using fixed positioning
+            // Position dropdown using fixed positioning with screen boundary check
             try {
                 const inputField = document.getElementById(`item_name_${rowId}`);
                 if (inputField) {
                     const rect = inputField.getBoundingClientRect();
-                    dropdown.style.top = (rect.bottom + 2) + 'px';
+                    const dropdownHeight = 400; // max-height
+                    const spaceBelow = window.innerHeight - rect.bottom;
+                    const spaceAbove = rect.top;
+                    
+                    // If not enough space below, show above
+                    if (spaceBelow < dropdownHeight && spaceAbove > spaceBelow) {
+                        dropdown.style.bottom = (window.innerHeight - rect.top + 2) + 'px';
+                        dropdown.style.top = 'auto';
+                    } else {
+                        dropdown.style.top = (rect.bottom + 2) + 'px';
+                        dropdown.style.bottom = 'auto';
+                    }
                     dropdown.style.left = rect.left + 'px';
                     console.log(`📍 Dropdown positioned at: top=${rect.bottom}px, left=${rect.left}px`);
                 }

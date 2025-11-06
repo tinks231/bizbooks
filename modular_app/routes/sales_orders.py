@@ -337,8 +337,12 @@ def view_order(order_id):
     
     order = SalesOrder.query.filter_by(id=order_id, tenant_id=tenant_id).first_or_404()
     
-    # Get related documents
-    invoices = Invoice.query.filter_by(sales_order_id=order_id, tenant_id=tenant_id).all()
+    # Get related documents (check if sales_order_id column exists)
+    try:
+        invoices = Invoice.query.filter_by(sales_order_id=order_id, tenant_id=tenant_id).all()
+    except:
+        # Column doesn't exist yet, return empty list
+        invoices = []
     
     # Check if quotation exists - TEMPORARILY DISABLED
     # quotation = None
