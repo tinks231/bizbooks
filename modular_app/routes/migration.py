@@ -1322,6 +1322,18 @@ def fix_delivery_challan_columns():
                         ALTER TABLE delivery_challans RENAME COLUMN terms_and_conditions TO terms;
                     END IF;
                 END $$;
+                """,
+                # Make purpose column nullable (NOT NULL in old schema, not used in new model)
+                """
+                DO $$ 
+                BEGIN
+                    IF EXISTS (
+                        SELECT 1 FROM information_schema.columns 
+                        WHERE table_name='delivery_challans' AND column_name='purpose'
+                    ) THEN
+                        ALTER TABLE delivery_challans ALTER COLUMN purpose DROP NOT NULL;
+                    END IF;
+                END $$;
                 """
             ]
             
@@ -1395,6 +1407,13 @@ def fix_delivery_challan_columns():
             
             try:
                 db.session.execute(text("ALTER TABLE delivery_challans ADD COLUMN invoiced_at TIMESTAMP"))
+            except:
+                pass
+        
+        # Make purpose column nullable (it's NOT NULL in old schema but not used in new model)
+        if 'postgresql' in db_url:
+            try:
+                db.session.execute(text("ALTER TABLE delivery_challans ALTER COLUMN purpose DROP NOT NULL"))
             except:
                 pass
         
