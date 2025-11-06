@@ -116,6 +116,85 @@
             color: white;
         }
         
+        /* ===== COLLAPSIBLE NAVIGATION ===== */
+        .nav-section-collapsible {
+            margin-bottom: 5px;
+        }
+        
+        .nav-section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 20px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border-left: 3px solid transparent;
+            user-select: none;
+        }
+        
+        .nav-section-header:hover {
+            background: #34495e;
+            border-left-color: #3498db;
+        }
+        
+        .nav-section-header.active {
+            background: #34495e;
+            border-left-color: #3498db;
+        }
+        
+        .nav-section-label {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: #ecf0f1;
+            font-size: 14px;
+            font-weight: 600;
+        }
+        
+        .nav-section-icon {
+            font-size: 18px;
+            width: 24px;
+            text-align: center;
+        }
+        
+        .nav-section-arrow {
+            font-size: 12px;
+            transition: transform 0.3s ease;
+            color: #95a5a6;
+        }
+        
+        .nav-section-header.active .nav-section-arrow {
+            transform: rotate(90deg);
+        }
+        
+        .nav-section-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+            background: #1a252f;
+        }
+        
+        .nav-section-content.open {
+            max-height: 1000px; /* Large enough for any content */
+        }
+        
+        .nav-section-content .nav-item {
+            padding-left: 54px; /* Indent sub-items */
+            font-size: 13px;
+            border-left-color: transparent;
+        }
+        
+        .nav-section-content .nav-item:hover {
+            background: #2c3e50;
+            border-left-color: #3498db;
+        }
+        
+        .nav-section-content .nav-item.active {
+            background: #2c3e50;
+            border-left-color: #3498db;
+            color: #3498db;
+        }
+        
         /* ===== MAIN CONTENT AREA ===== */
         .main-content {
             margin-left: 240px;
@@ -628,164 +707,177 @@
             
             <!-- Quick Actions -->
             <div class="nav-section">
-                <div class="nav-section-title">Quick Actions</div>
                 <a href="/admin/bulk-import" class="nav-item {% if '/admin/bulk-import' in request.path %}active{% endif %}" style="background: linear-gradient(135deg, #667eea22 0%, #764ba222 100%); border-left-color: #667eea;">
                     <i>📥</i> Bulk Import
                     <span style="background: #667eea; color: white; padding: 2px 6px; border-radius: 8px; font-size: 9px; margin-left: 5px; font-weight: 700;">NEW</span>
                 </a>
             </div>
             
-            <!-- Items Section -->
-            <div class="nav-section">
-                <div class="nav-section-title">Items</div>
-                <a href="/admin/items" class="nav-item {% if '/admin/items' in request.path %}active{% endif %}">
-                    <i>📦</i> All Items
-                </a>
-                <a href="/admin/items/groups" class="nav-item {% if '/admin/items/groups' in request.path %}active{% endif %}">
-                    <i>📑</i> Item Groups
-                </a>
-                <a href="/admin/items/categories" class="nav-item {% if '/admin/items/categories' in request.path %}active{% endif %}">
-                    <i>🏷️</i> Categories
-                </a>
+            <!-- PARTIES Section (Collapsible) -->
+            <div class="nav-section-collapsible">
+                <div class="nav-section-header" onclick="toggleSection('parties')">
+                    <div class="nav-section-label">
+                        <span class="nav-section-icon">👥</span>
+                        <span>Parties</span>
+                    </div>
+                    <span class="nav-section-arrow">▶</span>
+                </div>
+                <div class="nav-section-content" id="section-parties">
+                    <a href="/admin/customers" class="nav-item {% if '/admin/customers' in request.path %}active{% endif %}">
+                        <i>👤</i> Customers
+                    </a>
+                    <a href="/admin/vendors" class="nav-item {% if '/admin/vendors' in request.path %}active{% endif %}">
+                        <i>🏭</i> Vendors
+                    </a>
+                    <a href="/admin/employees" class="nav-item {% if '/admin/employees' in request.path %}active{% endif %}">
+                        <i>👔</i> Employees
+                    </a>
+                </div>
             </div>
             
-            <!-- Inventory Section -->
-            <div class="nav-section">
-                <div class="nav-section-title">Inventory</div>
-                <a href="/admin/items/stock-summary" class="nav-item {% if '/admin/items/stock-summary' in request.path %}active{% endif %}">
-                    <i>📊</i> Stock Summary
-                </a>
-                <a href="/admin/items/adjustments" class="nav-item {% if '/admin/items/adjustments' in request.path %}active{% endif %}">
-                    <i>🔧</i> Adjustments
-                </a>
-                <a href="/admin/items/transfers" class="nav-item {% if '/admin/items/transfers' in request.path %}active{% endif %}">
-                    <i>🔄</i> Transfers
-                </a>
+            <!-- ITEMS & INVENTORY Section (Collapsible) -->
+            <div class="nav-section-collapsible">
+                <div class="nav-section-header" onclick="toggleSection('items')">
+                    <div class="nav-section-label">
+                        <span class="nav-section-icon">📦</span>
+                        <span>Items & Inventory</span>
+                    </div>
+                    <span class="nav-section-arrow">▶</span>
+                </div>
+                <div class="nav-section-content" id="section-items">
+                    <a href="/admin/items" class="nav-item {% if '/admin/items' in request.path and 'groups' not in request.path and 'categories' not in request.path and 'stock' not in request.path and 'adjustments' not in request.path and 'transfers' not in request.path and 'reports' not in request.path %}active{% endif %}">
+                        <i>📋</i> All Items
+                    </a>
+                    <a href="/admin/items/groups" class="nav-item {% if '/admin/items/groups' in request.path %}active{% endif %}">
+                        <i>📑</i> Item Groups
+                    </a>
+                    <a href="/admin/items/categories" class="nav-item {% if '/admin/items/categories' in request.path %}active{% endif %}">
+                        <i>🏷️</i> Categories
+                    </a>
+                    <a href="/admin/items/stock-summary" class="nav-item {% if '/admin/items/stock-summary' in request.path %}active{% endif %}">
+                        <i>📊</i> Stock Summary
+                    </a>
+                    <a href="/admin/sites" class="nav-item {% if '/admin/sites' in request.path %}active{% endif %}">
+                        <i>📍</i> Sites/Warehouses
+                    </a>
+                    <a href="/admin/items/adjustments" class="nav-item {% if '/admin/items/adjustments' in request.path %}active{% endif %}">
+                        <i>🔧</i> Stock Adjustments
+                    </a>
+                    <a href="/admin/items/transfers" class="nav-item {% if '/admin/items/transfers' in request.path %}active{% endif %}">
+                        <i>🔄</i> Stock Transfers
+                    </a>
+                </div>
             </div>
             
-            <!-- Operations Section -->
-            <div class="nav-section">
-                <div class="nav-section-title">Operations</div>
-                <a href="/admin/employees" class="nav-item {% if '/admin/employees' in request.path %}active{% endif %}">
-                    <i>👥</i> Employees
-                </a>
-                <a href="/admin/attendance" class="nav-item {% if '/admin/attendance' in request.path %}active{% endif %}">
-                    <i>⏰</i> Attendance
-                </a>
-                <a href="/admin/sites" class="nav-item {% if '/admin/sites' in request.path %}active{% endif %}">
-                    <i>📍</i> Sites
-                </a>
-                <a href="/admin/generate_qr" class="nav-item {% if '/admin/generate_qr' in request.path %}active{% endif %}">
-                    <i>📱</i> QR Code
-                </a>
+            <!-- SALES Section (Collapsible) -->
+            <div class="nav-section-collapsible">
+                <div class="nav-section-header" onclick="toggleSection('sales')">
+                    <div class="nav-section-label">
+                        <span class="nav-section-icon">💰</span>
+                        <span>Sales</span>
+                    </div>
+                    <span class="nav-section-arrow">▶</span>
+                </div>
+                <div class="nav-section-content" id="section-sales">
+                    <a href="/sales-orders" class="nav-item {% if '/sales-orders' in request.path %}active{% endif %}">
+                        <i>📋</i> Sales Orders
+                    </a>
+                    <a href="/delivery-challans/list" class="nav-item {% if '/delivery-challans' in request.path %}active{% endif %}">
+                        <i>🚚</i> Delivery Challans
+                    </a>
+                    <a href="/admin/invoices" class="nav-item {% if '/admin/invoices' in request.path and 'settings' not in request.path %}active{% endif %}">
+                        <i>📄</i> Invoices
+                    </a>
+                    <a href="/admin/invoices/settings" class="nav-item {% if '/admin/invoices/settings' in request.path %}active{% endif %}">
+                        <i>⚙️</i> Invoice Settings
+                    </a>
+                </div>
             </div>
             
-            <!-- Purchase Requests Section -->
-            <div class="nav-section">
-                <div class="nav-section-title">Purchase Requests</div>
-                <a href="/admin/purchase-requests" class="nav-item {% if '/admin/purchase-requests' in request.path %}active{% endif %}">
-                    <i>🛒</i> All Requests
-                    {% if g.pending_purchase_count and g.pending_purchase_count > 0 %}
-                    <span style="background: #dc3545; color: white; padding: 2px 8px; border-radius: 10px; font-size: 11px; margin-left: auto;">
-                        {{ g.pending_purchase_count }}
-                    </span>
-                    {% endif %}
-                </a>
+            <!-- PURCHASE & EXPENSES Section (Collapsible) -->
+            <div class="nav-section-collapsible">
+                <div class="nav-section-header" onclick="toggleSection('purchase')">
+                    <div class="nav-section-label">
+                        <span class="nav-section-icon">🛒</span>
+                        <span>Purchase & Expenses</span>
+                    </div>
+                    <span class="nav-section-arrow">▶</span>
+                </div>
+                <div class="nav-section-content" id="section-purchase">
+                    <a href="/admin/purchase-requests" class="nav-item {% if '/admin/purchase-requests' in request.path %}active{% endif %}">
+                        <i>📝</i> Purchase Requests
+                        {% if g.pending_purchase_count and g.pending_purchase_count > 0 %}
+                        <span style="background: #dc3545; color: white; padding: 2px 8px; border-radius: 10px; font-size: 11px; margin-left: auto;">
+                            {{ g.pending_purchase_count }}
+                        </span>
+                        {% endif %}
+                    </a>
+                    <a href="/admin/expenses" class="nav-item {% if '/admin/expenses' in request.path and 'reports' not in request.path and 'categories' not in request.path %}active{% endif %}">
+                        <i>💸</i> Expenses
+                    </a>
+                    <a href="/admin/expenses/categories" class="nav-item {% if '/admin/expenses/categories' in request.path %}active{% endif %}">
+                        <i>🏷️</i> Expense Categories
+                    </a>
+                </div>
             </div>
             
-            <!-- Customers Section -->
-            <div class="nav-section">
-                <div class="nav-section-title">Customers</div>
-                <a href="/admin/customers" class="nav-item {% if '/admin/customers' in request.path and 'outstanding' not in request.path %}active{% endif %}">
-                    <i>👥</i> All Customers
-                </a>
-                <a href="/admin/customers/add" class="nav-item {% if '/admin/customers/add' in request.path %}active{% endif %}">
-                    <i>➕</i> Add Customer
-                </a>
-                <a href="/admin/customers/outstanding" class="nav-item {% if '/admin/customers/outstanding' in request.path %}active{% endif %}">
-                    <i>📊</i> Outstanding Report
-                </a>
+            <!-- REPORTS Section (Collapsible) -->
+            <div class="nav-section-collapsible">
+                <div class="nav-section-header" onclick="toggleSection('reports')">
+                    <div class="nav-section-label">
+                        <span class="nav-section-icon">📊</span>
+                        <span>Reports</span>
+                    </div>
+                    <span class="nav-section-arrow">▶</span>
+                </div>
+                <div class="nav-section-content" id="section-reports">
+                    <a href="/admin/items/reports" class="nav-item {% if '/admin/items/reports' in request.path %}active{% endif %}">
+                        <i>📦</i> Inventory Reports
+                    </a>
+                    <a href="/admin/expenses/reports" class="nav-item {% if '/admin/expenses/reports' in request.path %}active{% endif %}">
+                        <i>💸</i> Expense Reports
+                    </a>
+                    <a href="/admin/customers/outstanding" class="nav-item {% if '/admin/customers/outstanding' in request.path %}active{% endif %}">
+                        <i>💰</i> Outstanding Report
+                    </a>
+                    <!-- Future Reports -->
+                    <!--
+                    <a href="/admin/reports/sales" class="nav-item">
+                        <i>📈</i> Sales Reports
+                    </a>
+                    <a href="/admin/reports/gst" class="nav-item">
+                        <i>📋</i> GST Reports
+                    </a>
+                    <a href="/admin/reports/profit-loss" class="nav-item">
+                        <i>💹</i> Profit & Loss
+                    </a>
+                    -->
+                </div>
             </div>
             
-            <!-- Sales Orders Section -->
-            <div class="nav-section">
-                <div class="nav-section-title">Sales Orders</div>
-                <a href="/sales-orders" class="nav-item {% if '/sales-orders' in request.path and 'create' not in request.path %}active{% endif %}">
-                    <i>📋</i> All Orders
-                </a>
-                <a href="/sales-orders/create" class="nav-item {% if '/sales-orders/create' in request.path %}active{% endif %}">
-                    <i>➕</i> New Order
-                </a>
-            </div>
-            
-            <!-- Delivery Challans Section -->
-            <div class="nav-section">
-                <div class="nav-section-title">Delivery Challans</div>
-                <a href="/delivery-challans/list" class="nav-item {% if '/delivery-challans' in request.path and 'create' not in request.path %}active{% endif %}">
-                    <i>📦</i> All Delivery Challans
-                </a>
-                <a href="/delivery-challans/create" class="nav-item {% if '/delivery-challans/create' in request.path %}active{% endif %}">
-                    <i>➕</i> New Delivery Challan
-                </a>
-            </div>
-            
-            <!-- Invoices Section -->
-            <div class="nav-section">
-                <div class="nav-section-title">Invoices</div>
-                <a href="/admin/invoices" class="nav-item {% if '/admin/invoices' in request.path and 'settings' not in request.path %}active{% endif %}">
-                    <i>📄</i> All Invoices
-                </a>
-                <a href="/admin/invoices/create" class="nav-item {% if '/admin/invoices/create' in request.path %}active{% endif %}">
-                    <i>➕</i> New Invoice
-                </a>
-                <a href="/admin/invoices/settings" class="nav-item {% if '/admin/invoices/settings' in request.path %}active{% endif %}">
-                    <i>⚙️</i> Invoice Settings
-                </a>
-            </div>
-            
-            <!-- Tasks Section -->
-            <div class="nav-section">
-                <div class="nav-section-title">Task Management</div>
-                <a href="/admin/tasks" class="nav-item {% if '/admin/tasks' in request.path and 'create' not in request.path %}active{% endif %}">
-                    <i>📋</i> All Tasks
-                </a>
-                <a href="/admin/tasks/create" class="nav-item {% if '/admin/tasks/create' in request.path %}active{% endif %}">
-                    <i>➕</i> Create Task
-                </a>
-                <a href="/employee/tasks/login" class="nav-item" target="_blank">
-                    <i>👷</i> Employee Login
-                </a>
-            </div>
-            
-            <!-- Expenses Section -->
-            <div class="nav-section">
-                <div class="nav-section-title">Expenses</div>
-                <a href="/admin/expenses" class="nav-item {% if '/admin/expenses' in request.path and 'reports' not in request.path and 'categories' not in request.path %}active{% endif %}">
-                    <i>💰</i> All Expenses
-                </a>
-                <a href="/admin/expenses/reports" class="nav-item {% if '/admin/expenses/reports' in request.path %}active{% endif %}">
-                    <i>📊</i> Reports
-                </a>
-                <a href="/admin/expenses/categories" class="nav-item {% if '/admin/expenses/categories' in request.path %}active{% endif %}">
-                    <i>🏷️</i> Categories
-                </a>
-            </div>
-            
-            <!-- Reports Section -->
-            <div class="nav-section">
-                <div class="nav-section-title">Reports</div>
-                <a href="/admin/items/reports" class="nav-item {% if '/admin/items/reports' in request.path %}active{% endif %}">
-                    <i>📊</i> Inventory Reports
-                </a>
-                <!-- Coming Soon -->
-                <!--
-                <a href="/admin/reports/analytics" class="nav-item">
-                    <i>📈</i> Analytics
-                </a>
-                <a href="/admin/reports/attendance" class="nav-item">
-                    <i>⏰</i> Attendance Reports
-                </a>
-                -->
+            <!-- OPERATIONS Section (Collapsible) -->
+            <div class="nav-section-collapsible">
+                <div class="nav-section-header" onclick="toggleSection('operations')">
+                    <div class="nav-section-label">
+                        <span class="nav-section-icon">⚙️</span>
+                        <span>Operations</span>
+                    </div>
+                    <span class="nav-section-arrow">▶</span>
+                </div>
+                <div class="nav-section-content" id="section-operations">
+                    <a href="/admin/attendance" class="nav-item {% if '/admin/attendance' in request.path %}active{% endif %}">
+                        <i>⏰</i> Attendance
+                    </a>
+                    <a href="/admin/tasks" class="nav-item {% if '/admin/tasks' in request.path %}active{% endif %}">
+                        <i>📋</i> Tasks
+                    </a>
+                    <a href="/admin/generate_qr" class="nav-item {% if '/admin/generate_qr' in request.path %}active{% endif %}">
+                        <i>📱</i> QR Code
+                    </a>
+                    <a href="/employee/tasks/login" class="nav-item" target="_blank">
+                        <i>👷</i> Employee Login
+                    </a>
+                </div>
             </div>
             
             <!-- Logout -->
@@ -853,6 +945,59 @@
                 if (!sidebar.contains(event.target) && event.target !== menuBtn) {
                     sidebar.classList.remove('active');
                 }
+            }
+        });
+        
+        // Collapsible Navigation Sections
+        function toggleSection(sectionId) {
+            const content = document.getElementById('section-' + sectionId);
+            const header = content.previousElementSibling;
+            
+            // Close all other sections first (accordion behavior)
+            document.querySelectorAll('.nav-section-content').forEach(section => {
+                if (section !== content && section.classList.contains('open')) {
+                    section.classList.remove('open');
+                    section.previousElementSibling.classList.remove('active');
+                }
+            });
+            
+            // Toggle current section
+            content.classList.toggle('open');
+            header.classList.toggle('active');
+            
+            // Save state to localStorage
+            const openSections = [];
+            document.querySelectorAll('.nav-section-content.open').forEach(section => {
+                const id = section.id.replace('section-', '');
+                openSections.push(id);
+            });
+            localStorage.setItem('openSections', JSON.stringify(openSections));
+        }
+        
+        // Restore open sections from localStorage on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            const openSections = JSON.parse(localStorage.getItem('openSections') || '[]');
+            
+            // If no saved state, auto-open section with active item
+            if (openSections.length === 0) {
+                // Find which section contains the active item
+                const activeItem = document.querySelector('.nav-section-content .nav-item.active');
+                if (activeItem) {
+                    const section = activeItem.closest('.nav-section-content');
+                    if (section) {
+                        section.classList.add('open');
+                        section.previousElementSibling.classList.add('active');
+                    }
+                }
+            } else {
+                // Restore saved state
+                openSections.forEach(sectionId => {
+                    const content = document.getElementById('section-' + sectionId);
+                    if (content) {
+                        content.classList.add('open');
+                        content.previousElementSibling.classList.add('active');
+                    }
+                });
             }
         });
         
