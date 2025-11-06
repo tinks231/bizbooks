@@ -1657,3 +1657,253 @@ def fix_delivery_challan_columns():
             'details': str(e),
             'help': 'Some columns may already exist, which is safe to ignore.'
         }), 500
+
+@migration_bp.route('/add-purchase-bills-module')
+def add_purchase_bills_module():
+    """
+    Add Purchase Bills module - complete tables for purchase bill management
+    Access: /migrate/add-purchase-bills-module
+    """
+    try:
+        db_url = db.engine.url.drivername
+        
+        if 'postgresql' in db_url:
+            # PostgreSQL
+            queries = [
+                # Create purchase_bills table
+                """
+                CREATE TABLE IF NOT EXISTS purchase_bills (
+                    id SERIAL PRIMARY KEY,
+                    tenant_id INTEGER NOT NULL REFERENCES tenants(id),
+                    bill_number VARCHAR(50) UNIQUE NOT NULL,
+                    bill_date DATE NOT NULL,
+                    due_date DATE,
+                    vendor_id INTEGER REFERENCES vendors(id),
+                    vendor_name VARCHAR(255) NOT NULL,
+                    vendor_phone VARCHAR(20),
+                    vendor_email VARCHAR(120),
+                    vendor_gstin VARCHAR(15),
+                    vendor_address TEXT,
+                    vendor_state VARCHAR(50) DEFAULT 'Maharashtra',
+                    purchase_request_id INTEGER REFERENCES purchase_requests(id),
+                    subtotal NUMERIC(15, 2) DEFAULT 0,
+                    discount_amount NUMERIC(15, 2) DEFAULT 0,
+                    cgst_amount NUMERIC(15, 2) DEFAULT 0,
+                    sgst_amount NUMERIC(15, 2) DEFAULT 0,
+                    igst_amount NUMERIC(15, 2) DEFAULT 0,
+                    other_charges NUMERIC(15, 2) DEFAULT 0,
+                    round_off NUMERIC(10, 2) DEFAULT 0,
+                    total_amount NUMERIC(15, 2) NOT NULL,
+                    payment_status VARCHAR(20) DEFAULT 'unpaid',
+                    paid_amount NUMERIC(15, 2) DEFAULT 0,
+                    balance_due NUMERIC(15, 2) DEFAULT 0,
+                    payment_terms VARCHAR(100),
+                    reference_number VARCHAR(100),
+                    notes TEXT,
+                    terms_conditions TEXT,
+                    document_url VARCHAR(500),
+                    status VARCHAR(20) DEFAULT 'draft',
+                    approved_at TIMESTAMP,
+                    approved_by INTEGER REFERENCES employees(id),
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                );
+                """,
+                # Create purchase_bill_items table
+                """
+                CREATE TABLE IF NOT EXISTS purchase_bill_items (
+                    id SERIAL PRIMARY KEY,
+                    tenant_id INTEGER NOT NULL REFERENCES tenants(id),
+                    purchase_bill_id INTEGER NOT NULL REFERENCES purchase_bills(id),
+                    item_id INTEGER REFERENCES items(id),
+                    item_name VARCHAR(255) NOT NULL,
+                    description TEXT,
+                    hsn_code VARCHAR(20),
+                    quantity NUMERIC(15, 3) NOT NULL,
+                    unit VARCHAR(20) DEFAULT 'pcs',
+                    rate NUMERIC(15, 2) NOT NULL,
+                    discount_percentage NUMERIC(5, 2) DEFAULT 0,
+                    discount_amount NUMERIC(15, 2) DEFAULT 0,
+                    taxable_value NUMERIC(15, 2) DEFAULT 0,
+                    gst_rate NUMERIC(5, 2) DEFAULT 0,
+                    cgst_amount NUMERIC(15, 2) DEFAULT 0,
+                    sgst_amount NUMERIC(15, 2) DEFAULT 0,
+                    igst_amount NUMERIC(15, 2) DEFAULT 0,
+                    total_amount NUMERIC(15, 2) DEFAULT 0,
+                    site_id INTEGER REFERENCES sites(id),
+                    received_quantity NUMERIC(15, 3) DEFAULT 0,
+                    batch_number VARCHAR(50),
+                    expiry_date DATE,
+                    notes TEXT,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                );
+                """,
+                # Create indices for better performance
+                """
+                CREATE INDEX IF NOT EXISTS idx_purchase_bills_tenant 
+                ON purchase_bills(tenant_id);
+                """,
+                """
+                CREATE INDEX IF NOT EXISTS idx_purchase_bills_vendor 
+                ON purchase_bills(vendor_id);
+                """,
+                """
+                CREATE INDEX IF NOT EXISTS idx_purchase_bills_status 
+                ON purchase_bills(status);
+                """,
+                """
+                CREATE INDEX IF NOT EXISTS idx_purchase_bills_payment_status 
+                ON purchase_bills(payment_status);
+                """,
+                """
+                CREATE INDEX IF NOT EXISTS idx_purchase_bills_bill_date 
+                ON purchase_bills(bill_date);
+                """,
+                """
+                CREATE INDEX IF NOT EXISTS idx_purchase_bill_items_bill 
+                ON purchase_bill_items(purchase_bill_id);
+                """,
+                """
+                CREATE INDEX IF NOT EXISTS idx_purchase_bill_items_item 
+                ON purchase_bill_items(item_id);
+                """
+            ]
+            
+            for query in queries:
+                db.session.execute(text(query))
+                
+        else:
+            # SQLite
+            queries = [
+                # Create purchase_bills table
+                """
+                CREATE TABLE IF NOT EXISTS purchase_bills (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    tenant_id INTEGER NOT NULL REFERENCES tenants(id),
+                    bill_number VARCHAR(50) UNIQUE NOT NULL,
+                    bill_date DATE NOT NULL,
+                    due_date DATE,
+                    vendor_id INTEGER REFERENCES vendors(id),
+                    vendor_name VARCHAR(255) NOT NULL,
+                    vendor_phone VARCHAR(20),
+                    vendor_email VARCHAR(120),
+                    vendor_gstin VARCHAR(15),
+                    vendor_address TEXT,
+                    vendor_state VARCHAR(50) DEFAULT 'Maharashtra',
+                    purchase_request_id INTEGER REFERENCES purchase_requests(id),
+                    subtotal DECIMAL(15, 2) DEFAULT 0,
+                    discount_amount DECIMAL(15, 2) DEFAULT 0,
+                    cgst_amount DECIMAL(15, 2) DEFAULT 0,
+                    sgst_amount DECIMAL(15, 2) DEFAULT 0,
+                    igst_amount DECIMAL(15, 2) DEFAULT 0,
+                    other_charges DECIMAL(15, 2) DEFAULT 0,
+                    round_off DECIMAL(10, 2) DEFAULT 0,
+                    total_amount DECIMAL(15, 2) NOT NULL,
+                    payment_status VARCHAR(20) DEFAULT 'unpaid',
+                    paid_amount DECIMAL(15, 2) DEFAULT 0,
+                    balance_due DECIMAL(15, 2) DEFAULT 0,
+                    payment_terms VARCHAR(100),
+                    reference_number VARCHAR(100),
+                    notes TEXT,
+                    terms_conditions TEXT,
+                    document_url VARCHAR(500),
+                    status VARCHAR(20) DEFAULT 'draft',
+                    approved_at TIMESTAMP,
+                    approved_by INTEGER REFERENCES employees(id),
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                );
+                """,
+                # Create purchase_bill_items table
+                """
+                CREATE TABLE IF NOT EXISTS purchase_bill_items (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    tenant_id INTEGER NOT NULL REFERENCES tenants(id),
+                    purchase_bill_id INTEGER NOT NULL REFERENCES purchase_bills(id),
+                    item_id INTEGER REFERENCES items(id),
+                    item_name VARCHAR(255) NOT NULL,
+                    description TEXT,
+                    hsn_code VARCHAR(20),
+                    quantity DECIMAL(15, 3) NOT NULL,
+                    unit VARCHAR(20) DEFAULT 'pcs',
+                    rate DECIMAL(15, 2) NOT NULL,
+                    discount_percentage DECIMAL(5, 2) DEFAULT 0,
+                    discount_amount DECIMAL(15, 2) DEFAULT 0,
+                    taxable_value DECIMAL(15, 2) DEFAULT 0,
+                    gst_rate DECIMAL(5, 2) DEFAULT 0,
+                    cgst_amount DECIMAL(15, 2) DEFAULT 0,
+                    sgst_amount DECIMAL(15, 2) DEFAULT 0,
+                    igst_amount DECIMAL(15, 2) DEFAULT 0,
+                    total_amount DECIMAL(15, 2) DEFAULT 0,
+                    site_id INTEGER REFERENCES sites(id),
+                    received_quantity DECIMAL(15, 3) DEFAULT 0,
+                    batch_number VARCHAR(50),
+                    expiry_date DATE,
+                    notes TEXT,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                );
+                """,
+                # Create indices
+                """
+                CREATE INDEX IF NOT EXISTS idx_purchase_bills_tenant 
+                ON purchase_bills(tenant_id);
+                """,
+                """
+                CREATE INDEX IF NOT EXISTS idx_purchase_bills_vendor 
+                ON purchase_bills(vendor_id);
+                """,
+                """
+                CREATE INDEX IF NOT EXISTS idx_purchase_bills_status 
+                ON purchase_bills(status);
+                """,
+                """
+                CREATE INDEX IF NOT EXISTS idx_purchase_bills_payment_status 
+                ON purchase_bills(payment_status);
+                """,
+                """
+                CREATE INDEX IF NOT EXISTS idx_purchase_bills_bill_date 
+                ON purchase_bills(bill_date);
+                """,
+                """
+                CREATE INDEX IF NOT EXISTS idx_purchase_bill_items_bill 
+                ON purchase_bill_items(purchase_bill_id);
+                """,
+                """
+                CREATE INDEX IF NOT EXISTS idx_purchase_bill_items_item 
+                ON purchase_bill_items(item_id);
+                """
+            ]
+            
+            for query in queries:
+                db.session.execute(text(query))
+        
+        db.session.commit()
+        
+        return jsonify({
+            'status': 'success',
+            'message': '✅ Purchase Bills module created successfully!',
+            'tables_created': ['purchase_bills', 'purchase_bill_items'],
+            'features': [
+                'Purchase bill management with GST',
+                'Vendor tracking and integration',
+                'Payment status tracking',
+                'Inventory receipt tracking',
+                'Link to purchase requests (optional)',
+                'Document attachment support'
+            ],
+            'next_steps': [
+                'Access /admin/purchase-bills to start creating purchase bills',
+                'Bills can be created manually or from approved purchase requests',
+                'Track Input Tax Credit (ITC) for GST-2 reporting'
+            ]
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({
+            'status': 'error',
+            'message': f'Migration failed: {str(e)}',
+            'details': str(e)
+        }), 500

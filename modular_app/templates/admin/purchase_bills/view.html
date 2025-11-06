@@ -1,0 +1,280 @@
+{% extends "base_sidebar.html" %}
+
+{% block title %}Purchase Bill {{ bill.bill_number }}{% endblock %}
+
+{% block content %}
+<style>
+    .bill-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 30px;
+        border-radius: 12px;
+        margin-bottom: 25px;
+    }
+    .info-card {
+        background: white;
+        padding: 20px;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        margin-bottom: 20px;
+    }
+    .items-table {
+        background: white;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    .items-table table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    .items-table th {
+        background: #f8f9fa;
+        padding: 15px;
+        text-align: left;
+        font-weight: 600;
+        border-bottom: 2px solid #dee2e6;
+    }
+    .items-table td {
+        padding: 15px;
+        border-bottom: 1px solid #f0f0f0;
+    }
+    .badge {
+        padding: 5px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 600;
+    }
+    .badge-draft { background: #ffc107; color: #000; }
+    .badge-approved { background: #28a745; color: white; }
+    .badge-paid { background: #007bff; color: white; }
+    .badge-cancelled { background: #dc3545; color: white; }
+    .badge-unpaid { background: #dc3545; color: white; }
+    .badge-partial { background: #ffc107; color: #000; }
+</style>
+
+<div class="container-fluid" style="padding: 30px;">
+    <!-- Header -->
+    <div class="bill-header">
+        <div style="display: flex; justify-content: space-between; align-items: start;">
+            <div>
+                <h2 style="margin: 0;">📄 Purchase Bill {{ bill.bill_number }}</h2>
+                <div style="margin-top: 10px; display: flex; gap: 10px; align-items: center;">
+                    <span class="badge badge-{{ bill.status }}">{{ bill.status|upper }}</span>
+                    <span class="badge badge-{{ bill.payment_status }}">{{ bill.payment_status|upper }}</span>
+                    <span style="opacity: 0.9;">{{ bill.bill_date.strftime('%d %B %Y') }}</span>
+                </div>
+            </div>
+            <div style="display: flex; gap: 10px;">
+                <a href="{{ url_for('purchase_bills.list_bills') }}" class="btn btn-light">
+                    ← Back to Bills
+                </a>
+                {% if bill.status == 'draft' %}
+                <a href="{{ url_for('purchase_bills.edit_bill', bill_id=bill.id) }}" class="btn btn-warning">
+                    <i class="fas fa-edit"></i> Edit
+                </a>
+                <form method="POST" action="{{ url_for('purchase_bills.approve_bill', bill_id=bill.id) }}" style="display: inline;">
+                    <button type="submit" class="btn btn-success" onclick="return confirm('Approve this bill?')">
+                        <i class="fas fa-check"></i> Approve
+                    </button>
+                </form>
+                <form method="POST" action="{{ url_for('purchase_bills.delete_bill', bill_id=bill.id) }}" style="display: inline;">
+                    <button type="submit" class="btn btn-danger" onclick="return confirm('Delete this bill?')">
+                        <i class="fas fa-trash"></i> Delete
+                    </button>
+                </form>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Vendor Info -->
+        <div class="col-md-6">
+            <div class="info-card">
+                <h5 style="margin-bottom: 15px; color: #333;">🏭 Vendor Details</h5>
+                <div><strong>{{ bill.vendor_name }}</strong></div>
+                {% if bill.vendor_phone %}<div>📱 {{ bill.vendor_phone }}</div>{% endif %}
+                {% if bill.vendor_email %}<div>📧 {{ bill.vendor_email }}</div>{% endif %}
+                {% if bill.vendor_gstin %}<div>🔖 GSTIN: {{ bill.vendor_gstin }}</div>{% endif %}
+                {% if bill.vendor_address %}<div>📍 {{ bill.vendor_address }}</div>{% endif %}
+                {% if bill.vendor_state %}<div>🗺️ State: {{ bill.vendor_state }}</div>{% endif %}
+            </div>
+        </div>
+
+        <!-- Bill Info -->
+        <div class="col-md-6">
+            <div class="info-card">
+                <h5 style="margin-bottom: 15px; color: #333;">📋 Bill Details</h5>
+                <div><strong>Bill Number:</strong> {{ bill.bill_number }}</div>
+                <div><strong>Bill Date:</strong> {{ bill.bill_date.strftime('%d %b %Y') }}</div>
+                {% if bill.due_date %}<div><strong>Due Date:</strong> {{ bill.due_date.strftime('%d %b %Y') }}</div>{% endif %}
+                {% if bill.reference_number %}<div><strong>Vendor Invoice #:</strong> {{ bill.reference_number }}</div>{% endif %}
+                {% if bill.payment_terms %}<div><strong>Payment Terms:</strong> {{ bill.payment_terms }}</div>{% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Payment Info -->
+    <div class="info-card">
+        <h5 style="margin-bottom: 15px; color: #333;">💰 Payment Information</h5>
+        <div class="row">
+            <div class="col-md-3">
+                <div style="font-size: 14px; color: #666;">Total Amount</div>
+                <div style="font-size: 24px; font-weight: 700; color: #333;">₹{{ "{:,.2f}".format(bill.total_amount) }}</div>
+            </div>
+            <div class="col-md-3">
+                <div style="font-size: 14px; color: #666;">Paid Amount</div>
+                <div style="font-size: 24px; font-weight: 700; color: #28a745;">₹{{ "{:,.2f}".format(bill.paid_amount) }}</div>
+            </div>
+            <div class="col-md-3">
+                <div style="font-size: 14px; color: #666;">Balance Due</div>
+                <div style="font-size: 24px; font-weight: 700; color: #dc3545;">₹{{ "{:,.2f}".format(bill.balance_due) }}</div>
+            </div>
+            <div class="col-md-3">
+                <div style="font-size: 14px; color: #666;">Payment Status</div>
+                <div style="margin-top: 5px;">
+                    <span class="badge badge-{{ bill.payment_status }}" style="font-size: 14px; padding: 8px 16px;">
+                        {{ bill.payment_status|upper }}
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Line Items -->
+    <div class="items-table">
+        <div style="padding: 20px; border-bottom: 2px solid #dee2e6;">
+            <h5 style="margin: 0; color: #333;">📦 Line Items</h5>
+        </div>
+        <table>
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Item</th>
+                    <th>HSN</th>
+                    <th>Qty</th>
+                    <th>Rate</th>
+                    <th>Taxable</th>
+                    <th>GST</th>
+                    <th>Amount</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in bill.items %}
+                <tr>
+                    <td>{{ loop.index }}</td>
+                    <td>
+                        <div style="font-weight: 600;">{{ item.item_name }}</div>
+                        {% if item.description %}<div style="font-size: 12px; color: #666;">{{ item.description }}</div>{% endif %}
+                    </td>
+                    <td>{{ item.hsn_code or '-' }}</td>
+                    <td>{{ item.quantity }} {{ item.unit }}</td>
+                    <td>₹{{ "{:,.2f}".format(item.rate) }}</td>
+                    <td>₹{{ "{:,.2f}".format(item.taxable_value) }}</td>
+                    <td>
+                        {{ item.gst_rate }}%
+                        {% if item.cgst_amount > 0 %}
+                        <div style="font-size: 11px; color: #666;">
+                            CGST: ₹{{ "{:.2f}".format(item.cgst_amount) }}<br>
+                            SGST: ₹{{ "{:.2f}".format(item.sgst_amount) }}
+                        </div>
+                        {% elif item.igst_amount > 0 %}
+                        <div style="font-size: 11px; color: #666;">
+                            IGST: ₹{{ "{:.2f}".format(item.igst_amount) }}
+                        </div>
+                        {% endif %}
+                    </td>
+                    <td style="font-weight: 600;">₹{{ "{:,.2f}".format(item.total_amount) }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <!-- Totals -->
+        <div style="padding: 20px; background: #f8f9fa;">
+            <div class="row">
+                <div class="col-md-6"></div>
+                <div class="col-md-6">
+                    <table style="width: 100%;">
+                        <tr>
+                            <td style="padding: 8px 0;">Subtotal:</td>
+                            <td style="padding: 8px 0; text-align: right;">₹{{ "{:,.2f}".format(bill.subtotal) }}</td>
+                        </tr>
+                        {% if bill.cgst_amount > 0 %}
+                        <tr>
+                            <td style="padding: 8px 0;">CGST:</td>
+                            <td style="padding: 8px 0; text-align: right;">₹{{ "{:,.2f}".format(bill.cgst_amount) }}</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 8px 0;">SGST:</td>
+                            <td style="padding: 8px 0; text-align: right;">₹{{ "{:,.2f}".format(bill.sgst_amount) }}</td>
+                        </tr>
+                        {% endif %}
+                        {% if bill.igst_amount > 0 %}
+                        <tr>
+                            <td style="padding: 8px 0;">IGST:</td>
+                            <td style="padding: 8px 0; text-align: right;">₹{{ "{:,.2f}".format(bill.igst_amount) }}</td>
+                        </tr>
+                        {% endif %}
+                        {% if bill.other_charges > 0 %}
+                        <tr>
+                            <td style="padding: 8px 0;">Other Charges:</td>
+                            <td style="padding: 8px 0; text-align: right;">₹{{ "{:,.2f}".format(bill.other_charges) }}</td>
+                        </tr>
+                        {% endif %}
+                        <tr style="border-top: 2px solid #dee2e6; font-weight: 700; font-size: 18px;">
+                            <td style="padding: 15px 0 0 0;">Total Amount:</td>
+                            <td style="padding: 15px 0 0 0; text-align: right;">₹{{ "{:,.2f}".format(bill.total_amount) }}</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notes & Terms -->
+    {% if bill.notes or bill.terms_conditions %}
+    <div class="row" style="margin-top: 25px;">
+        {% if bill.notes %}
+        <div class="col-md-6">
+            <div class="info-card">
+                <h5 style="margin-bottom: 15px; color: #333;">📝 Notes</h5>
+                <p style="white-space: pre-wrap; margin: 0;">{{ bill.notes }}</p>
+            </div>
+        </div>
+        {% endif %}
+        {% if bill.terms_conditions %}
+        <div class="col-md-6">
+            <div class="info-card">
+                <h5 style="margin-bottom: 15px; color: #333;">📋 Terms & Conditions</h5>
+                <p style="white-space: pre-wrap; margin: 0;">{{ bill.terms_conditions }}</p>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    <!-- Audit Trail -->
+    <div class="info-card" style="margin-top: 25px;">
+        <h5 style="margin-bottom: 15px; color: #333;">🕒 Audit Trail</h5>
+        <div class="row">
+            <div class="col-md-4">
+                <div style="font-size: 14px; color: #666;">Created</div>
+                <div>{{ bill.created_at.strftime('%d %b %Y, %I:%M %p') }}</div>
+            </div>
+            {% if bill.approved_at %}
+            <div class="col-md-4">
+                <div style="font-size: 14px; color: #666;">Approved</div>
+                <div>{{ bill.approved_at.strftime('%d %b %Y, %I:%M %p') }}</div>
+            </div>
+            {% endif %}
+            <div class="col-md-4">
+                <div style="font-size: 14px; color: #666;">Last Updated</div>
+                <div>{{ bill.updated_at.strftime('%d %b %Y, %I:%M %p') }}</div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

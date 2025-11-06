@@ -1,0 +1,220 @@
+{% extends "base_sidebar.html" %}
+
+{% block title %}Purchase Bills - {{ tenant.company_name }}{% endblock %}
+
+{% block content %}
+<style>
+    .stats-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 20px;
+        border-radius: 12px;
+        margin-bottom: 25px;
+    }
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 15px;
+        margin-top: 15px;
+    }
+    .stat-item {
+        background: rgba(255, 255, 255, 0.15);
+        padding: 15px;
+        border-radius: 8px;
+    }
+    .stat-value {
+        font-size: 24px;
+        font-weight: 700;
+        margin-top: 5px;
+    }
+    .filter-bar {
+        background: white;
+        padding: 20px;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        margin-bottom: 25px;
+    }
+    .bill-table {
+        background: white;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    .bill-table table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    .bill-table th {
+        background: #f8f9fa;
+        padding: 15px;
+        text-align: left;
+        font-weight: 600;
+        border-bottom: 2px solid #dee2e6;
+    }
+    .bill-table td {
+        padding: 15px;
+        border-bottom: 1px solid #f0f0f0;
+    }
+    .bill-table tr:hover {
+        background: #f8f9ff;
+    }
+    .badge {
+        padding: 5px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 600;
+    }
+    .badge-draft { background: #ffc107; color: #000; }
+    .badge-approved { background: #28a745; color: white; }
+    .badge-paid { background: #007bff; color: white; }
+    .badge-cancelled { background: #dc3545; color: white; }
+    .badge-unpaid { background: #dc3545; color: white; }
+    .badge-partial { background: #ffc107; color: #000; }
+</style>
+
+<div class="container-fluid" style="padding: 30px;">
+    <!-- Header -->
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
+        <div>
+            <h2 style="margin: 0; color: #333;">💼 Purchase Bills</h2>
+            <p style="color: #666; margin: 5px 0 0 0;">Manage vendor bills and track payments</p>
+        </div>
+        <a href="{{ url_for('purchase_bills.create_bill') }}" class="btn btn-primary" style="padding: 12px 24px;">
+            <i class="fas fa-plus"></i> Create New Bill
+        </a>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="stats-card">
+        <div style="font-size: 18px; font-weight: 600; margin-bottom: 10px;">📊 Summary</div>
+        <div class="stats-grid">
+            <div class="stat-item">
+                <div style="opacity: 0.9;">Total Bills</div>
+                <div class="stat-value">{{ total_bills }}</div>
+            </div>
+            <div class="stat-item">
+                <div style="opacity: 0.9;">Total Amount</div>
+                <div class="stat-value">₹{{ "{:,.2f}".format(total_amount) }}</div>
+            </div>
+            <div class="stat-item">
+                <div style="opacity: 0.9;">Total Paid</div>
+                <div class="stat-value">₹{{ "{:,.2f}".format(total_paid) }}</div>
+            </div>
+            <div class="stat-item">
+                <div style="opacity: 0.9;">Total Due</div>
+                <div class="stat-value">₹{{ "{:,.2f}".format(total_due) }}</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="filter-bar">
+        <form method="GET" style="display: grid; grid-template-columns: 2fr 2fr 2fr 3fr 1fr; gap: 15px; align-items: end;">
+            <div>
+                <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #333;">Status</label>
+                <select name="status" class="form-control">
+                    <option value="all" {% if status_filter == 'all' %}selected{% endif %}>All Status</option>
+                    <option value="draft" {% if status_filter == 'draft' %}selected{% endif %}>Draft</option>
+                    <option value="approved" {% if status_filter == 'approved' %}selected{% endif %}>Approved</option>
+                    <option value="paid" {% if status_filter == 'paid' %}selected{% endif %}>Paid</option>
+                    <option value="cancelled" {% if status_filter == 'cancelled' %}selected{% endif %}>Cancelled</option>
+                </select>
+            </div>
+            <div>
+                <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #333;">Payment Status</label>
+                <select name="payment" class="form-control">
+                    <option value="all" {% if payment_filter == 'all' %}selected{% endif %}>All Payments</option>
+                    <option value="unpaid" {% if payment_filter == 'unpaid' %}selected{% endif %}>Unpaid</option>
+                    <option value="partial" {% if payment_filter == 'partial' %}selected{% endif %}>Partial</option>
+                    <option value="paid" {% if payment_filter == 'paid' %}selected{% endif %}>Paid</option>
+                </select>
+            </div>
+            <div style="grid-column: span 2;">
+                <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #333;">Search</label>
+                <input type="text" name="search" class="form-control" placeholder="Search by bill #, vendor, reference..." value="{{ search_query }}">
+            </div>
+            <div>
+                <button type="submit" class="btn btn-primary" style="width: 100%; padding: 10px;">
+                    <i class="fas fa-search"></i> Filter
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Bills Table -->
+    <div class="bill-table">
+        {% if bills %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Bill #</th>
+                    <th>Date</th>
+                    <th>Vendor</th>
+                    <th>Reference</th>
+                    <th>Amount</th>
+                    <th>Paid</th>
+                    <th>Balance</th>
+                    <th>Status</th>
+                    <th>Payment</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for bill in bills %}
+                <tr>
+                    <td style="font-weight: 600; color: #667eea;">
+                        <a href="{{ url_for('purchase_bills.view_bill', bill_id=bill.id) }}" style="text-decoration: none; color: inherit;">
+                            {{ bill.bill_number }}
+                        </a>
+                    </td>
+                    <td>{{ bill.bill_date.strftime('%d %b %Y') }}</td>
+                    <td>
+                        <div style="font-weight: 600;">{{ bill.vendor_name }}</div>
+                        {% if bill.vendor_phone %}
+                        <div style="font-size: 12px; color: #666;">{{ bill.vendor_phone }}</div>
+                        {% endif %}
+                    </td>
+                    <td>{{ bill.reference_number or '-' }}</td>
+                    <td style="font-weight: 600;">₹{{ "{:,.2f}".format(bill.total_amount) }}</td>
+                    <td style="color: #28a745;">₹{{ "{:,.2f}".format(bill.paid_amount) }}</td>
+                    <td style="color: #dc3545; font-weight: 600;">₹{{ "{:,.2f}".format(bill.balance_due) }}</td>
+                    <td>
+                        <span class="badge badge-{{ bill.status }}">{{ bill.status|upper }}</span>
+                    </td>
+                    <td>
+                        <span class="badge badge-{{ bill.payment_status }}">{{ bill.payment_status|upper }}</span>
+                    </td>
+                    <td>
+                        <a href="{{ url_for('purchase_bills.view_bill', bill_id=bill.id) }}" class="btn btn-sm btn-info">
+                            <i class="fas fa-eye"></i> View
+                        </a>
+                        {% if bill.status == 'draft' %}
+                        <a href="{{ url_for('purchase_bills.edit_bill', bill_id=bill.id) }}" class="btn btn-sm btn-warning">
+                            <i class="fas fa-edit"></i> Edit
+                        </a>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div style="text-align: center; padding: 60px 20px; color: #999;">
+            <i class="fas fa-file-invoice" style="font-size: 64px; margin-bottom: 20px; opacity: 0.3;"></i>
+            <h3 style="color: #666;">No purchase bills found</h3>
+            <p>{% if search_query or status_filter != 'all' or payment_filter != 'all' %}
+                Try adjusting your filters
+            {% else %}
+                Create your first purchase bill to get started
+            {% endif %}</p>
+            {% if not search_query and status_filter == 'all' and payment_filter == 'all' %}
+            <a href="{{ url_for('purchase_bills.create_bill') }}" class="btn btn-primary" style="margin-top: 20px;">
+                <i class="fas fa-plus"></i> Create First Bill
+            </a>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+

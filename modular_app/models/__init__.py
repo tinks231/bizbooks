@@ -24,6 +24,8 @@ from .sales_order import SalesOrder
 from .sales_order_item import SalesOrderItem
 from .delivery_challan import DeliveryChallan
 from .delivery_challan_item import DeliveryChallanItem
+from .purchase_bill import PurchaseBill
+from .purchase_bill_item import PurchaseBillItem
 
 # Create Party alias for Customer (for unified party management)
 Party = Customer
@@ -41,6 +43,7 @@ __all__ = [
     'Task', 'TaskUpdate', 'TaskMaterial', 'TaskMedia',
     # 'Quotation', 'QuotationItem',  # Temporarily disabled
     'SalesOrder', 'SalesOrderItem',
-    'DeliveryChallan', 'DeliveryChallanItem'
+    'DeliveryChallan', 'DeliveryChallanItem',
+    'PurchaseBill', 'PurchaseBillItem'
 ]
 
