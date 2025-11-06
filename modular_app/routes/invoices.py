@@ -146,9 +146,17 @@ def create():
             else:
                 customer_id = None
             
+            # Get sales_order_id if converting from order
+            sales_order_id = request.form.get('sales_order_id')
+            if sales_order_id and sales_order_id.strip():
+                sales_order_id = int(sales_order_id)
+            else:
+                sales_order_id = None
+            
             invoice = Invoice(
                 tenant_id=tenant_id,
                 customer_id=customer_id,  # NEW: Link to customer master
+                sales_order_id=sales_order_id,  # NEW: Link to sales order
                 customer_name=customer_name,
                 customer_phone=customer_phone,
                 customer_email=customer_email,
@@ -341,9 +349,22 @@ def create():
                 'reference_number': invoice.invoice_number,
                 'reference_id': invoice.id
             })
+            
+            # Update sales order status if linked
+            if sales_order_id:
+                from models import SalesOrder
+                sales_order = SalesOrder.query.get(sales_order_id)
+                if sales_order:
+                    # Update fulfillment tracking
+                    sales_order.update_fulfillment_status()
+                    flash(f'✅ Invoice created successfully! Linked to Sales Order {sales_order.order_number}', 'success')
+                else:
+                    flash('Invoice created successfully! Stock updated.', 'success')
+            else:
+                flash('Invoice created successfully! Stock updated.', 'success')
+            
             db.session.commit()
             
-            flash('Invoice created successfully! Stock updated.', 'success')
             return redirect(url_for('invoices.view', invoice_id=invoice.id))
             
         except Exception as e:
@@ -365,6 +386,16 @@ def create():
         for item in items
     ]
     
+    # Check if converting from sales order
+    from_order = request.args.get('from_order')
+    sales_order = None
+    if from_order:
+        from models import SalesOrder
+        sales_order = SalesOrder.query.filter_by(
+            id=int(from_order), 
+            tenant_id=tenant_id
+        ).first()
+    
     # Get tenant settings
     tenant_settings = json.loads(g.tenant.settings) if g.tenant.settings else {}
     
@@ -372,7 +403,8 @@ def create():
                          tenant=g.tenant,
                          items=items_json,
                          today=date.today().strftime('%Y-%m-%d'),
-                         tenant_settings=tenant_settings)
+                         tenant_settings=tenant_settings,
+                         sales_order=sales_order)
 
 
 @invoices_bp.route('/<int:invoice_id>')

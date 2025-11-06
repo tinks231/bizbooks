@@ -1,0 +1,306 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Sales Orders{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2>📋 Sales Orders</h2>
+            <p class="text-muted">Track and manage customer orders</p>
+        </div>
+        <div>
+            <a href="{{ url_for('sales_orders.create_order') }}" class="btn btn-primary">
+                <i class="fas fa-plus"></i> New Sales Order
+            </a>
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="row mb-4">
+        <div class="col-md-2">
+            <div class="card text-center" style="border-left: 4px solid #6c757d;">
+                <div class="card-body">
+                    <h3 class="mb-0">{{ stats.total }}</h3>
+                    <small class="text-muted">Total Orders</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card text-center" style="border-left: 4px solid #ffc107;">
+                <div class="card-body">
+                    <h3 class="mb-0">{{ stats.pending }}</h3>
+                    <small class="text-muted">Pending</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card text-center" style="border-left: 4px solid #17a2b8;">
+                <div class="card-body">
+                    <h3 class="mb-0">{{ stats.confirmed }}</h3>
+                    <small class="text-muted">Confirmed</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card text-center" style="border-left: 4px solid #fd7e14;">
+                <div class="card-body">
+                    <h3 class="mb-0">{{ stats.partially_delivered }}</h3>
+                    <small class="text-muted">Part. Delivered</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card text-center" style="border-left: 4px solid #20c997;">
+                <div class="card-body">
+                    <h3 class="mb-0">{{ stats.delivered }}</h3>
+                    <small class="text-muted">Delivered</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card text-center" style="border-left: 4px solid #28a745;">
+                <div class="card-body">
+                    <h3 class="mb-0">₹{{ "{:,.0f}".format(stats.pending_value) }}</h3>
+                    <small class="text-muted">Pending Value</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="GET" action="{{ url_for('sales_orders.list_orders') }}" class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label">Status</label>
+                    <select name="status" class="form-select">
+                        <option value="all" {% if status_filter == 'all' %}selected{% endif %}>All Statuses</option>
+                        <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>Pending</option>
+                        <option value="confirmed" {% if status_filter == 'confirmed' %}selected{% endif %}>Confirmed</option>
+                        <option value="partially_delivered" {% if status_filter == 'partially_delivered' %}selected{% endif %}>Partially Delivered</option>
+                        <option value="delivered" {% if status_filter == 'delivered' %}selected{% endif %}>Delivered</option>
+                        <option value="invoiced" {% if status_filter == 'invoiced' %}selected{% endif %}>Invoiced</option>
+                        <option value="cancelled" {% if status_filter == 'cancelled' %}selected{% endif %}>Cancelled</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Customer</label>
+                    <select name="customer_id" class="form-select">
+                        <option value="">All Customers</option>
+                        {% for customer in customers %}
+                        <option value="{{ customer.id }}" {% if customer_id == customer.id|string %}selected{% endif %}>
+                            {{ customer.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">From Date</label>
+                    <input type="date" name="date_from" class="form-control" value="{{ date_from }}">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">To Date</label>
+                    <input type="date" name="date_to" class="form-control" value="{{ date_to }}">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Search</label>
+                    <input type="text" name="search" class="form-control" placeholder="Order #, Customer" value="{{ search_query }}">
+                </div>
+                <div class="col-md-12">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-filter"></i> Apply Filters
+                    </button>
+                    <a href="{{ url_for('sales_orders.list_orders') }}" class="btn btn-secondary">
+                        <i class="fas fa-times"></i> Clear
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Orders Table -->
+    <div class="card">
+        <div class="card-body">
+            {% if orders %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Order #</th>
+                            <th>Date</th>
+                            <th>Customer</th>
+                            <th>Amount</th>
+                            <th>Status</th>
+                            <th>Fulfillment</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for order in orders %}
+                        <tr>
+                            <td>
+                                <strong>{{ order.order_number }}</strong><br>
+                                {% if order.quotation_id %}
+                                <small class="text-muted">From Quotation</small>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {{ order.order_date.strftime('%d %b %Y') }}<br>
+                                {% if order.expected_delivery_date %}
+                                <small class="text-muted">
+                                    Exp: {{ order.expected_delivery_date.strftime('%d %b') }}
+                                </small>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <strong>{{ order.customer_name }}</strong><br>
+                                {% if order.customer_phone %}
+                                <small class="text-muted">{{ order.customer_phone }}</small>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <strong>₹{{ "{:,.2f}".format(order.total_amount) }}</strong><br>
+                                <small class="text-muted">{{ order.quantity_ordered }} items</small>
+                            </td>
+                            <td>
+                                {% if order.status == 'pending' %}
+                                <span class="badge bg-warning">Pending</span>
+                                {% elif order.status == 'confirmed' %}
+                                <span class="badge bg-info">Confirmed</span>
+                                {% elif order.status == 'partially_delivered' %}
+                                <span class="badge bg-warning">Part. Delivered</span>
+                                {% elif order.status == 'delivered' %}
+                                <span class="badge bg-success">Delivered</span>
+                                {% elif order.status == 'partially_invoiced' %}
+                                <span class="badge bg-primary">Part. Invoiced</span>
+                                {% elif order.status == 'invoiced' %}
+                                <span class="badge bg-success">Invoiced</span>
+                                {% elif order.status == 'cancelled' %}
+                                <span class="badge bg-danger">Cancelled</span>
+                                {% else %}
+                                <span class="badge bg-secondary">{{ order.status|title }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div style="font-size: 11px;">
+                                    <div>Delivered: {{ order.quantity_delivered }}/{{ order.quantity_ordered }}</div>
+                                    <div>Invoiced: {{ order.quantity_invoiced }}/{{ order.quantity_ordered }}</div>
+                                </div>
+                                <div class="progress" style="height: 5px; margin-top: 5px;">
+                                    {% set progress = (order.quantity_invoiced / order.quantity_ordered * 100)|int if order.quantity_ordered > 0 else 0 %}
+                                    <div class="progress-bar" role="progressbar" style="width: {{ progress }}%"></div>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <a href="{{ url_for('sales_orders.view_order', order_id=order.id) }}" 
+                                       class="btn btn-sm btn-primary" title="View">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    {% if order.status not in ['invoiced', 'cancelled'] %}
+                                    <a href="{{ url_for('sales_orders.edit_order', order_id=order.id) }}" 
+                                       class="btn btn-sm btn-warning" title="Edit">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    {% endif %}
+                                    <div class="btn-group btn-group-sm">
+                                        <button type="button" class="btn btn-sm btn-secondary dropdown-toggle" 
+                                                data-bs-toggle="dropdown">
+                                            <i class="fas fa-ellipsis-v"></i>
+                                        </button>
+                                        <ul class="dropdown-menu">
+                                            {% if order.status not in ['invoiced', 'cancelled'] %}
+                                            <li>
+                                                <a class="dropdown-item" href="{{ url_for('sales_orders.convert_to_invoice', order_id=order.id) }}">
+                                                    <i class="fas fa-file-invoice"></i> Convert to Invoice
+                                                </a>
+                                            </li>
+                                            {% endif %}
+                                            {% if order.status in ['draft', 'pending'] %}
+                                            <li>
+                                                <form method="POST" action="{{ url_for('sales_orders.update_status', order_id=order.id) }}" 
+                                                      style="display: inline;">
+                                                    <input type="hidden" name="status" value="confirmed">
+                                                    <button type="submit" class="dropdown-item">
+                                                        <i class="fas fa-check"></i> Mark as Confirmed
+                                                    </button>
+                                                </form>
+                                            </li>
+                                            {% endif %}
+                                            {% if order.status not in ['invoiced', 'cancelled'] %}
+                                            <li>
+                                                <form method="POST" action="{{ url_for('sales_orders.update_status', order_id=order.id) }}" 
+                                                      style="display: inline;"
+                                                      onsubmit="return confirm('Are you sure you want to cancel this order?')">
+                                                    <input type="hidden" name="status" value="cancelled">
+                                                    <button type="submit" class="dropdown-item text-danger">
+                                                        <i class="fas fa-times"></i> Cancel Order
+                                                    </button>
+                                                </form>
+                                            </li>
+                                            {% endif %}
+                                            {% if order.status in ['draft', 'pending', 'cancelled'] %}
+                                            <li><hr class="dropdown-divider"></li>
+                                            <li>
+                                                <form method="POST" action="{{ url_for('sales_orders.delete_order', order_id=order.id) }}" 
+                                                      style="display: inline;"
+                                                      onsubmit="return confirm('Are you sure you want to delete this order? This cannot be undone.')">
+                                                    <button type="submit" class="dropdown-item text-danger">
+                                                        <i class="fas fa-trash"></i> Delete
+                                                    </button>
+                                                </form>
+                                            </li>
+                                            {% endif %}
+                                        </ul>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-5">
+                <i class="fas fa-clipboard-list fa-4x text-muted mb-3"></i>
+                <h4>No Sales Orders Found</h4>
+                <p class="text-muted">Create your first sales order to track customer orders</p>
+                <a href="{{ url_for('sales_orders.create_order') }}" class="btn btn-primary">
+                    <i class="fas fa-plus"></i> Create Sales Order
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<style>
+.card {
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.05);
+    margin-bottom: 20px;
+}
+
+.table th {
+    background-color: #f8f9fa;
+    font-weight: 600;
+    border-bottom: 2px solid #dee2e6;
+}
+
+.progress {
+    background-color: #e9ecef;
+}
+
+.progress-bar {
+    background-color: #28a745;
+}
+
+.btn-group-sm .btn {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
+}
+</style>
+{% endblock %}
+

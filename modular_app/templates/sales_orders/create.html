@@ -1,0 +1,481 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Create Sales Order{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>📋 Create Sales Order</h2>
+        <a href="{{ url_for('sales_orders.list_orders') }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Back to Orders
+        </a>
+    </div>
+
+    <form method="POST" action="{{ url_for('sales_orders.create_order') }}" id="salesOrderForm">
+        <!-- Customer Details -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Customer Information</h5>
+            </div>
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Search Existing Customer</label>
+                        <input type="text" id="customer_search" class="form-control" 
+                               placeholder="Type customer name or phone..."
+                               autocomplete="off"
+                               oninput="searchCustomers(this.value)">
+                        <div id="customer_dropdown" class="autocomplete-dropdown"></div>
+                        <input type="hidden" id="customer_id" name="customer_id">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Customer Name *</label>
+                        <input type="text" id="customer_name" name="customer_name" 
+                               class="form-control" required>
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-4">
+                        <label class="form-label">Phone</label>
+                        <input type="tel" id="customer_phone" name="customer_phone" class="form-control">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Email</label>
+                        <input type="email" id="customer_email" name="customer_email" class="form-control">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">GSTIN</label>
+                        <input type="text" id="customer_gstin" name="customer_gstin" 
+                               class="form-control" maxlength="15" placeholder="27XXXXX1234X1Z5">
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6">
+                        <label class="form-label">Billing Address</label>
+                        <textarea id="billing_address" name="billing_address" 
+                                  class="form-control" rows="2"></textarea>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Shipping Address</label>
+                        <textarea id="shipping_address" name="shipping_address" 
+                                  class="form-control" rows="2"></textarea>
+                        <small class="text-muted">
+                            <a href="#" onclick="copyBillingToShipping(); return false;">Copy from billing</a>
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Order Details -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Order Details</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3">
+                        <label class="form-label">Order Date *</label>
+                        <input type="date" name="order_date" class="form-control" 
+                               value="{{ today }}" required>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Expected Delivery</label>
+                        <input type="date" name="expected_delivery_date" class="form-control">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Status *</label>
+                        <select name="status" class="form-select" required>
+                            <option value="draft">Draft</option>
+                            <option value="pending">Pending Confirmation</option>
+                            <option value="confirmed" selected>Confirmed (Reserve Stock)</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Order Items -->
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Order Items</h5>
+                <button type="button" class="btn btn-primary btn-sm" onclick="addItemRow()">
+                    <i class="fas fa-plus"></i> Add Item
+                </button>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table" id="items_table">
+                        <thead>
+                            <tr>
+                                <th style="width: 30%;">Item *</th>
+                                <th style="width: 10%;">HSN Code</th>
+                                <th style="width: 10%;">Qty *</th>
+                                <th style="width: 10%;">Unit</th>
+                                <th style="width: 12%;">Rate *</th>
+                                <th style="width: 10%;">GST %</th>
+                                <th style="width: 3%;"><input type="checkbox" title="Price includes tax"></th>
+                                <th style="width: 15%;">Amount</th>
+                                <th style="width: 5%;"></th>
+                            </tr>
+                        </thead>
+                        <tbody id="items_body">
+                            <!-- Initial row will be added by JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Totals -->
+                <div class="row mt-4">
+                    <div class="col-md-8"></div>
+                    <div class="col-md-4">
+                        <table class="table table-sm">
+                            <tr>
+                                <td><strong>Subtotal:</strong></td>
+                                <td class="text-end" id="display_subtotal">₹0.00</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Tax (GST):</strong></td>
+                                <td class="text-end" id="display_tax">₹0.00</td>
+                            </tr>
+                            <tr style="border-top: 2px solid #000;">
+                                <td><strong>Total:</strong></td>
+                                <td class="text-end"><h4 id="display_total">₹0.00</h4></td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Terms & Notes -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Additional Information</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <label class="form-label">Terms & Conditions</label>
+                        <textarea name="terms_and_conditions" class="form-control" rows="3"
+                                  placeholder="Payment terms, delivery conditions, etc."></textarea>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Internal Notes</label>
+                        <textarea name="notes" class="form-control" rows="3"
+                                  placeholder="Notes for internal reference..."></textarea>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="text-end mb-5">
+            <a href="{{ url_for('sales_orders.list_orders') }}" class="btn btn-secondary">
+                <i class="fas fa-times"></i> Cancel
+            </a>
+            <button type="submit" class="btn btn-success btn-lg">
+                <i class="fas fa-save"></i> Create Sales Order
+            </button>
+        </div>
+    </form>
+</div>
+
+<style>
+.card {
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.05);
+}
+
+.card-header {
+    background-color: #f8f9fa;
+    border-bottom: 2px solid #dee2e6;
+}
+
+.autocomplete-dropdown {
+    position: absolute;
+    z-index: 1000;
+    background: white;
+    border: 1px solid #ddd;
+    max-height: 300px;
+    overflow-y: auto;
+    width: calc(100% - 30px);
+    display: none;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.autocomplete-item {
+    padding: 10px;
+    cursor: pointer;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.autocomplete-item:hover {
+    background-color: #f8f9fa;
+}
+
+.item-row {
+    position: relative;
+}
+
+.item-autocomplete-dropdown {
+    position: absolute;
+    z-index: 999;
+    background: white;
+    border: 1px solid #ddd;
+    max-height: 200px;
+    overflow-y: auto;
+    width: 100%;
+    display: none;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+</style>
+
+<script>
+let itemCount = 0;
+
+// Add initial row on page load
+document.addEventListener('DOMContentLoaded', function() {
+    addItemRow();
+});
+
+function addItemRow() {
+    itemCount++;
+    const tbody = document.getElementById('items_body');
+    const row = document.createElement('tr');
+    row.className = 'item-row';
+    row.id = `item_row_${itemCount}`;
+    
+    row.innerHTML = `
+        <td style="position: relative;">
+            <input type="text" name="item_name[]" id="item_name_${itemCount}" 
+                   class="form-control" placeholder="Start typing item name..." 
+                   required oninput="searchItems(${itemCount}, this.value)">
+            <div id="item_dropdown_${itemCount}" class="item-autocomplete-dropdown"></div>
+            <input type="hidden" name="item_id[]" id="item_id_${itemCount}">
+            <input type="hidden" name="description[]" id="description_${itemCount}">
+        </td>
+        <td>
+            <input type="text" name="hsn_code[]" id="hsn_code_${itemCount}" 
+                   class="form-control" placeholder="HSN">
+        </td>
+        <td>
+            <input type="number" name="quantity[]" id="quantity_${itemCount}" 
+                   class="form-control" step="0.01" min="0.01" value="1" 
+                   required oninput="calculateRow(${itemCount})">
+        </td>
+        <td>
+            <select name="unit[]" id="unit_${itemCount}" class="form-select">
+                <option value="pcs">pcs</option>
+                <option value="box">box</option>
+                <option value="kg">kg</option>
+                <option value="ltr">ltr</option>
+                <option value="mtr">mtr</option>
+            </select>
+        </td>
+        <td>
+            <input type="number" name="rate[]" id="rate_${itemCount}" 
+                   class="form-control" step="0.01" min="0" 
+                   placeholder="0.00" required oninput="calculateRow(${itemCount})">
+        </td>
+        <td>
+            <select name="gst_rate[]" id="gst_rate_${itemCount}" 
+                    class="form-select" onchange="calculateRow(${itemCount})">
+                <option value="0">0%</option>
+                <option value="5">5%</option>
+                <option value="12">12%</option>
+                <option value="18" selected>18%</option>
+                <option value="28">28%</option>
+            </select>
+        </td>
+        <td class="text-center">
+            <input type="checkbox" name="price_inclusive[]" id="price_inclusive_${itemCount}" 
+                   class="form-check-input" onchange="calculateRow(${itemCount})">
+        </td>
+        <td class="text-end">
+            <strong id="amount_${itemCount}">₹0.00</strong>
+        </td>
+        <td>
+            <button type="button" class="btn btn-sm btn-danger" 
+                    onclick="removeItemRow(${itemCount})">
+                <i class="fas fa-trash"></i>
+            </button>
+        </td>
+    `;
+    
+    tbody.appendChild(row);
+}
+
+function removeItemRow(rowId) {
+    const row = document.getElementById(`item_row_${rowId}`);
+    if (row) {
+        row.remove();
+        calculateTotals();
+    }
+}
+
+function calculateRow(rowId) {
+    const qty = parseFloat(document.getElementById(`quantity_${rowId}`).value) || 0;
+    const rate = parseFloat(document.getElementById(`rate_${rowId}`).value) || 0;
+    const gstRate = parseFloat(document.getElementById(`gst_rate_${rowId}`).value) || 0;
+    const priceInclusive = document.getElementById(`price_inclusive_${rowId}`).checked;
+    
+    let taxable = qty * rate;
+    let tax = 0;
+    
+    if (priceInclusive) {
+        // Tax is included in rate
+        tax = taxable - (taxable / (1 + (gstRate / 100)));
+        taxable = taxable - tax;
+    } else {
+        // Tax is on top
+        tax = taxable * (gstRate / 100);
+    }
+    
+    const total = taxable + tax;
+    
+    document.getElementById(`amount_${rowId}`).textContent = `₹${total.toFixed(2)}`;
+    
+    calculateTotals();
+}
+
+function calculateTotals() {
+    let subtotal = 0;
+    let totalTax = 0;
+    
+    const rows = document.querySelectorAll('.item-row');
+    rows.forEach(row => {
+        const rowId = row.id.replace('item_row_', '');
+        const qty = parseFloat(document.getElementById(`quantity_${rowId}`).value) || 0;
+        const rate = parseFloat(document.getElementById(`rate_${rowId}`).value) || 0;
+        const gstRate = parseFloat(document.getElementById(`gst_rate_${rowId}`).value) || 0;
+        const priceInclusive = document.getElementById(`price_inclusive_${rowId}`).checked;
+        
+        let taxable = qty * rate;
+        let tax = 0;
+        
+        if (priceInclusive) {
+            tax = taxable - (taxable / (1 + (gstRate / 100)));
+            taxable = taxable - tax;
+        } else {
+            tax = taxable * (gstRate / 100);
+        }
+        
+        subtotal += taxable;
+        totalTax += tax;
+    });
+    
+    const grandTotal = subtotal + totalTax;
+    
+    document.getElementById('display_subtotal').textContent = `₹${subtotal.toFixed(2)}`;
+    document.getElementById('display_tax').textContent = `₹${totalTax.toFixed(2)}`;
+    document.getElementById('display_total').textContent = `₹${grandTotal.toFixed(2)}`;
+}
+
+// Customer search
+function searchCustomers(query) {
+    if (query.length < 2) {
+        document.getElementById('customer_dropdown').style.display = 'none';
+        return;
+    }
+    
+    fetch(`/api/customers/search?q=${encodeURIComponent(query)}`)
+        .then(response => response.json())
+        .then(customers => {
+            const dropdown = document.getElementById('customer_dropdown');
+            if (customers.length === 0) {
+                dropdown.style.display = 'none';
+                return;
+            }
+            
+            let html = '';
+            customers.forEach(customer => {
+                html += `
+                    <div class="autocomplete-item" onclick="selectCustomer(${customer.id}, '${escapeHtml(customer.name)}', '${escapeHtml(customer.phone || '')}', '${escapeHtml(customer.email || '')}', '${escapeHtml(customer.gstin || '')}', '${escapeHtml(customer.address || '')}')">
+                        <strong>${customer.name}</strong><br>
+                        <small>${customer.phone || ''} ${customer.email ? '• ' + customer.email : ''}</small>
+                    </div>
+                `;
+            });
+            
+            dropdown.innerHTML = html;
+            dropdown.style.display = 'block';
+        })
+        .catch(error => console.error('Error searching customers:', error));
+}
+
+function selectCustomer(id, name, phone, email, gstin, address) {
+    document.getElementById('customer_id').value = id;
+    document.getElementById('customer_name').value = name;
+    document.getElementById('customer_phone').value = phone;
+    document.getElementById('customer_email').value = email;
+    document.getElementById('customer_gstin').value = gstin;
+    document.getElementById('billing_address').value = address;
+    document.getElementById('customer_search').value = name;
+    document.getElementById('customer_dropdown').style.display = 'none';
+}
+
+// Item search
+function searchItems(rowId, query) {
+    if (query.length < 2) {
+        document.getElementById(`item_dropdown_${rowId}`).style.display = 'none';
+        return;
+    }
+    
+    fetch(`/sales-orders/api/search-items?q=${encodeURIComponent(query)}`)
+        .then(response => response.json())
+        .then(items => {
+            const dropdown = document.getElementById(`item_dropdown_${rowId}`);
+            if (items.length === 0) {
+                dropdown.style.display = 'none';
+                return;
+            }
+            
+            let html = '';
+            items.forEach(item => {
+                html += `
+                    <div class="autocomplete-item" onclick="selectItem(${rowId}, ${item.id}, '${escapeHtml(item.name)}', '${escapeHtml(item.hsn_code)}', '${item.unit}', ${item.selling_price}, ${item.gst_rate})">
+                        <strong>${item.name}</strong>
+                        ${item.hsn_code ? `<span class="badge bg-secondary">${item.hsn_code}</span>` : ''}
+                        <span class="float-end">₹${item.selling_price}</span>
+                    </div>
+                `;
+            });
+            
+            dropdown.innerHTML = html;
+            dropdown.style.display = 'block';
+        })
+        .catch(error => console.error('Error searching items:', error));
+}
+
+function selectItem(rowId, itemId, name, hsn, unit, rate, gstRate) {
+    document.getElementById(`item_id_${rowId}`).value = itemId;
+    document.getElementById(`item_name_${rowId}`).value = name;
+    document.getElementById(`hsn_code_${rowId}`).value = hsn;
+    document.getElementById(`unit_${rowId}`).value = unit;
+    document.getElementById(`rate_${rowId}`).value = rate;
+    document.getElementById(`gst_rate_${rowId}`).value = gstRate;
+    document.getElementById(`item_dropdown_${rowId}`).style.display = 'none';
+    
+    calculateRow(rowId);
+}
+
+function copyBillingToShipping() {
+    document.getElementById('shipping_address').value = document.getElementById('billing_address').value;
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML.replace(/'/g, "\\'");
+}
+
+// Hide dropdowns when clicking outside
+document.addEventListener('click', function(e) {
+    if (!e.target.closest('.autocomplete-dropdown') && !e.target.closest('#customer_search')) {
+        document.getElementById('customer_dropdown').style.display = 'none';
+    }
+});
+</script>
+{% endblock %}
+

@@ -707,6 +707,17 @@
                 </a>
             </div>
             
+            <!-- Sales Orders Section -->
+            <div class="nav-section">
+                <div class="nav-section-title">Sales Orders</div>
+                <a href="/sales-orders" class="nav-item {% if '/sales-orders' in request.path and 'create' not in request.path %}active{% endif %}">
+                    <i>📋</i> All Orders
+                </a>
+                <a href="/sales-orders/create" class="nav-item {% if '/sales-orders/create' in request.path %}active{% endif %}">
+                    <i>➕</i> New Order
+                </a>
+            </div>
+            
             <!-- Invoices Section -->
             <div class="nav-section">
                 <div class="nav-section-title">Invoices</div>

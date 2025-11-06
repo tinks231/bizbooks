@@ -17,6 +17,12 @@ from .purchase_request import PurchaseRequest
 from .customer import Customer
 from .invoice import Invoice, InvoiceItem
 from .task import Task, TaskUpdate, TaskMaterial, TaskMedia
+from .quotation import Quotation, QuotationItem
+from .sales_order import SalesOrder
+from .sales_order_item import SalesOrderItem
+
+# Create Party alias for Customer (for unified party management)
+Party = Customer
 
 __all__ = [
     'db', 'init_db',
@@ -26,8 +32,10 @@ __all__ = [
     'ItemStockMovement', 'InventoryAdjustment', 'InventoryAdjustmentLine',
     'Expense', 'ExpenseCategory',
     'PurchaseRequest',
-    'Customer',
+    'Customer', 'Party',
     'Invoice', 'InvoiceItem',
-    'Task', 'TaskUpdate', 'TaskMaterial', 'TaskMedia'
+    'Task', 'TaskUpdate', 'TaskMaterial', 'TaskMedia',
+    'Quotation', 'QuotationItem',
+    'SalesOrder', 'SalesOrderItem'
 ]
 

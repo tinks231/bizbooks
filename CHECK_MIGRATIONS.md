@@ -40,14 +40,42 @@ https://mahaveerelectricals.bizbooks-dun.vercel.app/migrate/add-purchase-request
 4. `/migrate/add-invoices` - Invoicing system
 5. `/migrate/add-customers` - Customer management
 6. `/migrate/add-tasks` - Task management
-7. `/migrate/add-hsn-code-to-items` - HSN code for GST invoices ⭐ NEW!
+7. `/migrate/add-hsn-code-to-items` - HSN code for GST invoices ⭐
+8. `/migrate/add-sales-order-module` - Sales Order & Delivery Challan modules ⭐ NEW!
 
 ## ⚠️ Important:
 - Run each migration **ONLY ONCE** per database
 - Safe to run multiple times (will skip if already done)
 - Migrations **NEVER delete data** - only add new fields/tables
 
-## 🎯 For Your Issue:
+## 🎯 Latest Migration (November 2025):
+
+### ✅ Sales Order & Delivery Challan Module
+
+**What it adds:**
+- `sales_orders` table - Track confirmed orders
+- `sales_order_items` table - Order line items
+- `delivery_challans` table - GST-compliant delivery documents
+- `delivery_challan_items` table - Challan line items
+- Updates to `invoices` and `invoice_items` tables for tracking
+
+**How to run:**
+```
+https://YOUR-SUBDOMAIN.bizbooks-dun.vercel.app/migrate/add-sales-order-module
+```
+
+**What it enables:**
+- Create sales orders from quotations
+- Track order fulfillment status
+- Create delivery challans for goods dispatch
+- Convert orders/challans to invoices
+- Complete audit trail from quote to payment
+
+**Status:** Database ready, UI implementation in progress
+
+---
+
+## 🔧 For Purchase Request Image Issue:
 **Run this migration NOW:**
 ```
 https://YOUR-SUBDOMAIN.bizbooks-dun.vercel.app/migrate/add-purchase-requests

@@ -751,3 +751,381 @@ def add_hsn_code_to_items():
             'message': f'Migration failed: {str(e)}',
             'details': str(e)
         }), 500
+
+
+@migration_bp.route('/add-sales-order-module')
+def add_sales_order_module():
+    """
+    Add Sales Order and Delivery Challan modules
+    Creates new tables and updates existing tables with foreign key references
+    Access this URL once: /migrate/add-sales-order-module
+    """
+    try:
+        db_url = db.engine.url.drivername
+        
+        if 'postgresql' in db_url:
+            # PostgreSQL syntax
+            migration_sql = text("""
+                -- Create sales_orders table
+                CREATE TABLE IF NOT EXISTS sales_orders (
+                    id SERIAL PRIMARY KEY,
+                    tenant_id INTEGER NOT NULL REFERENCES tenants(id),
+                    
+                    -- Order Details
+                    order_number VARCHAR(50) UNIQUE NOT NULL,
+                    order_date DATE NOT NULL,
+                    expected_delivery_date DATE,
+                    
+                    -- Customer
+                    customer_id INTEGER REFERENCES parties(id),
+                    customer_name VARCHAR(255) NOT NULL,
+                    customer_phone VARCHAR(20),
+                    customer_email VARCHAR(255),
+                    customer_gstin VARCHAR(15),
+                    
+                    -- Addresses
+                    billing_address TEXT,
+                    shipping_address TEXT,
+                    
+                    -- Amounts
+                    subtotal DECIMAL(15,2) DEFAULT 0,
+                    discount_amount DECIMAL(15,2) DEFAULT 0,
+                    tax_amount DECIMAL(15,2) DEFAULT 0,
+                    total_amount DECIMAL(15,2) NOT NULL,
+                    
+                    -- Order Status
+                    status VARCHAR(50) DEFAULT 'pending',
+                    
+                    -- Fulfillment Tracking
+                    quantity_ordered INTEGER DEFAULT 0,
+                    quantity_delivered INTEGER DEFAULT 0,
+                    quantity_invoiced INTEGER DEFAULT 0,
+                    
+                    -- References
+                    quotation_id INTEGER REFERENCES quotations(id),
+                    
+                    -- Notes
+                    terms_and_conditions TEXT,
+                    notes TEXT,
+                    
+                    -- Timestamps
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    created_by VARCHAR(255)
+                );
+                
+                -- Create sales_order_items table
+                CREATE TABLE IF NOT EXISTS sales_order_items (
+                    id SERIAL PRIMARY KEY,
+                    sales_order_id INTEGER NOT NULL REFERENCES sales_orders(id) ON DELETE CASCADE,
+                    tenant_id INTEGER NOT NULL REFERENCES tenants(id),
+                    
+                    -- Item Details
+                    item_id INTEGER REFERENCES items(id),
+                    item_name VARCHAR(255) NOT NULL,
+                    description TEXT,
+                    hsn_code VARCHAR(20),
+                    
+                    -- Quantity & Pricing
+                    quantity DECIMAL(15,3) NOT NULL,
+                    unit VARCHAR(50) DEFAULT 'pcs',
+                    rate DECIMAL(15,2) NOT NULL,
+                    
+                    -- Tax
+                    gst_rate DECIMAL(5,2) DEFAULT 0,
+                    price_inclusive BOOLEAN DEFAULT FALSE,
+                    
+                    -- Discount
+                    discount_type VARCHAR(20),
+                    discount_value DECIMAL(15,2) DEFAULT 0,
+                    
+                    -- Calculated Amounts
+                    taxable_amount DECIMAL(15,2),
+                    tax_amount DECIMAL(15,2),
+                    total_amount DECIMAL(15,2),
+                    
+                    -- Fulfillment Tracking
+                    quantity_delivered DECIMAL(15,3) DEFAULT 0,
+                    quantity_invoiced DECIMAL(15,3) DEFAULT 0,
+                    
+                    -- Stock Reservation
+                    stock_reserved BOOLEAN DEFAULT FALSE,
+                    site_id INTEGER REFERENCES sites(id),
+                    
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                );
+                
+                -- Create delivery_challans table
+                CREATE TABLE IF NOT EXISTS delivery_challans (
+                    id SERIAL PRIMARY KEY,
+                    tenant_id INTEGER NOT NULL REFERENCES tenants(id),
+                    
+                    -- Challan Details
+                    challan_number VARCHAR(50) UNIQUE NOT NULL,
+                    challan_date DATE NOT NULL,
+                    
+                    -- Customer
+                    customer_id INTEGER REFERENCES parties(id),
+                    customer_name VARCHAR(255) NOT NULL,
+                    customer_phone VARCHAR(20),
+                    customer_gstin VARCHAR(15),
+                    
+                    -- Addresses
+                    billing_address TEXT,
+                    shipping_address TEXT,
+                    
+                    -- Purpose
+                    purpose VARCHAR(100) NOT NULL,
+                    
+                    -- Transport Details
+                    transporter_name VARCHAR(255),
+                    vehicle_number VARCHAR(50),
+                    lr_number VARCHAR(100),
+                    e_way_bill_number VARCHAR(50),
+                    
+                    -- Amounts
+                    total_quantity DECIMAL(15,3),
+                    total_value DECIMAL(15,2),
+                    
+                    -- Status
+                    status VARCHAR(50) DEFAULT 'pending',
+                    
+                    -- References
+                    sales_order_id INTEGER REFERENCES sales_orders(id),
+                    
+                    -- Expected Return
+                    expected_return_date DATE,
+                    actual_return_date DATE,
+                    
+                    -- Notes
+                    notes TEXT,
+                    terms_and_conditions TEXT,
+                    
+                    -- Timestamps
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    created_by VARCHAR(255)
+                );
+                
+                -- Create delivery_challan_items table
+                CREATE TABLE IF NOT EXISTS delivery_challan_items (
+                    id SERIAL PRIMARY KEY,
+                    delivery_challan_id INTEGER NOT NULL REFERENCES delivery_challans(id) ON DELETE CASCADE,
+                    tenant_id INTEGER NOT NULL REFERENCES tenants(id),
+                    
+                    -- Item Details
+                    item_id INTEGER REFERENCES items(id),
+                    item_name VARCHAR(255) NOT NULL,
+                    description TEXT,
+                    hsn_code VARCHAR(20),
+                    
+                    -- Quantity
+                    quantity DECIMAL(15,3) NOT NULL,
+                    unit VARCHAR(50) DEFAULT 'pcs',
+                    
+                    -- Reference Value
+                    rate DECIMAL(15,2),
+                    amount DECIMAL(15,2),
+                    
+                    -- Serial Numbers
+                    serial_numbers TEXT,
+                    
+                    -- Fulfillment Tracking
+                    quantity_invoiced DECIMAL(15,3) DEFAULT 0,
+                    quantity_returned DECIMAL(15,3) DEFAULT 0,
+                    
+                    -- Link to Sales Order Item
+                    sales_order_item_id INTEGER REFERENCES sales_order_items(id),
+                    
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                );
+                
+                -- Add foreign keys to existing invoices table
+                DO $$ 
+                BEGIN
+                    IF NOT EXISTS (
+                        SELECT 1 FROM information_schema.columns 
+                        WHERE table_name='invoices' AND column_name='sales_order_id'
+                    ) THEN
+                        ALTER TABLE invoices ADD COLUMN sales_order_id INTEGER REFERENCES sales_orders(id);
+                    END IF;
+                    
+                    IF NOT EXISTS (
+                        SELECT 1 FROM information_schema.columns 
+                        WHERE table_name='invoices' AND column_name='delivery_challan_id'
+                    ) THEN
+                        ALTER TABLE invoices ADD COLUMN delivery_challan_id INTEGER REFERENCES delivery_challans(id);
+                    END IF;
+                END $$;
+                
+                -- Add foreign keys to existing invoice_items table
+                DO $$ 
+                BEGIN
+                    IF NOT EXISTS (
+                        SELECT 1 FROM information_schema.columns 
+                        WHERE table_name='invoice_items' AND column_name='sales_order_item_id'
+                    ) THEN
+                        ALTER TABLE invoice_items ADD COLUMN sales_order_item_id INTEGER REFERENCES sales_order_items(id);
+                    END IF;
+                    
+                    IF NOT EXISTS (
+                        SELECT 1 FROM information_schema.columns 
+                        WHERE table_name='invoice_items' AND column_name='delivery_challan_item_id'
+                    ) THEN
+                        ALTER TABLE invoice_items ADD COLUMN delivery_challan_item_id INTEGER REFERENCES delivery_challan_items(id);
+                    END IF;
+                END $$;
+            """)
+        else:
+            # SQLite syntax (for local development)
+            migration_sql = text("""
+                -- Create sales_orders table
+                CREATE TABLE IF NOT EXISTS sales_orders (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    tenant_id INTEGER NOT NULL,
+                    order_number VARCHAR(50) UNIQUE NOT NULL,
+                    order_date DATE NOT NULL,
+                    expected_delivery_date DATE,
+                    customer_id INTEGER,
+                    customer_name VARCHAR(255) NOT NULL,
+                    customer_phone VARCHAR(20),
+                    customer_email VARCHAR(255),
+                    customer_gstin VARCHAR(15),
+                    billing_address TEXT,
+                    shipping_address TEXT,
+                    subtotal DECIMAL(15,2) DEFAULT 0,
+                    discount_amount DECIMAL(15,2) DEFAULT 0,
+                    tax_amount DECIMAL(15,2) DEFAULT 0,
+                    total_amount DECIMAL(15,2) NOT NULL,
+                    status VARCHAR(50) DEFAULT 'pending',
+                    quantity_ordered INTEGER DEFAULT 0,
+                    quantity_delivered INTEGER DEFAULT 0,
+                    quantity_invoiced INTEGER DEFAULT 0,
+                    quotation_id INTEGER,
+                    terms_and_conditions TEXT,
+                    notes TEXT,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    created_by VARCHAR(255),
+                    FOREIGN KEY (tenant_id) REFERENCES tenants(id),
+                    FOREIGN KEY (customer_id) REFERENCES parties(id),
+                    FOREIGN KEY (quotation_id) REFERENCES quotations(id)
+                );
+                
+                CREATE TABLE IF NOT EXISTS sales_order_items (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    sales_order_id INTEGER NOT NULL,
+                    tenant_id INTEGER NOT NULL,
+                    item_id INTEGER,
+                    item_name VARCHAR(255) NOT NULL,
+                    description TEXT,
+                    hsn_code VARCHAR(20),
+                    quantity DECIMAL(15,3) NOT NULL,
+                    unit VARCHAR(50) DEFAULT 'pcs',
+                    rate DECIMAL(15,2) NOT NULL,
+                    gst_rate DECIMAL(5,2) DEFAULT 0,
+                    price_inclusive INTEGER DEFAULT 0,
+                    discount_type VARCHAR(20),
+                    discount_value DECIMAL(15,2) DEFAULT 0,
+                    taxable_amount DECIMAL(15,2),
+                    tax_amount DECIMAL(15,2),
+                    total_amount DECIMAL(15,2),
+                    quantity_delivered DECIMAL(15,3) DEFAULT 0,
+                    quantity_invoiced DECIMAL(15,3) DEFAULT 0,
+                    stock_reserved INTEGER DEFAULT 0,
+                    site_id INTEGER,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (sales_order_id) REFERENCES sales_orders(id) ON DELETE CASCADE,
+                    FOREIGN KEY (tenant_id) REFERENCES tenants(id),
+                    FOREIGN KEY (item_id) REFERENCES items(id),
+                    FOREIGN KEY (site_id) REFERENCES sites(id)
+                );
+                
+                CREATE TABLE IF NOT EXISTS delivery_challans (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    tenant_id INTEGER NOT NULL,
+                    challan_number VARCHAR(50) UNIQUE NOT NULL,
+                    challan_date DATE NOT NULL,
+                    customer_id INTEGER,
+                    customer_name VARCHAR(255) NOT NULL,
+                    customer_phone VARCHAR(20),
+                    customer_gstin VARCHAR(15),
+                    billing_address TEXT,
+                    shipping_address TEXT,
+                    purpose VARCHAR(100) NOT NULL,
+                    transporter_name VARCHAR(255),
+                    vehicle_number VARCHAR(50),
+                    lr_number VARCHAR(100),
+                    e_way_bill_number VARCHAR(50),
+                    total_quantity DECIMAL(15,3),
+                    total_value DECIMAL(15,2),
+                    status VARCHAR(50) DEFAULT 'pending',
+                    sales_order_id INTEGER,
+                    expected_return_date DATE,
+                    actual_return_date DATE,
+                    notes TEXT,
+                    terms_and_conditions TEXT,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    created_by VARCHAR(255),
+                    FOREIGN KEY (tenant_id) REFERENCES tenants(id),
+                    FOREIGN KEY (customer_id) REFERENCES parties(id),
+                    FOREIGN KEY (sales_order_id) REFERENCES sales_orders(id)
+                );
+                
+                CREATE TABLE IF NOT EXISTS delivery_challan_items (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    delivery_challan_id INTEGER NOT NULL,
+                    tenant_id INTEGER NOT NULL,
+                    item_id INTEGER,
+                    item_name VARCHAR(255) NOT NULL,
+                    description TEXT,
+                    hsn_code VARCHAR(20),
+                    quantity DECIMAL(15,3) NOT NULL,
+                    unit VARCHAR(50) DEFAULT 'pcs',
+                    rate DECIMAL(15,2),
+                    amount DECIMAL(15,2),
+                    serial_numbers TEXT,
+                    quantity_invoiced DECIMAL(15,3) DEFAULT 0,
+                    quantity_returned DECIMAL(15,3) DEFAULT 0,
+                    sales_order_item_id INTEGER,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (delivery_challan_id) REFERENCES delivery_challans(id) ON DELETE CASCADE,
+                    FOREIGN KEY (tenant_id) REFERENCES tenants(id),
+                    FOREIGN KEY (item_id) REFERENCES items(id),
+                    FOREIGN KEY (sales_order_item_id) REFERENCES sales_order_items(id)
+                );
+            """)
+        
+        db.session.execute(migration_sql)
+        db.session.commit()
+        
+        return jsonify({
+            'status': 'success',
+            'message': '✅ Sales Order and Delivery Challan modules added successfully!',
+            'tables_created': [
+                'sales_orders',
+                'sales_order_items',
+                'delivery_challans',
+                'delivery_challan_items'
+            ],
+            'tables_updated': [
+                'invoices (added sales_order_id, delivery_challan_id)',
+                'invoice_items (added sales_order_item_id, delivery_challan_item_id)'
+            ],
+            'next_steps': [
+                'You can now create sales orders from quotations',
+                'Create delivery challans from sales orders',
+                'Convert orders/challans to invoices',
+                'Track fulfillment status for all orders'
+            ]
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({
+            'status': 'error',
+            'message': f'Migration failed: {str(e)}',
+            'details': str(e),
+            'help': 'If tables already exist, this is safe to ignore.'
+        }), 500
