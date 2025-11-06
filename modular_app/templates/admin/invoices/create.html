@@ -132,13 +132,13 @@
             <div class="form-group">
                 <label for="invoice_date">Invoice Date *</label>
                 <input type="date" id="invoice_date" name="invoice_date" class="form-control" 
-                       value="{% if invoice %}{{ invoice.invoice_date.strftime('%Y-%m-%d') }}{% else %}{{ today }}{% endif %}" required>
+                       value="{% if invoice %}{{ invoice.invoice_date if invoice.invoice_date is string else invoice.invoice_date.strftime('%Y-%m-%d') }}{% else %}{{ today }}{% endif %}" required>
             </div>
             
             <div class="form-group">
                 <label for="due_date">Due Date (Optional)</label>
                 <input type="date" id="due_date" name="due_date" class="form-control"
-                       value="{% if invoice and invoice.due_date %}{{ invoice.due_date.strftime('%Y-%m-%d') }}{% endif %}">
+                       value="{% if invoice and invoice.due_date %}{{ invoice.due_date if invoice.due_date is string else invoice.due_date.strftime('%Y-%m-%d') }}{% endif %}">
             </div>
         </div>
     </div>
