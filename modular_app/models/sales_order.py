@@ -40,7 +40,8 @@ class SalesOrder(db.Model):
     quantity_invoiced = db.Column(db.Integer, default=0)
     
     # References
-    quotation_id = db.Column(db.Integer, db.ForeignKey('quotations.id'))
+    # quotation_id = db.Column(db.Integer, db.ForeignKey('quotations.id'))  # Disabled until Quotation table exists
+    quotation_id = db.Column(db.Integer)  # Temporary: No FK constraint until quotations table is created
     
     # Notes
     terms_and_conditions = db.Column(db.Text)

@@ -304,16 +304,16 @@ def view_order(order_id):
     # Get related documents
     invoices = Invoice.query.filter_by(sales_order_id=order_id, tenant_id=tenant_id).all()
     
-    # Check if quotation exists
-    quotation = None
-    if order.quotation_id:
-        quotation = Quotation.query.get(order.quotation_id)
+    # Check if quotation exists - TEMPORARILY DISABLED
+    # quotation = None
+    # if order.quotation_id:
+    #     quotation = Quotation.query.get(order.quotation_id)
     
     return render_template(
         'sales_orders/view.html',
         order=order,
         invoices=invoices,
-        quotation=quotation
+        quotation=None  # Will be enabled when Quotation module is implemented
     )
 
 

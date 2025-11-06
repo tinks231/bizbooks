@@ -19,9 +19,8 @@ from .invoice import Invoice, InvoiceItem
 from .task import Task, TaskUpdate, TaskMaterial, TaskMedia
 # Temporarily disabled until quotations module is fully implemented
 # from .quotation import Quotation, QuotationItem
-# Temporarily disabled for debugging
-# from .sales_order import SalesOrder
-# from .sales_order_item import SalesOrderItem
+from .sales_order import SalesOrder
+from .sales_order_item import SalesOrderItem
 
 # Create Party alias for Customer (for unified party management)
 Party = Customer
@@ -38,6 +37,6 @@ __all__ = [
     'Invoice', 'InvoiceItem',
     'Task', 'TaskUpdate', 'TaskMaterial', 'TaskMedia',
     # 'Quotation', 'QuotationItem',  # Temporarily disabled
-    # 'SalesOrder', 'SalesOrderItem'  # Temporarily disabled for debugging
+    'SalesOrder', 'SalesOrderItem'
 ]
 
