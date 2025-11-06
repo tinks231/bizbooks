@@ -415,20 +415,22 @@
 
 .dropdown-item {
     display: block !important;
-    width: 100%;
-    padding: 12px 16px !important; /* Consistent padding */
+    width: 100% !important;
+    padding: 8px 14px !important; /* Reduced spacing */
     clear: both;
-    font-weight: 400;
-    font-size: 0.95rem !important; /* Consistent font size */
-    color: #212529;
-    text-align: left;
-    text-decoration: none;
+    font-weight: 400 !important;
+    font-size: 0.9rem !important; /* Slightly smaller, more consistent */
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+    color: #212529 !important;
+    text-align: left !important;
+    text-decoration: none !important;
     white-space: nowrap;
     background-color: transparent;
-    border: 0;
+    border: 0 !important;
     cursor: pointer;
     transition: background-color 0.2s ease;
-    line-height: 1.5;
+    line-height: 1.4 !important; /* Tighter line height */
+    margin: 0 !important;
 }
 
 .dropdown-item:hover {
@@ -447,23 +449,37 @@
 
 .dropdown-divider {
     height: 0;
-    margin: 8px 0;
+    margin: 4px 0 !important; /* Reduced spacing */
     overflow: hidden;
     border-top: 1px solid #e9ecef;
 }
 
-/* Ensure form buttons inside dropdown display correctly */
-.dropdown-item button {
-    display: block;
-    width: 100%;
-    text-align: left;
-    background: none;
-    border: none;
-    padding: 0;
-    color: inherit;
-    font: inherit;
+/* Remove extra spacing from list items */
+.dropdown-menu li {
+    margin: 0 !important;
+    padding: 0 !important;
+    list-style: none;
+}
+
+/* Ensure links and buttons have EXACTLY same styling */
+.dropdown-item a,
+.dropdown-item button,
+a.dropdown-item,
+button.dropdown-item {
+    display: block !important;
+    width: 100% !important;
+    text-align: left !important;
+    background: none !important;
+    border: none !important;
+    padding: 8px 14px !important; /* Match parent */
+    color: #212529 !important;
+    font-size: 0.9rem !important; /* Match parent */
+    font-weight: 400 !important;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+    line-height: 1.4 !important;
+    margin: 0 !important;
+    text-decoration: none !important;
     cursor: pointer;
-    font-size: 0.95rem !important; /* Match parent */
 }
 
 /* ========================================
