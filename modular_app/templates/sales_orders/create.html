@@ -617,23 +617,32 @@ function searchCustomers(query) {
             
             dropdown.innerHTML = '';  // Clear dropdown
             
-            customers.forEach(customer => {
-                const div = document.createElement('div');
-                div.className = 'autocomplete-item';
-                div.innerHTML = `
-                    <strong>${customer.name}</strong><br>
-                    <small class="text-muted">${customer.phone || ''} ${customer.email ? '• ' + customer.email : ''}</small>
-                `;
-                
-                // Use click event instead of inline onclick
-                div.addEventListener('click', function() {
-                    selectCustomer(customer.id, customer.name, customer.phone || '', customer.email || '', customer.gstin || '', customer.address || '');
+            if (customers.length > 0) {
+                customers.forEach(customer => {
+                    const div = document.createElement('div');
+                    div.className = 'autocomplete-item';
+                    div.style.cursor = 'pointer';
+                    div.innerHTML = `
+                        <strong>${customer.name}</strong><br>
+                        <small class="text-muted">${customer.phone || ''} ${customer.email ? '• ' + customer.email : ''}</small>
+                    `;
+                    
+                    // Use click event instead of inline onclick
+                    div.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        console.log('🖱️ Customer clicked:', customer.name);
+                        selectCustomer(customer.id, customer.name, customer.phone || '', customer.email || '', customer.gstin || '', customer.address || '');
+                    });
+                    
+                    dropdown.appendChild(div);
                 });
                 
-                dropdown.appendChild(div);
-            });
+                console.log(`✅ Added ${customers.length} customers to dropdown`);
+            }
             
             dropdown.style.display = 'block';
+            console.log('✅ Customer dropdown shown');
         })
         .catch(error => {
             console.error('❌ Error searching customers:', error);
@@ -679,29 +688,46 @@ function searchItems(rowId, query) {
             
             dropdown.innerHTML = '';  // Clear dropdown
             
-            items.forEach(item => {
-                const div = document.createElement('div');
-                div.className = 'autocomplete-item';
-                div.innerHTML = `
-                    <strong>${item.name}</strong>
-                    ${item.hsn_code ? `<span class="badge bg-secondary ms-2">${item.hsn_code}</span>` : ''}
-                    <br><small class="text-muted">Rate: ₹${item.selling_price || 0} • GST: ${item.gst_rate || 0}%</small>
-                `;
-                
-                // Use click event instead of inline onclick
-                div.addEventListener('click', function() {
-                    selectItem(rowId, item.id, item.name, item.hsn_code || '', item.unit || 'pcs', item.selling_price || 0, item.gst_rate || 0);
+            if (items.length > 0) {
+                items.forEach(item => {
+                    const div = document.createElement('div');
+                    div.className = 'autocomplete-item';
+                    div.style.cursor = 'pointer';
+                    div.innerHTML = `
+                        <strong>${item.name}</strong>
+                        ${item.hsn_code ? `<span class="badge bg-secondary ms-2">${item.hsn_code}</span>` : ''}
+                        <br><small class="text-muted">Rate: ₹${item.selling_price || 0} • GST: ${item.gst_rate || 0}%</small>
+                    `;
+                    
+                    // Use click event instead of inline onclick
+                    div.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        console.log('🖱️ Item clicked:', item.name);
+                        selectItem(rowId, item.id, item.name, item.hsn_code || '', item.unit || 'pcs', item.selling_price || 0, item.gst_rate || 0);
+                    });
+                    
+                    dropdown.appendChild(div);
                 });
                 
-                dropdown.appendChild(div);
-            });
+                console.log(`✅ Added ${items.length} items to dropdown`);
+            }
             
             // Position dropdown using fixed positioning
-            const inputField = document.getElementById(`item_name_${rowId}`);
-            const rect = inputField.getBoundingClientRect();
-            dropdown.style.top = (rect.bottom + window.scrollY) + 'px';
-            dropdown.style.left = rect.left + 'px';
+            try {
+                const inputField = document.getElementById(`item_name_${rowId}`);
+                if (inputField) {
+                    const rect = inputField.getBoundingClientRect();
+                    dropdown.style.top = (rect.bottom + 2) + 'px';
+                    dropdown.style.left = rect.left + 'px';
+                    console.log(`📍 Dropdown positioned at: top=${rect.bottom}px, left=${rect.left}px`);
+                }
+            } catch (err) {
+                console.error('❌ Positioning error:', err);
+            }
+            
             dropdown.style.display = 'block';
+            console.log('✅ Dropdown shown');
         })
         .catch(error => {
             console.error('❌ Error searching items:', error);
