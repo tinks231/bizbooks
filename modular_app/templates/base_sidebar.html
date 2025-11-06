@@ -718,6 +718,17 @@
                 </a>
             </div>
             
+            <!-- Delivery Challans Section -->
+            <div class="nav-section">
+                <div class="nav-section-title">Delivery Challans</div>
+                <a href="/delivery-challans/list" class="nav-item {% if '/delivery-challans' in request.path and 'create' not in request.path %}active{% endif %}">
+                    <i>📦</i> All Delivery Challans
+                </a>
+                <a href="/delivery-challans/create" class="nav-item {% if '/delivery-challans/create' in request.path %}active{% endif %}">
+                    <i>➕</i> New Delivery Challan
+                </a>
+            </div>
+            
             <!-- Invoices Section -->
             <div class="nav-section">
                 <div class="nav-section-title">Invoices</div>

@@ -5,14 +5,14 @@
 {% block page_title %}📦 {{ challan.challan_number }}{% endblock %}
 
 {% block header_actions %}
-<a href="{{ url_for('delivery_challans.list_challans') }}" class="btn btn-secondary" style="margin-right: 10px;">
+<a href="{{ url_for('delivery_challans.list_challans') }}" class="btn btn-secondary">
     ← Back
 </a>
-<a href="{{ url_for('delivery_challans.print_challan', challan_id=challan.id) }}" class="btn btn-success" style="margin-right: 10px;" target="_blank">
+<a href="{{ url_for('delivery_challans.print_challan', challan_id=challan.id) }}" class="btn btn-success" target="_blank">
     🖨️ Print
 </a>
 {% if challan.status == 'draft' %}
-<a href="{{ url_for('delivery_challans.edit_challan', challan_id=challan.id) }}" class="btn btn-warning" style="margin-right: 10px;">
+<a href="{{ url_for('delivery_challans.edit_challan', challan_id=challan.id) }}" class="btn btn-warning">
     ✏️ Edit
 </a>
 {% endif %}

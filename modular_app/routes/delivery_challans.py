@@ -380,6 +380,121 @@ def edit_challan(challan_id):
                          edit_mode=True,
                          today=date.today().strftime('%Y-%m-%d'))
 
+@delivery_challan_bp.route('/<int:challan_id>/update', methods=['POST'])
+def update_challan(challan_id):
+    """Update existing delivery challan"""
+    auth_check = check_auth()
+    if auth_check:
+        return auth_check
+    
+    tenant_id = g.tenant.id
+    
+    challan = DeliveryChallan.query.filter_by(id=challan_id, tenant_id=tenant_id).first()
+    
+    if not challan:
+        flash('Delivery Challan not found', 'error')
+        return redirect(url_for('delivery_challans.list_challans'))
+    
+    if challan.status != 'draft':
+        flash('Only draft delivery challans can be edited', 'warning')
+        return redirect(url_for('delivery_challans.view_challan', challan_id=challan_id))
+    
+    try:
+        # Update customer details
+        challan.customer_name = request.form.get('customer_name')
+        challan.customer_phone = request.form.get('customer_phone')
+        challan.customer_email = request.form.get('customer_email')
+        challan.customer_gstin = request.form.get('customer_gstin')
+        challan.customer_billing_address = request.form.get('customer_billing_address')
+        challan.customer_shipping_address = request.form.get('customer_shipping_address')
+        
+        # Update delivery details
+        challan.challan_date = datetime.strptime(request.form.get('challan_date'), '%Y-%m-%d').date()
+        challan.vehicle_number = request.form.get('vehicle_number')
+        challan.lr_number = request.form.get('lr_number')
+        challan.transporter_name = request.form.get('transporter_name')
+        challan.delivery_note = request.form.get('delivery_note')
+        challan.notes = request.form.get('notes')
+        challan.terms = request.form.get('terms')
+        
+        # Delete existing items and add updated ones
+        DeliveryChallanItem.query.filter_by(delivery_challan_id=challan.id).delete()
+        
+        # Add updated items (similar to create logic)
+        item_names = request.form.getlist('item_name[]')
+        item_ids = request.form.getlist('item_id[]')
+        hsn_codes = request.form.getlist('hsn_code[]')
+        quantities = request.form.getlist('quantity[]')
+        units = request.form.getlist('unit[]')
+        rates = request.form.getlist('rate[]')
+        gst_rates = request.form.getlist('gst_rate[]')
+        taxable_values = request.form.getlist('taxable_value[]')
+        cgst_amounts = request.form.getlist('cgst_amount[]')
+        sgst_amounts = request.form.getlist('sgst_amount[]')
+        igst_amounts = request.form.getlist('igst_amount[]')
+        totals = request.form.getlist('total_amount[]')
+        
+        subtotal = Decimal('0')
+        total_cgst = Decimal('0')
+        total_sgst = Decimal('0')
+        total_igst = Decimal('0')
+        total_amount = Decimal('0')
+        
+        for i in range(len(item_names)):
+            if not item_names[i]:
+                continue
+            
+            item_id = int(item_ids[i]) if item_ids[i] and item_ids[i].isdigit() else None
+            quantity = Decimal(quantities[i] or '0')
+            rate = Decimal(rates[i] or '0')
+            gst_rate = Decimal(gst_rates[i] or '0')
+            taxable_value = Decimal(taxable_values[i] or '0')
+            cgst = Decimal(cgst_amounts[i] or '0')
+            sgst = Decimal(sgst_amounts[i] or '0')
+            igst = Decimal(igst_amounts[i] or '0')
+            total = Decimal(totals[i] or '0')
+            
+            item = DeliveryChallanItem(
+                tenant_id=tenant_id,
+                delivery_challan_id=challan.id,
+                item_id=item_id,
+                item_name=item_names[i],
+                hsn_code=hsn_codes[i] if i < len(hsn_codes) else '',
+                quantity=quantity,
+                unit=units[i] if i < len(units) else 'pcs',
+                rate=rate,
+                taxable_value=taxable_value,
+                gst_rate=gst_rate,
+                cgst_amount=cgst,
+                sgst_amount=sgst,
+                igst_amount=igst,
+                total_amount=total
+            )
+            db.session.add(item)
+            
+            subtotal += taxable_value
+            total_cgst += cgst
+            total_sgst += sgst
+            total_igst += igst
+            total_amount += total
+        
+        # Update challan totals
+        challan.subtotal = subtotal
+        challan.cgst_amount = total_cgst
+        challan.sgst_amount = total_sgst
+        challan.igst_amount = total_igst
+        challan.total_amount = total_amount
+        
+        db.session.commit()
+        
+        flash(f'✅ Delivery Challan {challan.challan_number} updated successfully!', 'success')
+        return redirect(url_for('delivery_challans.view_challan', challan_id=challan.id))
+        
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error updating delivery challan: {str(e)}', 'error')
+        return redirect(url_for('delivery_challans.edit_challan', challan_id=challan_id))
+
 @delivery_challan_bp.route('/<int:challan_id>/print')
 def print_challan(challan_id):
     """Print-friendly view of delivery challan"""

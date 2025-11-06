@@ -1,8 +1,8 @@
 {% extends "base_sidebar.html" %}
 
-{% block title %}Create Delivery Challan{% endblock %}
+{% block title %}{% if edit_mode %}Edit{% else %}Create{% endif %} Delivery Challan{% endblock %}
 
-{% block page_title %}📦 Create New Delivery Challan{% endblock %}
+{% block page_title %}📦 {% if edit_mode %}Edit Delivery Challan {{ challan.challan_number }}{% else %}Create New Delivery Challan{% endif %}{% endblock %}
 
 {% block header_actions %}
 <a href="{{ url_for('delivery_challans.list_challans') }}" class="btn btn-secondary">
@@ -11,9 +11,12 @@
 {% endblock %}
 
 {% block content %}
-<form method="POST" action="{{ url_for('delivery_challans.create_challan') }}">
+<form method="POST" action="{% if edit_mode %}{{ url_for('delivery_challans.update_challan', challan_id=challan.id) }}{% else %}{{ url_for('delivery_challans.create_challan') }}{% endif %}">
     {% if sales_order %}
     <input type="hidden" name="sales_order_id" value="{{ sales_order.id }}">
+    {% endif %}
+    {% if edit_mode %}
+    <input type="hidden" name="challan_id" value="{{ challan.id }}">
     {% endif %}
     <!-- Temporary: Provide default value for 'purpose' column (for old schema compatibility) -->
     <input type="hidden" name="purpose" value="Sale">
@@ -28,35 +31,35 @@
                 <div class="col-md-6 mb-3">
                     <label class="form-label">Customer Name <span class="text-danger">*</span></label>
                     <input type="text" name="customer_name" class="form-control" required
-                           value="{% if sales_order %}{{ sales_order.customer_name }}{% endif %}">
-                    <input type="hidden" name="customer_id" value="{% if sales_order %}{{ sales_order.customer_id or '' }}{% endif %}">
+                           value="{{ challan.customer_name if edit_mode else (sales_order.customer_name if sales_order else '') }}">
+                    <input type="hidden" name="customer_id" value="{{ challan.customer_id if edit_mode else (sales_order.customer_id if sales_order else '') }}">
                 </div>
                 <div class="col-md-6 mb-3">
                     <label class="form-label">Phone</label>
                     <input type="tel" name="customer_phone" class="form-control"
-                           value="{% if sales_order %}{{ sales_order.customer_phone or '' }}{% endif %}">
+                           value="{{ challan.customer_phone if edit_mode else (sales_order.customer_phone if sales_order else '') }}">
                 </div>
             </div>
             <div class="row">
                 <div class="col-md-6 mb-3">
                     <label class="form-label">Email</label>
                     <input type="email" name="customer_email" class="form-control"
-                           value="{% if sales_order %}{{ sales_order.customer_email or '' }}{% endif %}">
+                           value="{{ challan.customer_email if edit_mode else (sales_order.customer_email if sales_order else '') }}">
                 </div>
                 <div class="col-md-6 mb-3">
                     <label class="form-label">GSTIN</label>
                     <input type="text" name="customer_gstin" class="form-control"
-                           value="{% if sales_order %}{{ sales_order.customer_gstin or '' }}{% endif %}">
+                           value="{{ challan.customer_gstin if edit_mode else (sales_order.customer_gstin if sales_order else '') }}">
                 </div>
             </div>
             <div class="row">
                 <div class="col-md-6 mb-3">
                     <label class="form-label">Billing Address</label>
-                    <textarea name="customer_billing_address" class="form-control" rows="2">{% if sales_order %}{{ sales_order.customer_billing_address or '' }}{% endif %}</textarea>
+                    <textarea name="customer_billing_address" class="form-control" rows="2">{{ challan.customer_billing_address if edit_mode else (sales_order.customer_billing_address if sales_order else '') }}</textarea>
                 </div>
                 <div class="col-md-6 mb-3">
                     <label class="form-label">Shipping Address</label>
-                    <textarea name="customer_shipping_address" class="form-control" rows="2">{% if sales_order %}{{ sales_order.customer_shipping_address or '' }}{% endif %}</textarea>
+                    <textarea name="customer_shipping_address" class="form-control" rows="2">{{ challan.customer_shipping_address if edit_mode else (sales_order.customer_shipping_address if sales_order else '') }}</textarea>
                 </div>
             </div>
         </div>
@@ -71,25 +74,30 @@
             <div class="row">
                 <div class="col-md-4 mb-3">
                     <label class="form-label">Challan Date <span class="text-danger">*</span></label>
-                    <input type="date" name="challan_date" class="form-control" value="{{ today }}" required>
+                    <input type="date" name="challan_date" class="form-control" 
+                           value="{{ challan.challan_date.strftime('%Y-%m-%d') if edit_mode else today }}" required>
                 </div>
                 <div class="col-md-4 mb-3">
                     <label class="form-label">Vehicle Number</label>
-                    <input type="text" name="vehicle_number" class="form-control" placeholder="MH 01 AB 1234">
+                    <input type="text" name="vehicle_number" class="form-control" placeholder="MH 01 AB 1234"
+                           value="{{ challan.vehicle_number if edit_mode else '' }}">
                 </div>
                 <div class="col-md-4 mb-3">
                     <label class="form-label">LR Number</label>
-                    <input type="text" name="lr_number" class="form-control" placeholder="Lorry Receipt No.">
+                    <input type="text" name="lr_number" class="form-control" placeholder="Lorry Receipt No."
+                           value="{{ challan.lr_number if edit_mode else '' }}">
                 </div>
             </div>
             <div class="row">
                 <div class="col-md-6 mb-3">
                     <label class="form-label">Transporter Name</label>
-                    <input type="text" name="transporter_name" class="form-control">
+                    <input type="text" name="transporter_name" class="form-control"
+                           value="{{ challan.transporter_name if edit_mode else '' }}">
                 </div>
                 <div class="col-md-6 mb-3">
                     <label class="form-label">Delivery Note</label>
-                    <input type="text" name="delivery_note" class="form-control" placeholder="Special instructions">
+                    <input type="text" name="delivery_note" class="form-control" placeholder="Special instructions"
+                           value="{{ challan.delivery_note if edit_mode else '' }}">
                 </div>
             </div>
         </div>
@@ -115,7 +123,40 @@
                     </tr>
                 </thead>
                 <tbody>
-                    {% if sales_order %}
+                    {% if edit_mode %}
+                        {% for item in challan.items %}
+                        <tr>
+                            <td>{{ loop.index }}</td>
+                            <td>
+                                <input type="text" name="item_name[]" class="form-control" value="{{ item.item_name }}" required>
+                                <input type="hidden" name="item_id[]" value="{{ item.item_id or '' }}">
+                                <input type="hidden" name="taxable_value[]" value="{{ item.taxable_value }}">
+                                <input type="hidden" name="cgst_amount[]" value="{{ item.cgst_amount }}">
+                                <input type="hidden" name="sgst_amount[]" value="{{ item.sgst_amount }}">
+                                <input type="hidden" name="igst_amount[]" value="{{ item.igst_amount }}">
+                                <input type="hidden" name="total_amount[]" value="{{ item.total_amount }}">
+                            </td>
+                            <td>
+                                <input type="text" name="hsn_code[]" class="form-control" value="{{ item.hsn_code or '' }}">
+                            </td>
+                            <td>
+                                <input type="number" name="quantity[]" class="form-control" step="0.01" value="{{ item.quantity }}" required>
+                            </td>
+                            <td>
+                                <input type="text" name="unit[]" class="form-control" value="{{ item.unit }}" required>
+                            </td>
+                            <td>
+                                <input type="number" name="rate[]" class="form-control" step="0.01" value="{{ item.rate }}" required>
+                            </td>
+                            <td>
+                                <input type="number" name="gst_rate[]" class="form-control" value="{{ item.gst_rate }}" required>
+                            </td>
+                            <td class="text-end">
+                                ₹{{ "{:,.2f}".format(item.total_amount) }}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% elif sales_order %}
                         {% for item in sales_order.items %}
                         <tr>
                             <td>{{ loop.index }}</td>
@@ -180,11 +221,11 @@
             <div class="row">
                 <div class="col-md-6 mb-3">
                     <label class="form-label">Internal Notes</label>
-                    <textarea name="notes" class="form-control" rows="3"></textarea>
+                    <textarea name="notes" class="form-control" rows="3">{{ challan.notes if edit_mode else '' }}</textarea>
                 </div>
                 <div class="col-md-6 mb-3">
                     <label class="form-label">Terms & Conditions</label>
-                    <textarea name="terms" class="form-control" rows="3"></textarea>
+                    <textarea name="terms" class="form-control" rows="3">{{ challan.terms if edit_mode else '' }}</textarea>
                 </div>
             </div>
         </div>
@@ -193,7 +234,7 @@
     <!-- Submit -->
     <div class="text-end mb-4">
         <a href="{{ url_for('delivery_challans.list_challans') }}" class="btn btn-secondary">Cancel</a>
-        <button type="submit" class="btn btn-primary">Create Delivery Challan</button>
+        <button type="submit" class="btn btn-primary">{% if edit_mode %}Update Delivery Challan{% else %}Create Delivery Challan{% endif %}</button>
     </div>
 </form>
 
