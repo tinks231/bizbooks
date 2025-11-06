@@ -271,29 +271,404 @@
     </div>
 
 <style>
+/* ========================================
+   CUSTOM GRID SYSTEM (Bootstrap-like)
+   ======================================== */
+.row {
+    display: flex;
+    flex-wrap: wrap;
+    margin: 0 -15px;
+}
+
+.col-md-12, .col-md-6, .col-md-4, .col-md-3, .col-md-2 {
+    padding: 0 15px;
+    box-sizing: border-box;
+}
+
+.col-md-12 { flex: 0 0 100%; max-width: 100%; }
+.col-md-6 { flex: 0 0 50%; max-width: 50%; }
+.col-md-4 { flex: 0 0 33.333%; max-width: 33.333%; }
+.col-md-3 { flex: 0 0 25%; max-width: 25%; }
+.col-md-2 { flex: 0 0 16.666%; max-width: 16.666%; }
+
+.g-3 > * {
+    padding-right: 12px;
+    padding-left: 12px;
+    margin-top: 12px;
+}
+
+.mb-0 { margin-bottom: 0 !important; }
+.mb-3 { margin-bottom: 1rem; }
+.mb-4 { margin-bottom: 1.5rem; }
+.py-5 { padding-top: 3rem; padding-bottom: 3rem; }
+
+/* ========================================
+   CARD STYLING
+   ======================================== */
 .card {
-    border-radius: 8px;
-    box-shadow: 0 0 10px rgba(0,0,0,0.05);
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
     margin-bottom: 20px;
+    background: white;
+    border: 1px solid #e9ecef;
+    transition: all 0.3s ease;
 }
 
-.table th {
-    background-color: #f8f9fa;
+.card:hover {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+}
+
+.card-body {
+    padding: 20px;
+}
+
+.card.text-center {
+    text-align: center;
+}
+
+.card.text-center h3 {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #2c3e50;
+    margin-bottom: 8px;
+}
+
+.card.text-center small {
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #6c757d;
+}
+
+/* ========================================
+   FORM CONTROLS
+   ======================================== */
+.form-label {
+    display: block;
+    margin-bottom: 8px;
     font-weight: 600;
-    border-bottom: 2px solid #dee2e6;
+    color: #495057;
+    font-size: 0.95rem;
 }
 
-.progress {
-    background-color: #e9ecef;
+.form-control, .form-select {
+    width: 100%;
+    padding: 10px 12px;
+    border: 2px solid #dee2e6;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    transition: all 0.2s ease;
+    background: white;
+    box-sizing: border-box;
 }
 
-.progress-bar {
-    background-color: #28a745;
+.form-control:focus, .form-select:focus {
+    outline: none;
+    border-color: #007bff;
+    box-shadow: 0 0 0 3px rgba(0,123,255,0.1);
+}
+
+.form-select {
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23343a40' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    background-size: 16px 12px;
+    padding-right: 40px;
+}
+
+input[type="date"] {
+    padding-right: 12px;
+}
+
+/* ========================================
+   BUTTONS
+   ======================================== */
+.btn {
+    display: inline-block;
+    padding: 10px 20px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    text-align: center;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-decoration: none;
+    margin-right: 8px;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+    color: white;
+}
+
+.btn-primary:hover {
+    background: linear-gradient(135deg, #0056b3 0%, #003d82 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,123,255,0.3);
+}
+
+.btn-secondary {
+    background: #6c757d;
+    color: white;
+}
+
+.btn-secondary:hover {
+    background: #5a6268;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(108,117,125,0.3);
+}
+
+.btn-warning {
+    background: #ffc107;
+    color: #000;
+}
+
+.btn-warning:hover {
+    background: #e0a800;
+    transform: translateY(-2px);
+}
+
+.btn-sm {
+    padding: 6px 12px;
+    font-size: 0.85rem;
+}
+
+.btn i {
+    margin-right: 5px;
+}
+
+/* ========================================
+   BUTTON GROUP & DROPDOWN
+   ======================================== */
+.btn-group, .btn-group-sm {
+    display: inline-flex;
+    vertical-align: middle;
+}
+
+.btn-group .btn, .btn-group-sm .btn {
+    margin-right: 0;
+    border-radius: 0;
+}
+
+.btn-group .btn:first-child {
+    border-top-left-radius: 6px;
+    border-bottom-left-radius: 6px;
+}
+
+.btn-group .btn:last-child {
+    border-top-right-radius: 6px;
+    border-bottom-right-radius: 6px;
 }
 
 .btn-group-sm .btn {
-    padding: 0.25rem 0.5rem;
-    font-size: 0.875rem;
+    padding: 6px 10px;
+    font-size: 0.85rem;
+}
+
+.dropdown-toggle::after {
+    display: none;
+}
+
+.dropdown-menu {
+    position: absolute;
+    z-index: 1000;
+    display: none;
+    min-width: 180px;
+    padding: 8px 0;
+    margin: 4px 0 0;
+    background: white;
+    border: 1px solid rgba(0,0,0,0.15);
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.btn-group:hover .dropdown-menu {
+    display: block;
+}
+
+.dropdown-item {
+    display: block;
+    width: 100%;
+    padding: 8px 16px;
+    clear: both;
+    font-weight: 400;
+    color: #212529;
+    text-align: inherit;
+    text-decoration: none;
+    white-space: nowrap;
+    background-color: transparent;
+    border: 0;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.dropdown-item:hover {
+    background-color: #f8f9fa;
+}
+
+.dropdown-item i {
+    margin-right: 8px;
+    width: 16px;
+    display: inline-block;
+}
+
+.dropdown-item.text-danger {
+    color: #dc3545;
+}
+
+.dropdown-divider {
+    height: 0;
+    margin: 8px 0;
+    overflow: hidden;
+    border-top: 1px solid #e9ecef;
+}
+
+/* ========================================
+   TABLE STYLING
+   ======================================== */
+.table-responsive {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.table {
+    width: 100%;
+    margin-bottom: 1rem;
+    border-collapse: collapse;
+}
+
+.table thead th {
+    vertical-align: bottom;
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    font-weight: 700;
+    text-transform: uppercase;
+    font-size: 0.85rem;
+    letter-spacing: 0.5px;
+    color: #495057;
+    border-bottom: 2px solid #007bff;
+    padding: 14px 12px;
+}
+
+.table tbody td {
+    padding: 14px 12px;
+    vertical-align: middle;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.table-hover tbody tr {
+    transition: all 0.2s ease;
+}
+
+.table-hover tbody tr:hover {
+    background-color: #f1f8ff;
+    transform: scale(1.01);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+/* ========================================
+   BADGES
+   ======================================== */
+.badge {
+    display: inline-block;
+    padding: 6px 12px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    line-height: 1;
+    color: #fff;
+    text-align: center;
+    white-space: nowrap;
+    vertical-align: baseline;
+    border-radius: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.bg-warning {
+    background-color: #ffc107 !important;
+    color: #000 !important;
+}
+
+.bg-info {
+    background-color: #17a2b8 !important;
+}
+
+.bg-success {
+    background-color: #28a745 !important;
+}
+
+.bg-primary {
+    background-color: #007bff !important;
+}
+
+.bg-danger {
+    background-color: #dc3545 !important;
+}
+
+.bg-secondary {
+    background-color: #6c757d !important;
+}
+
+/* ========================================
+   PROGRESS BAR
+   ======================================== */
+.progress {
+    display: flex;
+    height: 6px;
+    overflow: hidden;
+    font-size: 0.75rem;
+    background-color: #e9ecef;
+    border-radius: 4px;
+    margin-top: 5px;
+}
+
+.progress-bar {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    overflow: hidden;
+    color: #fff;
+    text-align: center;
+    white-space: nowrap;
+    background-color: #28a745;
+    transition: width 0.6s ease;
+}
+
+/* ========================================
+   TEXT UTILITIES
+   ======================================== */
+.text-center {
+    text-align: center;
+}
+
+.text-muted {
+    color: #6c757d !important;
+    font-size: 0.9rem;
+}
+
+.text-danger {
+    color: #dc3545 !important;
+}
+
+/* ========================================
+   EMPTY STATE
+   ======================================== */
+.text-center.py-5 i {
+    color: #dee2e6;
+}
+
+.text-center.py-5 h4 {
+    color: #495057;
+    font-weight: 600;
+    margin-bottom: 12px;
+}
+
+.text-center.py-5 p {
+    color: #6c757d;
+    font-size: 0.95rem;
+    margin-bottom: 20px;
 }
 </style>
 {% endblock %}
