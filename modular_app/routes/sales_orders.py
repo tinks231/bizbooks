@@ -18,12 +18,12 @@ sales_order_bp = Blueprint('sales_orders', __name__, url_prefix='/sales-orders')
 @sales_order_bp.before_request
 def check_auth():
     """Ensure user is logged in for all sales order routes"""
-    if 'tenant_id' not in session:
+    if 'tenant_admin_id' not in session:
         flash('Please login to access sales orders', 'error')
         return redirect(url_for('admin.login'))
     
     # Load tenant into g for easy access
-    g.tenant = Tenant.query.get(session['tenant_id'])
+    g.tenant = Tenant.query.get(session['tenant_admin_id'])
     if not g.tenant:
         session.clear()
         flash('Session expired. Please login again.', 'error')
@@ -34,7 +34,7 @@ def check_auth():
 @sales_order_bp.route('/list')
 def list_orders():
     """List all sales orders with filters"""
-    tenant_id = session['tenant_id']
+    tenant_id = session['tenant_admin_id']
     
     # Get filter parameters
     status_filter = request.args.get('status', 'all')
@@ -106,7 +106,7 @@ def list_orders():
 @sales_order_bp.route('/create', methods=['GET', 'POST'])
 def create_order():
     """Create a new sales order"""
-    tenant_id = session['tenant_id']
+    tenant_id = session['tenant_admin_id']
     
     if request.method == 'POST':
         try:
@@ -297,7 +297,7 @@ def create_order():
 @sales_order_bp.route('/<int:order_id>')
 def view_order(order_id):
     """View sales order details"""
-    tenant_id = session['tenant_id']
+    tenant_id = session['tenant_admin_id']
     
     order = SalesOrder.query.filter_by(id=order_id, tenant_id=tenant_id).first_or_404()
     
@@ -320,7 +320,7 @@ def view_order(order_id):
 @sales_order_bp.route('/<int:order_id>/edit', methods=['GET', 'POST'])
 def edit_order(order_id):
     """Edit sales order"""
-    tenant_id = session['tenant_id']
+    tenant_id = session['tenant_admin_id']
     order = SalesOrder.query.filter_by(id=order_id, tenant_id=tenant_id).first_or_404()
     
     # Prevent editing if already invoiced
@@ -380,7 +380,7 @@ def edit_order(order_id):
 @sales_order_bp.route('/<int:order_id>/update-status', methods=['POST'])
 def update_status(order_id):
     """Update order status"""
-    tenant_id = session['tenant_id']
+    tenant_id = session['tenant_admin_id']
     order = SalesOrder.query.filter_by(id=order_id, tenant_id=tenant_id).first_or_404()
     
     new_status = request.form.get('status')
@@ -409,7 +409,7 @@ def update_status(order_id):
 @sales_order_bp.route('/<int:order_id>/delete', methods=['POST'])
 def delete_order(order_id):
     """Delete sales order"""
-    tenant_id = session['tenant_id']
+    tenant_id = session['tenant_admin_id']
     order = SalesOrder.query.filter_by(id=order_id, tenant_id=tenant_id).first_or_404()
     
     # Prevent deletion if invoiced
@@ -441,7 +441,7 @@ def delete_order(order_id):
 @sales_order_bp.route('/<int:order_id>/convert-to-invoice')
 def convert_to_invoice(order_id):
     """Convert sales order to invoice"""
-    tenant_id = session['tenant_id']
+    tenant_id = session['tenant_admin_id']
     order = SalesOrder.query.filter_by(id=order_id, tenant_id=tenant_id).first_or_404()
     
     # Redirect to invoice creation with pre-filled data
@@ -502,7 +502,7 @@ def release_stock_for_order(order_id):
 @sales_order_bp.route('/api/search-items')
 def api_search_items():
     """API endpoint for item search"""
-    tenant_id = session.get('tenant_id')
+    tenant_id = session.get('tenant_admin_id')
     if not tenant_id:
         return jsonify({'error': 'Unauthorized'}), 401
     
