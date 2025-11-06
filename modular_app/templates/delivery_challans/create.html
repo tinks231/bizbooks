@@ -1,0 +1,198 @@
+{% extends "base_sidebar.html" %}
+
+{% block title %}Create Delivery Challan{% endblock %}
+
+{% block page_title %}📦 Create New Delivery Challan{% endblock %}
+
+{% block header_actions %}
+<a href="{{ url_for('delivery_challans.list_challans') }}" class="btn btn-secondary">
+    ← Back to Delivery Challans
+</a>
+{% endblock %}
+
+{% block content %}
+<form method="POST" action="{{ url_for('delivery_challans.create_challan') }}">
+    {% if sales_order %}
+    <input type="hidden" name="sales_order_id" value="{{ sales_order.id }}">
+    {% endif %}
+    
+    <!-- Customer Information -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">Customer Information</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Customer Name <span class="text-danger">*</span></label>
+                    <input type="text" name="customer_name" class="form-control" required
+                           value="{% if sales_order %}{{ sales_order.customer_name }}{% endif %}">
+                    <input type="hidden" name="customer_id" value="{% if sales_order %}{{ sales_order.customer_id or '' }}{% endif %}">
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Phone</label>
+                    <input type="tel" name="customer_phone" class="form-control"
+                           value="{% if sales_order %}{{ sales_order.customer_phone or '' }}{% endif %}">
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Email</label>
+                    <input type="email" name="customer_email" class="form-control"
+                           value="{% if sales_order %}{{ sales_order.customer_email or '' }}{% endif %}">
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">GSTIN</label>
+                    <input type="text" name="customer_gstin" class="form-control"
+                           value="{% if sales_order %}{{ sales_order.customer_gstin or '' }}{% endif %}">
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Billing Address</label>
+                    <textarea name="customer_billing_address" class="form-control" rows="2">{% if sales_order %}{{ sales_order.customer_billing_address or '' }}{% endif %}</textarea>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Shipping Address</label>
+                    <textarea name="customer_shipping_address" class="form-control" rows="2">{% if sales_order %}{{ sales_order.customer_shipping_address or '' }}{% endif %}</textarea>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- DC Details -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">Delivery Details</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Challan Date <span class="text-danger">*</span></label>
+                    <input type="date" name="challan_date" class="form-control" value="{{ today }}" required>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Vehicle Number</label>
+                    <input type="text" name="vehicle_number" class="form-control" placeholder="MH 01 AB 1234">
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">LR Number</label>
+                    <input type="text" name="lr_number" class="form-control" placeholder="Lorry Receipt No.">
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Transporter Name</label>
+                    <input type="text" name="transporter_name" class="form-control">
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Delivery Note</label>
+                    <input type="text" name="delivery_note" class="form-control" placeholder="Special instructions">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Items -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">Items</h5>
+        </div>
+        <div class="card-body">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Item Name</th>
+                        <th>HSN</th>
+                        <th>Qty</th>
+                        <th>Unit</th>
+                        <th>Rate</th>
+                        <th>GST%</th>
+                        <th>Amount</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if sales_order %}
+                        {% for item in sales_order.items %}
+                        <tr>
+                            <td>{{ loop.index }}</td>
+                            <td>
+                                <input type="text" name="item_name[]" class="form-control" value="{{ item.item_name }}" required>
+                                <input type="hidden" name="item_id[]" value="{{ item.item_id or '' }}">
+                                <input type="hidden" name="so_item_id[]" value="{{ item.id }}">
+                            </td>
+                            <td>
+                                <input type="text" name="hsn_code[]" class="form-control" value="{{ item.hsn_code or '' }}">
+                            </td>
+                            <td>
+                                <input type="number" name="quantity[]" class="form-control" step="0.01" value="{{ item.quantity }}" required>
+                            </td>
+                            <td>
+                                <input type="text" name="unit[]" class="form-control" value="{{ item.unit }}" required>
+                            </td>
+                            <td>
+                                <input type="number" name="rate[]" class="form-control" step="0.01" value="{{ item.rate }}" required>
+                            </td>
+                            <td>
+                                <input type="number" name="gst_rate[]" class="form-control" value="{{ item.gst_rate }}" required>
+                            </td>
+                            <td class="text-end">
+                                ₹{{ "{:,.2f}".format(item.total_amount) }}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td>1</td>
+                            <td>
+                                <input type="text" name="item_name[]" class="form-control" placeholder="Item name" required>
+                                <input type="hidden" name="item_id[]">
+                            </td>
+                            <td>
+                                <input type="text" name="hsn_code[]" class="form-control">
+                            </td>
+                            <td>
+                                <input type="number" name="quantity[]" class="form-control" step="0.01" value="1" required>
+                            </td>
+                            <td>
+                                <input type="text" name="unit[]" class="form-control" value="Nos" required>
+                            </td>
+                            <td>
+                                <input type="number" name="rate[]" class="form-control" step="0.01" value="0" required>
+                            </td>
+                            <td>
+                                <input type="number" name="gst_rate[]" class="form-control" value="18" required>
+                            </td>
+                            <td class="text-end">₹0.00</td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Notes -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Internal Notes</label>
+                    <textarea name="notes" class="form-control" rows="3"></textarea>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Terms & Conditions</label>
+                    <textarea name="terms" class="form-control" rows="3"></textarea>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Submit -->
+    <div class="text-end mb-4">
+        <a href="{{ url_for('delivery_challans.list_challans') }}" class="btn btn-secondary">Cancel</a>
+        <button type="submit" class="btn btn-primary">Create Delivery Challan</button>
+    </div>
+</form>
+{% endblock %}
+

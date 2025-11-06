@@ -1,0 +1,329 @@
+{% extends "base_sidebar.html" %}
+
+{% block title %}Delivery Challan {{ challan.challan_number }}{% endblock %}
+
+{% block page_title %}📦 Delivery Challan {{ challan.challan_number }}{% endblock %}
+
+{% block header_actions %}
+<a href="{{ url_for('delivery_challans.list_challans') }}" class="btn btn-secondary">
+    ← Back to Delivery Challans
+</a>
+{% if challan.status not in ['invoiced', 'cancelled'] %}
+<div class="btn-group">
+    <button type="button" class="btn btn-primary dropdown-toggle" data-bs-toggle="dropdown">
+        Actions
+    </button>
+    <ul class="dropdown-menu">
+        {% if challan.status == 'draft' %}
+        <li>
+            <form method="POST" action="{{ url_for('delivery_challans.update_status', challan_id=challan.id) }}" style="display: inline;">
+                <input type="hidden" name="status" value="dispatched">
+                <button type="submit" class="dropdown-item">Mark as Dispatched</button>
+            </form>
+        </li>
+        {% endif %}
+        {% if challan.status in ['draft', 'dispatched'] %}
+        <li>
+            <form method="POST" action="{{ url_for('delivery_challans.update_status', challan_id=challan.id) }}" style="display: inline;">
+                <input type="hidden" name="status" value="delivered">
+                <button type="submit" class="dropdown-item">Mark as Delivered</button>
+            </form>
+        </li>
+        {% endif %}
+        {% if challan.status in ['delivered', 'partially_invoiced'] %}
+        <li>
+            <a class="dropdown-item" href="{{ url_for('delivery_challans.convert_to_invoice', challan_id=challan.id) }}">
+                Convert to Invoice
+            </a>
+        </li>
+        {% endif %}
+        <li><hr class="dropdown-divider"></li>
+        <li>
+            <form method="POST" action="{{ url_for('delivery_challans.update_status', challan_id=challan.id) }}" 
+                  onsubmit="return confirm('Cancel this delivery challan?')">
+                <input type="hidden" name="status" value="cancelled">
+                <button type="submit" class="dropdown-item text-danger">Cancel DC</button>
+            </form>
+        </li>
+        {% if challan.status in ['draft', 'cancelled'] %}
+        <li>
+            <form method="POST" action="{{ url_for('delivery_challans.delete_challan', challan_id=challan.id) }}" 
+                  onsubmit="return confirm('Delete this delivery challan permanently?')">
+                <button type="submit" class="dropdown-item text-danger">Delete DC</button>
+            </form>
+        </li>
+        {% endif %}
+    </ul>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- Main Content -->
+    <div class="col-md-8">
+        <!-- Status Card -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-md-4">
+                        <h6 class="text-muted mb-2">Status</h6>
+                        {% if challan.status == 'draft' %}
+                        <span class="badge bg-secondary fs-6">Draft</span>
+                        {% elif challan.status == 'dispatched' %}
+                        <span class="badge bg-info fs-6">Dispatched</span>
+                        {% elif challan.status == 'delivered' %}
+                        <span class="badge bg-success fs-6">Delivered</span>
+                        {% elif challan.status == 'partially_invoiced' %}
+                        <span class="badge bg-warning fs-6">Partially Invoiced</span>
+                        {% elif challan.status == 'invoiced' %}
+                        <span class="badge bg-primary fs-6">Invoiced</span>
+                        {% elif challan.status == 'cancelled' %}
+                        <span class="badge bg-danger fs-6">Cancelled</span>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-4">
+                        <h6 class="text-muted mb-2">Total Amount</h6>
+                        <h4>₹{{ "{:,.2f}".format(challan.total_amount) }}</h4>
+                    </div>
+                    <div class="col-md-4">
+                        <h6 class="text-muted mb-2">Items</h6>
+                        <h4>{{ challan.items|length }}</h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Customer Details -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Customer Details</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><strong>Name:</strong> {{ challan.customer_name }}</p>
+                        <p><strong>Phone:</strong> {{ challan.customer_phone or '-' }}</p>
+                        <p><strong>Email:</strong> {{ challan.customer_email or '-' }}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>GSTIN:</strong> {{ challan.customer_gstin or '-' }}</p>
+                        <p><strong>State:</strong> {{ challan.customer_state }}</p>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><strong>Billing Address:</strong><br>{{ challan.customer_billing_address or '-' }}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>Shipping Address:</strong><br>{{ challan.customer_shipping_address or '-' }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Delivery Details -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Delivery Information</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><strong>Vehicle Number:</strong> {{ challan.vehicle_number or '-' }}</p>
+                        <p><strong>LR Number:</strong> {{ challan.lr_number or '-' }}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>Transporter:</strong> {{ challan.transporter_name or '-' }}</p>
+                        <p><strong>Delivery Note:</strong> {{ challan.delivery_note or '-' }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Items -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Items</h5>
+            </div>
+            <div class="card-body">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Item Name</th>
+                            <th>HSN</th>
+                            <th>Qty</th>
+                            <th>Rate</th>
+                            <th>GST</th>
+                            <th class="text-end">Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in challan.items %}
+                        <tr>
+                            <td>{{ loop.index }}</td>
+                            <td>{{ item.item_name }}</td>
+                            <td>{{ item.hsn_code or '-' }}</td>
+                            <td>{{ item.quantity }} {{ item.unit }}</td>
+                            <td>₹{{ "{:,.2f}".format(item.rate) }}</td>
+                            <td>{{ item.gst_rate }}%</td>
+                            <td class="text-end">₹{{ "{:,.2f}".format(item.total_amount) }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <th colspan="6" class="text-end">Subtotal:</th>
+                            <th class="text-end">₹{{ "{:,.2f}".format(challan.subtotal) }}</th>
+                        </tr>
+                        {% if challan.cgst_amount > 0 %}
+                        <tr>
+                            <td colspan="6" class="text-end">CGST:</td>
+                            <td class="text-end">₹{{ "{:,.2f}".format(challan.cgst_amount) }}</td>
+                        </tr>
+                        <tr>
+                            <td colspan="6" class="text-end">SGST:</td>
+                            <td class="text-end">₹{{ "{:,.2f}".format(challan.sgst_amount) }}</td>
+                        </tr>
+                        {% endif %}
+                        {% if challan.igst_amount > 0 %}
+                        <tr>
+                            <td colspan="6" class="text-end">IGST:</td>
+                            <td class="text-end">₹{{ "{:,.2f}".format(challan.igst_amount) }}</td>
+                        </tr>
+                        {% endif %}
+                        <tr>
+                            <th colspan="6" class="text-end">Total:</th>
+                            <th class="text-end">₹{{ "{:,.2f}".format(challan.total_amount) }}</th>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sidebar -->
+    <div class="col-md-4">
+        <!-- Reference Info -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Reference</h5>
+            </div>
+            <div class="card-body">
+                <p><strong>DC Number:</strong><br>{{ challan.challan_number }}</p>
+                <p><strong>DC Date:</strong><br>{{ challan.challan_date.strftime('%d %b %Y') }}</p>
+                {% if sales_order %}
+                <p><strong>Sales Order:</strong><br>
+                    <a href="{{ url_for('sales_orders.view_order', order_id=sales_order.id) }}">
+                        {{ sales_order.order_number }}
+                    </a>
+                </p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Linked Invoices -->
+        {% if invoices %}
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Linked Invoices</h5>
+            </div>
+            <div class="card-body">
+                {% for invoice in invoices %}
+                <p>
+                    <a href="{{ url_for('invoices.view', invoice_id=invoice.id) }}">
+                        {{ invoice.invoice_number }}
+                    </a>
+                    <br>
+                    <small class="text-muted">{{ invoice.invoice_date.strftime('%d %b %Y') }}</small>
+                </p>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Timeline -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Timeline</h5>
+            </div>
+            <div class="card-body">
+                <div class="timeline">
+                    <div class="timeline-item">
+                        <i class="fas fa-file text-secondary"></i>
+                        <div>
+                            <strong>Created</strong><br>
+                            <small class="text-muted">{{ challan.created_at.strftime('%d %b %Y %I:%M %p') }}</small>
+                        </div>
+                    </div>
+                    {% if challan.dispatched_at %}
+                    <div class="timeline-item">
+                        <i class="fas fa-truck text-info"></i>
+                        <div>
+                            <strong>Dispatched</strong><br>
+                            <small class="text-muted">{{ challan.dispatched_at.strftime('%d %b %Y %I:%M %p') }}</small>
+                        </div>
+                    </div>
+                    {% endif %}
+                    {% if challan.delivered_at %}
+                    <div class="timeline-item">
+                        <i class="fas fa-box text-success"></i>
+                        <div>
+                            <strong>Delivered</strong><br>
+                            <small class="text-muted">{{ challan.delivered_at.strftime('%d %b %Y %I:%M %p') }}</small>
+                        </div>
+                    </div>
+                    {% endif %}
+                    {% if challan.invoiced_at %}
+                    <div class="timeline-item">
+                        <i class="fas fa-file-invoice text-primary"></i>
+                        <div>
+                            <strong>Invoiced</strong><br>
+                            <small class="text-muted">{{ challan.invoiced_at.strftime('%d %b %Y %I:%M %p') }}</small>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.timeline {
+    position: relative;
+    padding-left: 30px;
+}
+
+.timeline-item {
+    position: relative;
+    padding-bottom: 20px;
+}
+
+.timeline-item:last-child {
+    padding-bottom: 0;
+}
+
+.timeline-item i {
+    position: absolute;
+    left: -30px;
+    font-size: 1.2em;
+}
+
+.timeline-item:before {
+    content: '';
+    position: absolute;
+    left: -24px;
+    top: 25px;
+    bottom: -20px;
+    width: 2px;
+    background: #dee2e6;
+}
+
+.timeline-item:last-child:before {
+    display: none;
+}
+</style>
+{% endblock %}
+

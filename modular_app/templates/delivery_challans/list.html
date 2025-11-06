@@ -1,0 +1,111 @@
+{% extends "base_sidebar.html" %}
+
+{% block title %}Delivery Challans{% endblock %}
+
+{% block page_title %}📦 Delivery Challans{% endblock %}
+
+{% block header_actions %}
+<a href="{{ url_for('delivery_challans.create_challan_form') }}" class="btn btn-primary">
+    + New Delivery Challan
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-body">
+        <!-- Filters -->
+        <form method="GET" class="mb-4">
+            <div class="row">
+                <div class="col-md-4">
+                    <input type="text" name="search" class="form-control" placeholder="Search DC or Customer..."
+                           value="{{ search }}">
+                </div>
+                <div class="col-md-3">
+                    <select name="status" class="form-control">
+                        <option value="">All Status</option>
+                        <option value="draft" {% if status_filter == 'draft' %}selected{% endif %}>Draft</option>
+                        <option value="dispatched" {% if status_filter == 'dispatched' %}selected{% endif %}>Dispatched</option>
+                        <option value="delivered" {% if status_filter == 'delivered' %}selected{% endif %}>Delivered</option>
+                        <option value="invoiced" {% if status_filter == 'invoiced' %}selected{% endif %}>Invoiced</option>
+                        <option value="cancelled" {% if status_filter == 'cancelled' %}selected{% endif %}>Cancelled</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-primary">Filter</button>
+                    <a href="{{ url_for('delivery_challans.list_challans') }}" class="btn btn-secondary">Reset</a>
+                </div>
+            </div>
+        </form>
+
+        <!-- Delivery Challans Table -->
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>DC Number</th>
+                        <th>Date</th>
+                        <th>Customer</th>
+                        <th>SO Reference</th>
+                        <th>Amount</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if challans %}
+                        {% for challan in challans %}
+                        <tr>
+                            <td>
+                                <a href="{{ url_for('delivery_challans.view_challan', challan_id=challan.id) }}"
+                                   style="font-weight: 600; color: #007bff;">
+                                    {{ challan.challan_number }}
+                                </a>
+                            </td>
+                            <td>{{ challan.challan_date.strftime('%d %b %Y') }}</td>
+                            <td>{{ challan.customer_name }}</td>
+                            <td>
+                                {% if challan.sales_order %}
+                                <a href="{{ url_for('sales_orders.view_order', order_id=challan.sales_order.id) }}">
+                                    {{ challan.sales_order.order_number }}
+                                </a>
+                                {% else %}
+                                <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>₹{{ "{:,.2f}".format(challan.total_amount) }}</td>
+                            <td>
+                                {% if challan.status == 'draft' %}
+                                <span class="badge bg-secondary">Draft</span>
+                                {% elif challan.status == 'dispatched' %}
+                                <span class="badge bg-info">Dispatched</span>
+                                {% elif challan.status == 'delivered' %}
+                                <span class="badge bg-success">Delivered</span>
+                                {% elif challan.status == 'invoiced' %}
+                                <span class="badge bg-primary">Invoiced</span>
+                                {% elif challan.status == 'cancelled' %}
+                                <span class="badge bg-danger">Cancelled</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="{{ url_for('delivery_challans.view_challan', challan_id=challan.id) }}"
+                                   class="btn btn-sm btn-primary">View</a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="7" class="text-center py-5">
+                                <p class="text-muted mb-3">📦 No delivery challans yet</p>
+                                <a href="{{ url_for('delivery_challans.create_challan_form') }}" class="btn btn-primary">
+                                    Create Your First Delivery Challan
+                                </a>
+                            </td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
