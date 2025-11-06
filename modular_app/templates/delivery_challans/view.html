@@ -2,18 +2,19 @@
 
 {% block title %}Delivery Challan {{ challan.challan_number }}{% endblock %}
 
-{% block page_title %}📦 Delivery Challan {{ challan.challan_number }}{% endblock %}
+{% block page_title %}📦 {{ challan.challan_number }}{% endblock %}
 
 {% block header_actions %}
-<a href="{{ url_for('delivery_challans.list_challans') }}" class="btn btn-secondary">
-    ← Back to Delivery Challans
-</a>
-{% if challan.status not in ['invoiced', 'cancelled'] %}
-<div class="btn-group">
-    <button type="button" class="btn btn-primary dropdown-toggle" data-bs-toggle="dropdown">
-        Actions
-    </button>
-    <ul class="dropdown-menu">
+<div style="display: flex; gap: 10px; align-items: center;">
+    <a href="{{ url_for('delivery_challans.list_challans') }}" class="btn btn-secondary">
+        ← Back
+    </a>
+    {% if challan.status not in ['invoiced', 'cancelled'] %}
+    <div class="btn-group">
+        <button type="button" class="btn btn-primary dropdown-toggle" data-bs-toggle="dropdown">
+            Actions
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end">
         {% if challan.status == 'draft' %}
         <li>
             <form method="POST" action="{{ url_for('delivery_challans.update_status', challan_id=challan.id) }}" style="display: inline;">
@@ -53,9 +54,10 @@
             </form>
         </li>
         {% endif %}
-    </ul>
+        </ul>
+    </div>
+    {% endif %}
 </div>
-{% endif %}
 {% endblock %}
 
 {% block content %}
@@ -472,6 +474,10 @@ strong {
 }
 
 /* Actions Dropdown - Consistent Styling */
+.dropdown-menu-end {
+    right: 0 !important;
+    left: auto !important;
+}
 .dropdown-item {
     display: block !important;
     width: 100% !important;
@@ -497,6 +503,14 @@ strong {
 .dropdown-divider {
     margin: 4px 0 !important;
     border-top: 1px solid #e9ecef;
+}
+
+/* Header Actions Wrapper */
+.btn-group {
+    position: relative;
+}
+.btn {
+    white-space: nowrap;
 }
 </style>
 {% endblock %}
