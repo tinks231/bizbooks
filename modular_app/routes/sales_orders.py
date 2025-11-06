@@ -544,12 +544,28 @@ def api_search_items():
         )
     ).limit(20).all()
     
-    return jsonify([{
-        'id': item.id,
-        'name': item.name,
-        'hsn_code': item.hsn_code or '',
-        'unit': item.unit or 'pcs',
-        'selling_price': float(item.selling_price or 0),
-        'gst_rate': float(item.gst_rate or 0)
-    } for item in items])
+    result = []
+    for item in items:
+        # Extract GST rate from tax_preference if available (e.g., "GST @ 18%" -> 18)
+        gst_rate = 18  # Default to 18%
+        if item.tax_preference:
+            try:
+                # Try to extract number from tax_preference
+                import re
+                match = re.search(r'(\d+)', item.tax_preference)
+                if match:
+                    gst_rate = int(match.group(1))
+            except:
+                pass
+        
+        result.append({
+            'id': item.id,
+            'name': item.name,
+            'hsn_code': item.hsn_code or '',
+            'unit': item.unit or 'pcs',
+            'selling_price': float(item.selling_price or 0),
+            'gst_rate': gst_rate
+        })
+    
+    return jsonify(result)
 
