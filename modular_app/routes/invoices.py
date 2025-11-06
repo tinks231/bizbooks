@@ -629,7 +629,7 @@ def edit(invoice_id):
             for item in invoice.items
         ]
         
-        # Create a serializable invoice object
+        # Create a serializable invoice object (without 'items' key to avoid dict.items() conflict)
         invoice_dict = {
             'id': invoice.id,
             'invoice_number': invoice.invoice_number,
@@ -651,8 +651,7 @@ def edit(invoice_id):
             'round_off': float(invoice.round_off),
             'payment_status': invoice.payment_status,
             'status': invoice.status,
-            'notes': invoice.notes or '',
-            'items': invoice_items_json
+            'notes': invoice.notes or ''
         }
         
         tenant_settings = json.loads(g.tenant.settings) if g.tenant.settings else {}
@@ -660,8 +659,9 @@ def edit(invoice_id):
         flash('Edit mode: Modify invoice details below', 'info')
         return render_template('admin/invoices/create.html',
                              tenant=g.tenant,
-                             invoice=invoice_dict,  # Pass serializable dict instead of model
-                             items=items_json,
+                             invoice=invoice_dict,  # Pass serializable dict (without 'items' key)
+                             invoice_items=invoice_items_json,  # Pass items separately to avoid dict.items() conflict
+                             items=items_json,  # Available items for autocomplete
                              today=date.today().strftime('%Y-%m-%d'),
                              tenant_settings=tenant_settings,
                              edit_mode=True,

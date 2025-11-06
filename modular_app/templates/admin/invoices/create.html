@@ -815,10 +815,10 @@
     document.getElementById('invoice_date').valueAsDate = new Date();
     {% endif %}
     
-    {% if invoice and invoice.items %}
+    {% if invoice_items %}
     // Edit mode: Pre-populate items
     window.addEventListener('DOMContentLoaded', function() {
-        const existingItems = {{ invoice.items|tojson }};
+        const existingItems = {{ invoice_items|tojson }};
         const tbody = document.getElementById('itemsTableBody');
         tbody.innerHTML = ''; // Clear the default row
         itemCount = 0; // Reset counter
