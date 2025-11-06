@@ -52,15 +52,20 @@ def index():
 @login_required
 def gstr1():
     """GSTR-1 Report - Outward Supplies (Sales)"""
-    tenant_id = get_current_tenant_id()
-    
-    # Date range
-    today = datetime.now()
-    start_date_str = request.args.get('start_date', today.replace(day=1).strftime('%Y-%m-%d'))
-    end_date_str = request.args.get('end_date', today.strftime('%Y-%m-%d'))
-    
-    start_date = datetime.strptime(start_date_str, '%Y-%m-%d')
-    end_date = datetime.strptime(end_date_str, '%Y-%m-%d')
+    try:
+        tenant_id = get_current_tenant_id()
+        
+        # Date range
+        today = datetime.now()
+        start_date_str = request.args.get('start_date', today.replace(day=1).strftime('%Y-%m-%d'))
+        end_date_str = request.args.get('end_date', today.strftime('%Y-%m-%d'))
+        
+        start_date = datetime.strptime(start_date_str, '%Y-%m-%d')
+        end_date = datetime.strptime(end_date_str, '%Y-%m-%d')
+    except Exception as e:
+        print(f"❌ Error in gstr1 date parsing: {str(e)}")
+        flash(f'Error: {str(e)}', 'error')
+        return redirect(url_for('gst_reports.index'))
     
     # Get all invoices in date range
     invoices = Invoice.query.filter_by(tenant_id=tenant_id).filter(
@@ -82,44 +87,55 @@ def gstr1():
     total_tax = Decimal('0')
     total_invoice_value = Decimal('0')
     
-    for invoice in invoices:
-        # Calculate totals
-        taxable = invoice.subtotal or Decimal('0')
-        cgst = invoice.cgst_amount or Decimal('0')
-        sgst = invoice.sgst_amount or Decimal('0')
-        igst = invoice.igst_amount or Decimal('0')
-        tax = cgst + sgst + igst
-        
-        total_taxable += taxable
-        total_cgst += cgst
-        total_sgst += sgst
-        total_igst += igst
-        total_tax += tax
-        total_invoice_value += invoice.total_amount or Decimal('0')
-        
-        # Categorize as B2B or B2C
-        if invoice.customer_gstin and invoice.customer_gstin.strip():
-            b2b_invoices.append(invoice)
-        else:
-            b2c_invoices.append(invoice)
-        
-        # Group by GST rates
-        for item in invoice.items:
-            gst_rate = float(item.gst_rate or 0)
-            if gst_rate not in gst_summary:
-                gst_summary[gst_rate] = {
-                    'taxable_value': Decimal('0'),
-                    'cgst': Decimal('0'),
-                    'sgst': Decimal('0'),
-                    'igst': Decimal('0'),
-                    'total_tax': Decimal('0')
-                }
+    try:
+        for invoice in invoices:
+            # Calculate totals
+            taxable = invoice.subtotal or Decimal('0')
+            cgst = invoice.cgst_amount or Decimal('0')
+            sgst = invoice.sgst_amount or Decimal('0')
+            igst = invoice.igst_amount or Decimal('0')
+            tax = cgst + sgst + igst
             
-            gst_summary[gst_rate]['taxable_value'] += item.taxable_value or Decimal('0')
-            gst_summary[gst_rate]['cgst'] += item.cgst_amount or Decimal('0')
-            gst_summary[gst_rate]['sgst'] += item.sgst_amount or Decimal('0')
-            gst_summary[gst_rate]['igst'] += item.igst_amount or Decimal('0')
-            gst_summary[gst_rate]['total_tax'] += (item.cgst_amount or Decimal('0')) + (item.sgst_amount or Decimal('0')) + (item.igst_amount or Decimal('0'))
+            total_taxable += taxable
+            total_cgst += cgst
+            total_sgst += sgst
+            total_igst += igst
+            total_tax += tax
+            total_invoice_value += invoice.total_amount or Decimal('0')
+            
+            # Categorize as B2B or B2C
+            if invoice.customer_gstin and invoice.customer_gstin.strip():
+                b2b_invoices.append(invoice)
+            else:
+                b2c_invoices.append(invoice)
+            
+            # Group by GST rates
+            try:
+                for item in invoice.items:
+                    gst_rate = float(item.gst_rate or 0)
+                    if gst_rate not in gst_summary:
+                        gst_summary[gst_rate] = {
+                            'taxable_value': Decimal('0'),
+                            'cgst': Decimal('0'),
+                            'sgst': Decimal('0'),
+                            'igst': Decimal('0'),
+                            'total_tax': Decimal('0')
+                        }
+                    
+                    gst_summary[gst_rate]['taxable_value'] += item.taxable_value or Decimal('0')
+                    gst_summary[gst_rate]['cgst'] += item.cgst_amount or Decimal('0')
+                    gst_summary[gst_rate]['sgst'] += item.sgst_amount or Decimal('0')
+                    gst_summary[gst_rate]['igst'] += item.igst_amount or Decimal('0')
+                    gst_summary[gst_rate]['total_tax'] += (item.cgst_amount or Decimal('0')) + (item.sgst_amount or Decimal('0')) + (item.igst_amount or Decimal('0'))
+            except Exception as item_error:
+                print(f"⚠️  Error processing items for invoice {invoice.invoice_number}: {str(item_error)}")
+                continue
+    except Exception as e:
+        print(f"❌ Error processing invoices: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        flash(f'Error processing invoices: {str(e)}', 'error')
+        return redirect(url_for('gst_reports.index'))
     
     # Sort GST summary by rate
     gst_summary = dict(sorted(gst_summary.items()))
@@ -145,7 +161,12 @@ def gstr1():
 @login_required
 def gstr3b():
     """GSTR-3B Report - Monthly Summary"""
-    tenant_id = get_current_tenant_id()
+    try:
+        tenant_id = get_current_tenant_id()
+    except Exception as e:
+        print(f"❌ Error in gstr3b: {str(e)}")
+        flash(f'Error: {str(e)}', 'error')
+        return redirect(url_for('gst_reports.index'))
     
     # Date range (default to current month)
     today = datetime.now()
@@ -169,11 +190,16 @@ def gstr3b():
     outward_sgst = Decimal('0')
     outward_igst = Decimal('0')
     
-    for invoice in invoices:
-        outward_taxable += invoice.subtotal or Decimal('0')
-        outward_cgst += invoice.cgst_amount or Decimal('0')
-        outward_sgst += invoice.sgst_amount or Decimal('0')
-        outward_igst += invoice.igst_amount or Decimal('0')
+    try:
+        for invoice in invoices:
+            outward_taxable += invoice.subtotal or Decimal('0')
+            outward_cgst += invoice.cgst_amount or Decimal('0')
+            outward_sgst += invoice.sgst_amount or Decimal('0')
+            outward_igst += invoice.igst_amount or Decimal('0')
+    except Exception as e:
+        print(f"❌ Error calculating outward supplies: {str(e)}")
+        flash(f'Error: {str(e)}', 'error')
+        return redirect(url_for('gst_reports.index'))
     
     # TODO: Add inward supplies (purchases) when purchase bills module is implemented
     inward_taxable = Decimal('0')
@@ -213,45 +239,52 @@ def gstr3b():
 @login_required
 def summary():
     """GST Summary - Quick Overview"""
-    tenant_id = get_current_tenant_id()
-    
-    # Date range
-    today = datetime.now()
-    start_date_str = request.args.get('start_date', today.replace(day=1).strftime('%Y-%m-%d'))
-    end_date_str = request.args.get('end_date', today.strftime('%Y-%m-%d'))
-    
-    start_date = datetime.strptime(start_date_str, '%Y-%m-%d')
-    end_date = datetime.strptime(end_date_str, '%Y-%m-%d')
-    
-    # Get invoices
-    invoices = Invoice.query.filter_by(tenant_id=tenant_id).filter(
-        Invoice.invoice_date >= start_date,
-        Invoice.invoice_date <= end_date
-    ).all()
-    
-    # Calculate totals
-    total_sales = sum([inv.total_amount or Decimal('0') for inv in invoices])
-    total_taxable = sum([inv.subtotal or Decimal('0') for inv in invoices])
-    total_cgst = sum([inv.cgst_amount or Decimal('0') for inv in invoices])
-    total_sgst = sum([inv.sgst_amount or Decimal('0') for inv in invoices])
-    total_igst = sum([inv.igst_amount or Decimal('0') for inv in invoices])
-    total_gst = total_cgst + total_sgst + total_igst
-    
-    # Group by month
-    monthly_data = {}
-    for invoice in invoices:
-        month_key = invoice.invoice_date.strftime('%Y-%m')
-        if month_key not in monthly_data:
-            monthly_data[month_key] = {
-                'sales': Decimal('0'),
-                'taxable': Decimal('0'),
-                'gst': Decimal('0'),
-                'count': 0
-            }
-        monthly_data[month_key]['sales'] += invoice.total_amount or Decimal('0')
-        monthly_data[month_key]['taxable'] += invoice.subtotal or Decimal('0')
-        monthly_data[month_key]['gst'] += (invoice.cgst_amount or Decimal('0')) + (invoice.sgst_amount or Decimal('0')) + (invoice.igst_amount or Decimal('0'))
-        monthly_data[month_key]['count'] += 1
+    try:
+        tenant_id = get_current_tenant_id()
+        
+        # Date range
+        today = datetime.now()
+        start_date_str = request.args.get('start_date', today.replace(day=1).strftime('%Y-%m-%d'))
+        end_date_str = request.args.get('end_date', today.strftime('%Y-%m-%d'))
+        
+        start_date = datetime.strptime(start_date_str, '%Y-%m-%d')
+        end_date = datetime.strptime(end_date_str, '%Y-%m-%d')
+        
+        # Get invoices
+        invoices = Invoice.query.filter_by(tenant_id=tenant_id).filter(
+            Invoice.invoice_date >= start_date,
+            Invoice.invoice_date <= end_date
+        ).all()
+        
+        # Calculate totals
+        total_sales = sum([inv.total_amount or Decimal('0') for inv in invoices])
+        total_taxable = sum([inv.subtotal or Decimal('0') for inv in invoices])
+        total_cgst = sum([inv.cgst_amount or Decimal('0') for inv in invoices])
+        total_sgst = sum([inv.sgst_amount or Decimal('0') for inv in invoices])
+        total_igst = sum([inv.igst_amount or Decimal('0') for inv in invoices])
+        total_gst = total_cgst + total_sgst + total_igst
+        
+        # Group by month
+        monthly_data = {}
+        for invoice in invoices:
+            month_key = invoice.invoice_date.strftime('%Y-%m')
+            if month_key not in monthly_data:
+                monthly_data[month_key] = {
+                    'sales': Decimal('0'),
+                    'taxable': Decimal('0'),
+                    'gst': Decimal('0'),
+                    'count': 0
+                }
+            monthly_data[month_key]['sales'] += invoice.total_amount or Decimal('0')
+            monthly_data[month_key]['taxable'] += invoice.subtotal or Decimal('0')
+            monthly_data[month_key]['gst'] += (invoice.cgst_amount or Decimal('0')) + (invoice.sgst_amount or Decimal('0')) + (invoice.igst_amount or Decimal('0'))
+            monthly_data[month_key]['count'] += 1
+    except Exception as e:
+        print(f"❌ Error in summary report: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        flash(f'Error: {str(e)}', 'error')
+        return redirect(url_for('gst_reports.index'))
     
     return render_template('admin/gst_reports/summary.html',
                          tenant=g.tenant,
