@@ -1,31 +1,29 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash, g, jsonify
+from flask import Blueprint, render_template, request, redirect, url_for, flash, g, jsonify, session
 from models import db, PurchaseBill, PurchaseBillItem, Vendor, Item, ItemStock, Site, Tenant
-from utils.tenant_middleware import require_tenant, get_current_tenant_id
+from utils.tenant_middleware import get_current_tenant_id
 from utils.license_check import check_license
-from functools import wraps
-from flask import session
 from datetime import datetime, date
 from decimal import Decimal
 import pytz
 
 purchase_bills_bp = Blueprint('purchase_bills', __name__, url_prefix='/admin/purchase-bills')
 
-def login_required(f):
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        if 'user_id' not in session:
-            return redirect(url_for('admin.login'))
-        return f(*args, **kwargs)
-    return decorated_function
-
 @purchase_bills_bp.before_request
-@require_tenant
-def before_request():
-    pass
+def check_auth():
+    """Ensure user is logged in for all purchase bill routes"""
+    if 'tenant_admin_id' not in session:
+        flash('Please login to access purchase bills', 'error')
+        return redirect(url_for('admin.login'))
+    
+    # Load tenant into g for easy access
+    g.tenant = Tenant.query.get(session['tenant_admin_id'])
+    if not g.tenant:
+        session.clear()
+        flash('Session expired. Please login again.', 'error')
+        return redirect(url_for('admin.login'))
 
 @purchase_bills_bp.route('/')
 @check_license
-@login_required
 def list_bills():
     """List all purchase bills"""
     tenant_id = get_current_tenant_id()
@@ -76,7 +74,6 @@ def list_bills():
 
 @purchase_bills_bp.route('/create', methods=['GET', 'POST'])
 @check_license
-@login_required
 def create_bill():
     """Create new purchase bill"""
     tenant_id = get_current_tenant_id()
@@ -233,7 +230,6 @@ def create_bill():
 
 @purchase_bills_bp.route('/<int:bill_id>')
 @check_license
-@login_required
 def view_bill(bill_id):
     """View purchase bill details"""
     tenant_id = get_current_tenant_id()
@@ -245,7 +241,6 @@ def view_bill(bill_id):
 
 @purchase_bills_bp.route('/<int:bill_id>/edit', methods=['GET', 'POST'])
 @check_license
-@login_required
 def edit_bill(bill_id):
     """Edit purchase bill (only if draft)"""
     tenant_id = get_current_tenant_id()
@@ -366,7 +361,6 @@ def edit_bill(bill_id):
 
 @purchase_bills_bp.route('/<int:bill_id>/approve', methods=['POST'])
 @check_license
-@login_required
 def approve_bill(bill_id):
     """Approve purchase bill"""
     tenant_id = get_current_tenant_id()
@@ -379,7 +373,7 @@ def approve_bill(bill_id):
     try:
         bill.status = 'approved'
         bill.approved_at = datetime.now(pytz.timezone('Asia/Kolkata'))
-        bill.approved_by = session.get('user_id')
+        bill.approved_by = session.get('tenant_admin_id')
         
         db.session.commit()
         
@@ -392,7 +386,6 @@ def approve_bill(bill_id):
 
 @purchase_bills_bp.route('/<int:bill_id>/delete', methods=['POST'])
 @check_license
-@login_required
 def delete_bill(bill_id):
     """Delete purchase bill (only if draft)"""
     tenant_id = get_current_tenant_id()
@@ -416,7 +409,6 @@ def delete_bill(bill_id):
 # API Endpoints
 
 @purchase_bills_bp.route('/api/search-items')
-@login_required
 def api_search_items():
     """API endpoint to search items"""
     tenant_id = get_current_tenant_id()
@@ -457,7 +449,6 @@ def api_search_items():
     return jsonify(results)
 
 @purchase_bills_bp.route('/api/vendors/search')
-@login_required
 def api_search_vendors():
     """API endpoint to search vendors"""
     tenant_id = get_current_tenant_id()
