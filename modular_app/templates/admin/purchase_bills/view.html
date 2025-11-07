@@ -4,12 +4,39 @@
 
 {% block content %}
 <style>
+    /* Custom Grid System */
+    .row {
+        display: flex;
+        flex-wrap: wrap;
+        margin: 0 -15px;
+    }
+    .col-md-12, .col-md-6, .col-md-4, .col-md-3 {
+        padding: 0 15px;
+        box-sizing: border-box;
+    }
+    .col-md-12 {
+        flex: 0 0 100%;
+        max-width: 100%;
+    }
+    .col-md-6 {
+        flex: 0 0 50%;
+        max-width: 50%;
+    }
+    .col-md-4 {
+        flex: 0 0 33.333%;
+        max-width: 33.333%;
+    }
+    .col-md-3 {
+        flex: 0 0 25%;
+        max-width: 25%;
+    }
+    
     .bill-header {
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         color: white;
-        padding: 30px;
+        padding: 25px 30px;
         border-radius: 12px;
-        margin-bottom: 25px;
+        margin-bottom: 20px;
     }
     .info-card {
         background: white;
@@ -17,12 +44,25 @@
         border-radius: 12px;
         box-shadow: 0 2px 8px rgba(0,0,0,0.1);
         margin-bottom: 20px;
+        height: 100%;
+    }
+    .info-card h5 {
+        margin-bottom: 15px;
+        color: #333;
+        font-size: 16px;
+        font-weight: 600;
+    }
+    .info-card div {
+        margin-bottom: 8px;
+        font-size: 14px;
+        line-height: 1.5;
     }
     .items-table {
         background: white;
         border-radius: 12px;
         overflow: hidden;
         box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        margin-bottom: 20px;
     }
     .items-table table {
         width: 100%;
@@ -30,20 +70,23 @@
     }
     .items-table th {
         background: #f8f9fa;
-        padding: 15px;
+        padding: 12px 15px;
         text-align: left;
         font-weight: 600;
+        font-size: 13px;
         border-bottom: 2px solid #dee2e6;
     }
     .items-table td {
-        padding: 15px;
+        padding: 12px 15px;
         border-bottom: 1px solid #f0f0f0;
+        font-size: 14px;
     }
     .badge {
         padding: 5px 12px;
         border-radius: 20px;
         font-size: 12px;
         font-weight: 600;
+        display: inline-block;
     }
     .badge-draft { background: #ffc107; color: #000; }
     .badge-approved { background: #28a745; color: white; }
@@ -51,35 +94,55 @@
     .badge-cancelled { background: #dc3545; color: white; }
     .badge-unpaid { background: #dc3545; color: white; }
     .badge-partial { background: #ffc107; color: #000; }
+    
+    .payment-amounts {
+        display: flex;
+        gap: 20px;
+        align-items: center;
+        flex-wrap: wrap;
+    }
+    .payment-amount-box {
+        flex: 1;
+        min-width: 150px;
+    }
+    .payment-amount-box .label {
+        font-size: 13px;
+        color: #666;
+        margin-bottom: 5px;
+    }
+    .payment-amount-box .value {
+        font-size: 22px;
+        font-weight: 700;
+    }
 </style>
 
-<div class="container-fluid" style="padding: 30px;">
+<div class="container-fluid" style="padding: 20px;">
     <!-- Header -->
     <div class="bill-header">
-        <div style="display: flex; justify-content: space-between; align-items: start;">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
             <div>
-                <h2 style="margin: 0;">📄 Purchase Bill {{ bill.bill_number }}</h2>
-                <div style="margin-top: 10px; display: flex; gap: 10px; align-items: center;">
+                <h2 style="margin: 0; font-size: 24px;">📄 {{ bill.bill_number }}</h2>
+                <div style="margin-top: 8px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
                     <span class="badge badge-{{ bill.status }}">{{ bill.status|upper }}</span>
                     <span class="badge badge-{{ bill.payment_status }}">{{ bill.payment_status|upper }}</span>
-                    <span style="opacity: 0.9;">{{ bill.bill_date.strftime('%d %B %Y') }}</span>
+                    <span style="opacity: 0.9; font-size: 14px;">{{ bill.bill_date.strftime('%d %b %Y') }}</span>
                 </div>
             </div>
-            <div style="display: flex; gap: 10px;">
-                <a href="{{ url_for('purchase_bills.list_bills') }}" class="btn btn-light">
-                    ← Back to Bills
+            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                <a href="{{ url_for('purchase_bills.list_bills') }}" class="btn btn-light" style="padding: 8px 16px; font-size: 14px;">
+                    ← Back
                 </a>
                 {% if bill.status == 'draft' %}
-                <a href="{{ url_for('purchase_bills.edit_bill', bill_id=bill.id) }}" class="btn btn-warning">
+                <a href="{{ url_for('purchase_bills.edit_bill', bill_id=bill.id) }}" class="btn btn-warning" style="padding: 8px 16px; font-size: 14px;">
                     <i class="fas fa-edit"></i> Edit
                 </a>
                 <form method="POST" action="{{ url_for('purchase_bills.approve_bill', bill_id=bill.id) }}" style="display: inline;">
-                    <button type="submit" class="btn btn-success" onclick="return confirm('Approve this bill?')">
+                    <button type="submit" class="btn btn-success" style="padding: 8px 16px; font-size: 14px;" onclick="return confirm('Approve this bill?')">
                         <i class="fas fa-check"></i> Approve
                     </button>
                 </form>
                 <form method="POST" action="{{ url_for('purchase_bills.delete_bill', bill_id=bill.id) }}" style="display: inline;">
-                    <button type="submit" class="btn btn-danger" onclick="return confirm('Delete this bill?')">
+                    <button type="submit" class="btn btn-danger" style="padding: 8px 16px; font-size: 14px;" onclick="return confirm('Delete this bill?')">
                         <i class="fas fa-trash"></i> Delete
                     </button>
                 </form>
@@ -118,30 +181,30 @@
     <!-- Payment Info -->
     <div class="info-card">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-            <h5 style="margin: 0; color: #333;">💰 Payment Information</h5>
+            <h5 style="margin: 0;">💰 Payment Information</h5>
             {% if bill.status == 'approved' and bill.payment_status != 'paid' %}
             <a href="{{ url_for('purchase_bills.record_payment_form', bill_id=bill.id) }}" class="btn btn-primary">
                 <i class="fas fa-money-bill-wave"></i> Record Payment
             </a>
             {% endif %}
         </div>
-        <div class="row">
-            <div class="col-md-3">
-                <div style="font-size: 14px; color: #666;">Total Amount</div>
-                <div style="font-size: 24px; font-weight: 700; color: #333;">₹{{ "{:,.2f}".format(bill.total_amount) }}</div>
+        <div class="payment-amounts">
+            <div class="payment-amount-box">
+                <div class="label">Total Amount</div>
+                <div class="value" style="color: #333;">₹{{ "{:,.2f}".format(bill.total_amount) }}</div>
             </div>
-            <div class="col-md-3">
-                <div style="font-size: 14px; color: #666;">Paid Amount</div>
-                <div style="font-size: 24px; font-weight: 700; color: #28a745;">₹{{ "{:,.2f}".format(bill.paid_amount) }}</div>
+            <div class="payment-amount-box">
+                <div class="label">Paid Amount</div>
+                <div class="value" style="color: #28a745;">₹{{ "{:,.2f}".format(bill.paid_amount) }}</div>
             </div>
-            <div class="col-md-3">
-                <div style="font-size: 14px; color: #666;">Balance Due</div>
-                <div style="font-size: 24px; font-weight: 700; color: #dc3545;">₹{{ "{:,.2f}".format(bill.balance_due) }}</div>
+            <div class="payment-amount-box">
+                <div class="label">Balance Due</div>
+                <div class="value" style="color: #dc3545;">₹{{ "{:,.2f}".format(bill.balance_due) }}</div>
             </div>
-            <div class="col-md-3">
-                <div style="font-size: 14px; color: #666;">Payment Status</div>
-                <div style="margin-top: 5px;">
-                    <span class="badge badge-{{ bill.payment_status }}" style="font-size: 14px; padding: 8px 16px;">
+            <div class="payment-amount-box">
+                <div class="label">Payment Status</div>
+                <div class="value">
+                    <span class="badge badge-{{ bill.payment_status }}" style="font-size: 13px; padding: 6px 12px;">
                         {{ bill.payment_status|upper }}
                     </span>
                 </div>
