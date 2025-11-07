@@ -228,11 +228,11 @@ def create_bill():
         {
             'id': item.id,
             'name': item.name,
-            'item_code': item.item_code or '',
-            'purchase_price': float(item.purchase_price or 0),
-            'sale_price': float(item.sale_price or 0),
+            'item_code': item.sku or '',  # Use sku field
+            'purchase_price': float(item.cost_price or 0),  # Use cost_price field
+            'sale_price': float(item.selling_price or 0),  # Use selling_price field
             'hsn_code': item.hsn_code or '',
-            'unit': item.unit or 'pcs',
+            'unit': item.unit or 'nos',  # Default is 'nos' in model
             'tax_preference': item.tax_preference or 'GST@18%'
         }
         for item in items
