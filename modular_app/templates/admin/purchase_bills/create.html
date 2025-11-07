@@ -47,6 +47,14 @@
         margin-bottom: 1.5rem;
     }
     
+    .mt-3 {
+        margin-top: 1rem;
+    }
+    
+    .mt-4 {
+        margin-top: 1.5rem;
+    }
+    
     .card {
         border-radius: 8px;
         box-shadow: 0 0 10px rgba(0,0,0,0.05);
@@ -484,6 +492,9 @@ function searchItems(input) {
     const row = input.closest('.item-row');
     const dropdown = row.querySelector('.item-dropdown');
     
+    // Update item-name hidden field with whatever is typed (for new items)
+    row.querySelector('.item-name').value = query;
+    
     if (query.length < 2) {
         dropdown.classList.remove('show');
         return;
@@ -494,7 +505,14 @@ function searchItems(input) {
             .then(r => r.json())
             .then(items => {
                 if (items.length === 0) {
-                    dropdown.classList.remove('show');
+                    // Show "no results" message but allow manual entry
+                    dropdown.innerHTML = `
+                        <div class="autocomplete-item" style="background: #fff3cd; color: #856404; cursor: default; border-left: 3px solid #ffc107;">
+                            <div style="font-weight: 600;">📝 No matching items found</div>
+                            <div style="font-size: 12px;">Continue typing to add "${query}" as a new item</div>
+                        </div>
+                    `;
+                    dropdown.classList.add('show');
                     return;
                 }
                 
