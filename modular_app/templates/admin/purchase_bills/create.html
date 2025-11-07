@@ -173,7 +173,7 @@
     
     .autocomplete-dropdown {
         position: absolute;
-        z-index: 999;
+        z-index: 9999; /* Increased to be above everything */
         background: white;
         border: 2px solid #007bff;
         max-height: 400px;
@@ -184,6 +184,12 @@
         box-shadow: 0 8px 16px rgba(0,0,0,0.2);
         margin-top: 2px;
         border-radius: 8px;
+    }
+    
+    /* Ensure table cells don't clip the dropdown */
+    #items_table td {
+        position: relative;
+        overflow: visible !important;
     }
     
     .autocomplete-item {
@@ -712,15 +718,22 @@ document.addEventListener('click', function(e) {
 function selectItem(elem, id, name, hsn, unit, price, gst_rate) {
     const row = elem.closest('.item-row');
     row.querySelector('.item-id').value = id;
-    row.querySelector('.item-name').value = name;
-    row.querySelector('.item-search').value = name;
+    row.querySelector('.item-name').value = name;  // ✅ Hidden field for backend
+    row.querySelector('.item-search').value = name; // ✅ Visible input
     row.querySelector('.hsn-input').value = hsn;
     row.querySelector('.unit-input').value = unit;
     row.querySelector('.rate-input').value = price;
     row.querySelector('.gst-input').value = gst_rate;
-    row.querySelector('.item-dropdown').style.display = 'none'; // Hide dropdown
+    
+    // Hide dropdown (FIXED: correct class name!)
+    const dropdown = row.querySelector('.autocomplete-dropdown');
+    if (dropdown) {
+        dropdown.style.display = 'none';
+    }
     
     calculateRow(row.querySelector('.qty-input'));
+    
+    console.log('✅ Item selected:', name, 'ID:', id, 'Price:', price);
 }
 
 // Row calculation
