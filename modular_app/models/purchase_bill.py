@@ -62,6 +62,7 @@ class PurchaseBill(db.Model, TimestampMixin):
     vendor = db.relationship('Vendor', backref='purchase_bills', foreign_keys=[vendor_id])
     items = db.relationship('PurchaseBillItem', backref='purchase_bill', lazy=True, cascade='all, delete-orphan')
     # purchase_request = db.relationship('PurchaseRequest', backref='purchase_bills', foreign_keys=[purchase_request_id])
+    # payment_allocations backref is created by PaymentAllocation model
     
     def __repr__(self):
         return f'<PurchaseBill {self.bill_number} - {self.vendor_name}>'

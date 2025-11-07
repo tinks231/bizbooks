@@ -149,7 +149,7 @@
         </div>
         
         <!-- Payment History -->
-        {% if bill.payment_allocations %}
+        {% if bill.payment_allocations|default([]) %}
         <div style="margin-top: 25px; padding-top: 20px; border-top: 1px solid #dee2e6;">
             <h6 style="margin-bottom: 15px; color: #333;">📜 Payment History</h6>
             <div class="table-responsive">
