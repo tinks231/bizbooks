@@ -2,7 +2,7 @@
 
 {% block title %}Create Purchase Bill{% endblock %}
 
-{% block page_title %}💼 Create New Purchase Bill <span style="color: red; font-size: 14px; font-weight: bold;">(v6.4 - FORM FIX - 11:30 PM)</span>{% endblock %}
+{% block page_title %}💼 Create New Purchase Bill <span style="color: red; font-size: 14px; font-weight: bold;">(v6.5 - REAL FIX - 11:35 PM)</span>{% endblock %}
 
 {% block header_actions %}
 <a href="{{ url_for('purchase_bills.list_bills') }}" class="btn btn-secondary">
@@ -453,7 +453,6 @@
                         </div>
                     </div>
                 </div>
-            </div>
         </div>
     </div>
 
@@ -594,9 +593,10 @@
 </form>
 
 <script>
-// 🔥 VERSION CHECK - v6.4 FORM STRUCTURE FIXED - 11:30 PM 🔥
-console.log('🔥🔥🔥 VERSION: 6.4 - FORM STRUCTURE FIXED - 11:30 PM 🔥🔥🔥');
-console.log('✅ FIX: Removed extra </div> tag that was closing the form prematurely!');
+// 🔥 VERSION CHECK - v6.5 FORM STRUCTURE REALLY FIXED - 11:35 PM 🔥
+console.log('🔥🔥🔥 VERSION: 6.5 - FORM STRUCTURE REALLY FIXED - 11:35 PM 🔥🔥🔥');
+console.log('✅ FIX: Removed ANOTHER extra </div> tag at line 456!');
+console.log('✅ FIX: Bill Details card had 5 closing divs, should have only 4!');
 console.log('✅ FIX: Items table is now INSIDE the form - all items will save!');
 console.log('✅ FIX: Avoids conflict with base template validateForm(formId)');
 console.log('✅ Now both items should save properly!');
@@ -1007,7 +1007,7 @@ function clearDocument() {
 
 // Form validation before submit - ensures all item_name fields are filled
 function validatePurchaseBillForm() {
-    console.log('🔍 ========== PURCHASE BILL VALIDATION START (v6.4 FORM FIXED) ==========');
+    console.log('🔍 ========== PURCHASE BILL VALIDATION START (v6.5 REALLY FIXED) ==========');
     
     // Get all item rows - use document, not form (more reliable)
     const allRows = document.querySelectorAll('.item-row');
