@@ -517,10 +517,11 @@ def approve_bill(bill_id):
         return redirect(url_for('purchase_bills.view_bill', bill_id=bill.id))
     
     try:
-        # Get default site for inventory updates
-        default_site = Site.query.filter_by(tenant_id=tenant_id, is_default=True).first()
+        # Get first active site for inventory updates
+        default_site = Site.query.filter_by(tenant_id=tenant_id, active=True).first()
+        
         if not default_site:
-            # If no default site, use first site
+            # If no active site, try any site
             default_site = Site.query.filter_by(tenant_id=tenant_id).first()
         
         if not default_site:
