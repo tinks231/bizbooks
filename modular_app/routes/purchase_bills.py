@@ -646,6 +646,25 @@ def approve_bill(bill_id):
     
     return redirect(url_for('purchase_bills.view_bill', bill_id=bill.id))
 
+@purchase_bills_bp.route('/<int:bill_id>/print')
+@check_license
+def print_bill(bill_id):
+    """Print-friendly view of purchase bill"""
+    tenant_id = get_current_tenant_id()
+    
+    try:
+        bill = PurchaseBill.query.filter_by(id=bill_id, tenant_id=tenant_id).first_or_404()
+        
+        return render_template('admin/purchase_bills/print.html',
+                             tenant=g.tenant,
+                             bill=bill)
+    except Exception as e:
+        print(f"❌ Error loading purchase bill for print {bill_id}: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        flash(f'❌ Error loading bill: {str(e)}', 'error')
+        return redirect(url_for('purchase_bills.list_bills'))
+
 @purchase_bills_bp.route('/<int:bill_id>/delete', methods=['POST'])
 @check_license
 def delete_bill(bill_id):

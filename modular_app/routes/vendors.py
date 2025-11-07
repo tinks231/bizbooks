@@ -183,6 +183,113 @@ def view(vendor_id):
                          purchase_requests=purchase_requests)
 
 
+@vendors_bp.route('/<int:vendor_id>/ledger')
+@require_tenant
+@check_license
+@login_required
+def ledger(vendor_id):
+    """View vendor ledger/statement with all transactions"""
+    from models.purchase_bill import PurchaseBill
+    from models.vendor_payment import VendorPayment
+    from datetime import datetime, timedelta
+    from decimal import Decimal
+    
+    tenant_id = get_current_tenant_id()
+    vendor = Vendor.query.filter_by(id=vendor_id, tenant_id=tenant_id).first_or_404()
+    
+    # Get date range filters
+    start_date = request.args.get('start_date', '')
+    end_date = request.args.get('end_date', '')
+    
+    # Default to last 3 months if no dates provided
+    if not start_date:
+        start_date = (datetime.now() - timedelta(days=90)).strftime('%Y-%m-%d')
+    if not end_date:
+        end_date = datetime.now().strftime('%Y-%m-%d')
+    
+    # Get all purchase bills for this vendor
+    bills_query = PurchaseBill.query.filter_by(
+        tenant_id=tenant_id,
+        vendor_id=vendor_id
+    )
+    
+    if start_date:
+        bills_query = bills_query.filter(PurchaseBill.bill_date >= datetime.strptime(start_date, '%Y-%m-%d').date())
+    if end_date:
+        bills_query = bills_query.filter(PurchaseBill.bill_date <= datetime.strptime(end_date, '%Y-%m-%d').date())
+    
+    bills = bills_query.order_by(PurchaseBill.bill_date.asc()).all()
+    
+    # Get all payments for this vendor
+    payments_query = VendorPayment.query.filter_by(
+        tenant_id=tenant_id,
+        vendor_id=vendor_id
+    )
+    
+    if start_date:
+        payments_query = payments_query.filter(VendorPayment.payment_date >= datetime.strptime(start_date, '%Y-%m-%d').date())
+    if end_date:
+        payments_query = payments_query.filter(VendorPayment.payment_date <= datetime.strptime(end_date, '%Y-%m-%d').date())
+    
+    payments = payments_query.order_by(VendorPayment.payment_date.asc()).all()
+    
+    # Combine transactions and sort by date
+    transactions = []
+    
+    # Add bills as debit transactions
+    for bill in bills:
+        transactions.append({
+            'date': bill.bill_date,
+            'type': 'bill',
+            'reference': bill.bill_number,
+            'description': f'Purchase Bill - {len(bill.items)} items',
+            'debit': float(bill.total_amount),
+            'credit': 0,
+            'status': bill.status,
+            'payment_status': bill.payment_status,
+            'id': bill.id
+        })
+    
+    # Add payments as credit transactions
+    for payment in payments:
+        transactions.append({
+            'date': payment.payment_date,
+            'type': 'payment',
+            'reference': payment.payment_number,
+            'description': f'Payment - {payment.payment_method}',
+            'debit': 0,
+            'credit': float(payment.amount),
+            'status': 'paid',
+            'payment_status': None,
+            'id': payment.id
+        })
+    
+    # Sort by date
+    transactions.sort(key=lambda x: x['date'])
+    
+    # Calculate running balance
+    running_balance = float(vendor.opening_balance or 0)
+    for txn in transactions:
+        running_balance += txn['debit'] - txn['credit']
+        txn['balance'] = running_balance
+    
+    # Calculate summary
+    total_bills = sum([t['debit'] for t in transactions])
+    total_payments = sum([t['credit'] for t in transactions])
+    current_balance = running_balance
+    
+    return render_template('admin/vendors/ledger.html',
+                         tenant=g.tenant,
+                         vendor=vendor,
+                         transactions=transactions,
+                         start_date=start_date,
+                         end_date=end_date,
+                         opening_balance=float(vendor.opening_balance or 0),
+                         total_bills=total_bills,
+                         total_payments=total_payments,
+                         current_balance=current_balance)
+
+
 @vendors_bp.route('/<int:vendor_id>/delete', methods=['POST'])
 @require_tenant
 @check_license

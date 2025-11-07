@@ -1,0 +1,265 @@
+{% extends "base_sidebar.html" %}
+
+{% block title %}{{ vendor.name }} - Ledger{% endblock %}
+
+{% block page_title %}📊 Vendor Ledger: {{ vendor.name }}{% endblock %}
+
+{% block header_actions %}
+<a href="{{ url_for('vendors.view', vendor_id=vendor.id) }}" class="btn btn-secondary">
+    ← Back to Vendor
+</a>
+<button onclick="window.print()" class="btn btn-primary">
+    🖨️ Print
+</button>
+{% endblock %}
+
+{% block content %}
+
+<style>
+    .ledger-card {
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        margin-bottom: 2rem;
+    }
+    
+    .ledger-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 2rem;
+        border-radius: 8px 8px 0 0;
+    }
+    
+    .ledger-info {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1.5rem;
+        padding: 1.5rem;
+        background: #f8f9fa;
+        border-bottom: 1px solid #dee2e6;
+    }
+    
+    .info-item {
+        text-align: center;
+    }
+    
+    .info-label {
+        font-size: 0.85rem;
+        color: #666;
+        margin-bottom: 0.5rem;
+    }
+    
+    .info-value {
+        font-size: 1.5rem;
+        font-weight: bold;
+        color: #333;
+    }
+    
+    .info-value.positive {
+        color: #28a745;
+    }
+    
+    .info-value.negative {
+        color: #dc3545;
+    }
+    
+    .filters-section {
+        padding: 1.5rem;
+        background: white;
+        border-bottom: 1px solid #dee2e6;
+    }
+    
+    .ledger-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    
+    .ledger-table thead {
+        background: #f8f9fa;
+    }
+    
+    .ledger-table th {
+        padding: 1rem;
+        text-align: left;
+        font-weight: 600;
+        color: #495057;
+        border-bottom: 2px solid #dee2e6;
+    }
+    
+    .ledger-table td {
+        padding: 1rem;
+        border-bottom: 1px solid #dee2e6;
+        vertical-align: middle;
+    }
+    
+    .ledger-table tbody tr:hover {
+        background: #f8f9fa;
+    }
+    
+    .txn-bill {
+        color: #dc3545;
+        font-weight: 600;
+    }
+    
+    .txn-payment {
+        color: #28a745;
+        font-weight: 600;
+    }
+    
+    .balance-col {
+        font-weight: bold;
+        color: #495057;
+    }
+    
+    .status-badge {
+        padding: 0.25rem 0.75rem;
+        border-radius: 12px;
+        font-size: 0.85rem;
+        font-weight: 500;
+    }
+    
+    .status-draft { background: #ffc107; color: #000; }
+    .status-approved { background: #28a745; color: white; }
+    .status-unpaid { background: #dc3545; color: white; }
+    .status-partial { background: #ff9800; color: white; }
+    .status-paid { background: #28a745; color: white; }
+    
+    @media print {
+        .btn, .filters-section, .sidebar, .header-actions {
+            display: none !important;
+        }
+        
+        .ledger-card {
+            box-shadow: none;
+            page-break-inside: avoid;
+        }
+    }
+</style>
+
+<!-- Vendor Info Card -->
+<div class="ledger-card">
+    <div class="ledger-header">
+        <h2 style="margin: 0 0 0.5rem 0;">{{ vendor.name }}</h2>
+        <div style="opacity: 0.9;">
+            {% if vendor.company_name %}
+            <div>{{ vendor.company_name }}</div>
+            {% endif %}
+            {% if vendor.phone %}
+            <div>📞 {{ vendor.phone }}</div>
+            {% endif %}
+            {% if vendor.email %}
+            <div>✉️ {{ vendor.email }}</div>
+            {% endif %}
+            {% if vendor.gstin %}
+            <div>GSTIN: {{ vendor.gstin }}</div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- Summary Section -->
+    <div class="ledger-info">
+        <div class="info-item">
+            <div class="info-label">Opening Balance</div>
+            <div class="info-value">₹{{ "%.2f"|format(opening_balance) }}</div>
+        </div>
+        <div class="info-item">
+            <div class="info-label">Total Bills</div>
+            <div class="info-value txn-bill">₹{{ "%.2f"|format(total_bills) }}</div>
+        </div>
+        <div class="info-item">
+            <div class="info-label">Total Payments</div>
+            <div class="info-value txn-payment">₹{{ "%.2f"|format(total_payments) }}</div>
+        </div>
+        <div class="info-item">
+            <div class="info-label">Current Balance</div>
+            <div class="info-value {% if current_balance > 0 %}negative{% else %}positive{% endif %}">
+                ₹{{ "%.2f"|format(current_balance|abs) }}
+                {% if current_balance > 0 %} (Due){% else %} (Credit){% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Date Filter -->
+    <div class="filters-section">
+        <form method="GET" class="row g-3">
+            <div class="col-md-4">
+                <label class="form-label">Start Date</label>
+                <input type="date" name="start_date" class="form-control" value="{{ start_date }}">
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">End Date</label>
+                <input type="date" name="end_date" class="form-control" value="{{ end_date }}">
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">&nbsp;</label>
+                <button type="submit" class="btn btn-primary d-block">Apply Filter</button>
+            </div>
+        </form>
+    </div>
+    
+    <!-- Transactions Table -->
+    <div style="overflow-x: auto;">
+        <table class="ledger-table">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Reference</th>
+                    <th>Description</th>
+                    <th style="text-align: right;">Debit (Bills)</th>
+                    <th style="text-align: right;">Credit (Payments)</th>
+                    <th style="text-align: right;">Balance</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if transactions %}
+                    {% for txn in transactions %}
+                    <tr>
+                        <td>{{ txn.date.strftime('%d %b %Y') }}</td>
+                        <td>
+                            <strong>{{ txn.reference }}</strong>
+                        </td>
+                        <td>{{ txn.description }}</td>
+                        <td style="text-align: right;" class="{% if txn.debit > 0 %}txn-bill{% endif %}">
+                            {% if txn.debit > 0 %}₹{{ "%.2f"|format(txn.debit) }}{% else %}-{% endif %}
+                        </td>
+                        <td style="text-align: right;" class="{% if txn.credit > 0 %}txn-payment{% endif %}">
+                            {% if txn.credit > 0 %}₹{{ "%.2f"|format(txn.credit) }}{% else %}-{% endif %}
+                        </td>
+                        <td style="text-align: right;" class="balance-col">
+                            ₹{{ "%.2f"|format(txn.balance|abs) }}
+                            {% if txn.balance > 0 %}<span style="color: #dc3545; font-size: 0.85rem;"> Dr</span>{% endif %}
+                        </td>
+                        <td>
+                            {% if txn.type == 'bill' %}
+                                <span class="status-badge status-{{ txn.status }}">{{ txn.status|title }}</span>
+                                {% if txn.payment_status %}
+                                <span class="status-badge status-{{ txn.payment_status }}">{{ txn.payment_status|title }}</span>
+                                {% endif %}
+                            {% else %}
+                                <span class="status-badge status-paid">Paid</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if txn.type == 'bill' %}
+                            <a href="{{ url_for('purchase_bills.view_bill', bill_id=txn.id) }}" 
+                               class="btn btn-sm btn-outline-primary">View Bill</a>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="8" style="text-align: center; padding: 3rem; color: #999;">
+                            📭 No transactions found for this period
+                        </td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% endblock %}
+

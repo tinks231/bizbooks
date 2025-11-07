@@ -132,6 +132,9 @@
                 <a href="{{ url_for('purchase_bills.list_bills') }}" class="btn btn-light" style="padding: 8px 16px; font-size: 14px;">
                     ← Back
                 </a>
+                <a href="{{ url_for('purchase_bills.print_bill', bill_id=bill.id) }}" target="_blank" class="btn btn-info" style="padding: 8px 16px; font-size: 14px;">
+                    🖨️ Print / PDF
+                </a>
                 {% if bill.status == 'draft' %}
                 <a href="{{ url_for('purchase_bills.edit_bill', bill_id=bill.id) }}" class="btn btn-warning" style="padding: 8px 16px; font-size: 14px;">
                     <i class="fas fa-edit"></i> Edit

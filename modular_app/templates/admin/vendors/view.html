@@ -8,6 +8,9 @@
 <a href="{{ url_for('vendors.index') }}" class="btn btn-secondary">
     ← Back to Vendors
 </a>
+<a href="{{ url_for('vendors.ledger', vendor_id=vendor.id) }}" class="btn btn-info">
+    📊 View Ledger
+</a>
 <a href="{{ url_for('vendors.edit', vendor_id=vendor.id) }}" class="btn btn-primary">
     ✏️ Edit
 </a>
