@@ -470,12 +470,66 @@ def record_payment_form(bill_id):
                 flash('⚠️ Payment amount cannot exceed balance due', 'warning')
                 return redirect(url_for('purchase_bills.record_payment_form', bill_id=bill.id))
             
+            # AUTO-CREATE VENDOR if bill doesn't have vendor_id (manual entry)
+            if not bill.vendor_id and bill.vendor_name:
+                # Check if vendor already exists (by GSTIN or name)
+                existing_vendor = None
+                
+                if bill.vendor_gstin:
+                    existing_vendor = Vendor.query.filter_by(
+                        tenant_id=tenant_id,
+                        gstin=bill.vendor_gstin
+                    ).first()
+                
+                if not existing_vendor:
+                    # Try by name (case-insensitive)
+                    existing_vendor = Vendor.query.filter(
+                        Vendor.tenant_id == tenant_id,
+                        db.func.lower(Vendor.name) == db.func.lower(bill.vendor_name)
+                    ).first()
+                
+                if existing_vendor:
+                    # Use existing vendor
+                    bill.vendor_id = existing_vendor.id
+                    print(f"✅ Linked bill to existing vendor: {existing_vendor.name} (ID: {existing_vendor.id})")
+                else:
+                    # Create new vendor from bill details
+                    new_vendor = Vendor()
+                    new_vendor.tenant_id = tenant_id
+                    new_vendor.name = bill.vendor_name
+                    new_vendor.company_name = bill.vendor_name
+                    new_vendor.phone = bill.vendor_phone or ''
+                    new_vendor.email = bill.vendor_email or ''
+                    new_vendor.gstin = bill.vendor_gstin or ''
+                    new_vendor.address = bill.vendor_address or ''
+                    new_vendor.state = bill.vendor_state or 'Maharashtra'
+                    new_vendor.is_active = True
+                    
+                    # Generate vendor code
+                    last_vendor = Vendor.query.filter_by(tenant_id=tenant_id).order_by(Vendor.id.desc()).first()
+                    if last_vendor and last_vendor.vendor_code:
+                        try:
+                            last_num = int(last_vendor.vendor_code.replace('VEN-', ''))
+                            new_vendor.vendor_code = f'VEN-{last_num + 1:04d}'
+                        except:
+                            new_vendor.vendor_code = 'VEN-0001'
+                    else:
+                        new_vendor.vendor_code = 'VEN-0001'
+                    
+                    db.session.add(new_vendor)
+                    db.session.flush()  # Get vendor ID
+                    
+                    # Link bill to new vendor
+                    bill.vendor_id = new_vendor.id
+                    
+                    print(f"✅ Auto-created vendor: {new_vendor.name} (ID: {new_vendor.id}, Code: {new_vendor.vendor_code})")
+            
             # Create payment
             payment = VendorPayment()
             payment.tenant_id = tenant_id
             payment.payment_number = payment.generate_payment_number()
             payment.payment_date = payment_date
-            payment.vendor_id = bill.vendor_id
+            payment.vendor_id = bill.vendor_id  # Now guaranteed to have a value
             payment.vendor_name = bill.vendor_name
             payment.amount = amount
             payment.payment_method = payment_method
