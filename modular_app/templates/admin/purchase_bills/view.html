@@ -119,11 +119,12 @@
     <div class="info-card">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
             <h5 style="margin: 0; color: #333;">💰 Payment Information</h5>
-            {% if bill.status == 'approved' and bill.payment_status != 'paid' %}
+            {# Payment recording feature - coming soon! #}
+            {# {% if bill.status == 'approved' and bill.payment_status != 'paid' %}
             <a href="{{ url_for('purchase_bills.record_payment_form', bill_id=bill.id) }}" class="btn btn-primary">
                 <i class="fas fa-money-bill-wave"></i> Record Payment
             </a>
-            {% endif %}
+            {% endif %} #}
         </div>
         <div class="row">
             <div class="col-md-3">
