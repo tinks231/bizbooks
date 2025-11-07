@@ -6,6 +6,7 @@ from datetime import datetime, date
 from decimal import Decimal
 from werkzeug.utils import secure_filename
 from PIL import Image
+from io import BytesIO
 import pytz
 import os
 
@@ -125,48 +126,91 @@ def create_bill():
                 file = request.files['bill_document']
                 if file and file.filename:
                     try:
-                        # Secure the filename
                         filename = secure_filename(file.filename)
-                        
-                        # Create uploads directory structure
-                        upload_base = os.path.join('modular_app', 'uploads', 'purchase_bills', str(tenant_id))
-                        os.makedirs(upload_base, exist_ok=True)
-                        
-                        # Generate unique filename with timestamp
                         file_ext = os.path.splitext(filename)[1].lower()
-                        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-                        new_filename = f"PB_{timestamp}{file_ext}"
-                        file_path = os.path.join(upload_base, new_filename)
                         
-                        # Check if it's an image and compress it
-                        if file_ext in ['.jpg', '.jpeg', '.png']:
-                            # Open and compress image
-                            img = Image.open(file)
+                        # Check if running on Vercel (serverless)
+                        if os.environ.get('VERCEL'):
+                            # VERCEL: Upload to Vercel Blob Storage with compression
+                            from utils.vercel_blob import upload_to_vercel_blob
                             
-                            # Convert RGBA to RGB if necessary
-                            if img.mode == 'RGBA':
-                                img = img.convert('RGB')
-                            
-                            # Resize if too large (max 1920px width)
-                            max_width = 1920
-                            if img.width > max_width:
-                                ratio = max_width / img.width
-                                new_height = int(img.height * ratio)
-                                img = img.resize((max_width, new_height), Image.LANCZOS)
-                            
-                            # Save with compression
-                            img.save(file_path, quality=75, optimize=True)
-                            print(f"✅ Image compressed and saved: {file_path}")
+                            # Compress image before uploading (save blob storage space!)
+                            if file_ext in ['.jpg', '.jpeg', '.png']:
+                                img = Image.open(file)
+                                
+                                # Convert RGBA to RGB
+                                if img.mode == 'RGBA':
+                                    img = img.convert('RGB')
+                                
+                                # Resize if too large (max 1920px width)
+                                max_width = 1920
+                                if img.width > max_width:
+                                    ratio = max_width / img.width
+                                    new_height = int(img.height * ratio)
+                                    img = img.resize((max_width, new_height), Image.LANCZOS)
+                                
+                                # Save compressed image to BytesIO
+                                img_io = BytesIO()
+                                img.save(img_io, format='JPEG', quality=70, optimize=True)
+                                img_io.seek(0)
+                                
+                                # Generate filename
+                                timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+                                blob_filename = f"purchase_bills/PB_{timestamp}.jpg"
+                                
+                                # Upload to Vercel Blob
+                                blob_url = upload_to_vercel_blob(img_io, blob_filename, 'image/jpeg')
+                                
+                                if blob_url:
+                                    bill.document_url = blob_url
+                                    print(f"✅ Compressed & uploaded to Vercel Blob: {blob_url}")
+                                else:
+                                    print("⚠️ Blob upload failed, continuing without document")
+                            else:
+                                # For PDFs, upload directly (no compression)
+                                timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+                                blob_filename = f"purchase_bills/PB_{timestamp}{file_ext}"
+                                
+                                blob_url = upload_to_vercel_blob(file, blob_filename, 'application/pdf')
+                                
+                                if blob_url:
+                                    bill.document_url = blob_url
+                                    print(f"✅ Uploaded PDF to Vercel Blob: {blob_url}")
+                                else:
+                                    print("⚠️ Blob upload failed, continuing without document")
                         else:
-                            # Save PDF or other files directly
-                            file.save(file_path)
-                            print(f"✅ File saved: {file_path}")
-                        
-                        # Store relative path in database
-                        bill.document_url = f"/uploads/purchase_bills/{tenant_id}/{new_filename}"
+                            # LOCAL: Save to filesystem
+                            upload_base = os.path.join('modular_app', 'uploads', 'purchase_bills', str(tenant_id))
+                            os.makedirs(upload_base, exist_ok=True)
+                            
+                            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+                            new_filename = f"PB_{timestamp}{file_ext}"
+                            file_path = os.path.join(upload_base, new_filename)
+                            
+                            # Compress images for local storage too
+                            if file_ext in ['.jpg', '.jpeg', '.png']:
+                                img = Image.open(file)
+                                if img.mode == 'RGBA':
+                                    img = img.convert('RGB')
+                                
+                                max_width = 1920
+                                if img.width > max_width:
+                                    ratio = max_width / img.width
+                                    new_height = int(img.height * ratio)
+                                    img = img.resize((max_width, new_height), Image.LANCZOS)
+                                
+                                img.save(file_path, quality=75, optimize=True)
+                                print(f"✅ Image compressed and saved locally: {file_path}")
+                            else:
+                                file.save(file_path)
+                                print(f"✅ PDF saved locally: {file_path}")
+                            
+                            bill.document_url = f"/uploads/purchase_bills/{tenant_id}/{new_filename}"
                         
                     except Exception as file_error:
                         print(f"⚠️ Error uploading file: {str(file_error)}")
+                        import traceback
+                        traceback.print_exc()
                         # Don't fail the entire bill creation if file upload fails
             
             # Get line items
