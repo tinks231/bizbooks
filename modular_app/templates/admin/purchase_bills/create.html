@@ -1005,15 +1005,24 @@ function clearDocument() {
 
 // Form validation before submit - ensures all item_name fields are filled
 function validateForm() {
-    console.log('🔍 ========== FORM VALIDATION START ==========');
-    console.log('Total rows found:', document.querySelectorAll('.item-row').length);
+    console.log('🔍 ========== FORM VALIDATION START (v6.1 BULLETPROOF) ==========');
+    
+    // Get all item rows - use document, not form (more reliable)
+    const allRows = document.querySelectorAll('.item-row');
+    console.log('Total rows found:', allRows.length);
+    
+    if (allRows.length === 0) {
+        console.error('❌ ERROR: No .item-row elements found in DOM!');
+        alert('⚠️ Error: No item rows found. Please refresh the page.');
+        return false;
+    }
     
     let hasItems = false;
     let itemCount = 0;
     const allItemNames = [];
     
     // Check each item row
-    document.querySelectorAll('.item-row').forEach((row, index) => {
+    allRows.forEach((row, index) => {
         const itemSearch = row.querySelector('.item-search');
         const itemNameHidden = row.querySelector('.item-name');
         const itemIdHidden = row.querySelector('.item-id');
