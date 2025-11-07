@@ -2,7 +2,7 @@
 
 {% block title %}Create Purchase Bill{% endblock %}
 
-{% block page_title %}💼 Create New Purchase Bill <span style="color: red; font-size: 14px;">(v6.0 - 9:15 PM)</span>{% endblock %}
+{% block page_title %}💼 Create New Purchase Bill <span style="color: red; font-size: 14px; font-weight: bold;">(v6.2 - 10:01 PM)</span>{% endblock %}
 
 {% block header_actions %}
 <a href="{{ url_for('purchase_bills.list_bills') }}" class="btn btn-secondary">
@@ -594,10 +594,11 @@
 </form>
 
 <script>
-// 🔥 VERSION CHECK - v6.0 - DEPLOYED 9:15 PM 🔥
-console.log('🔥🔥🔥 PURCHASE BILLS PAGE VERSION: 6.0 - DEPLOYED 9:15 PM 🔥🔥🔥');
-console.log('📊 File length should be ~1080 lines, NOT 2061!');
-console.log('If you see errors at line 2061, Vercel is serving OLD code!');
+// 🔥 VERSION CHECK - v6.2 BULLETPROOF - DEPLOYED 10:01 PM 🔥
+console.log('🔥🔥🔥 PURCHASE BILLS VERSION: 6.2 BULLETPROOF - 10:01 PM 🔥🔥🔥');
+console.log('✅ validateForm now uses document.querySelectorAll (not form)');
+console.log('✅ Added null checks for allRows');
+console.log('⚠️ If error at line 2066, Vercel serving OLD code - report immediately!');
 
 // Load items and vendors into JavaScript
 const items = {{ items|tojson|safe }} || [];
@@ -1005,7 +1006,7 @@ function clearDocument() {
 
 // Form validation before submit - ensures all item_name fields are filled
 function validateForm() {
-    console.log('🔍 ========== FORM VALIDATION START (v6.1 BULLETPROOF) ==========');
+    console.log('🔍 ========== FORM VALIDATION START (v6.2 BULLETPROOF - 10:01 PM) ==========');
     
     // Get all item rows - use document, not form (more reliable)
     const allRows = document.querySelectorAll('.item-row');
