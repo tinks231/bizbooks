@@ -11,9 +11,9 @@
 {% endblock %}
 
 {% block content %}
-<!-- CSS v4.0 - FIXED! Removed duplicate .card-body padding override -->
+<!-- CSS v5.0 - USER-SUGGESTED FIXES APPLIED -->
 <style>
-    /* Custom Grid System - v4.0 FIXED (Copied from working Sales Orders) */
+    /* Custom Grid System - v5.0 USER-SUGGESTED FIX */
     .row {
         display: flex;
         flex-wrap: wrap;
@@ -22,7 +22,7 @@
     
     .col-md-12, .col-md-6, .col-md-4 {
         padding: 0 15px;
-        box-sizing: border-box;
+        box-sizing: border-box; /* Essential for proper sizing */
     }
     
     .col-md-12 {
@@ -33,11 +33,21 @@
     .col-md-6 {
         flex: 0 0 50%;
         max-width: 50%;
+        flex-basis: 50%; /* Explicit flex-basis */
     }
     
     .col-md-4 {
         flex: 0 0 33.333%;
         max-width: 33.333%;
+        flex-basis: 33.333%; /* Explicit flex-basis */
+    }
+    
+    /* Ensure textareas don't overflow their columns */
+    .col-md-6 textarea.form-control,
+    .col-md-12 textarea.form-control {
+        width: 100%;
+        max-width: 100%;
+        box-sizing: border-box;
     }
     
     .mb-3 {
@@ -174,30 +184,29 @@
     
     .autocomplete-dropdown {
         position: absolute;
-        z-index: 9999; /* Increased to be above everything */
+        left: 0; /* Ensure dropdown stays within cell */
+        z-index: 9999;
         background: white;
         border: 2px solid #007bff;
-        max-height: none; /* REMOVED HEIGHT LIMIT - auto-adjust! */
-        overflow-y: visible; /* No scrollbar! */
-        width: 100%;
-        min-width: 300px;
-        max-width: 500px;
-        display: none; /* Hidden by default - JS will set to 'block' */
+        max-height: 220px; /* Reduced for better usability */
+        overflow-y: auto;
+        width: auto;
+        min-width: 250px;
+        max-width: 350px;
+        display: none;
         box-shadow: 0 8px 16px rgba(0,0,0,0.2);
         margin-top: 2px;
         border-radius: 8px;
-    }
-    
-    /* Limit dropdown to show max 5 items, then scroll */
-    .autocomplete-dropdown:has(.autocomplete-item:nth-child(6)) {
-        max-height: 250px;
-        overflow-y: auto;
     }
     
     /* Ensure table cells don't clip the dropdown */
     #items_table td {
         position: relative;
         overflow: visible !important;
+    }
+    
+    .table-responsive {
+        overflow: visible; /* Remove nested scrollbars */
     }
     
     .autocomplete-item {
@@ -244,22 +253,30 @@
         font-weight: 600;
     }
     
-    /* Form container to prevent left-side cutoff */
-    #purchase_bill_form {
-        max-width: 100%;
-        margin: 0 auto;
-        overflow-x: visible;
-    }
-    
-    /* Ensure all cards are visible */
+    /* Ensure all cards and containers are visible */
     .card {
         width: 100%;
+        max-width: 100%;
         overflow: visible;
+        box-sizing: border-box;
+    }
+    
+    .card-body {
+        overflow: visible; /* Allow content to breathe */
     }
     
     /* Textareas resize properly */
     textarea.form-control {
         resize: vertical;
+        max-width: 100%;
+    }
+    
+    /* Ensure form doesn't cause horizontal scroll */
+    #purchase_bill_form {
+        width: 100%;
+        max-width: 100%;
+        overflow-x: visible;
+        box-sizing: border-box;
     }
 </style>
 
