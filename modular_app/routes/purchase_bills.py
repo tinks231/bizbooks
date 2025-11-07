@@ -223,7 +223,7 @@ def create_bill():
     sites = Site.query.filter_by(tenant_id=tenant_id).all()
     items = Item.query.filter_by(tenant_id=tenant_id).all()
     
-    # Convert items to JSON-serializable format (like Invoice template)
+    # Convert items to JSON-serializable format
     items_json = [
         {
             'id': item.id,
@@ -238,9 +238,24 @@ def create_bill():
         for item in items
     ]
     
+    # Convert vendors to JSON-serializable format
+    vendors_json = [
+        {
+            'id': vendor.id,
+            'name': vendor.name,
+            'company_name': vendor.company_name or '',
+            'phone': vendor.phone or '',
+            'email': vendor.email or '',
+            'gstin': vendor.gstin or '',
+            'address': vendor.address or '',
+            'state': vendor.state or 'Maharashtra'
+        }
+        for vendor in vendors
+    ]
+    
     return render_template('admin/purchase_bills/create.html',
                          tenant=g.tenant,
-                         vendors=vendors,
+                         vendors=vendors_json,
                          sites=sites,
                          items=items_json,
                          today=date.today().strftime('%Y-%m-%d'))

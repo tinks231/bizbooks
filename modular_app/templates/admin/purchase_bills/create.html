@@ -469,39 +469,87 @@
 </form>
 
 <script>
-// Load items into JavaScript (like Invoice template)
+// Load items and vendors into JavaScript
 const items = {{ items|tojson|safe }};
-console.log('✅ Loaded items:', items.length);
+const vendors = {{ vendors|tojson|safe }};
 
-// Vendor Autocomplete
-let vendorTimeout;
+console.log('✅ Loaded items:', items ? items.length : 0);
+console.log('✅ Loaded vendors:', vendors ? vendors.length : 0);
+
+// Vendor Autocomplete (Client-side filtering like items)
 function searchVendors(query) {
-    clearTimeout(vendorTimeout);
     const dropdown = document.getElementById('vendor_dropdown');
+    query = query.toLowerCase().trim();
     
-    if (query.length < 2) {
-        dropdown.classList.remove('show');
+    console.log('🔍 Searching vendors for:', query);
+    
+    if (!query) {
+        dropdown.style.display = 'none';
         return;
     }
     
-    vendorTimeout = setTimeout(() => {
-        fetch(`/admin/purchase-bills/api/vendors/search?q=${encodeURIComponent(query)}`)
-            .then(r => r.json())
-            .then(vendors => {
-                if (vendors.length === 0) {
-                    dropdown.classList.remove('show');
-                    return;
-                }
-                
-                dropdown.innerHTML = vendors.map(v => `
-                    <div class="autocomplete-item" onclick="selectVendor(${v.id}, '${v.name}', '${v.phone || ''}', '${v.email || ''}', '${v.gstin || ''}', '${v.state || 'Maharashtra'}', '${(v.address || '').replace(/'/g, "\\'")}')">
-                        <div style="font-weight: 600;">${v.name}</div>
-                        <div style="font-size: 12px; color: #666;">${v.company_name || ''} ${v.phone ? '• ' + v.phone : ''}</div>
-                    </div>
-                `).join('');
-                dropdown.classList.add('show');
-            });
-    }, 300);
+    // Filter vendors client-side
+    const filteredVendors = vendors.filter(v => 
+        v.name.toLowerCase().includes(query) ||
+        (v.company_name && v.company_name.toLowerCase().includes(query)) ||
+        (v.phone && v.phone.includes(query)) ||
+        (v.gstin && v.gstin.toLowerCase().includes(query))
+    );
+    
+    console.log('✅ Found vendors:', filteredVendors.length);
+    
+    if (filteredVendors.length === 0) {
+        dropdown.innerHTML = '<div style="padding: 12px; color: #666; text-align: center;">No vendors found. Continue typing to add manually.</div>';
+        dropdown.style.display = 'block';
+        return;
+    }
+    
+    // Build dropdown HTML with safe escaping
+    const escapeHtml = (str) => (str || '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
+    
+    dropdown.innerHTML = filteredVendors.slice(0, 10).map(v => `
+        <div class="autocomplete-item" 
+             data-vendor-id="${v.id}"
+             data-vendor-name="${escapeHtml(v.name)}"
+             data-vendor-phone="${escapeHtml(v.phone)}"
+             data-vendor-email="${escapeHtml(v.email)}"
+             data-vendor-gstin="${escapeHtml(v.gstin)}"
+             data-vendor-state="${escapeHtml(v.state)}"
+             data-vendor-address="${escapeHtml(v.address)}"
+             style="cursor: pointer; padding: 10px 12px; border-bottom: 1px solid #e9ecef;">
+            <div style="font-weight: 600; margin-bottom: 4px;">${escapeHtml(v.name)}</div>
+            <div style="font-size: 12px; color: #666;">
+                ${v.company_name ? escapeHtml(v.company_name) + ' • ' : ''}
+                ${v.phone ? '📱 ' + escapeHtml(v.phone) : ''}
+            </div>
+        </div>
+    `).join('');
+    
+    // Add click listeners
+    dropdown.querySelectorAll('.autocomplete-item').forEach(div => {
+        div.addEventListener('click', function() {
+            selectVendor(
+                this.dataset.vendorId,
+                this.dataset.vendorName,
+                this.dataset.vendorPhone,
+                this.dataset.vendorEmail,
+                this.dataset.vendorGstin,
+                this.dataset.vendorState,
+                this.dataset.vendorAddress
+            );
+        });
+        // Hover effect
+        div.addEventListener('mouseenter', function() {
+            this.style.backgroundColor = '#e3f2fd';
+            this.style.borderLeft = '3px solid #007bff';
+        });
+        div.addEventListener('mouseleave', function() {
+            this.style.backgroundColor = '';
+            this.style.borderLeft = '';
+        });
+    });
+    
+    dropdown.style.display = 'block';
 }
 
 function selectVendor(id, name, phone, email, gstin, state, address) {
@@ -513,7 +561,9 @@ function selectVendor(id, name, phone, email, gstin, state, address) {
     document.getElementById('vendor_state').value = state;
     document.getElementById('vendor_address').value = address;
     document.getElementById('vendor_search').value = name;
-    document.getElementById('vendor_dropdown').classList.remove('show');
+    document.getElementById('vendor_dropdown').style.display = 'none';
+    
+    console.log('✅ Vendor selected:', name);
     
     // Recalculate GST type
     calculateTotal();
