@@ -812,8 +812,11 @@
                         </span>
                         {% endif %}
                     </a>
-                    <a href="/admin/purchase-bills" class="nav-item {% if '/admin/purchase-bills' in request.path %}active{% endif %}">
+                    <a href="/admin/purchase-bills" class="nav-item {% if '/admin/purchase-bills' in request.path and 'gstr2' not in request.path %}active{% endif %}">
                         <i>💼</i> Purchase Bills
+                    </a>
+                    <a href="/admin/purchase-bills/gstr2" class="nav-item {% if '/admin/purchase-bills/gstr2' in request.path %}active{% endif %}">
+                        <i>📊</i> GSTR-2 Report
                     </a>
                     <a href="/admin/expenses" class="nav-item {% if '/admin/expenses' in request.path and 'reports' not in request.path and 'categories' not in request.path %}active{% endif %}">
                         <i>💸</i> Expenses

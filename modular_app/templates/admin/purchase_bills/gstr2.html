@@ -1,0 +1,414 @@
+{% extends "base_sidebar.html" %}
+
+{% block title %}GSTR-2 Report{% endblock %}
+
+{% block page_title %}📊 GSTR-2 Report - Input Tax Credit (ITC){% endblock %}
+
+{% block header_actions %}
+<button onclick="window.print()" class="btn btn-primary">
+    🖨️ Print
+</button>
+<button onclick="exportToExcel()" class="btn btn-success">
+    📥 Export Excel
+</button>
+{% endblock %}
+
+{% block content %}
+
+<style>
+    .gstr2-container {
+        background: white;
+        border-radius: 8px;
+        padding: 2rem;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    
+    .report-header {
+        text-align: center;
+        margin-bottom: 2rem;
+        padding-bottom: 1rem;
+        border-bottom: 3px solid #007bff;
+    }
+    
+    .company-name {
+        font-size: 24pt;
+        font-weight: bold;
+        color: #2c3e50;
+        margin-bottom: 0.5rem;
+    }
+    
+    .report-title {
+        font-size: 18pt;
+        color: #495057;
+        margin-bottom: 0.5rem;
+    }
+    
+    .report-period {
+        font-size: 12pt;
+        color: #666;
+    }
+    
+    .filter-section {
+        background: #f8f9fa;
+        padding: 1.5rem;
+        border-radius: 8px;
+        margin-bottom: 2rem;
+    }
+    
+    .itc-summary {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+    
+    .itc-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 1.5rem;
+        border-radius: 8px;
+        text-align: center;
+    }
+    
+    .itc-card.green {
+        background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+    }
+    
+    .itc-card.orange {
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    }
+    
+    .itc-label {
+        font-size: 0.9rem;
+        opacity: 0.9;
+        margin-bottom: 0.5rem;
+    }
+    
+    .itc-value {
+        font-size: 2rem;
+        font-weight: bold;
+    }
+    
+    .section-title {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: #2c3e50;
+        margin: 2rem 0 1rem 0;
+        padding-bottom: 0.5rem;
+        border-bottom: 2px solid #dee2e6;
+    }
+    
+    .data-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 2rem;
+        font-size: 0.9rem;
+    }
+    
+    .data-table thead {
+        background: #2c3e50;
+        color: white;
+    }
+    
+    .data-table th {
+        padding: 12px 8px;
+        text-align: left;
+        font-weight: 600;
+    }
+    
+    .data-table td {
+        padding: 10px 8px;
+        border-bottom: 1px solid #dee2e6;
+    }
+    
+    .data-table tbody tr:nth-child(even) {
+        background: #f8f9fa;
+    }
+    
+    .data-table tbody tr:hover {
+        background: #e9ecef;
+    }
+    
+    .text-right {
+        text-align: right;
+    }
+    
+    .text-center {
+        text-align: center;
+    }
+    
+    .total-row {
+        background: #e9ecef !important;
+        font-weight: bold;
+        border-top: 2px solid #495057;
+    }
+    
+    @media print {
+        .btn, .filter-section, .sidebar, .header-actions {
+            display: none !important;
+        }
+        
+        .gstr2-container {
+            box-shadow: none;
+            padding: 0;
+        }
+        
+        .data-table {
+            font-size: 8pt;
+        }
+        
+        @page {
+            margin: 15mm;
+        }
+    }
+</style>
+
+<div class="gstr2-container">
+    <!-- Report Header -->
+    <div class="report-header">
+        <div class="company-name">{{ tenant.company_name }}</div>
+        <div class="report-title">GSTR-2 Report</div>
+        <div class="report-title" style="font-size: 14pt;">Input Tax Credit (ITC) Summary</div>
+        <div class="report-period">
+            Period: {{ start_date }} to {{ end_date }}
+        </div>
+    </div>
+    
+    <!-- Date Filter -->
+    <div class="filter-section" style="display: block;">
+        <form method="GET" class="row g-3" style="display: flex; gap: 15px; align-items: end;">
+            <div style="flex: 1;">
+                <label class="form-label" style="font-weight: 600;">Start Date</label>
+                <input type="date" name="start_date" class="form-control" value="{{ start_date }}" required>
+            </div>
+            <div style="flex: 1;">
+                <label class="form-label" style="font-weight: 600;">End Date</label>
+                <input type="date" name="end_date" class="form-control" value="{{ end_date }}" required>
+            </div>
+            <div>
+                <button type="submit" class="btn btn-primary" style="padding: 0.5rem 2rem;">Apply Filter</button>
+            </div>
+        </form>
+    </div>
+    
+    <!-- ITC Summary Cards -->
+    <div class="itc-summary">
+        <div class="itc-card">
+            <div class="itc-label">Taxable Value</div>
+            <div class="itc-value">₹{{ "%.2f"|format(itc_summary.total_taxable_value) }}</div>
+        </div>
+        <div class="itc-card green">
+            <div class="itc-label">CGST</div>
+            <div class="itc-value">₹{{ "%.2f"|format(itc_summary.total_cgst) }}</div>
+        </div>
+        <div class="itc-card green">
+            <div class="itc-label">SGST</div>
+            <div class="itc-value">₹{{ "%.2f"|format(itc_summary.total_sgst) }}</div>
+        </div>
+        <div class="itc-card green">
+            <div class="itc-label">IGST</div>
+            <div class="itc-value">₹{{ "%.2f"|format(itc_summary.total_igst) }}</div>
+        </div>
+        <div class="itc-card orange">
+            <div class="itc-label">Total ITC Available</div>
+            <div class="itc-value">₹{{ "%.2f"|format(itc_summary.total_gst) }}</div>
+        </div>
+        <div class="itc-card">
+            <div class="itc-label">Total Bills</div>
+            <div class="itc-value">{{ itc_summary.bill_count }}</div>
+        </div>
+    </div>
+    
+    <!-- Section 1: Purchase Register -->
+    <div class="section-title">📋 1. Purchase Register</div>
+    <div style="overflow-x: auto;">
+        <table class="data-table" id="purchaseRegister">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Bill No.</th>
+                    <th>Vendor Name</th>
+                    <th>GSTIN</th>
+                    <th>State</th>
+                    <th class="text-right">Taxable Value</th>
+                    <th class="text-right">CGST</th>
+                    <th class="text-right">SGST</th>
+                    <th class="text-right">IGST</th>
+                    <th class="text-right">Total Amount</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if bills %}
+                    {% for bill in bills %}
+                    <tr>
+                        <td>{{ bill.bill_date.strftime('%d-%m-%Y') }}</td>
+                        <td><a href="{{ url_for('purchase_bills.view_bill', bill_id=bill.id) }}" target="_blank">{{ bill.bill_number }}</a></td>
+                        <td>{{ bill.vendor_name }}</td>
+                        <td>{{ bill.vendor_gstin or 'N/A' }}</td>
+                        <td>{{ bill.vendor_state or 'N/A' }}</td>
+                        <td class="text-right">₹{{ "%.2f"|format(bill.subtotal) }}</td>
+                        <td class="text-right">₹{{ "%.2f"|format(bill.cgst_amount) }}</td>
+                        <td class="text-right">₹{{ "%.2f"|format(bill.sgst_amount) }}</td>
+                        <td class="text-right">₹{{ "%.2f"|format(bill.igst_amount) }}</td>
+                        <td class="text-right">₹{{ "%.2f"|format(bill.total_amount) }}</td>
+                    </tr>
+                    {% endfor %}
+                    <tr class="total-row">
+                        <td colspan="5">TOTAL</td>
+                        <td class="text-right">₹{{ "%.2f"|format(itc_summary.total_taxable_value) }}</td>
+                        <td class="text-right">₹{{ "%.2f"|format(itc_summary.total_cgst) }}</td>
+                        <td class="text-right">₹{{ "%.2f"|format(itc_summary.total_sgst) }}</td>
+                        <td class="text-right">₹{{ "%.2f"|format(itc_summary.total_igst) }}</td>
+                        <td class="text-right">₹{{ "%.2f"|format(itc_summary.total_amount) }}</td>
+                    </tr>
+                {% else %}
+                    <tr>
+                        <td colspan="10" style="text-align: center; padding: 3rem; color: #999;">
+                            📭 No purchase bills found for this period
+                        </td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+    
+    <!-- Section 2: HSN-wise Summary -->
+    <div class="section-title">📦 2. HSN-wise Summary</div>
+    <div style="overflow-x: auto;">
+        <table class="data-table" id="hsnSummary">
+            <thead>
+                <tr>
+                    <th>HSN Code</th>
+                    <th>Description</th>
+                    <th>UQC</th>
+                    <th class="text-right">Total Qty</th>
+                    <th class="text-right">Taxable Value</th>
+                    <th class="text-right">CGST</th>
+                    <th class="text-right">SGST</th>
+                    <th class="text-right">IGST</th>
+                    <th class="text-right">Total Tax</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if hsn_summary %}
+                    {% for hsn in hsn_summary %}
+                    <tr>
+                        <td>{{ hsn.hsn_code }}</td>
+                        <td>{{ hsn.description }}</td>
+                        <td>{{ hsn.uqc }}</td>
+                        <td class="text-right">{{ "%.2f"|format(hsn.total_quantity) }}</td>
+                        <td class="text-right">₹{{ "%.2f"|format(hsn.taxable_value) }}</td>
+                        <td class="text-right">₹{{ "%.2f"|format(hsn.cgst) }}</td>
+                        <td class="text-right">₹{{ "%.2f"|format(hsn.sgst) }}</td>
+                        <td class="text-right">₹{{ "%.2f"|format(hsn.igst) }}</td>
+                        <td class="text-right">₹{{ "%.2f"|format(hsn.total_tax) }}</td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="9" style="text-align: center; padding: 2rem; color: #999;">
+                            No HSN data available
+                        </td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+    
+    <!-- Section 3: Vendor-wise Summary -->
+    <div class="section-title">🏢 3. Vendor-wise Summary</div>
+    <div style="overflow-x: auto;">
+        <table class="data-table" id="vendorSummary">
+            <thead>
+                <tr>
+                    <th>Vendor Name</th>
+                    <th>GSTIN</th>
+                    <th class="text-center">Bills</th>
+                    <th class="text-right">Taxable Value</th>
+                    <th class="text-right">CGST</th>
+                    <th class="text-right">SGST</th>
+                    <th class="text-right">IGST</th>
+                    <th class="text-right">Total Amount</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if vendor_summary %}
+                    {% for vendor in vendor_summary %}
+                    <tr>
+                        <td>{{ vendor.vendor_name }}</td>
+                        <td>{{ vendor.vendor_gstin }}</td>
+                        <td class="text-center">{{ vendor.bill_count }}</td>
+                        <td class="text-right">₹{{ "%.2f"|format(vendor.total_taxable_value) }}</td>
+                        <td class="text-right">₹{{ "%.2f"|format(vendor.total_cgst) }}</td>
+                        <td class="text-right">₹{{ "%.2f"|format(vendor.total_sgst) }}</td>
+                        <td class="text-right">₹{{ "%.2f"|format(vendor.total_igst) }}</td>
+                        <td class="text-right">₹{{ "%.2f"|format(vendor.total_amount) }}</td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="8" style="text-align: center; padding: 2rem; color: #999;">
+                            No vendor data available
+                        </td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+    
+    <!-- Footer Note -->
+    <div style="margin-top: 3rem; padding: 1.5rem; background: #fff3cd; border-left: 4px solid #ffc107; border-radius: 4px;">
+        <h4 style="margin: 0 0 0.5rem 0; color: #856404;">ℹ️ Important Notes:</h4>
+        <ul style="margin: 0; padding-left: 1.5rem; color: #856404;">
+            <li>This report includes only <strong>approved</strong> purchase bills</li>
+            <li>ITC (Input Tax Credit) shown is the total GST paid on purchases that can be claimed</li>
+            <li>Ensure all vendor GSTINs are correct before filing GSTR-2</li>
+            <li>HSN codes should match with your GST portal records</li>
+            <li>This is a summary report. Please verify with official GST portal before filing</li>
+        </ul>
+    </div>
+</div>
+
+<script>
+function exportToExcel() {
+    // Simple Excel export using HTML table
+    const filename = 'GSTR2_Report_{{ start_date }}_to_{{ end_date }}.xls';
+    
+    let tables = '';
+    tables += '<h2>{{ tenant.company_name }}</h2>';
+    tables += '<h3>GSTR-2 Report: {{ start_date }} to {{ end_date }}</h3><br>';
+    
+    // ITC Summary
+    tables += '<h4>ITC Summary</h4>';
+    tables += '<table border="1"><tr><th>Taxable Value</th><th>CGST</th><th>SGST</th><th>IGST</th><th>Total ITC</th></tr>';
+    tables += '<tr><td>{{ "%.2f"|format(itc_summary.total_taxable_value) }}</td>';
+    tables += '<td>{{ "%.2f"|format(itc_summary.total_cgst) }}</td>';
+    tables += '<td>{{ "%.2f"|format(itc_summary.total_sgst) }}</td>';
+    tables += '<td>{{ "%.2f"|format(itc_summary.total_igst) }}</td>';
+    tables += '<td>{{ "%.2f"|format(itc_summary.total_gst) }}</td></tr></table><br>';
+    
+    // Purchase Register
+    tables += '<h4>Purchase Register</h4>';
+    tables += document.getElementById('purchaseRegister').outerHTML + '<br>';
+    
+    // HSN Summary
+    tables += '<h4>HSN-wise Summary</h4>';
+    tables += document.getElementById('hsnSummary').outerHTML + '<br>';
+    
+    // Vendor Summary
+    tables += '<h4>Vendor-wise Summary</h4>';
+    tables += document.getElementById('vendorSummary').outerHTML;
+    
+    const blob = new Blob([tables], {
+        type: 'application/vnd.ms-excel'
+    });
+    
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = filename;
+    link.click();
+}
+</script>
+
+{% endblock %}
+

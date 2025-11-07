@@ -870,6 +870,136 @@ def api_search_items():
     
     return jsonify(results)
 
+@purchase_bills_bp.route('/gstr2')
+@check_license
+def gstr2_report():
+    """GSTR-2 Report - Input Tax Credit Report"""
+    from datetime import datetime, timedelta
+    from decimal import Decimal
+    from collections import defaultdict
+    
+    tenant_id = get_current_tenant_id()
+    
+    # Get date range (default to current month)
+    start_date_str = request.args.get('start_date', '')
+    end_date_str = request.args.get('end_date', '')
+    
+    if not start_date_str:
+        # Default to start of current month
+        today = datetime.now()
+        start_date = datetime(today.year, today.month, 1).date()
+        start_date_str = start_date.strftime('%Y-%m-%d')
+    else:
+        start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
+    
+    if not end_date_str:
+        # Default to today
+        end_date = datetime.now().date()
+        end_date_str = end_date.strftime('%Y-%m-%d')
+    else:
+        end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
+    
+    # Get all approved purchase bills in date range
+    bills = PurchaseBill.query.filter(
+        PurchaseBill.tenant_id == tenant_id,
+        PurchaseBill.status == 'approved',
+        PurchaseBill.bill_date >= start_date,
+        PurchaseBill.bill_date <= end_date
+    ).order_by(PurchaseBill.bill_date.asc()).all()
+    
+    # Calculate summaries
+    total_taxable_value = Decimal('0')
+    total_cgst = Decimal('0')
+    total_sgst = Decimal('0')
+    total_igst = Decimal('0')
+    total_amount = Decimal('0')
+    
+    # HSN-wise summary
+    hsn_summary = defaultdict(lambda: {
+        'hsn_code': '',
+        'description': '',
+        'uqc': '',
+        'total_quantity': Decimal('0'),
+        'total_value': Decimal('0'),
+        'taxable_value': Decimal('0'),
+        'cgst': Decimal('0'),
+        'sgst': Decimal('0'),
+        'igst': Decimal('0'),
+        'total_tax': Decimal('0')
+    })
+    
+    # Vendor-wise summary
+    vendor_summary = defaultdict(lambda: {
+        'vendor_name': '',
+        'vendor_gstin': '',
+        'bill_count': 0,
+        'total_taxable_value': Decimal('0'),
+        'total_cgst': Decimal('0'),
+        'total_sgst': Decimal('0'),
+        'total_igst': Decimal('0'),
+        'total_amount': Decimal('0')
+    })
+    
+    # Process each bill
+    for bill in bills:
+        # Bill totals
+        total_taxable_value += bill.subtotal
+        total_cgst += bill.cgst_amount
+        total_sgst += bill.sgst_amount
+        total_igst += bill.igst_amount
+        total_amount += bill.total_amount
+        
+        # Vendor summary
+        vendor_key = bill.vendor_id or bill.vendor_name
+        vendor_summary[vendor_key]['vendor_name'] = bill.vendor_name
+        vendor_summary[vendor_key]['vendor_gstin'] = bill.vendor_gstin or 'N/A'
+        vendor_summary[vendor_key]['bill_count'] += 1
+        vendor_summary[vendor_key]['total_taxable_value'] += bill.subtotal
+        vendor_summary[vendor_key]['total_cgst'] += bill.cgst_amount
+        vendor_summary[vendor_key]['total_sgst'] += bill.sgst_amount
+        vendor_summary[vendor_key]['total_igst'] += bill.igst_amount
+        vendor_summary[vendor_key]['total_amount'] += bill.total_amount
+        
+        # HSN summary - process line items
+        for item in bill.items:
+            hsn_code = item.hsn_code or 'N/A'
+            
+            hsn_summary[hsn_code]['hsn_code'] = hsn_code
+            hsn_summary[hsn_code]['description'] = item.item_name if not hsn_summary[hsn_code]['description'] else hsn_summary[hsn_code]['description']
+            hsn_summary[hsn_code]['uqc'] = item.unit
+            hsn_summary[hsn_code]['total_quantity'] += item.quantity
+            hsn_summary[hsn_code]['taxable_value'] += item.taxable_value
+            hsn_summary[hsn_code]['cgst'] += item.cgst_amount
+            hsn_summary[hsn_code]['sgst'] += item.sgst_amount
+            hsn_summary[hsn_code]['igst'] += item.igst_amount
+            hsn_summary[hsn_code]['total_tax'] += (item.cgst_amount + item.sgst_amount + item.igst_amount)
+            hsn_summary[hsn_code]['total_value'] += item.total_amount
+    
+    # Convert defaultdicts to lists
+    hsn_list = sorted(hsn_summary.values(), key=lambda x: x['hsn_code'])
+    vendor_list = sorted(vendor_summary.values(), key=lambda x: x['vendor_name'])
+    
+    # ITC Summary
+    itc_summary = {
+        'total_taxable_value': float(total_taxable_value),
+        'total_cgst': float(total_cgst),
+        'total_sgst': float(total_sgst),
+        'total_igst': float(total_igst),
+        'total_gst': float(total_cgst + total_sgst + total_igst),
+        'total_amount': float(total_amount),
+        'bill_count': len(bills)
+    }
+    
+    return render_template('admin/purchase_bills/gstr2.html',
+                         tenant=g.tenant,
+                         bills=bills,
+                         start_date=start_date_str,
+                         end_date=end_date_str,
+                         itc_summary=itc_summary,
+                         hsn_summary=hsn_list,
+                         vendor_summary=vendor_list)
+
+
 @purchase_bills_bp.route('/api/vendors/search')
 def api_search_vendors():
     """API endpoint to search vendors"""
