@@ -250,11 +250,27 @@ def create_bill():
 def view_bill(bill_id):
     """View purchase bill details"""
     tenant_id = get_current_tenant_id()
-    bill = PurchaseBill.query.filter_by(id=bill_id, tenant_id=tenant_id).first_or_404()
     
-    return render_template('admin/purchase_bills/view.html',
-                         tenant=g.tenant,
-                         bill=bill)
+    try:
+        bill = PurchaseBill.query.filter_by(id=bill_id, tenant_id=tenant_id).first_or_404()
+        
+        # Safely check if payment_allocations relationship exists
+        try:
+            _ = bill.payment_allocations
+        except Exception as rel_error:
+            print(f"⚠️ Warning: payment_allocations relationship error: {str(rel_error)}")
+            # Create a temporary empty list if relationship doesn't work
+            bill.payment_allocations = []
+        
+        return render_template('admin/purchase_bills/view.html',
+                             tenant=g.tenant,
+                             bill=bill)
+    except Exception as e:
+        print(f"❌ Error viewing purchase bill {bill_id}: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        flash(f'❌ Error loading bill: {str(e)}', 'error')
+        return redirect(url_for('purchase_bills.list_bills'))
 
 @purchase_bills_bp.route('/<int:bill_id>/edit', methods=['GET', 'POST'])
 @check_license
