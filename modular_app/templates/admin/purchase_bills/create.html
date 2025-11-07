@@ -528,15 +528,16 @@ function searchItems(input) {
     // Update item-name hidden field with whatever is typed (for new items)
     row.querySelector('.item-name').value = input.value;
     
-    if (!query || query.length < 2) {
+    if (!query) {
         dropdown.style.display = 'none';
         return;
     }
     
-    // Filter items client-side
+    // Filter items client-side (search by name, code, or HSN)
     const filteredItems = items.filter(item => 
         item.name.toLowerCase().includes(query) ||
-        (item.item_code && item.item_code.toLowerCase().includes(query))
+        (item.item_code && item.item_code.toLowerCase().includes(query)) ||
+        (item.hsn_code && item.hsn_code.toLowerCase().includes(query))
     );
     
     console.log('✅ Filtered items:', filteredItems.length);
@@ -563,12 +564,15 @@ function searchItems(input) {
             } catch(e) {}
         }
         
+        // Escape HTML to prevent issues with special characters
+        const escapeName = (str) => (str || '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
+        
         const div = document.createElement('div');
         div.className = 'autocomplete-item';
         div.style.cursor = 'pointer';
         div.innerHTML = `
-            <div style="font-weight: 600;">${item.name}</div>
-            <div style="font-size: 12px; color: #666;">HSN: ${item.hsn_code || ''} • ₹${item.purchase_price || 0}/${item.unit || 'pcs'}</div>
+            <div style="font-weight: 600;">${escapeName(item.name)}</div>
+            <div style="font-size: 12px; color: #666;">📋 HSN: ${escapeName(item.hsn_code) || 'N/A'} • 💰 ₹${item.purchase_price || 0} • 📦 ${item.unit || 'pcs'}</div>
         `;
         
         // Use event listener instead of inline onclick
@@ -589,8 +593,17 @@ function searchItems(input) {
     });
     
     dropdown.style.display = 'block';
-    console.log('✨ Dropdown shown with', filteredItems.length, 'items');
+    console.log('✅ Dropdown shown with', filteredItems.length, 'items');
 }
+
+// Hide dropdown when clicking outside
+document.addEventListener('click', function(e) {
+    if (!e.target.closest('.item-search') && !e.target.closest('.item-dropdown')) {
+        document.querySelectorAll('.item-dropdown').forEach(dropdown => {
+            dropdown.style.display = 'none';
+        });
+    }
+});
 
 function selectItem(elem, id, name, hsn, unit, price, gst_rate) {
     const row = elem.closest('.item-row');
