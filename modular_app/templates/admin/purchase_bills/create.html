@@ -176,14 +176,21 @@
         z-index: 9999; /* Increased to be above everything */
         background: white;
         border: 2px solid #007bff;
-        max-height: 300px; /* Reduced from 400px - less scrolling! */
-        overflow-y: auto;
+        max-height: none; /* REMOVED HEIGHT LIMIT - auto-adjust! */
+        overflow-y: visible; /* No scrollbar! */
         width: 100%;
         min-width: 300px;
+        max-width: 500px;
         display: none; /* Hidden by default - JS will set to 'block' */
         box-shadow: 0 8px 16px rgba(0,0,0,0.2);
         margin-top: 2px;
         border-radius: 8px;
+    }
+    
+    /* Limit dropdown to show max 5 items, then scroll */
+    .autocomplete-dropdown:has(.autocomplete-item:nth-child(6)) {
+        max-height: 250px;
+        overflow-y: auto;
     }
     
     /* Ensure table cells don't clip the dropdown */
@@ -235,9 +242,22 @@
         background-color: #f8f9fa;
         font-weight: 600;
     }
+    
+    /* Form container to prevent left-side cutoff */
+    #purchase_bill_form {
+        max-width: 100%;
+        margin: 0 auto;
+        overflow-x: visible;
+    }
+    
+    /* Ensure all cards are visible */
+    .card {
+        width: 100%;
+        overflow: visible;
+    }
 </style>
 
-<form method="POST" enctype="multipart/form-data" onsubmit="return validateForm()">
+<form method="POST" enctype="multipart/form-data" id="purchase_bill_form" onsubmit="return validateForm()">
     <!-- Vendor Information Card -->
     <div class="card mb-4">
         <div class="card-header">
@@ -910,41 +930,75 @@ function clearDocument() {
 
 // Form validation before submit - ensures all item_name fields are filled
 function validateForm() {
-    console.log('🔍 Validating form before submit...');
+    console.log('🔍 ========== FORM VALIDATION START ==========');
+    console.log('Total rows found:', document.querySelectorAll('.item-row').length);
     
     let hasItems = false;
     let itemCount = 0;
+    const allItemNames = [];
     
     // Check each item row
     document.querySelectorAll('.item-row').forEach((row, index) => {
-        const itemSearch = row.querySelector('.item-search').value.trim();
+        const itemSearch = row.querySelector('.item-search');
         const itemNameHidden = row.querySelector('.item-name');
-        const qty = parseFloat(row.querySelector('.qty-input').value) || 0;
-        const rate = parseFloat(row.querySelector('.rate-input').value) || 0;
+        const itemIdHidden = row.querySelector('.item-id');
+        const qtyInput = row.querySelector('.qty-input');
+        const rateInput = row.querySelector('.rate-input');
+        const hsnInput = row.querySelector('.hsn-input');
         
-        if (itemSearch && qty > 0 && rate > 0) {
-            itemCount++;
-            hasItems = true;
-            
-            // CRITICAL FIX: If hidden item_name is empty, copy from visible item_search
-            if (!itemNameHidden.value.trim() && itemSearch) {
-                console.log(`⚠️ Row ${index + 1}: Hidden item_name was empty! Copying from visible search...`);
-                itemNameHidden.value = itemSearch;
-                console.log(`✅ Row ${index + 1}: Fixed! item_name = "${itemNameHidden.value}"`);
+        const itemSearchValue = itemSearch ? itemSearch.value.trim() : '';
+        const itemNameValue = itemNameHidden ? itemNameHidden.value.trim() : '';
+        const itemIdValue = itemIdHidden ? itemIdHidden.value : '';
+        const qty = qtyInput ? parseFloat(qtyInput.value) || 0 : 0;
+        const rate = rateInput ? parseFloat(rateInput.value) || 0 : 0;
+        const hsn = hsnInput ? hsnInput.value.trim() : '';
+        
+        console.log(`\n--- Row ${index + 1} ---`);
+        console.log('  Item Search (visible):', itemSearchValue);
+        console.log('  Item Name (hidden):', itemNameValue);
+        console.log('  Item ID (hidden):', itemIdValue);
+        console.log('  Quantity:', qty);
+        console.log('  Rate:', rate);
+        console.log('  HSN:', hsn);
+        
+        // If row has search text OR quantity OR rate, it should be saved
+        if (itemSearchValue || qty > 0 || rate > 0) {
+            // CRITICAL FIX: Ensure hidden field is populated
+            if (!itemNameValue && itemSearchValue) {
+                console.log('  ⚠️ FIXING: Copying search → hidden name');
+                itemNameHidden.value = itemSearchValue;
+                console.log('  ✅ Fixed! Hidden name now:', itemNameHidden.value);
             }
             
-            console.log(`✅ Row ${index + 1}: "${itemSearch}" - Qty: ${qty}, Rate: ${rate}, Hidden Name: "${itemNameHidden.value}"`);
+            // Only count if has name AND qty AND rate
+            if (itemNameHidden.value.trim() && qty > 0 && rate > 0) {
+                itemCount++;
+                hasItems = true;
+                allItemNames.push(itemNameHidden.value);
+                console.log('  ✅ WILL BE SAVED');
+            } else {
+                console.log('  ⚠️ INCOMPLETE - Missing:', 
+                    !itemNameHidden.value.trim() ? 'name' : '',
+                    qty <= 0 ? 'qty' : '',
+                    rate <= 0 ? 'rate' : '');
+            }
         } else {
-            console.log(`⚠️ Row ${index + 1}: Skipped (incomplete) - Search: "${itemSearch}", Qty: ${qty}, Rate: ${rate}`);
+            console.log('  ⏭️ Empty row - skipping');
         }
     });
     
+    console.log('\n========== VALIDATION SUMMARY ==========');
+    console.log('Items that will be saved:', itemCount);
+    console.log('Item names:', allItemNames);
+    
     if (!hasItems) {
-        alert('⚠️ Please add at least one item with quantity and rate!');
+        alert('⚠️ Please add at least one item with name, quantity and rate!');
+        console.log('❌ VALIDATION FAILED - No valid items');
         return false;
     }
     
-    console.log(`✅ Form validation passed! ${itemCount} items will be saved.`);
+    console.log('✅ VALIDATION PASSED - Submitting form with', itemCount, 'items');
+    console.log('========== FORM VALIDATION END ==========\n');
     return true;
 }
 
