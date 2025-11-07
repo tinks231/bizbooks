@@ -1910,6 +1910,52 @@ def add_purchase_bills_module():
         }), 500
 
 
+@migration_bp.route('/fix-purchase-bill-approved-by')
+def fix_purchase_bill_approved_by():
+    """
+    Fix approved_by foreign key constraint
+    Remove FK to employees table since approver can be tenant admin
+    Access: /migrate/fix-purchase-bill-approved-by
+    """
+    try:
+        db_type = os.environ.get('DATABASE_URL', '').split(':')[0] if os.environ.get('DATABASE_URL') else 'sqlite'
+        
+        if db_type == 'postgresql':
+            # Drop the foreign key constraint
+            db.session.execute(text("""
+                -- Drop the foreign key constraint if it exists
+                DO $$ 
+                BEGIN
+                    IF EXISTS (
+                        SELECT 1 FROM information_schema.table_constraints 
+                        WHERE constraint_name = 'purchase_bills_approved_by_fkey'
+                    ) THEN
+                        ALTER TABLE purchase_bills DROP CONSTRAINT purchase_bills_approved_by_fkey;
+                    END IF;
+                END $$;
+            """))
+        else:
+            # SQLite doesn't support dropping constraints directly
+            # The constraint won't be enforced anyway in SQLite with default settings
+            pass
+        
+        db.session.commit()
+        
+        return jsonify({
+            'status': 'success',
+            'message': 'Fixed approved_by constraint - can now approve bills!',
+            'details': 'Removed foreign key constraint on approved_by field'
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({
+            'status': 'error',
+            'message': f'Migration failed: {str(e)}',
+            'details': str(e)
+        }), 500
+
+
 @migration_bp.route('/add-vendor-payment-tracking')
 def add_vendor_payment_tracking():
     """

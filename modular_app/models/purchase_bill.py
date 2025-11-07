@@ -55,7 +55,7 @@ class PurchaseBill(db.Model, TimestampMixin):
     
     # Timestamps
     approved_at = db.Column(db.DateTime)
-    approved_by = db.Column(db.Integer, db.ForeignKey('employees.id'))
+    approved_by = db.Column(db.Integer)  # Tenant admin ID (not FK - can be admin or employee)
     
     # Relationships
     tenant = db.relationship('Tenant', backref='purchase_bills', lazy=True)
