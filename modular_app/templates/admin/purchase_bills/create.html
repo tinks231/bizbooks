@@ -2,7 +2,7 @@
 
 {% block title %}Create Purchase Bill{% endblock %}
 
-{% block page_title %}💼 Create New Purchase Bill <span style="color: red; font-size: 14px; font-weight: bold;">(v6.2 - 10:01 PM)</span>{% endblock %}
+{% block page_title %}💼 Create New Purchase Bill <span style="color: red; font-size: 14px; font-weight: bold;">(v6.3 - FIXED - 11:05 PM)</span>{% endblock %}
 
 {% block header_actions %}
 <a href="{{ url_for('purchase_bills.list_bills') }}" class="btn btn-secondary">
@@ -328,7 +328,7 @@
     }
 </style>
 
-<form method="POST" enctype="multipart/form-data" id="purchase_bill_form" onsubmit="return validateForm()">
+<form method="POST" enctype="multipart/form-data" id="purchase_bill_form" onsubmit="return validatePurchaseBillForm()">
     <!-- Vendor Information Card -->
     <div class="card mb-4">
         <div class="card-header">
@@ -594,11 +594,11 @@
 </form>
 
 <script>
-// 🔥 VERSION CHECK - v6.2 BULLETPROOF - DEPLOYED 10:01 PM 🔥
-console.log('🔥🔥🔥 PURCHASE BILLS VERSION: 6.2 BULLETPROOF - 10:01 PM 🔥🔥🔥');
-console.log('✅ validateForm now uses document.querySelectorAll (not form)');
-console.log('✅ Added null checks for allRows');
-console.log('⚠️ If error at line 2066, Vercel serving OLD code - report immediately!');
+// 🔥 VERSION CHECK - v6.3 FUNCTION NAME CONFLICT FIXED - 11:05 PM 🔥
+console.log('🔥🔥🔥 VERSION: 6.3 - FUNCTION CONFLICT FIXED - 11:05 PM 🔥🔥🔥');
+console.log('✅ FIX: Renamed validateForm → validatePurchaseBillForm');
+console.log('✅ FIX: Avoids conflict with base template validateForm(formId)');
+console.log('✅ Now both items should save properly!');
 
 // Load items and vendors into JavaScript
 const items = {{ items|tojson|safe }} || [];
@@ -1005,8 +1005,8 @@ function clearDocument() {
 }
 
 // Form validation before submit - ensures all item_name fields are filled
-function validateForm() {
-    console.log('🔍 ========== FORM VALIDATION START (v6.2 BULLETPROOF - 10:01 PM) ==========');
+function validatePurchaseBillForm() {
+    console.log('🔍 ========== PURCHASE BILL VALIDATION START (v6.3 FIXED) ==========');
     
     // Get all item rows - use document, not form (more reliable)
     const allRows = document.querySelectorAll('.item-row');
