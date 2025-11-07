@@ -2,7 +2,7 @@
 
 {% block title %}Create Purchase Bill{% endblock %}
 
-{% block page_title %}💼 Create New Purchase Bill <span style="color: red; font-size: 14px; font-weight: bold;">(v6.5 - REAL FIX - 11:35 PM)</span>{% endblock %}
+{% block page_title %}💼 Create New Purchase Bill{% endblock %}
 
 {% block header_actions %}
 <a href="{{ url_for('purchase_bills.list_bills') }}" class="btn btn-secondary">
@@ -593,13 +593,8 @@
 </form>
 
 <script>
-// 🔥 VERSION CHECK - v6.5 FORM STRUCTURE REALLY FIXED - 11:35 PM 🔥
-console.log('🔥🔥🔥 VERSION: 6.5 - FORM STRUCTURE REALLY FIXED - 11:35 PM 🔥🔥🔥');
-console.log('✅ FIX: Removed ANOTHER extra </div> tag at line 456!');
-console.log('✅ FIX: Bill Details card had 5 closing divs, should have only 4!');
-console.log('✅ FIX: Items table is now INSIDE the form - all items will save!');
-console.log('✅ FIX: Avoids conflict with base template validateForm(formId)');
-console.log('✅ Now both items should save properly!');
+// Purchase Bill Form - Initialization
+console.log('Purchase Bill form loaded successfully');
 
 // Load items and vendors into JavaScript
 const items = {{ items|tojson|safe }} || [];
@@ -1007,14 +1002,10 @@ function clearDocument() {
 
 // Form validation before submit - ensures all item_name fields are filled
 function validatePurchaseBillForm() {
-    console.log('🔍 ========== PURCHASE BILL VALIDATION START (v6.5 REALLY FIXED) ==========');
-    
-    // Get all item rows - use document, not form (more reliable)
+    // Get all item rows
     const allRows = document.querySelectorAll('.item-row');
-    console.log('Total rows found:', allRows.length);
     
     if (allRows.length === 0) {
-        console.error('❌ ERROR: No .item-row elements found in DOM!');
         alert('⚠️ Error: No item rows found. Please refresh the page.');
         return false;
     }
@@ -1034,26 +1025,14 @@ function validatePurchaseBillForm() {
         
         const itemSearchValue = itemSearch ? itemSearch.value.trim() : '';
         const itemNameValue = itemNameHidden ? itemNameHidden.value.trim() : '';
-        const itemIdValue = itemIdHidden ? itemIdHidden.value : '';
         const qty = qtyInput ? parseFloat(qtyInput.value) || 0 : 0;
         const rate = rateInput ? parseFloat(rateInput.value) || 0 : 0;
-        const hsn = hsnInput ? hsnInput.value.trim() : '';
-        
-        console.log(`\n--- Row ${index + 1} ---`);
-        console.log('  Item Search (visible):', itemSearchValue);
-        console.log('  Item Name (hidden):', itemNameValue);
-        console.log('  Item ID (hidden):', itemIdValue);
-        console.log('  Quantity:', qty);
-        console.log('  Rate:', rate);
-        console.log('  HSN:', hsn);
         
         // If row has search text OR quantity OR rate, it should be saved
         if (itemSearchValue || qty > 0 || rate > 0) {
-            // CRITICAL FIX: Ensure hidden field is populated
+            // Ensure hidden field is populated
             if (!itemNameValue && itemSearchValue) {
-                console.log('  ⚠️ FIXING: Copying search → hidden name');
                 itemNameHidden.value = itemSearchValue;
-                console.log('  ✅ Fixed! Hidden name now:', itemNameHidden.value);
             }
             
             // Only count if has name AND qty AND rate
@@ -1061,30 +1040,15 @@ function validatePurchaseBillForm() {
                 itemCount++;
                 hasItems = true;
                 allItemNames.push(itemNameHidden.value);
-                console.log('  ✅ WILL BE SAVED');
-            } else {
-                console.log('  ⚠️ INCOMPLETE - Missing:', 
-                    !itemNameHidden.value.trim() ? 'name' : '',
-                    qty <= 0 ? 'qty' : '',
-                    rate <= 0 ? 'rate' : '');
             }
-        } else {
-            console.log('  ⏭️ Empty row - skipping');
         }
     });
     
-    console.log('\n========== VALIDATION SUMMARY ==========');
-    console.log('Items that will be saved:', itemCount);
-    console.log('Item names:', allItemNames);
-    
     if (!hasItems) {
         alert('⚠️ Please add at least one item with name, quantity and rate!');
-        console.log('❌ VALIDATION FAILED - No valid items');
         return false;
     }
     
-    console.log('✅ VALIDATION PASSED - Submitting form with', itemCount, 'items');
-    console.log('========== FORM VALIDATION END ==========\n');
     return true;
 }
 
