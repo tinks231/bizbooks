@@ -26,6 +26,7 @@ from .delivery_challan import DeliveryChallan
 from .delivery_challan_item import DeliveryChallanItem
 from .purchase_bill import PurchaseBill
 from .purchase_bill_item import PurchaseBillItem
+from .vendor_payment import VendorPayment, PaymentAllocation
 
 # Create Party alias for Customer (for unified party management)
 Party = Customer
@@ -44,6 +45,7 @@ __all__ = [
     # 'Quotation', 'QuotationItem',  # Temporarily disabled
     'SalesOrder', 'SalesOrderItem',
     'DeliveryChallan', 'DeliveryChallanItem',
-    'PurchaseBill', 'PurchaseBillItem'
+    'PurchaseBill', 'PurchaseBillItem',
+    'VendorPayment', 'PaymentAllocation'
 ]
 

@@ -1907,3 +1907,105 @@ def add_purchase_bills_module():
             'message': f'Migration failed: {str(e)}',
             'details': str(e)
         }), 500
+
+
+@migration_bp.route('/add-vendor-payment-tracking')
+def add_vendor_payment_tracking():
+    """
+    Add Vendor Payment Tracking tables
+    Access: /migrate/add-vendor-payment-tracking
+    """
+    try:
+        db_type = os.environ.get('DATABASE_URL', '').split(':')[0] if os.environ.get('DATABASE_URL') else 'sqlite'
+        
+        if db_type == 'postgresql':
+            # PostgreSQL syntax
+            db.session.execute(text("""
+                -- Vendor Payments table
+                CREATE TABLE IF NOT EXISTS vendor_payments (
+                    id SERIAL PRIMARY KEY,
+                    tenant_id INTEGER NOT NULL REFERENCES tenants(id),
+                    payment_number VARCHAR(50) UNIQUE NOT NULL,
+                    payment_date DATE NOT NULL DEFAULT CURRENT_DATE,
+                    vendor_id INTEGER NOT NULL REFERENCES vendors(id),
+                    vendor_name VARCHAR(255) NOT NULL,
+                    amount DECIMAL(15,2) NOT NULL,
+                    payment_method VARCHAR(50) DEFAULT 'cash',
+                    reference_number VARCHAR(100),
+                    bank_account VARCHAR(100),
+                    notes TEXT,
+                    created_by VARCHAR(100),
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                );
+                
+                -- Payment Allocations table (link payments to bills)
+                CREATE TABLE IF NOT EXISTS payment_allocations (
+                    id SERIAL PRIMARY KEY,
+                    payment_id INTEGER NOT NULL REFERENCES vendor_payments(id) ON DELETE CASCADE,
+                    purchase_bill_id INTEGER NOT NULL REFERENCES purchase_bills(id) ON DELETE CASCADE,
+                    amount_allocated DECIMAL(15,2) NOT NULL
+                );
+                
+                -- Indexes for performance
+                CREATE INDEX IF NOT EXISTS idx_vendor_payments_tenant ON vendor_payments(tenant_id);
+                CREATE INDEX IF NOT EXISTS idx_vendor_payments_vendor ON vendor_payments(vendor_id);
+                CREATE INDEX IF NOT EXISTS idx_vendor_payments_date ON vendor_payments(payment_date);
+                CREATE INDEX IF NOT EXISTS idx_payment_allocations_payment ON payment_allocations(payment_id);
+                CREATE INDEX IF NOT EXISTS idx_payment_allocations_bill ON payment_allocations(purchase_bill_id);
+            """))
+        else:
+            # SQLite syntax
+            db.session.execute(text("""
+                -- Vendor Payments table
+                CREATE TABLE IF NOT EXISTS vendor_payments (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    tenant_id INTEGER NOT NULL REFERENCES tenants(id),
+                    payment_number VARCHAR(50) UNIQUE NOT NULL,
+                    payment_date DATE NOT NULL DEFAULT (date('now')),
+                    vendor_id INTEGER NOT NULL REFERENCES vendors(id),
+                    vendor_name VARCHAR(255) NOT NULL,
+                    amount DECIMAL(15,2) NOT NULL,
+                    payment_method VARCHAR(50) DEFAULT 'cash',
+                    reference_number VARCHAR(100),
+                    bank_account VARCHAR(100),
+                    notes TEXT,
+                    created_by VARCHAR(100),
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                );
+                
+                -- Payment Allocations table (link payments to bills)
+                CREATE TABLE IF NOT EXISTS payment_allocations (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    payment_id INTEGER NOT NULL REFERENCES vendor_payments(id) ON DELETE CASCADE,
+                    purchase_bill_id INTEGER NOT NULL REFERENCES purchase_bills(id) ON DELETE CASCADE,
+                    amount_allocated DECIMAL(15,2) NOT NULL
+                );
+                
+                -- Indexes for performance
+                CREATE INDEX IF NOT EXISTS idx_vendor_payments_tenant ON vendor_payments(tenant_id);
+                CREATE INDEX IF NOT EXISTS idx_vendor_payments_vendor ON vendor_payments(vendor_id);
+                CREATE INDEX IF NOT EXISTS idx_vendor_payments_date ON vendor_payments(payment_date);
+                CREATE INDEX IF NOT EXISTS idx_payment_allocations_payment ON payment_allocations(payment_id);
+                CREATE INDEX IF NOT EXISTS idx_payment_allocations_bill ON payment_allocations(purchase_bill_id);
+            """))
+        
+        db.session.commit()
+        
+        return jsonify({
+            'status': 'success',
+            'message': 'Vendor Payment Tracking tables created successfully!',
+            'tables': [
+                'vendor_payments',
+                'payment_allocations'
+            ]
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({
+            'status': 'error',
+            'message': f'Migration failed: {str(e)}',
+            'details': str(e)
+        }), 500
