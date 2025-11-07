@@ -201,6 +201,37 @@
         background-color: #e3f2fd;
         border-left: 3px solid #007bff;
     }
+    
+    /* Force totals to right side of page */
+    .totals-container {
+        display: flex;
+        justify-content: flex-end;
+        width: 100%;
+        margin-top: 1.5rem;
+    }
+    
+    /* Optional fixed width (so it doesn't stretch across) */
+    .totals-container table {
+        width: 350px;
+    }
+    
+    /* Align label left and value right */
+    .totals-container td:first-child {
+        text-align: left;
+        padding-right: 1rem;
+        white-space: nowrap;
+    }
+    
+    .totals-container td:last-child {
+        text-align: right;
+        width: 100px;
+    }
+    
+    /* Make Total Amount stand out */
+    .totals-container .table-active td {
+        background-color: #f8f9fa;
+        font-weight: 600;
+    }
 </style>
 
 <form method="POST">
@@ -365,40 +396,37 @@
                 </div>
                 
                 <!-- Totals -->
-                <div class="d-flex justify-content-end mt-3">
-                    <div style="width: 400px;">
-                        <table class="table table-sm">
-                            <tr>
-                                <td style="text-align: left; padding-right: 1rem;"><strong>Subtotal:</strong></td>
-                                <td style="text-align: right;"><strong id="subtotal_display">₹0.00</strong></td>
-                            </tr>
-                            <tr>
-                                <td style="text-align: left; padding-right: 1rem;">CGST:</td>
-                                <td style="text-align: right;" id="cgst_display">₹0.00</td>
-                            </tr>
-                            <tr>
-                                <td style="text-align: left; padding-right: 1rem;">SGST:</td>
-                                <td style="text-align: right;" id="sgst_display">₹0.00</td>
-                            </tr>
-                            <tr>
-                                <td style="text-align: left; padding-right: 1rem;">IGST:</td>
-                                <td style="text-align: right;" id="igst_display">₹0.00</td>
-                            </tr>
-                            <tr>
-                                <td style="text-align: left; padding-right: 1rem;">
-                                    Other Charges:
-                                    <input type="number" name="other_charges" class="form-control form-control-sm" 
-                                           step="0.01" value="0" oninput="calculateTotal()" 
-                                           style="width: 100px; display: inline-block; margin-left: 5px;">
-                                </td>
-                                <td style="text-align: right;"></td>
-                            </tr>
-                            <tr class="table-active">
-                                <td style="text-align: left; padding-right: 1rem;"><strong>Total Amount:</strong></td>
-                                <td style="text-align: right;"><strong id="total_display" style="font-size: 18px;">₹0.00</strong></td>
-                            </tr>
-                        </table>
-                    </div>
+                <div class="totals-container">
+                    <table class="table table-sm">
+                        <tr>
+                            <td><strong>Subtotal:</strong></td>
+                            <td><strong id="subtotal_display">₹0.00</strong></td>
+                        </tr>
+                        <tr>
+                            <td>CGST:</td>
+                            <td id="cgst_display">₹0.00</td>
+                        </tr>
+                        <tr>
+                            <td>SGST:</td>
+                            <td id="sgst_display">₹0.00</td>
+                        </tr>
+                        <tr>
+                            <td>IGST:</td>
+                            <td id="igst_display">₹0.00</td>
+                        </tr>
+                        <tr>
+                            <td>Other Charges:
+                                <input type="number" name="other_charges" class="form-control form-control-sm" 
+                                       step="0.01" value="0" oninput="calculateTotal()" 
+                                       style="width: 100px; display: inline-block; margin-left: 5px;">
+                            </td>
+                            <td id="other_display"></td>
+                        </tr>
+                        <tr class="table-active">
+                            <td><strong>Total Amount:</strong></td>
+                            <td><strong id="total_display">₹0.00</strong></td>
+                        </tr>
+                    </table>
                 </div>
             </div>
         </div>
@@ -492,6 +520,8 @@ function searchItems(input) {
     const row = input.closest('.item-row');
     const dropdown = row.querySelector('.item-dropdown');
     
+    console.log('🔍 Searching for:', query); // DEBUG
+    
     // Update item-name hidden field with whatever is typed (for new items)
     row.querySelector('.item-name').value = query;
     
@@ -501,9 +531,17 @@ function searchItems(input) {
     }
     
     itemTimeout = setTimeout(() => {
-        fetch(`/admin/purchase-bills/api/search-items?q=${encodeURIComponent(query)}`)
-            .then(r => r.json())
+        const apiUrl = `/admin/purchase-bills/api/search-items?q=${encodeURIComponent(query)}`;
+        console.log('📡 Fetching:', apiUrl); // DEBUG
+        
+        fetch(apiUrl)
+            .then(r => {
+                console.log('📥 Response status:', r.status); // DEBUG
+                return r.json();
+            })
             .then(items => {
+                console.log('✅ Items found:', items.length, items); // DEBUG
+                
                 if (items.length === 0) {
                     // Show "no results" message but allow manual entry
                     dropdown.innerHTML = `
@@ -530,10 +568,13 @@ function searchItems(input) {
                 `).join('');
                 dropdown.classList.add('show');
                 
+                console.log('✨ Dropdown shown with', items.length, 'items'); // DEBUG
+                
                 // Add click handlers to autocomplete items
                 dropdown.querySelectorAll('.autocomplete-item').forEach(itemDiv => {
                     if (itemDiv.dataset.itemId) {
                         itemDiv.addEventListener('click', function() {
+                            console.log('🖱️ Item clicked:', this.dataset.itemName); // DEBUG
                             selectItem(
                                 this,
                                 parseInt(this.dataset.itemId),
@@ -546,6 +587,9 @@ function searchItems(input) {
                         });
                     }
                 });
+            })
+            .catch(err => {
+                console.error('❌ Autocomplete error:', err); // DEBUG
             });
     }, 300);
 }
