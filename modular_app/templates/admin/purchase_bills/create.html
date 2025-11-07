@@ -11,13 +11,14 @@
 {% endblock %}
 
 {% block content %}
+<!-- CSS Version 3.0 - Flexbox Fix - Force Reload! -->
 <style>
-    /* Custom Grid System (Bootstrap Replacement) */
+    /* Custom Grid System (Bootstrap Replacement) - v3.0 CACHE BUST */
     .row {
-        display: flex;
-        flex-wrap: wrap;
-        margin-left: -15px;  /* Bootstrap-style negative gutters */
-        margin-right: -15px;
+        display: flex !important;
+        flex-wrap: wrap !important;
+        margin-left: -15px !important;
+        margin-right: -15px !important;
     }
     
     .col-md-12, .col-md-6, .col-md-4 {
