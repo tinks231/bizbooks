@@ -155,6 +155,14 @@ def selfie(filename):
     selfie_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'uploads', 'selfies')
     return send_from_directory(selfie_dir, filename)
 
+@app.route('/uploads/purchase_bills/<int:tenant_id>/<filename>')
+def purchase_bill_document(tenant_id, filename):
+    """Serve purchase bill documents"""
+    from flask import send_from_directory
+    import os
+    upload_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'uploads', 'purchase_bills', str(tenant_id))
+    return send_from_directory(upload_dir, filename)
+
 # Welcome page for documentation
 @app.route('/welcome')
 def welcome():

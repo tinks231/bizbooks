@@ -4,7 +4,10 @@ from utils.tenant_middleware import get_current_tenant_id
 from utils.license_check import check_license
 from datetime import datetime, date
 from decimal import Decimal
+from werkzeug.utils import secure_filename
+from PIL import Image
 import pytz
+import os
 
 purchase_bills_bp = Blueprint('purchase_bills', __name__, url_prefix='/admin/purchase-bills')
 
@@ -116,6 +119,55 @@ def create_bill():
             bill.payment_terms = request.form.get('payment_terms', '')
             bill.notes = request.form.get('notes', '')
             bill.terms_conditions = request.form.get('terms_conditions', '')
+            
+            # Handle file upload
+            if 'bill_document' in request.files:
+                file = request.files['bill_document']
+                if file and file.filename:
+                    try:
+                        # Secure the filename
+                        filename = secure_filename(file.filename)
+                        
+                        # Create uploads directory structure
+                        upload_base = os.path.join('modular_app', 'uploads', 'purchase_bills', str(tenant_id))
+                        os.makedirs(upload_base, exist_ok=True)
+                        
+                        # Generate unique filename with timestamp
+                        file_ext = os.path.splitext(filename)[1].lower()
+                        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+                        new_filename = f"PB_{timestamp}{file_ext}"
+                        file_path = os.path.join(upload_base, new_filename)
+                        
+                        # Check if it's an image and compress it
+                        if file_ext in ['.jpg', '.jpeg', '.png']:
+                            # Open and compress image
+                            img = Image.open(file)
+                            
+                            # Convert RGBA to RGB if necessary
+                            if img.mode == 'RGBA':
+                                img = img.convert('RGB')
+                            
+                            # Resize if too large (max 1920px width)
+                            max_width = 1920
+                            if img.width > max_width:
+                                ratio = max_width / img.width
+                                new_height = int(img.height * ratio)
+                                img = img.resize((max_width, new_height), Image.LANCZOS)
+                            
+                            # Save with compression
+                            img.save(file_path, quality=75, optimize=True)
+                            print(f"✅ Image compressed and saved: {file_path}")
+                        else:
+                            # Save PDF or other files directly
+                            file.save(file_path)
+                            print(f"✅ File saved: {file_path}")
+                        
+                        # Store relative path in database
+                        bill.document_url = f"/uploads/purchase_bills/{tenant_id}/{new_filename}"
+                        
+                    except Exception as file_error:
+                        print(f"⚠️ Error uploading file: {str(file_error)}")
+                        # Don't fail the entire bill creation if file upload fails
             
             # Get line items
             item_ids = request.form.getlist('item_id[]')

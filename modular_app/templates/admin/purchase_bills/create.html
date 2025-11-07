@@ -231,7 +231,7 @@
     }
 </style>
 
-<form method="POST">
+<form method="POST" enctype="multipart/form-data">
     <!-- Vendor Information Card -->
     <div class="card mb-4">
         <div class="card-header">
@@ -321,6 +321,39 @@
                     <div class="col-md-12 mb-3">
                         <label class="form-label">Payment Terms</label>
                         <input type="text" name="payment_terms" class="form-control" placeholder="e.g., Net 30 days">
+                    </div>
+                </div>
+                
+                <!-- Bill Document Upload -->
+                <div class="row">
+                    <div class="col-md-12 mb-3">
+                        <label class="form-label">📎 Upload Bill Document <span style="color: #666; font-size: 13px;">(Optional - Image or PDF)</span></label>
+                        <input type="file" 
+                               name="bill_document" 
+                               id="bill_document" 
+                               class="form-control" 
+                               accept="image/*,.pdf"
+                               onchange="previewBillDocument(this)">
+                        <div style="font-size: 12px; color: #666; margin-top: 5px;">
+                            Supported: JPG, PNG, PDF (Max 10MB) • Images will be compressed automatically
+                        </div>
+                        <!-- Preview area -->
+                        <div id="document_preview" style="margin-top: 15px; display: none;">
+                            <div style="padding: 15px; background: #f8f9fa; border-radius: 8px; border: 1px solid #dee2e6;">
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <div>
+                                        <strong>📄 Selected File:</strong>
+                                        <div id="file_name" style="color: #666; margin-top: 5px;"></div>
+                                        <div id="file_size" style="color: #666; font-size: 12px; margin-top: 3px;"></div>
+                                    </div>
+                                    <button type="button" class="btn btn-sm btn-danger" onclick="clearDocument()">
+                                        ✕ Remove
+                                    </button>
+                                </div>
+                                <!-- Image preview (if image) -->
+                                <img id="image_preview" style="max-width: 300px; max-height: 200px; margin-top: 10px; border-radius: 4px; display: none;" />
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -809,6 +842,57 @@ function removeRow(btn) {
         btn.closest('.item-row').remove();
         calculateTotal();
     }
+}
+
+// Bill Document Upload Preview
+function previewBillDocument(input) {
+    const preview = document.getElementById('document_preview');
+    const fileName = document.getElementById('file_name');
+    const fileSize = document.getElementById('file_size');
+    const imagePreview = document.getElementById('image_preview');
+    
+    if (input.files && input.files[0]) {
+        const file = input.files[0];
+        
+        // Check file size (10MB limit)
+        if (file.size > 10 * 1024 * 1024) {
+            alert('File size must be less than 10MB');
+            input.value = '';
+            return;
+        }
+        
+        // Show file info
+        fileName.textContent = file.name;
+        fileSize.textContent = `Size: ${(file.size / 1024).toFixed(2)} KB`;
+        preview.style.display = 'block';
+        
+        // Show image preview if it's an image
+        if (file.type.startsWith('image/')) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                imagePreview.src = e.target.result;
+                imagePreview.style.display = 'block';
+            };
+            reader.readAsDataURL(file);
+        } else {
+            imagePreview.style.display = 'none';
+        }
+        
+        console.log('✅ Document selected:', file.name, `(${(file.size / 1024).toFixed(2)} KB)`);
+    }
+}
+
+function clearDocument() {
+    const input = document.getElementById('bill_document');
+    const preview = document.getElementById('document_preview');
+    const imagePreview = document.getElementById('image_preview');
+    
+    input.value = '';
+    preview.style.display = 'none';
+    imagePreview.style.display = 'none';
+    imagePreview.src = '';
+    
+    console.log('🗑️ Document removed');
 }
 
 // Close dropdowns on outside click

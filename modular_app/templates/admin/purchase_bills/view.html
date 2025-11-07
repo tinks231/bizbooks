@@ -356,6 +356,46 @@
     </div>
     {% endif %}
 
+    <!-- Attached Document -->
+    {% if bill.document_url %}
+    <div class="info-card" style="margin-top: 25px;">
+        <h5 style="margin-bottom: 15px; color: #333;">📎 Attached Bill Document</h5>
+        <div style="display: flex; align-items: center; gap: 15px; padding: 15px; background: #f8f9fa; border-radius: 8px;">
+            <div style="flex: 1;">
+                <div style="font-size: 14px; color: #666; margin-bottom: 5px;">
+                    <strong>Document:</strong> Original vendor bill/invoice
+                </div>
+                <div style="font-size: 13px; color: #999;">
+                    Uploaded: {{ bill.created_at.strftime('%d %b %Y at %I:%M %p') if bill.created_at else 'N/A' }}
+                </div>
+            </div>
+            <div style="display: flex; gap: 10px;">
+                <a href="{{ bill.document_url }}" target="_blank" class="btn btn-sm btn-primary">
+                    👁️ View Document
+                </a>
+                <a href="{{ bill.document_url }}" download class="btn btn-sm btn-secondary">
+                    ⬇️ Download
+                </a>
+            </div>
+        </div>
+        
+        <!-- Image Preview (if it's an image) -->
+        {% if bill.document_url.lower().endswith(('.jpg', '.jpeg', '.png')) %}
+        <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #dee2e6;">
+            <div style="text-align: center;">
+                <img src="{{ bill.document_url }}" 
+                     alt="Bill Document" 
+                     style="max-width: 100%; max-height: 600px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); cursor: pointer;"
+                     onclick="window.open(this.src, '_blank')">
+                <div style="font-size: 12px; color: #999; margin-top: 10px;">
+                    Click image to view full size in new tab
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+
     <!-- Audit Trail -->
     <div class="info-card" style="margin-top: 25px;">
         <h5 style="margin-bottom: 15px; color: #333;">🕒 Audit Trail</h5>
