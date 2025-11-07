@@ -16,12 +16,15 @@
     .row {
         display: flex;
         flex-wrap: wrap;
-        margin: 0; /* Fixed: removed negative margin that pushed content left */
+        margin-left: -15px;  /* Bootstrap-style negative gutters */
+        margin-right: -15px;
     }
     
     .col-md-12, .col-md-6, .col-md-4 {
-        padding: 0 15px;
+        padding-left: 15px;
+        padding-right: 15px;
         box-sizing: border-box;
+        min-width: 0; /* CRITICAL: allows flex children to shrink properly */
     }
     
     .col-md-12 {
@@ -250,10 +253,34 @@
         overflow-x: visible;
     }
     
-    /* Ensure all cards are visible */
+    /* Ensure all cards are visible and compensate for row negative margins */
     .card {
         width: 100%;
         overflow: visible;
+    }
+    
+    .card-body {
+        padding-left: 15px;
+        padding-right: 15px;
+    }
+    
+    /* Ensure form controls never force columns wider than they can shrink */
+    .form-control, textarea.form-control, input.form-control {
+        min-width: 0;
+        width: 100%;
+        max-width: 100%;
+        box-sizing: border-box;
+    }
+    
+    /* Textareas specific rules */
+    textarea.form-control {
+        resize: vertical;
+        word-break: break-word;
+    }
+    
+    /* Table safeguards */
+    .table, .table td, .table th {
+        word-break: break-word;
     }
 </style>
 
