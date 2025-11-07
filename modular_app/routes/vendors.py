@@ -207,10 +207,11 @@ def ledger(vendor_id):
     if not end_date:
         end_date = datetime.now().strftime('%Y-%m-%d')
     
-    # Get all purchase bills for this vendor
+    # Get all APPROVED purchase bills for this vendor (drafts don't affect balance)
     bills_query = PurchaseBill.query.filter_by(
         tenant_id=tenant_id,
-        vendor_id=vendor_id
+        vendor_id=vendor_id,
+        status='approved'  # Only approved bills affect ledger
     )
     
     if start_date:
