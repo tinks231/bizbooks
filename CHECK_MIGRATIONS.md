@@ -75,6 +75,53 @@ https://YOUR-SUBDOMAIN.bizbooks-dun.vercel.app/migrate/add-sales-order-module
 
 ---
 
+## ✅ Purchase Bills Module Migration
+
+### What it does:
+- Creates `purchase_bills` table for vendor bill management
+- Creates `purchase_bill_items` table for line items
+- Tracks GST (CGST/SGST/IGST) for input tax credit
+- Links to vendors and purchase requests
+
+### How to run:
+```
+https://YOUR-SUBDOMAIN.bizbooks-dun.vercel.app/migrate/add-purchase-bills-module
+```
+
+**Status:** Completed - Purchase Bills UI live!
+
+---
+
+## ✅ Vendor Payment Tracking Migration
+
+### What it does:
+- Creates `vendor_payments` table to record payments made to vendors
+- Creates `payment_allocations` table to link payments to specific bills
+- Tracks payment methods (Cash/Cheque/Bank Transfer/UPI)
+- Supports partial payments and advance payments
+- Auto-generates payment numbers (PAY-0001)
+
+### Features:
+- **Record Payments**: Track cash/bank payments to vendors
+- **Payment History**: See all payments per bill/vendor
+- **Outstanding Reports**: Track unpaid & partially paid bills
+- **Vendor Ledger**: Complete payment history per vendor
+
+### How to run:
+```
+https://YOUR-SUBDOMAIN.bizbooks-dun.vercel.app/migrate/add-vendor-payment-tracking
+```
+
+### After Migration:
+1. Visit any Purchase Bill view page
+2. Click "Record Payment" button
+3. Enter payment details and allocate to bills
+4. View payment history timeline
+
+**Status:** ✅ Ready - Migration available, UI coming next!
+
+---
+
 ## 🔧 For Purchase Request Image Issue:
 **Run this migration NOW:**
 ```
