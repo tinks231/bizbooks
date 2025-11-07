@@ -179,14 +179,15 @@
         max-height: 400px;
         overflow-y: auto;
         width: 100%;
-        display: none;
+        min-width: 300px;
+        display: none !important; /* Force hidden by default */
         box-shadow: 0 8px 16px rgba(0,0,0,0.2);
         margin-top: 2px;
         border-radius: 8px;
     }
     
     .autocomplete-dropdown.show {
-        display: block;
+        display: block !important; /* Force visible when .show is added */
     }
     
     .autocomplete-item {
