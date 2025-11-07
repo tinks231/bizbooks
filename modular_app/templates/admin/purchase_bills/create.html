@@ -2,7 +2,7 @@
 
 {% block title %}Create Purchase Bill{% endblock %}
 
-{% block page_title %}💼 Create New Purchase Bill (v2.0){% endblock %}
+{% block page_title %}💼 Create New Purchase Bill <span style="color: red; font-size: 14px;">(v6.0 - 9:15 PM)</span>{% endblock %}
 
 {% block header_actions %}
 <a href="{{ url_for('purchase_bills.list_bills') }}" class="btn btn-secondary">
@@ -594,6 +594,11 @@
 </form>
 
 <script>
+// 🔥 VERSION CHECK - v6.0 - DEPLOYED 9:15 PM 🔥
+console.log('🔥🔥🔥 PURCHASE BILLS PAGE VERSION: 6.0 - DEPLOYED 9:15 PM 🔥🔥🔥');
+console.log('📊 File length should be ~1080 lines, NOT 2061!');
+console.log('If you see errors at line 2061, Vercel is serving OLD code!');
+
 // Load items and vendors into JavaScript
 const items = {{ items|tojson|safe }} || [];
 const vendors = {{ vendors|tojson|safe }} || [];
