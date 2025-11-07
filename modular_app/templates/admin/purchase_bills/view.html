@@ -117,7 +117,14 @@
 
     <!-- Payment Info -->
     <div class="info-card">
-        <h5 style="margin-bottom: 15px; color: #333;">💰 Payment Information</h5>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+            <h5 style="margin: 0; color: #333;">💰 Payment Information</h5>
+            {% if bill.status == 'approved' and bill.payment_status != 'paid' %}
+            <a href="{{ url_for('purchase_bills.record_payment_form', bill_id=bill.id) }}" class="btn btn-primary">
+                <i class="fas fa-money-bill-wave"></i> Record Payment
+            </a>
+            {% endif %}
+        </div>
         <div class="row">
             <div class="col-md-3">
                 <div style="font-size: 14px; color: #666;">Total Amount</div>
@@ -140,6 +147,37 @@
                 </div>
             </div>
         </div>
+        
+        <!-- Payment History -->
+        {% if bill.payment_allocations %}
+        <div style="margin-top: 25px; padding-top: 20px; border-top: 1px solid #dee2e6;">
+            <h6 style="margin-bottom: 15px; color: #333;">📜 Payment History</h6>
+            <div class="table-responsive">
+                <table class="table table-sm">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Payment #</th>
+                            <th>Amount</th>
+                            <th>Method</th>
+                            <th>Reference</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for allocation in bill.payment_allocations %}
+                        <tr>
+                            <td>{{ allocation.payment.payment_date.strftime('%d %b %Y') }}</td>
+                            <td><strong>{{ allocation.payment.payment_number }}</strong></td>
+                            <td style="color: #28a745; font-weight: 600;">₹{{ "{:,.2f}".format(allocation.amount_allocated) }}</td>
+                            <td>{{ allocation.payment.payment_method|title }}</td>
+                            <td>{{ allocation.payment.reference_number or '-' }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
     </div>
 
     <!-- Line Items -->
