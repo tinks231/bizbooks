@@ -365,37 +365,37 @@
                 </div>
                 
                 <!-- Totals -->
-                <div class="row justify-content-end mt-3">
-                    <div class="col-md-4">
+                <div class="d-flex justify-content-end mt-3">
+                    <div style="width: 400px;">
                         <table class="table table-sm">
                             <tr>
-                                <td><strong>Subtotal:</strong></td>
-                                <td class="text-end"><strong id="subtotal_display">₹0.00</strong></td>
+                                <td style="text-align: left; padding-right: 1rem;"><strong>Subtotal:</strong></td>
+                                <td style="text-align: right;"><strong id="subtotal_display">₹0.00</strong></td>
                             </tr>
                             <tr>
-                                <td>CGST:</td>
-                                <td class="text-end" id="cgst_display">₹0.00</td>
+                                <td style="text-align: left; padding-right: 1rem;">CGST:</td>
+                                <td style="text-align: right;" id="cgst_display">₹0.00</td>
                             </tr>
                             <tr>
-                                <td>SGST:</td>
-                                <td class="text-end" id="sgst_display">₹0.00</td>
+                                <td style="text-align: left; padding-right: 1rem;">SGST:</td>
+                                <td style="text-align: right;" id="sgst_display">₹0.00</td>
                             </tr>
                             <tr>
-                                <td>IGST:</td>
-                                <td class="text-end" id="igst_display">₹0.00</td>
+                                <td style="text-align: left; padding-right: 1rem;">IGST:</td>
+                                <td style="text-align: right;" id="igst_display">₹0.00</td>
                             </tr>
                             <tr>
-                                <td>
+                                <td style="text-align: left; padding-right: 1rem;">
                                     Other Charges:
                                     <input type="number" name="other_charges" class="form-control form-control-sm" 
                                            step="0.01" value="0" oninput="calculateTotal()" 
-                                           style="width: 120px; display: inline-block; margin-left: 5px;">
+                                           style="width: 100px; display: inline-block; margin-left: 5px;">
                                 </td>
-                                <td></td>
+                                <td style="text-align: right;"></td>
                             </tr>
                             <tr class="table-active">
-                                <td><strong>Total Amount:</strong></td>
-                                <td class="text-end"><strong id="total_display" style="font-size: 18px;">₹0.00</strong></td>
+                                <td style="text-align: left; padding-right: 1rem;"><strong>Total Amount:</strong></td>
+                                <td style="text-align: right;"><strong id="total_display" style="font-size: 18px;">₹0.00</strong></td>
                             </tr>
                         </table>
                     </div>
@@ -517,12 +517,35 @@ function searchItems(input) {
                 }
                 
                 dropdown.innerHTML = items.map(item => `
-                    <div class="autocomplete-item" onclick="selectItem(this, ${item.id}, '${item.name}', '${item.hsn_code}', '${item.unit}', ${item.purchase_price}, ${item.gst_rate})">
+                    <div class="autocomplete-item" 
+                         data-item-id="${item.id}"
+                         data-item-name="${item.name.replace(/"/g, '&quot;')}"
+                         data-item-hsn="${item.hsn_code}"
+                         data-item-unit="${item.unit}"
+                         data-item-price="${item.purchase_price}"
+                         data-item-gst="${item.gst_rate}">
                         <div style="font-weight: 600;">${item.name}</div>
                         <div style="font-size: 12px; color: #666;">HSN: ${item.hsn_code} • ₹${item.purchase_price}/${item.unit}</div>
                     </div>
                 `).join('');
                 dropdown.classList.add('show');
+                
+                // Add click handlers to autocomplete items
+                dropdown.querySelectorAll('.autocomplete-item').forEach(itemDiv => {
+                    if (itemDiv.dataset.itemId) {
+                        itemDiv.addEventListener('click', function() {
+                            selectItem(
+                                this,
+                                parseInt(this.dataset.itemId),
+                                this.dataset.itemName,
+                                this.dataset.itemHsn,
+                                this.dataset.itemUnit,
+                                parseFloat(this.dataset.itemPrice),
+                                parseFloat(this.dataset.itemGst)
+                            );
+                        });
+                    }
+                });
             });
     }, 300);
 }
