@@ -1,5 +1,5 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, g, jsonify, session
-from models import db, PurchaseBill, PurchaseBillItem, Vendor, Item, ItemStock, Site, Tenant
+from models import db, PurchaseBill, PurchaseBillItem, Vendor, Item, ItemStock, Site, Tenant, VendorPayment, PaymentAllocation
 from utils.tenant_middleware import get_current_tenant_id
 from utils.license_check import check_license
 from datetime import datetime, date
@@ -438,6 +438,93 @@ def delete_bill(bill_id):
         db.session.rollback()
         flash(f'❌ Error deleting bill: {str(e)}', 'error')
         return redirect(url_for('purchase_bills.view_bill', bill_id=bill.id))
+
+@purchase_bills_bp.route('/<int:bill_id>/record-payment', methods=['GET', 'POST'])
+@check_license
+def record_payment_form(bill_id):
+    """Record payment for purchase bill"""
+    tenant_id = get_current_tenant_id()
+    bill = PurchaseBill.query.filter_by(id=bill_id, tenant_id=tenant_id).first_or_404()
+    
+    if bill.status != 'approved':
+        flash('⚠️ Only approved bills can have payments recorded', 'warning')
+        return redirect(url_for('purchase_bills.view_bill', bill_id=bill.id))
+    
+    if request.method == 'POST':
+        try:
+            # Get payment details
+            payment_date_str = request.form.get('payment_date')
+            payment_date = datetime.strptime(payment_date_str, '%Y-%m-%d').date()
+            amount = Decimal(request.form.get('amount', '0'))
+            payment_method = request.form.get('payment_method', 'cash')
+            reference_number = request.form.get('reference_number', '')
+            bank_account = request.form.get('bank_account', '')
+            notes = request.form.get('notes', '')
+            
+            # Validate amount
+            if amount <= 0:
+                flash('⚠️ Payment amount must be greater than 0', 'warning')
+                return redirect(url_for('purchase_bills.record_payment_form', bill_id=bill.id))
+            
+            if amount > bill.balance_due:
+                flash('⚠️ Payment amount cannot exceed balance due', 'warning')
+                return redirect(url_for('purchase_bills.record_payment_form', bill_id=bill.id))
+            
+            # Create payment
+            payment = VendorPayment()
+            payment.tenant_id = tenant_id
+            payment.payment_number = payment.generate_payment_number()
+            payment.payment_date = payment_date
+            payment.vendor_id = bill.vendor_id
+            payment.vendor_name = bill.vendor_name
+            payment.amount = amount
+            payment.payment_method = payment_method
+            payment.reference_number = reference_number
+            payment.bank_account = bank_account
+            payment.notes = notes
+            payment.created_by = session.get('tenant_name', 'Admin')
+            
+            db.session.add(payment)
+            db.session.flush()  # Get payment ID
+            
+            # Create payment allocation
+            allocation = PaymentAllocation()
+            allocation.payment_id = payment.id
+            allocation.purchase_bill_id = bill.id
+            allocation.amount_allocated = amount
+            
+            db.session.add(allocation)
+            
+            # Update bill payment status
+            bill.paid_amount = (bill.paid_amount or Decimal('0')) + amount
+            bill.balance_due = bill.total_amount - bill.paid_amount
+            
+            if bill.balance_due <= 0:
+                bill.payment_status = 'paid'
+                bill.balance_due = Decimal('0')
+            elif bill.paid_amount > 0:
+                bill.payment_status = 'partial'
+            
+            db.session.commit()
+            
+            flash(f'✅ Payment of ₹{amount:,.2f} recorded successfully!', 'success')
+            return redirect(url_for('purchase_bills.view_bill', bill_id=bill.id))
+            
+        except ValueError as e:
+            flash('⚠️ Invalid payment amount', 'error')
+            return redirect(url_for('purchase_bills.record_payment_form', bill_id=bill.id))
+        except Exception as e:
+            db.session.rollback()
+            flash(f'❌ Error recording payment: {str(e)}', 'error')
+            print(f"Error recording payment: {str(e)}")
+            import traceback
+            traceback.print_exc()
+    
+    # GET - show form
+    return render_template('admin/purchase_bills/record_payment.html',
+                         tenant=g.tenant,
+                         bill=bill,
+                         today=date.today().strftime('%Y-%m-%d'))
 
 # API Endpoints
 

@@ -1,0 +1,218 @@
+{% extends "base_sidebar.html" %}
+
+{% block title %}Record Payment - {{ bill.bill_number }}{% endblock %}
+
+{% block content %}
+<style>
+    .payment-form-container {
+        max-width: 800px;
+        margin: 30px auto;
+    }
+    .bill-summary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 25px;
+        border-radius: 12px;
+        margin-bottom: 30px;
+    }
+    .form-card {
+        background: white;
+        padding: 30px;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    .form-label {
+        font-weight: 600;
+        margin-bottom: 8px;
+        display: block;
+        color: #333;
+    }
+    .form-control, .form-select {
+        width: 100%;
+        padding: 12px;
+        border: 1px solid #ced4da;
+        border-radius: 6px;
+        font-size: 15px;
+        margin-bottom: 20px;
+    }
+    .form-control:focus, .form-select:focus {
+        border-color: #667eea;
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+    .btn-group {
+        display: flex;
+        gap: 15px;
+        margin-top: 30px;
+        padding-bottom: 100px;
+    }
+    .btn {
+        padding: 12px 30px;
+        border: none;
+        border-radius: 6px;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+    .btn-primary {
+        background: #667eea;
+        color: white;
+    }
+    .btn-primary:hover {
+        background: #5568d3;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    }
+    .btn-secondary {
+        background: #6c757d;
+        color: white;
+    }
+    .btn-secondary:hover {
+        background: #5a6268;
+    }
+    .amount-display {
+        font-size: 28px;
+        font-weight: 700;
+        margin: 10px 0;
+    }
+    .info-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 8px 0;
+        border-bottom: 1px solid rgba(255,255,255,0.2);
+    }
+    .help-text {
+        font-size: 13px;
+        color: #666;
+        margin-top: -15px;
+        margin-bottom: 20px;
+    }
+</style>
+
+<div class="payment-form-container">
+    <!-- Bill Summary -->
+    <div class="bill-summary">
+        <h3 style="margin: 0 0 20px 0;">💰 Record Payment</h3>
+        <div class="info-row">
+            <span>Bill Number:</span>
+            <strong>{{ bill.bill_number }}</strong>
+        </div>
+        <div class="info-row">
+            <span>Vendor:</span>
+            <strong>{{ bill.vendor_name }}</strong>
+        </div>
+        <div class="info-row">
+            <span>Total Amount:</span>
+            <strong>₹{{ "{:,.2f}".format(bill.total_amount) }}</strong>
+        </div>
+        <div class="info-row">
+            <span>Already Paid:</span>
+            <strong style="color: #90EE90;">₹{{ "{:,.2f}".format(bill.paid_amount or 0) }}</strong>
+        </div>
+        <div class="info-row" style="border: none; padding-top: 15px;">
+            <span style="font-size: 18px;">Balance Due:</span>
+            <span class="amount-display">₹{{ "{:,.2f}".format(bill.balance_due) }}</span>
+        </div>
+    </div>
+
+    <!-- Payment Form -->
+    <div class="form-card">
+        <h4 style="margin: 0 0 25px 0; color: #333;">Enter Payment Details</h4>
+        
+        <form method="POST" action="{{ url_for('purchase_bills.record_payment_form', bill_id=bill.id) }}">
+            <!-- Payment Date -->
+            <div>
+                <label class="form-label">Payment Date <span style="color: red;">*</span></label>
+                <input type="date" name="payment_date" class="form-control" value="{{ today }}" required max="{{ today }}">
+            </div>
+
+            <!-- Amount -->
+            <div>
+                <label class="form-label">Amount <span style="color: red;">*</span></label>
+                <input type="number" name="amount" class="form-control" 
+                       step="0.01" min="0.01" max="{{ bill.balance_due }}" 
+                       value="{{ bill.balance_due }}"
+                       placeholder="Enter payment amount" required>
+                <div class="help-text">Maximum: ₹{{ "{:,.2f}".format(bill.balance_due) }}</div>
+            </div>
+
+            <!-- Payment Method -->
+            <div>
+                <label class="form-label">Payment Method <span style="color: red;">*</span></label>
+                <select name="payment_method" class="form-select" required>
+                    <option value="cash">Cash</option>
+                    <option value="bank_transfer">Bank Transfer</option>
+                    <option value="cheque">Cheque</option>
+                    <option value="upi">UPI</option>
+                    <option value="card">Card</option>
+                    <option value="online">Online Payment</option>
+                </select>
+            </div>
+
+            <!-- Reference Number -->
+            <div>
+                <label class="form-label">Reference Number</label>
+                <input type="text" name="reference_number" class="form-control" 
+                       placeholder="Cheque number, Transaction ID, etc.">
+                <div class="help-text">Optional: Enter cheque number, transaction ID, or payment reference</div>
+            </div>
+
+            <!-- Bank Account -->
+            <div>
+                <label class="form-label">Bank Account</label>
+                <input type="text" name="bank_account" class="form-control" 
+                       placeholder="From which account payment was made">
+                <div class="help-text">Optional: Your bank account from which payment was made</div>
+            </div>
+
+            <!-- Notes -->
+            <div>
+                <label class="form-label">Notes</label>
+                <textarea name="notes" class="form-control" rows="3" 
+                          placeholder="Any additional notes about this payment"></textarea>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="btn-group">
+                <button type="submit" class="btn btn-primary">
+                    💰 Record Payment
+                </button>
+                <a href="{{ url_for('purchase_bills.view_bill', bill_id=bill.id) }}" class="btn btn-secondary">
+                    Cancel
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+// Auto-fill reference number field label based on payment method
+document.querySelector('select[name="payment_method"]').addEventListener('change', function() {
+    const referenceLabel = document.querySelector('label[for="reference_number"]');
+    const referenceInput = document.querySelector('input[name="reference_number"]');
+    const helpText = document.querySelectorAll('.help-text')[2];
+    
+    switch(this.value) {
+        case 'cheque':
+            referenceInput.placeholder = 'Enter cheque number';
+            helpText.textContent = 'Enter the cheque number';
+            break;
+        case 'bank_transfer':
+        case 'upi':
+        case 'online':
+            referenceInput.placeholder = 'Enter transaction ID';
+            helpText.textContent = 'Enter the transaction ID or reference number';
+            break;
+        case 'cash':
+            referenceInput.placeholder = 'Receipt number (optional)';
+            helpText.textContent = 'Optional: Enter receipt number if applicable';
+            break;
+        default:
+            referenceInput.placeholder = 'Enter reference number';
+            helpText.textContent = 'Optional: Enter payment reference';
+    }
+});
+</script>
+{% endblock %}
+
