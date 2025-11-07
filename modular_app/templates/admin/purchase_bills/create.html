@@ -278,6 +278,54 @@
         overflow-x: visible;
         box-sizing: border-box;
     }
+
+    /* Fix for Additional Details section layout */
+    .card.mb-4:last-of-type {
+        overflow: visible;
+    }
+
+    .card-body .row {
+        flex-wrap: wrap;
+        margin: 0 -15px;
+    }
+
+    .card-body .col-md-6 {
+        flex: 0 0 50%;
+        max-width: 50%;
+        box-sizing: border-box;
+        min-width: 0;
+    }
+
+    .card-body .form-label {
+        z-index: 1;
+        background: #f8f9fa;
+        position: relative;
+        padding-left: 2px;
+    }
+
+    .card-body textarea.form-control {
+        width: 100%;
+        max-width: 100%;
+        min-height: 80px;
+        resize: vertical;
+        box-sizing: border-box;
+    }
+
+    /* Prevent textarea from overflowing and ensure headline is visible */
+    .card-body {
+        overflow: visible;
+    }
+
+    /* Fix for headline visibility */
+    .card-header h5 {
+        margin-bottom: 0.5rem;
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: #333;
+        background: transparent;
+        z-index: 2;
+        position: relative;
+    }
 </style>
 
 <form method="POST" enctype="multipart/form-data" id="purchase_bill_form" onsubmit="return validateForm()">
