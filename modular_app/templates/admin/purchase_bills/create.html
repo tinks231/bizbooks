@@ -180,14 +180,10 @@
         overflow-y: auto;
         width: 100%;
         min-width: 300px;
-        display: none !important; /* Force hidden by default */
+        display: none; /* Hidden by default - JS will set to 'block' */
         box-shadow: 0 8px 16px rgba(0,0,0,0.2);
         margin-top: 2px;
         border-radius: 8px;
-    }
-    
-    .autocomplete-dropdown.show {
-        display: block !important; /* Force visible when .show is added */
     }
     
     .autocomplete-item {
@@ -470,11 +466,20 @@
 
 <script>
 // Load items and vendors into JavaScript
-const items = {{ items|tojson|safe }};
-const vendors = {{ vendors|tojson|safe }};
+const items = {{ items|tojson|safe }} || [];
+const vendors = {{ vendors|tojson|safe }} || [];
 
-console.log('✅ Loaded items:', items ? items.length : 0);
-console.log('✅ Loaded vendors:', vendors ? vendors.length : 0);
+console.log('=== PURCHASE BILLS AUTOCOMPLETE DEBUG ===');
+console.log('✅ Loaded items:', items.length, items);
+console.log('✅ Loaded vendors:', vendors.length, vendors);
+
+// Verify data structure
+if (items.length > 0) {
+    console.log('📦 Sample item:', items[0]);
+}
+if (vendors.length > 0) {
+    console.log('🏭 Sample vendor:', vendors[0]);
+}
 
 // Vendor Autocomplete (Client-side filtering like items)
 function searchVendors(query) {
@@ -807,11 +812,7 @@ function removeRow(btn) {
 }
 
 // Close dropdowns on outside click
-document.addEventListener('click', function(e) {
-    if (!e.target.closest('.autocomplete-dropdown') && !e.target.closest('input')) {
-        document.querySelectorAll('.autocomplete-dropdown').forEach(d => d.classList.remove('show'));
-    }
-});
+// Click handler already added above - no duplicate needed
 </script>
 {% endblock %}
 
