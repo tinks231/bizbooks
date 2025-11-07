@@ -221,13 +221,28 @@ def create_bill():
     # GET request - show form
     vendors = Vendor.query.filter_by(tenant_id=tenant_id, is_active=True).order_by(Vendor.name).all()
     sites = Site.query.filter_by(tenant_id=tenant_id).all()
-    items = Item.query.filter_by(tenant_id=tenant_id).all()  # Load all items for autocomplete
+    items = Item.query.filter_by(tenant_id=tenant_id).all()
+    
+    # Convert items to JSON-serializable format (like Invoice template)
+    items_json = [
+        {
+            'id': item.id,
+            'name': item.name,
+            'item_code': item.item_code or '',
+            'purchase_price': float(item.purchase_price or 0),
+            'sale_price': float(item.sale_price or 0),
+            'hsn_code': item.hsn_code or '',
+            'unit': item.unit or 'pcs',
+            'tax_preference': item.tax_preference or 'GST@18%'
+        }
+        for item in items
+    ]
     
     return render_template('admin/purchase_bills/create.html',
                          tenant=g.tenant,
                          vendors=vendors,
                          sites=sites,
-                         items=items,
+                         items=items_json,
                          today=date.today().strftime('%Y-%m-%d'))
 
 @purchase_bills_bp.route('/<int:bill_id>')
