@@ -122,6 +122,35 @@ https://YOUR-SUBDOMAIN.bizbooks-dun.vercel.app/migrate/add-vendor-payment-tracki
 
 ---
 
+## ✅ Fix Purchase Bill Approve Error (URGENT!)
+
+### What it fixes:
+**Error:** `ForeignKeyViolation: Key (approved_by)=(1) is not present in table "employees"`
+
+**Problem:** 
+- The `approved_by` field had a foreign key constraint to `employees` table
+- But tenant admins (who aren't employees) were trying to approve bills
+- This caused the approval to fail
+
+### What it does:
+- Removes the foreign key constraint on `approved_by` field
+- Allows both tenant admins AND employees to approve bills
+- Stores approver ID as simple integer (no FK validation)
+
+### How to run:
+```
+https://YOUR-SUBDOMAIN.bizbooks-dun.vercel.app/migrate/fix-purchase-bill-approved-by
+```
+
+### After Migration:
+1. Try approving any draft purchase bill
+2. Should work without errors now!
+3. Both tenant admins and employees can approve
+
+**Status:** 🚨 **RUN THIS NOW!** Required to approve any purchase bills!
+
+---
+
 ## 🔧 For Purchase Request Image Issue:
 **Run this migration NOW:**
 ```
