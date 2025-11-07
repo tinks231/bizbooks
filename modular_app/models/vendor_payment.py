@@ -16,8 +16,8 @@ class VendorPayment(db.Model, TimestampMixin):
     payment_number = db.Column(db.String(50), unique=True, nullable=False)  # PAY-0001
     payment_date = db.Column(db.Date, nullable=False, default=date.today)
     
-    # Vendor
-    vendor_id = db.Column(db.Integer, db.ForeignKey('vendors.id'), nullable=False)
+    # Vendor (optional - can be null for manual vendor entries)
+    vendor_id = db.Column(db.Integer, db.ForeignKey('vendors.id'), nullable=True)
     vendor_name = db.Column(db.String(255), nullable=False)  # Snapshot
     
     # Amount

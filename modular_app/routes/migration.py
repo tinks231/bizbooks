@@ -2056,3 +2056,102 @@ def add_vendor_payment_tracking():
             'message': f'Migration failed: {str(e)}',
             'details': str(e)
         }), 500
+
+@migration_bp.route('/fix-vendor-payment-vendor-id')
+def fix_vendor_payment_vendor_id():
+    """
+    Make vendor_id nullable in vendor_payments table
+    This allows payments for manual vendor entries (not in vendor master)
+    Access: /migrate/fix-vendor-payment-vendor-id
+    """
+    try:
+        db_type = os.environ.get('DATABASE_URL', '').split(':')[0] if os.environ.get('DATABASE_URL') else 'sqlite'
+        
+        if db_type == 'postgresql':
+            # PostgreSQL: Drop NOT NULL constraint
+            db.session.execute(text("""
+                ALTER TABLE vendor_payments 
+                ALTER COLUMN vendor_id DROP NOT NULL;
+            """))
+        else:
+            # SQLite: Need to recreate the table (SQLite doesn't support ALTER COLUMN)
+            # But since we just created this table, we can check if any data exists
+            result = db.session.execute(text("SELECT COUNT(*) FROM vendor_payments")).scalar()
+            
+            if result > 0:
+                # Preserve data
+                db.session.execute(text("""
+                    -- Create temp table
+                    CREATE TABLE vendor_payments_temp (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        tenant_id INTEGER NOT NULL REFERENCES tenants(id),
+                        payment_number VARCHAR(50) UNIQUE NOT NULL,
+                        payment_date DATE NOT NULL DEFAULT (date('now')),
+                        vendor_id INTEGER REFERENCES vendors(id),
+                        vendor_name VARCHAR(255) NOT NULL,
+                        amount DECIMAL(15,2) NOT NULL,
+                        payment_method VARCHAR(50) DEFAULT 'cash',
+                        reference_number VARCHAR(100),
+                        bank_account VARCHAR(100),
+                        notes TEXT,
+                        created_by VARCHAR(100),
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    );
+                    
+                    -- Copy data
+                    INSERT INTO vendor_payments_temp 
+                    SELECT * FROM vendor_payments;
+                    
+                    -- Drop old table
+                    DROP TABLE vendor_payments;
+                    
+                    -- Rename temp to original
+                    ALTER TABLE vendor_payments_temp RENAME TO vendor_payments;
+                    
+                    -- Recreate indexes
+                    CREATE INDEX IF NOT EXISTS idx_vendor_payments_tenant ON vendor_payments(tenant_id);
+                    CREATE INDEX IF NOT EXISTS idx_vendor_payments_vendor ON vendor_payments(vendor_id);
+                    CREATE INDEX IF NOT EXISTS idx_vendor_payments_date ON vendor_payments(payment_date);
+                """))
+            else:
+                # No data, just drop and recreate
+                db.session.execute(text("DROP TABLE IF EXISTS vendor_payments"))
+                db.session.execute(text("""
+                    CREATE TABLE vendor_payments (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        tenant_id INTEGER NOT NULL REFERENCES tenants(id),
+                        payment_number VARCHAR(50) UNIQUE NOT NULL,
+                        payment_date DATE NOT NULL DEFAULT (date('now')),
+                        vendor_id INTEGER REFERENCES vendors(id),
+                        vendor_name VARCHAR(255) NOT NULL,
+                        amount DECIMAL(15,2) NOT NULL,
+                        payment_method VARCHAR(50) DEFAULT 'cash',
+                        reference_number VARCHAR(100),
+                        bank_account VARCHAR(100),
+                        notes TEXT,
+                        created_by VARCHAR(100),
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    );
+                    
+                    CREATE INDEX IF NOT EXISTS idx_vendor_payments_tenant ON vendor_payments(tenant_id);
+                    CREATE INDEX IF NOT EXISTS idx_vendor_payments_vendor ON vendor_payments(vendor_id);
+                    CREATE INDEX IF NOT EXISTS idx_vendor_payments_date ON vendor_payments(payment_date);
+                """))
+        
+        db.session.commit()
+        
+        return jsonify({
+            'status': 'success',
+            'message': 'Fixed vendor_id constraint - can now record payments for manual vendors!',
+            'details': 'vendor_id is now nullable in vendor_payments table'
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({
+            'status': 'error',
+            'message': f'Migration failed: {str(e)}',
+            'details': str(e)
+        }), 500
