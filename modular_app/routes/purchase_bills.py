@@ -506,7 +506,9 @@ def edit_bill(bill_id):
 @purchase_bills_bp.route('/<int:bill_id>/approve', methods=['POST'])
 @check_license
 def approve_bill(bill_id):
-    """Approve purchase bill"""
+    """Approve purchase bill and update inventory using Weighted Average Cost"""
+    from models import Item, ItemStock, ItemStockMovement, Site
+    
     tenant_id = get_current_tenant_id()
     bill = PurchaseBill.query.filter_by(id=bill_id, tenant_id=tenant_id).first_or_404()
     
@@ -515,15 +517,130 @@ def approve_bill(bill_id):
         return redirect(url_for('purchase_bills.view_bill', bill_id=bill.id))
     
     try:
+        # Get default site for inventory updates
+        default_site = Site.query.filter_by(tenant_id=tenant_id, is_default=True).first()
+        if not default_site:
+            # If no default site, use first site
+            default_site = Site.query.filter_by(tenant_id=tenant_id).first()
+        
+        if not default_site:
+            flash('⚠️ No site found for inventory updates. Please create a site first.', 'warning')
+            return redirect(url_for('purchase_bills.view_bill', bill_id=bill.id))
+        
+        inventory_updates = []
+        
+        # Process each line item and update inventory
+        for line_item in bill.items:
+            if not line_item.item_id:
+                # Skip items not linked to inventory
+                print(f"⏭️ Skipping '{line_item.item_name}' - not linked to inventory item")
+                continue
+            
+            item = Item.query.get(line_item.item_id)
+            if not item:
+                print(f"⚠️ Item ID {line_item.item_id} not found, skipping")
+                continue
+            
+            # Get or create stock record for this item at default site
+            stock = ItemStock.query.filter_by(
+                tenant_id=tenant_id,
+                item_id=item.id,
+                site_id=default_site.id
+            ).first()
+            
+            if not stock:
+                # Create new stock record
+                stock = ItemStock(
+                    tenant_id=tenant_id,
+                    item_id=item.id,
+                    site_id=default_site.id,
+                    quantity_available=0.0,
+                    stock_value=0.0,
+                    valuation_method='WAC'  # Weighted Average Cost
+                )
+                db.session.add(stock)
+                db.session.flush()  # Get stock ID
+                print(f"📦 Created new stock record for {item.name}")
+            
+            # Calculate Weighted Average Cost
+            old_qty = float(stock.quantity_available)
+            old_cost = float(item.cost_price or 0)
+            old_value = old_qty * old_cost
+            
+            new_qty = float(line_item.quantity)
+            new_cost = float(line_item.rate)  # Rate from purchase bill
+            new_value = new_qty * new_cost
+            
+            total_qty = old_qty + new_qty
+            total_value = old_value + new_value
+            
+            # Calculate weighted average cost
+            if total_qty > 0:
+                weighted_avg_cost = total_value / total_qty
+            else:
+                weighted_avg_cost = new_cost
+            
+            # Update item cost price (Weighted Average)
+            old_item_cost = item.cost_price
+            item.cost_price = weighted_avg_cost
+            
+            # Update stock quantity and value
+            stock.quantity_available = total_qty
+            stock.stock_value = total_value
+            stock.last_stock_date = datetime.now(pytz.timezone('Asia/Kolkata'))
+            
+            # Create stock movement record for audit trail
+            movement = ItemStockMovement(
+                tenant_id=tenant_id,
+                item_id=item.id,
+                site_id=default_site.id,
+                movement_type='stock_in',
+                quantity=new_qty,
+                unit_cost=new_cost,
+                total_value=new_value,
+                reference_number=bill.bill_number,
+                reference_type='purchase_bill',
+                reference_id=bill.id,
+                reason='Purchase Bill Approval',
+                notes=f"Vendor: {bill.vendor_name or 'Unknown'}",
+                created_by=session.get('username', 'Admin')
+            )
+            db.session.add(movement)
+            
+            inventory_updates.append({
+                'item': item.name,
+                'old_qty': old_qty,
+                'new_qty': new_qty,
+                'total_qty': total_qty,
+                'old_cost': old_item_cost,
+                'new_cost': new_cost,
+                'weighted_avg': weighted_avg_cost
+            })
+            
+            print(f"✅ Updated inventory for {item.name}:")
+            print(f"   Quantity: {old_qty} + {new_qty} = {total_qty}")
+            print(f"   Cost: ₹{old_item_cost:.2f} → ₹{weighted_avg_cost:.2f} (WAC)")
+            print(f"   Calculation: (₹{old_value:.2f} + ₹{new_value:.2f}) / {total_qty} = ₹{weighted_avg_cost:.2f}")
+        
+        # Update bill status
         bill.status = 'approved'
         bill.approved_at = datetime.now(pytz.timezone('Asia/Kolkata'))
         bill.approved_by = session.get('tenant_admin_id')
         
         db.session.commit()
         
-        flash(f'✅ Purchase Bill {bill.bill_number} approved successfully!', 'success')
+        # Build success message
+        if inventory_updates:
+            update_summary = f"Updated inventory for {len(inventory_updates)} items using Weighted Average Cost"
+            flash(f'✅ Purchase Bill {bill.bill_number} approved! {update_summary}', 'success')
+        else:
+            flash(f'✅ Purchase Bill {bill.bill_number} approved! (No inventory items to update)', 'success')
+            
     except Exception as e:
         db.session.rollback()
+        import traceback
+        print(f"❌ Error approving bill: {str(e)}")
+        print(traceback.format_exc())
         flash(f'❌ Error approving bill: {str(e)}', 'error')
     
     return redirect(url_for('purchase_bills.view_bill', bill_id=bill.id))
