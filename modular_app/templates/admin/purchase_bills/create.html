@@ -176,7 +176,7 @@
         z-index: 9999; /* Increased to be above everything */
         background: white;
         border: 2px solid #007bff;
-        max-height: 400px;
+        max-height: 300px; /* Reduced from 400px - less scrolling! */
         overflow-y: auto;
         width: 100%;
         min-width: 300px;
@@ -237,7 +237,7 @@
     }
 </style>
 
-<form method="POST" enctype="multipart/form-data">
+<form method="POST" enctype="multipart/form-data" onsubmit="return validateForm()">
     <!-- Vendor Information Card -->
     <div class="card mb-4">
         <div class="card-header">
@@ -906,6 +906,46 @@ function clearDocument() {
     imagePreview.src = '';
     
     console.log('🗑️ Document removed');
+}
+
+// Form validation before submit - ensures all item_name fields are filled
+function validateForm() {
+    console.log('🔍 Validating form before submit...');
+    
+    let hasItems = false;
+    let itemCount = 0;
+    
+    // Check each item row
+    document.querySelectorAll('.item-row').forEach((row, index) => {
+        const itemSearch = row.querySelector('.item-search').value.trim();
+        const itemNameHidden = row.querySelector('.item-name');
+        const qty = parseFloat(row.querySelector('.qty-input').value) || 0;
+        const rate = parseFloat(row.querySelector('.rate-input').value) || 0;
+        
+        if (itemSearch && qty > 0 && rate > 0) {
+            itemCount++;
+            hasItems = true;
+            
+            // CRITICAL FIX: If hidden item_name is empty, copy from visible item_search
+            if (!itemNameHidden.value.trim() && itemSearch) {
+                console.log(`⚠️ Row ${index + 1}: Hidden item_name was empty! Copying from visible search...`);
+                itemNameHidden.value = itemSearch;
+                console.log(`✅ Row ${index + 1}: Fixed! item_name = "${itemNameHidden.value}"`);
+            }
+            
+            console.log(`✅ Row ${index + 1}: "${itemSearch}" - Qty: ${qty}, Rate: ${rate}, Hidden Name: "${itemNameHidden.value}"`);
+        } else {
+            console.log(`⚠️ Row ${index + 1}: Skipped (incomplete) - Search: "${itemSearch}", Qty: ${qty}, Rate: ${rate}`);
+        }
+    });
+    
+    if (!hasItems) {
+        alert('⚠️ Please add at least one item with quantity and rate!');
+        return false;
+    }
+    
+    console.log(`✅ Form validation passed! ${itemCount} items will be saved.`);
+    return true;
 }
 
 // Close dropdowns on outside click
