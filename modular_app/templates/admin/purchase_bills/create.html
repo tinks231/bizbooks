@@ -355,17 +355,19 @@
                             </tr>
                         </thead>
                     <tbody id="items_body">
-                        <!-- Template row -->
-                        <tr class="item-row">
+                        <!-- First row with unique IDs -->
+                        <tr class="item-row" id="row_1">
                             <td>
                                 <div style="position: relative;">
                                     <input type="text" class="form-control item-search" 
+                                           id="item_search_1"
                                            placeholder="Search or type item name..."
                                            autocomplete="off"
-                                           oninput="searchItems(this)">
-                                    <input type="hidden" class="item-id" name="item_id[]">
+                                           oninput="searchItems(this, 1)"
+                                           onfocus="searchItems(this, 1)">
+                                    <input type="hidden" class="item-id" name="item_id[]" id="item_id_1">
                                     <input type="hidden" class="item-name" name="item_name[]">
-                                    <div class="item-dropdown autocomplete-dropdown"></div>
+                                    <div class="autocomplete-dropdown" id="dropdown_1" style="display: none;"></div>
                                 </div>
                             </td>
                             <td>
@@ -517,16 +519,26 @@ function selectVendor(id, name, phone, email, gstin, state, address) {
     calculateTotal();
 }
 
-// Item Autocomplete (Client-side filtering like Invoice)
-function searchItems(input) {
+// Item Autocomplete (Matches Invoice Pattern Exactly)
+function searchItems(input, rowId) {
     const query = input.value.toLowerCase().trim();
+    const dropdown = document.getElementById(`dropdown_${rowId}`);
+    
+    if (!dropdown) {
+        console.error('❌ Dropdown not found for row:', rowId);
+        return;
+    }
+    
+    console.log('🔍 Searching for:', query, 'in row:', rowId);
+    
+    // Update hidden item-name field with whatever is typed
     const row = input.closest('.item-row');
-    const dropdown = row.querySelector('.item-dropdown');
-    
-    console.log('🔍 Searching for:', query);
-    
-    // Update item-name hidden field with whatever is typed (for new items)
-    row.querySelector('.item-name').value = input.value;
+    if (row) {
+        const itemNameInput = row.querySelector('.item-name');
+        if (itemNameInput) {
+            itemNameInput.value = input.value;
+        }
+    }
     
     if (!query) {
         dropdown.style.display = 'none';
@@ -598,10 +610,14 @@ function searchItems(input) {
 
 // Hide dropdown when clicking outside
 document.addEventListener('click', function(e) {
-    if (!e.target.closest('.item-search') && !e.target.closest('.item-dropdown')) {
-        document.querySelectorAll('.item-dropdown').forEach(dropdown => {
-            dropdown.style.display = 'none';
-        });
+    if (!e.target.closest('.item-search') && !e.target.closest('.autocomplete-dropdown')) {
+        // Hide all dropdowns
+        for (let i = 1; i <= rowCounter; i++) {
+            const dropdown = document.getElementById(`dropdown_${i}`);
+            if (dropdown) {
+                dropdown.style.display = 'none';
+            }
+        }
     }
 });
 
@@ -683,22 +699,51 @@ function calculateTotal() {
 }
 
 // Add/Remove rows
+let rowCounter = 1; // Global counter for unique row IDs
+
 function addRow() {
+    rowCounter++;
     const tbody = document.getElementById('items_body');
-    const newRow = tbody.querySelector('.item-row').cloneNode(true);
+    const newRow = document.createElement('tr');
+    newRow.className = 'item-row';
+    newRow.id = `row_${rowCounter}`;
     
-    // Clear inputs
-    newRow.querySelectorAll('input').forEach(input => {
-        if (input.classList.contains('qty-input')) {
-            input.value = '1';
-        } else if (input.classList.contains('unit-input')) {
-            input.value = 'pcs';
-        } else if (input.classList.contains('gst-input')) {
-            input.value = '18';
-        } else {
-            input.value = '';
-        }
-    });
+    newRow.innerHTML = `
+        <td>
+            <div style="position: relative;">
+                <input type="text" class="form-control item-search" 
+                       id="item_search_${rowCounter}"
+                       placeholder="Search or type item name..."
+                       autocomplete="off"
+                       oninput="searchItems(this, ${rowCounter})"
+                       onfocus="searchItems(this, ${rowCounter})">
+                <input type="hidden" class="item-id" name="item_id[]" id="item_id_${rowCounter}">
+                <input type="hidden" class="item-name" name="item_name[]">
+                <div class="autocomplete-dropdown" id="dropdown_${rowCounter}" style="display: none;"></div>
+            </div>
+        </td>
+        <td>
+            <input type="text" name="hsn_code[]" class="form-control hsn-input" placeholder="HSN">
+        </td>
+        <td>
+            <input type="number" name="quantity[]" class="form-control qty-input" step="0.001" min="0" value="1" oninput="calculateRow(this)">
+        </td>
+        <td>
+            <input type="text" name="unit[]" class="form-control unit-input" value="pcs">
+        </td>
+        <td>
+            <input type="number" name="rate[]" class="form-control rate-input" step="0.01" min="0" placeholder="0.00" oninput="calculateRow(this)">
+        </td>
+        <td>
+            <input type="number" name="gst_rate[]" class="form-control gst-input" step="0.01" min="0" value="18" oninput="calculateRow(this)">
+        </td>
+        <td class="text-end">
+            <input type="text" class="form-control amount-display" readonly value="₹0.00">
+        </td>
+        <td class="text-center">
+            <button type="button" class="btn btn-sm btn-danger" onclick="removeRow(this)">×</button>
+        </td>
+    `;
     
     tbody.appendChild(newRow);
 }
