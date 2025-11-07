@@ -467,6 +467,10 @@
 </form>
 
 <script>
+// Load items into JavaScript (like Invoice template)
+const items = {{ items|tojson|safe }};
+console.log('✅ Loaded items:', items.length);
+
 // Vendor Autocomplete
 let vendorTimeout;
 function searchVendors(query) {
@@ -513,86 +517,79 @@ function selectVendor(id, name, phone, email, gstin, state, address) {
     calculateTotal();
 }
 
-// Item Autocomplete
-let itemTimeout;
+// Item Autocomplete (Client-side filtering like Invoice)
 function searchItems(input) {
-    clearTimeout(itemTimeout);
-    const query = input.value;
+    const query = input.value.toLowerCase().trim();
     const row = input.closest('.item-row');
     const dropdown = row.querySelector('.item-dropdown');
     
-    console.log('🔍 Searching for:', query); // DEBUG
+    console.log('🔍 Searching for:', query);
     
     // Update item-name hidden field with whatever is typed (for new items)
-    row.querySelector('.item-name').value = query;
+    row.querySelector('.item-name').value = input.value;
     
-    if (query.length < 2) {
-        dropdown.classList.remove('show');
+    if (!query || query.length < 2) {
+        dropdown.style.display = 'none';
         return;
     }
     
-    itemTimeout = setTimeout(() => {
-        const apiUrl = `/admin/purchase-bills/api/search-items?q=${encodeURIComponent(query)}`;
-        console.log('📡 Fetching:', apiUrl); // DEBUG
+    // Filter items client-side
+    const filteredItems = items.filter(item => 
+        item.name.toLowerCase().includes(query) ||
+        (item.item_code && item.item_code.toLowerCase().includes(query))
+    );
+    
+    console.log('✅ Filtered items:', filteredItems.length);
+    
+    if (filteredItems.length === 0) {
+        dropdown.innerHTML = `
+            <div class="autocomplete-item" style="background: #fff3cd; color: #856404; cursor: default; border-left: 3px solid #ffc107;">
+                <div style="font-weight: 600;">📝 No matching items found</div>
+                <div style="font-size: 12px;">Continue typing to add "${input.value}" as a new item</div>
+            </div>
+        `;
+        dropdown.style.display = 'block';
+        return;
+    }
+    
+    // Build dropdown HTML
+    dropdown.innerHTML = '';
+    filteredItems.slice(0, 10).forEach(item => {
+        // Extract GST rate
+        let gst_rate = 18; // default
+        if (item.tax_preference && item.tax_preference.includes('GST@')) {
+            try {
+                gst_rate = parseFloat(item.tax_preference.split('@')[1].replace('%', ''));
+            } catch(e) {}
+        }
         
-        fetch(apiUrl)
-            .then(r => {
-                console.log('📥 Response status:', r.status); // DEBUG
-                return r.json();
-            })
-            .then(items => {
-                console.log('✅ Items found:', items.length, items); // DEBUG
-                
-                if (items.length === 0) {
-                    // Show "no results" message but allow manual entry
-                    dropdown.innerHTML = `
-                        <div class="autocomplete-item" style="background: #fff3cd; color: #856404; cursor: default; border-left: 3px solid #ffc107;">
-                            <div style="font-weight: 600;">📝 No matching items found</div>
-                            <div style="font-size: 12px;">Continue typing to add "${query}" as a new item</div>
-                        </div>
-                    `;
-                    dropdown.classList.add('show');
-                    return;
-                }
-                
-                dropdown.innerHTML = items.map(item => `
-                    <div class="autocomplete-item" 
-                         data-item-id="${item.id}"
-                         data-item-name="${item.name.replace(/"/g, '&quot;')}"
-                         data-item-hsn="${item.hsn_code}"
-                         data-item-unit="${item.unit}"
-                         data-item-price="${item.purchase_price}"
-                         data-item-gst="${item.gst_rate}">
-                        <div style="font-weight: 600;">${item.name}</div>
-                        <div style="font-size: 12px; color: #666;">HSN: ${item.hsn_code} • ₹${item.purchase_price}/${item.unit}</div>
-                    </div>
-                `).join('');
-                dropdown.classList.add('show');
-                
-                console.log('✨ Dropdown shown with', items.length, 'items'); // DEBUG
-                
-                // Add click handlers to autocomplete items
-                dropdown.querySelectorAll('.autocomplete-item').forEach(itemDiv => {
-                    if (itemDiv.dataset.itemId) {
-                        itemDiv.addEventListener('click', function() {
-                            console.log('🖱️ Item clicked:', this.dataset.itemName); // DEBUG
-                            selectItem(
-                                this,
-                                parseInt(this.dataset.itemId),
-                                this.dataset.itemName,
-                                this.dataset.itemHsn,
-                                this.dataset.itemUnit,
-                                parseFloat(this.dataset.itemPrice),
-                                parseFloat(this.dataset.itemGst)
-                            );
-                        });
-                    }
-                });
-            })
-            .catch(err => {
-                console.error('❌ Autocomplete error:', err); // DEBUG
-            });
-    }, 300);
+        const div = document.createElement('div');
+        div.className = 'autocomplete-item';
+        div.style.cursor = 'pointer';
+        div.innerHTML = `
+            <div style="font-weight: 600;">${item.name}</div>
+            <div style="font-size: 12px; color: #666;">HSN: ${item.hsn_code || ''} • ₹${item.purchase_price || 0}/${item.unit || 'pcs'}</div>
+        `;
+        
+        // Use event listener instead of inline onclick
+        div.addEventListener('click', function() {
+            console.log('🖱️ Item clicked:', item.name);
+            selectItem(
+                div,
+                item.id,
+                item.name,
+                item.hsn_code || '',
+                item.unit || 'pcs',
+                parseFloat(item.purchase_price || 0),
+                gst_rate
+            );
+        });
+        
+        dropdown.appendChild(div);
+    });
+    
+    dropdown.style.display = 'block';
+    console.log('✨ Dropdown shown with', filteredItems.length, 'items');
 }
 
 function selectItem(elem, id, name, hsn, unit, price, gst_rate) {
@@ -604,7 +601,7 @@ function selectItem(elem, id, name, hsn, unit, price, gst_rate) {
     row.querySelector('.unit-input').value = unit;
     row.querySelector('.rate-input').value = price;
     row.querySelector('.gst-input').value = gst_rate;
-    row.querySelector('.item-dropdown').classList.remove('show');
+    row.querySelector('.item-dropdown').style.display = 'none'; // Hide dropdown
     
     calculateRow(row.querySelector('.qty-input'));
 }

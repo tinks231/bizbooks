@@ -221,11 +221,13 @@ def create_bill():
     # GET request - show form
     vendors = Vendor.query.filter_by(tenant_id=tenant_id, is_active=True).order_by(Vendor.name).all()
     sites = Site.query.filter_by(tenant_id=tenant_id).all()
+    items = Item.query.filter_by(tenant_id=tenant_id).all()  # Load all items for autocomplete
     
     return render_template('admin/purchase_bills/create.html',
                          tenant=g.tenant,
                          vendors=vendors,
                          sites=sites,
+                         items=items,
                          today=date.today().strftime('%Y-%m-%d'))
 
 @purchase_bills_bp.route('/<int:bill_id>')
