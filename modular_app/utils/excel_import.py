@@ -514,7 +514,9 @@ def import_inventory_from_excel(file, tenant_id):
                     opening_stock=float(stock) if stock else 0.0,
                     selling_price=float(price) if price else 0.0,
                     cost_price=float(price) if price else 0.0,  # Same as selling for now
-                    tax_preference=f"GST {tax_rate}%" if tax_rate else "GST 18%",
+                    hsn_code=str(hsn).strip() if hsn else None,  # NEW: HSN code from Excel
+                    gst_rate=float(tax_rate) if tax_rate else 18.0,  # NEW: GST rate as float
+                    tax_preference=f"GST {tax_rate}%" if tax_rate else "GST 18%",  # Keep for backward compatibility
                     sales_description=str(description).strip() if description else '',
                     purchase_description=str(description).strip() if description else ''
                 )
