@@ -189,6 +189,9 @@ class ItemStock(db.Model, TimestampMixin):
     # ===== Tracking =====
     last_stock_date = db.Column(db.DateTime, default=lambda: datetime.now(pytz.timezone('Asia/Kolkata')))
     
+    # ===== Relationships =====
+    site = db.relationship('Site', backref='item_stocks')
+    
     def get_available_for_sale(self):
         """Available quantity after commitments"""
         return self.quantity_available - self.quantity_committed
