@@ -6,114 +6,436 @@
 
 {% block header_actions %}
 <a href="{{ url_for('gst_reports.index') }}" class="btn btn-secondary">
-    ← Back to GST Reports
+    ← Back
 </a>
-<button onclick="window.print()" class="btn btn-primary">
-    🖨️ Print Report
+<button onclick="window.print()" class="btn btn-success">
+    🖨️ Print
 </button>
 {% endblock %}
 
 {% block content %}
 
-<!-- Period Header -->
-<div class="card" style="margin-bottom: 20px;">
-    <h2 style="margin: 0; color: #2c3e50;">{{ month_name }}</h2>
-    <p style="margin: 5px 0 0 0; color: #7f8c8d;">GSTR-3B Summary Return | {{ invoice_count }} Invoices</p>
-</div>
-
-<!-- Outward Supplies (Sales) -->
-<div class="card" style="margin-bottom: 20px;">
-    <h3 style="margin-bottom: 15px; color: #27ae60;">📤 Outward Supplies (Sales)</h3>
-    
-    <table class="table">
-        <tr>
-            <td style="width: 60%;">Taxable Value of Supplies</td>
-            <td style="text-align: right; font-weight: 600;">₹{{ "{:,.2f}".format(outward_taxable) }}</td>
-        </tr>
-        <tr>
-            <td>Central Tax (CGST)</td>
-            <td style="text-align: right; color: #e74c3c; font-weight: 600;">₹{{ "{:,.2f}".format(outward_cgst) }}</td>
-        </tr>
-        <tr>
-            <td>State Tax (SGST)</td>
-            <td style="text-align: right; color: #f39c12; font-weight: 600;">₹{{ "{:,.2f}".format(outward_sgst) }}</td>
-        </tr>
-        <tr>
-            <td>Integrated Tax (IGST)</td>
-            <td style="text-align: right; color: #9b59b6; font-weight: 600;">₹{{ "{:,.2f}".format(outward_igst) }}</td>
-        </tr>
-        <tr style="background: #d4edda; font-weight: 700;">
-            <td>Total Tax on Outward Supplies</td>
-            <td style="text-align: right;">₹{{ "{:,.2f}".format(outward_cgst + outward_sgst + outward_igst) }}</td>
-        </tr>
-    </table>
-</div>
-
-<!-- Inward Supplies (Purchases) -->
-<div class="card" style="margin-bottom: 20px;">
-    <h3 style="margin-bottom: 15px; color: #3498db;">📥 Inward Supplies & ITC (Input Tax Credit)</h3>
-    
-    {% if inward_taxable == 0 %}
-    <div style="padding: 40px; text-align: center; background: #d1ecf1; border-radius: 8px;">
-        <p style="margin: 0; color: #0c5460;">
-            <strong>ℹ️ ITC (Input Tax Credit) Available</strong><br>
-            <small>Purchase Bills module is now implemented. View detailed ITC breakdown in <a href="{{ url_for('purchase_bills.gstr2_report', start_date=start_date) }}" style="color: #0c5460; font-weight: bold; text-decoration: underline;">GSTR-2 Report</a>.</small>
-        </p>
-    </div>
-    {% else %}
-    <table class="table">
-        <tr>
-            <td style="width: 60%;">Total Input Tax Credit Availed</td>
-            <td style="text-align: right; color: #27ae60; font-weight: 600;">₹{{ "{:,.2f}".format(inward_cgst + inward_sgst + inward_igst) }}</td>
-        </tr>
-    </table>
-    {% endif %}
-</div>
-
-<!-- Net Tax Liability -->
-<div class="card" style="border: 2px solid #e74c3c;">
-    <h3 style="margin-bottom: 15px; color: #e74c3c;">💰 Net Tax Liability (Payable)</h3>
-    
-    <table class="table">
-        <tr>
-            <td style="width: 60%;">Net CGST Payable</td>
-            <td style="text-align: right; font-weight: 600;">₹{{ "{:,.2f}".format(net_cgst if net_cgst > 0 else 0) }}</td>
-        </tr>
-        <tr>
-            <td>Net SGST Payable</td>
-            <td style="text-align: right; font-weight: 600;">₹{{ "{:,.2f}".format(net_sgst if net_sgst > 0 else 0) }}</td>
-        </tr>
-        <tr>
-            <td>Net IGST Payable</td>
-            <td style="text-align: right; font-weight: 600;">₹{{ "{:,.2f}".format(net_igst if net_igst > 0 else 0) }}</td>
-        </tr>
-        <tr style="background: #f8d7da; font-weight: 700; font-size: 18px;">
-            <td>TOTAL TAX PAYABLE</td>
-            <td style="text-align: right; color: #e74c3c;">₹{{ "{:,.2f}".format(total_tax_liability if total_tax_liability > 0 else 0) }}</td>
-        </tr>
-    </table>
-</div>
-
 <style>
-    .table {
+    /* Vyapar-Style Compact Design */
+    .gstr3b-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        font-family: Arial, sans-serif;
+    }
+    
+    .report-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 20px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    
+    .report-title {
+        font-size: 24px;
+        font-weight: bold;
+        margin: 0 0 5px 0;
+    }
+    
+    .report-subtitle {
+        font-size: 14px;
+        opacity: 0.9;
+        margin: 0;
+    }
+    
+    .summary-cards {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 15px;
+        margin-bottom: 25px;
+    }
+    
+    .summary-card {
+        background: white;
+        border: 2px solid #e0e0e0;
+        border-radius: 8px;
+        padding: 15px;
+        text-align: center;
+        transition: all 0.2s;
+    }
+    
+    .summary-card:hover {
+        border-color: #667eea;
+        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+        transform: translateY(-2px);
+    }
+    
+    .summary-card.outward {
+        border-left: 4px solid #28a745;
+    }
+    
+    .summary-card.inward {
+        border-left: 4px solid #3498db;
+    }
+    
+    .summary-card.liability {
+        border-left: 4px solid #e74c3c;
+    }
+    
+    .summary-card-label {
+        font-size: 12px;
+        color: #666;
+        margin-bottom: 5px;
+        font-weight: 600;
+        text-transform: uppercase;
+    }
+    
+    .summary-card-value {
+        font-size: 22px;
+        font-weight: bold;
+        color: #2c3e50;
+    }
+    
+    .summary-card-sub {
+        font-size: 11px;
+        color: #999;
+        margin-top: 3px;
+    }
+    
+    .report-section {
+        background: white;
+        border: 2px solid #e0e0e0;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        overflow: hidden;
+    }
+    
+    .section-header {
+        background: #f8f9fa;
+        border-bottom: 2px solid #e0e0e0;
+        padding: 12px 20px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .section-title {
+        font-size: 16px;
+        font-weight: bold;
+        color: #2c3e50;
+        margin: 0;
+    }
+    
+    .section-badge {
+        background: #667eea;
+        color: white;
+        padding: 4px 12px;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: 600;
+    }
+    
+    .section-body {
+        padding: 0;
+    }
+    
+    .gst-table {
         width: 100%;
         border-collapse: collapse;
     }
     
-    .table tr {
-        border-bottom: 1px solid #e9ecef;
+    .gst-table thead th {
+        background: #2c3e50;
+        color: white;
+        padding: 12px 20px;
+        text-align: left;
+        font-size: 13px;
+        font-weight: 600;
+        border-bottom: none;
     }
     
-    .table td {
-        padding: 15px;
+    .gst-table thead th:last-child {
+        text-align: right;
+    }
+    
+    .gst-table tbody td {
+        padding: 12px 20px;
+        border-bottom: 1px solid #f0f0f0;
+        font-size: 14px;
+    }
+    
+    .gst-table tbody tr:hover {
+        background: #f8f9fa;
+    }
+    
+    .gst-table tbody td:last-child {
+        text-align: right;
+        font-weight: 600;
+        font-family: 'Courier New', monospace;
+    }
+    
+    .gst-table .tax-row {
+        font-weight: 600;
+    }
+    
+    .gst-table .tax-row.cgst td:last-child {
+        color: #e74c3c;
+    }
+    
+    .gst-table .tax-row.sgst td:last-child {
+        color: #f39c12;
+    }
+    
+    .gst-table .tax-row.igst td:last-child {
+        color: #9b59b6;
+    }
+    
+    .gst-table .total-row {
+        background: #e8f5e9 !important;
+        font-weight: bold;
+        font-size: 15px;
+    }
+    
+    .gst-table .total-row td {
+        border-top: 2px solid #27ae60;
+        border-bottom: 2px solid #27ae60;
+        padding: 15px 20px;
+    }
+    
+    .gst-table .total-row td:last-child {
+        color: #27ae60;
+    }
+    
+    .liability-table .total-row {
+        background: #ffebee !important;
+    }
+    
+    .liability-table .total-row td {
+        border-top: 2px solid #e74c3c;
+        border-bottom: 2px solid #e74c3c;
+    }
+    
+    .liability-table .total-row td:last-child {
+        color: #e74c3c;
+        font-size: 18px;
+    }
+    
+    .info-box {
+        background: #e3f2fd;
+        border: 1px solid #90caf9;
+        border-radius: 6px;
+        padding: 15px 20px;
+        margin: 20px;
+        display: flex;
+        align-items: center;
+        gap: 15px;
+    }
+    
+    .info-box-icon {
+        font-size: 24px;
+    }
+    
+    .info-box-content {
+        flex: 1;
+    }
+    
+    .info-box-title {
+        font-weight: bold;
+        margin-bottom: 5px;
+        color: #1976d2;
+    }
+    
+    .info-box-text {
+        font-size: 13px;
+        color: #0d47a1;
+    }
+    
+    .info-box a {
+        color: #0d47a1;
+        font-weight: bold;
+        text-decoration: underline;
     }
     
     @media print {
-        .btn {
-            display: none !important;
+        .btn, .report-section:hover {
+            box-shadow: none !important;
+        }
+        
+        .summary-cards {
+            break-inside: avoid;
+        }
+        
+        .report-section {
+            break-inside: avoid;
+            page-break-inside: avoid;
+        }
+    }
+    
+    @media (max-width: 768px) {
+        .summary-cards {
+            grid-template-columns: repeat(2, 1fr);
         }
     }
 </style>
 
-{% endblock %}
+<div class="gstr3b-container">
+    <!-- Report Header -->
+    <div class="report-header">
+        <div class="report-title">GSTR-3B Monthly Summary Return</div>
+        <div class="report-subtitle">{{ month_name }} | {{ invoice_count }} Transactions | {{ tenant.company_name }}</div>
+    </div>
+    
+    <!-- Summary Cards -->
+    <div class="summary-cards">
+        <div class="summary-card outward">
+            <div class="summary-card-label">Taxable Sales</div>
+            <div class="summary-card-value">₹{{ "{:,.0f}".format(outward_taxable) }}</div>
+            <div class="summary-card-sub">Outward Supplies</div>
+        </div>
+        
+        <div class="summary-card outward">
+            <div class="summary-card-label">Tax Collected</div>
+            <div class="summary-card-value">₹{{ "{:,.0f}".format(outward_cgst + outward_sgst + outward_igst) }}</div>
+            <div class="summary-card-sub">CGST + SGST + IGST</div>
+        </div>
+        
+        <div class="summary-card inward">
+            <div class="summary-card-label">ITC Available</div>
+            <div class="summary-card-value">₹{{ "{:,.0f}".format(inward_cgst + inward_sgst + inward_igst) }}</div>
+            <div class="summary-card-sub">Input Tax Credit</div>
+        </div>
+        
+        <div class="summary-card liability">
+            <div class="summary-card-label">Net Tax Payable</div>
+            <div class="summary-card-value">₹{{ "{:,.0f}".format(total_tax_liability if total_tax_liability > 0 else 0) }}</div>
+            <div class="summary-card-sub">To be Paid</div>
+        </div>
+    </div>
+    
+    <!-- Outward Supplies (Sales) -->
+    <div class="report-section">
+        <div class="section-header" style="border-left: 4px solid #28a745;">
+            <h3 class="section-title">📤 Outward Supplies (Sales)</h3>
+            <span class="section-badge" style="background: #28a745;">Table 3.1</span>
+        </div>
+        <div class="section-body">
+            <table class="gst-table">
+                <thead>
+                    <tr>
+                        <th>Description</th>
+                        <th>Amount</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Taxable Value of Supplies</td>
+                        <td>₹{{ "{:,.2f}".format(outward_taxable) }}</td>
+                    </tr>
+                    <tr class="tax-row cgst">
+                        <td>Central Tax (CGST)</td>
+                        <td>₹{{ "{:,.2f}".format(outward_cgst) }}</td>
+                    </tr>
+                    <tr class="tax-row sgst">
+                        <td>State Tax (SGST)</td>
+                        <td>₹{{ "{:,.2f}".format(outward_sgst) }}</td>
+                    </tr>
+                    <tr class="tax-row igst">
+                        <td>Integrated Tax (IGST)</td>
+                        <td>₹{{ "{:,.2f}".format(outward_igst) }}</td>
+                    </tr>
+                    <tr class="total-row">
+                        <td><strong>Total Tax on Outward Supplies</strong></td>
+                        <td><strong>₹{{ "{:,.2f}".format(outward_cgst + outward_sgst + outward_igst) }}</strong></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <!-- Inward Supplies (Purchases) & ITC -->
+    <div class="report-section">
+        <div class="section-header" style="border-left: 4px solid #3498db;">
+            <h3 class="section-title">📥 Inward Supplies & ITC (Input Tax Credit)</h3>
+            <span class="section-badge" style="background: #3498db;">Table 4</span>
+        </div>
+        <div class="section-body">
+            {% if inward_taxable == 0 %}
+            <div class="info-box">
+                <div class="info-box-icon">ℹ️</div>
+                <div class="info-box-content">
+                    <div class="info-box-title">ITC (Input Tax Credit) Available</div>
+                    <div class="info-box-text">
+                        Purchase Bills module is now implemented. View detailed ITC breakdown in 
+                        <a href="{{ url_for('purchase_bills.gstr2_report', start_date=start_date) }}">GSTR-2 Report</a>.
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <table class="gst-table">
+                <thead>
+                    <tr>
+                        <th>Description</th>
+                        <th>Amount</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Taxable Value of Purchases</td>
+                        <td>₹{{ "{:,.2f}".format(inward_taxable) }}</td>
+                    </tr>
+                    <tr class="tax-row cgst">
+                        <td>CGST Credit Availed</td>
+                        <td>₹{{ "{:,.2f}".format(inward_cgst) }}</td>
+                    </tr>
+                    <tr class="tax-row sgst">
+                        <td>SGST Credit Availed</td>
+                        <td>₹{{ "{:,.2f}".format(inward_sgst) }}</td>
+                    </tr>
+                    <tr class="tax-row igst">
+                        <td>IGST Credit Availed</td>
+                        <td>₹{{ "{:,.2f}".format(inward_igst) }}</td>
+                    </tr>
+                    <tr class="total-row">
+                        <td><strong>Total Input Tax Credit Availed</strong></td>
+                        <td><strong>₹{{ "{:,.2f}".format(inward_cgst + inward_sgst + inward_igst) }}</strong></td>
+                    </tr>
+                </tbody>
+            </table>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- Net Tax Liability -->
+    <div class="report-section" style="border: 2px solid #e74c3c;">
+        <div class="section-header" style="border-left: 4px solid #e74c3c; background: #ffebee;">
+            <h3 class="section-title" style="color: #e74c3c;">💰 Net Tax Liability (Payable)</h3>
+            <span class="section-badge" style="background: #e74c3c;">Table 6.1</span>
+        </div>
+        <div class="section-body">
+            <table class="gst-table liability-table">
+                <thead>
+                    <tr>
+                        <th>Tax Head</th>
+                        <th>Amount Payable</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Net CGST Payable</td>
+                        <td>₹{{ "{:,.2f}".format(net_cgst if net_cgst > 0 else 0) }}</td>
+                    </tr>
+                    <tr>
+                        <td>Net SGST Payable</td>
+                        <td>₹{{ "{:,.2f}".format(net_sgst if net_sgst > 0 else 0) }}</td>
+                    </tr>
+                    <tr>
+                        <td>Net IGST Payable</td>
+                        <td>₹{{ "{:,.2f}".format(net_igst if net_igst > 0 else 0) }}</td>
+                    </tr>
+                    <tr class="total-row">
+                        <td><strong>TOTAL TAX PAYABLE TO GOVERNMENT</strong></td>
+                        <td><strong>₹{{ "{:,.2f}".format(total_tax_liability if total_tax_liability > 0 else 0) }}</strong></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
 
+{% endblock %}
