@@ -40,7 +40,7 @@
             <select name="category" onchange="this.form.submit()">
                 <option value="">All Categories</option>
                 {% for category in categories %}
-                <option value="{{ category.id }}" {% if request.args.get('category', type=int) == category.id %}selected{% endif %}>
+                <option value="{{ category.id }}" {% if request.args.get('category', '0')|int == category.id %}selected{% endif %}>
                     {{ category.name }}
                 </option>
                 {% endfor %}
@@ -51,7 +51,7 @@
             <select name="group" onchange="this.form.submit()">
                 <option value="">All Groups</option>
                 {% for group in groups %}
-                <option value="{{ group.id }}" {% if request.args.get('group', type=int) == group.id %}selected{% endif %}>
+                <option value="{{ group.id }}" {% if request.args.get('group', '0')|int == group.id %}selected{% endif %}>
                     {{ group.name }}
                 </option>
                 {% endfor %}
