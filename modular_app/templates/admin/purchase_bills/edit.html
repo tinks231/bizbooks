@@ -1,0 +1,1056 @@
+{% extends "base_sidebar.html" %}
+
+{% block title %}Edit Purchase Bill{% endblock %}
+
+{% block page_title %}💼 Edit Purchase Bill #{{ bill.bill_number }}{% endblock %}
+
+{% block header_actions %}
+<a href="{{ url_for('purchase_bills.view_bill', bill_id=bill.id) }}" class="btn btn-secondary">
+    ← Back to Bill
+</a>
+{% endblock %}
+
+{% block content %}
+<!-- CSS v5.0 - USER-SUGGESTED FIXES APPLIED -->
+<style>
+    /* Custom Grid System - v5.0 USER-SUGGESTED FIX */
+    .row {
+        display: flex;
+        flex-wrap: wrap;
+        margin: 0 -15px;
+    }
+    
+    .col-md-12, .col-md-6, .col-md-4 {
+        padding: 0 15px;
+        box-sizing: border-box; /* Essential for proper sizing */
+    }
+    
+    .col-md-12 {
+        flex: 0 0 100%;
+        max-width: 100%;
+    }
+    
+    .col-md-6 {
+        flex: 0 0 50%;
+        max-width: 50%;
+        flex-basis: 50%; /* Explicit flex-basis */
+    }
+    
+    .col-md-4 {
+        flex: 0 0 33.333%;
+        max-width: 33.333%;
+        flex-basis: 33.333%; /* Explicit flex-basis */
+    }
+    
+    /* Ensure textareas don't overflow their columns */
+    .col-md-6 textarea.form-control,
+    .col-md-12 textarea.form-control {
+        width: 100%;
+        max-width: 100%;
+        box-sizing: border-box;
+    }
+    
+    .mb-3 {
+        margin-bottom: 1rem;
+    }
+    
+    .mb-4 {
+        margin-bottom: 1.5rem;
+    }
+    
+    .mt-3 {
+        margin-top: 1rem;
+    }
+    
+    .mt-4 {
+        margin-top: 1.5rem;
+    }
+    
+    .card {
+        border-radius: 8px;
+        box-shadow: 0 0 10px rgba(0,0,0,0.05);
+        background: white;
+        border: 1px solid #ddd;
+    }
+    
+    .card-header {
+        background-color: #f8f9fa;
+        border-bottom: 2px solid #dee2e6;
+        padding: 1rem 1.5rem;
+    }
+    
+    .card-body {
+        padding: 1.5rem;
+    }
+    
+    .form-label {
+        font-weight: 500;
+        margin-bottom: 0.5rem;
+        display: block;
+    }
+    
+    .form-control, .form-select {
+        width: 100%;
+        padding: 0.5rem;
+        border: 1px solid #ced4da;
+        border-radius: 4px;
+        font-size: 1rem;
+    }
+    
+    .text-end {
+        text-align: right;
+    }
+    
+    .text-center {
+        text-align: center;
+    }
+    
+    .table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    
+    .table th, .table td {
+        padding: 0.75rem;
+        border: 1px solid #dee2e6;
+        text-align: left;
+    }
+    
+    .table-light {
+        background-color: #f8f9fa;
+    }
+    
+    .table-responsive {
+        overflow-x: auto;
+    }
+    
+    .table-bordered {
+        border: 1px solid #dee2e6;
+    }
+    
+    .table-sm td, .table-sm th {
+        padding: 0.5rem;
+    }
+    
+    .table-active {
+        background-color: #f8f9fa;
+        font-weight: 600;
+    }
+    
+    .btn {
+        display: inline-block;
+        padding: 0.5rem 1rem;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        text-decoration: none;
+        font-size: 1rem;
+    }
+    
+    .btn-primary { background: #007bff; color: white; }
+    .btn-secondary { background: #6c757d; color: white; }
+    .btn-success { background: #28a745; color: white; }
+    .btn-danger { background: #dc3545; color: white; }
+    
+    .btn-sm {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.875rem;
+    }
+    
+    .btn-lg {
+        padding: 0.75rem 1.5rem;
+        font-size: 1.125rem;
+    }
+    
+    .d-flex {
+        display: flex;
+    }
+    
+    .justify-content-between {
+        justify-content: space-between;
+    }
+    
+    .align-items-center {
+        align-items: center;
+    }
+    
+    .me-2 {
+        margin-right: 0.5rem;
+    }
+    
+    .text-danger {
+        color: #dc3545;
+    }
+    
+    .autocomplete-dropdown {
+        position: absolute;
+        left: 0; /* Ensure dropdown stays within cell */
+        z-index: 9999;
+        background: white;
+        border: 2px solid #007bff;
+        max-height: 220px; /* Reduced for better usability */
+        overflow-y: auto;
+        width: auto;
+        min-width: 250px;
+        max-width: 350px;
+        display: none;
+        box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+        margin-top: 2px;
+        border-radius: 8px;
+    }
+    
+    /* Ensure table cells don't clip the dropdown */
+    #items_table td {
+        position: relative;
+        overflow: visible !important;
+    }
+    
+    .table-responsive {
+        overflow: visible; /* Remove nested scrollbars */
+    }
+    
+    .autocomplete-item {
+        padding: 10px 12px;
+        cursor: pointer;
+        border-bottom: 1px solid #e9ecef;
+        transition: all 0.2s ease;
+        font-size: 0.95rem;
+    }
+    
+    .autocomplete-item:hover {
+        background-color: #e3f2fd;
+        border-left: 3px solid #007bff;
+    }
+    
+    /* Force totals to right side of page */
+    .totals-container {
+        display: flex;
+        justify-content: flex-end;
+        width: 100%;
+        margin-top: 1.5rem;
+    }
+    
+    /* Optional fixed width (so it doesn't stretch across) */
+    .totals-container table {
+        width: 350px;
+    }
+    
+    /* Align label left and value right */
+    .totals-container td:first-child {
+        text-align: left;
+        padding-right: 1rem;
+        white-space: nowrap;
+    }
+    
+    .totals-container td:last-child {
+        text-align: right;
+        width: 100px;
+    }
+    
+    /* Make Total Amount stand out */
+    .totals-container .table-active td {
+        background-color: #f8f9fa;
+        font-weight: 600;
+    }
+    
+    /* Ensure all cards and containers are visible */
+    .card {
+        width: 100%;
+        max-width: 100%;
+        overflow: visible;
+        box-sizing: border-box;
+    }
+    
+    .card-body {
+        overflow: visible; /* Allow content to breathe */
+    }
+    
+    /* Textareas resize properly */
+    textarea.form-control {
+        resize: vertical;
+        max-width: 100%;
+    }
+    
+    /* Ensure form doesn't cause horizontal scroll */
+    #purchase_bill_form {
+        width: 100%;
+        max-width: 100%;
+        overflow-x: visible;
+        box-sizing: border-box;
+    }
+
+    /* Fix for Additional Details section layout */
+    .card.mb-4:last-of-type {
+        overflow: visible;
+    }
+
+    .card-body .row {
+        flex-wrap: wrap;
+        margin: 0 -15px;
+    }
+
+    .card-body .col-md-6 {
+        flex: 0 0 50%;
+        max-width: 50%;
+        box-sizing: border-box;
+        min-width: 0;
+    }
+
+    .card-body .form-label {
+        z-index: 1;
+        background: #f8f9fa;
+        position: relative;
+        padding-left: 2px;
+    }
+
+    .card-body textarea.form-control {
+        width: 100%;
+        max-width: 100%;
+        min-height: 80px;
+        resize: vertical;
+        box-sizing: border-box;
+    }
+
+    /* Prevent textarea from overflowing and ensure headline is visible */
+    .card-body {
+        overflow: visible;
+    }
+
+    /* Fix for headline visibility */
+    .card-header h5 {
+        margin-bottom: 0.5rem;
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: #333;
+        background: transparent;
+        z-index: 2;
+        position: relative;
+    }
+</style>
+
+<form method="POST" enctype="multipart/form-data" id="purchase_bill_form" onsubmit="return validatePurchaseBillForm()">
+    <!-- Vendor Information Card -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">Vendor Information</h5>
+        </div>
+        <div class="card-body">
+            <!-- Vendor Search -->
+            <div class="row mb-3">
+                <div class="col-md-12">
+                    <label class="form-label">Search Existing Vendor</label>
+                    <div style="position: relative;">
+                        <input type="text" id="vendor_search" class="form-control"
+                               placeholder="Type vendor name or code..."
+                               autocomplete="off"
+                               oninput="searchVendors(this.value)">
+                        <div id="vendor_dropdown" class="autocomplete-dropdown"></div>
+                    </div>
+                    <input type="hidden" id="vendor_id" name="vendor_id">
+                </div>
+            </div>
+            
+            <!-- Vendor Details - 2 Column Layout -->
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Vendor Name <span class="text-danger">*</span></label>
+                    <input type="text" id="vendor_name" name="vendor_name" 
+                           class="form-control" required placeholder="Vendor Name" value="{{ bill.vendor_name }}">
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Phone</label>
+                    <input type="tel" id="vendor_phone" name="vendor_phone" 
+                           class="form-control" placeholder="Phone Number" value="{{ bill.vendor_phone or \'\' }}">
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Email</label>
+                    <input type="email" id="vendor_email" name="vendor_email" 
+                           class="form-control" placeholder="Email Address" value="{{ bill.vendor_email or \'\' }}">
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">GSTIN</label>
+                    <input type="text" id="vendor_gstin" name="vendor_gstin" 
+                           class="form-control" placeholder="27XXXXX1234X1Z5" maxlength="15" value="{{ bill.vendor_gstin or \'\' }}">
+                </div>
+            </div>
+            
+            <!-- Address and State - 2 Column Layout -->
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">State</label>
+                    <input type="text" id="vendor_state" name="vendor_state" class="form-control" placeholder="State" value="{{ bill.vendor_state or \'Maharashtra\' }}">
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Address</label>
+                    <textarea id="vendor_address" name="vendor_address" class="form-control" rows="2" placeholder="Enter vendor address">{{ bill.vendor_address or \'\' }}</textarea>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bill Details Card -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">Bill Details</h5>
+        </div>
+        <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Bill Date <span class="text-danger">*</span></label>
+                        <input type="date" name="bill_date" class="form-control" value="{{ bill.bill_date.strftime(\'%Y-%m-%d\') }}" required>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Due Date</label>
+                        <input type="date" name="due_date" class="form-control" value="{{ bill.due_date.strftime(\'%Y-%m-%d\') if bill.due_date else \'\' }}" class="form-control">
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Vendor Invoice #</label>
+                        <input type="text" name="reference_number" class="form-control" placeholder="Vendor's bill number" value="{{ bill.reference_number or \'\' }}">
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-12 mb-3">
+                        <label class="form-label">Payment Terms</label>
+                        <input type="text" name="payment_terms" class="form-control" placeholder="e.g., Net 30 days" value="{{ bill.payment_terms or \'\' }}">
+                    </div>
+                </div>
+                
+                <!-- Bill Document Upload -->
+                <div class="row">
+                    <div class="col-md-12 mb-3">
+                        <label class="form-label">📎 Upload Bill Document <span style="color: #666; font-size: 13px;">(Optional - Image or PDF)</span></label>
+                        <input type="file" 
+                               name="bill_document" 
+                               id="bill_document" 
+                               class="form-control" 
+                               accept="image/*,.pdf"
+                               onchange="previewBillDocument(this)">
+                        <div style="font-size: 12px; color: #666; margin-top: 5px;">
+                            Supported: JPG, PNG, PDF (Max 10MB) • Images will be compressed automatically
+                        </div>
+                        <!-- Preview area -->
+                        <div id="document_preview" style="margin-top: 15px; display: none;">
+                            <div style="padding: 15px; background: #f8f9fa; border-radius: 8px; border: 1px solid #dee2e6;">
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <div>
+                                        <strong>📄 Selected File:</strong>
+                                        <div id="file_name" style="color: #666; margin-top: 5px;"></div>
+                                        <div id="file_size" style="color: #666; font-size: 12px; margin-top: 3px;"></div>
+                                    </div>
+                                    <button type="button" class="btn btn-sm btn-danger" onclick="clearDocument()">
+                                        ✕ Remove
+                                    </button>
+                                </div>
+                                <!-- Image preview (if image) -->
+                                <img id="image_preview" style="max-width: 300px; max-height: 200px; margin-top: 10px; border-radius: 4px; display: none;" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+        </div>
+    </div>
+
+    <!-- Line Items Card -->
+    <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Line Items</h5>
+            <button type="button" class="btn btn-sm btn-primary" onclick="addRow()">
+                + Add Item
+            </button>
+        </div>
+        <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-bordered" id="items_table">
+                        <thead class="table-light">
+                            <tr>
+                                <th style="width: 25%;">ITEM <span class="text-danger">*</span></th>
+                                <th style="width: 12%;">HSN CODE</th>
+                                <th style="width: 10%;">QTY <span class="text-danger">*</span></th>
+                                <th style="width: 8%;">UNIT</th>
+                                <th style="width: 12%;">RATE <span class="text-danger">*</span></th>
+                                <th style="width: 10%;">GST %</th>
+                                <th style="width: 12%;" class="text-end">AMOUNT</th>
+                                <th style="width: 3%;"></th>
+                            </tr>
+                        </thead>
+                    <tbody id="items_body">
+                        <!-- First row with unique IDs -->
+                        <tr class="item-row" id="row_1">
+                            <td>
+                                <div style="position: relative;">
+                                    <input type="text" class="form-control item-search" 
+                                           id="item_search_1"
+                                           placeholder="Search or type item name..."
+                                           autocomplete="off"
+                                           oninput="searchItems(this, 1)"
+                                           onfocus="searchItems(this, 1)">
+                                    <input type="hidden" class="item-id" name="item_id[]" id="item_id_1">
+                                    <input type="hidden" class="item-name" name="item_name[]">
+                                    <div class="autocomplete-dropdown" id="dropdown_1" style="display: none;"></div>
+                                </div>
+                            </td>
+                            <td>
+                                <input type="text" name="hsn_code[]" class="form-control hsn-input" placeholder="HSN">
+                            </td>
+                            <td>
+                                <input type="number" name="quantity[]" class="form-control qty-input" step="0.001" min="0" value="1" oninput="calculateRow(this)">
+                            </td>
+                            <td>
+                                <input type="text" name="unit[]" class="form-control unit-input" value="pcs">
+                            </td>
+                            <td>
+                                <input type="number" name="rate[]" class="form-control rate-input" step="0.01" min="0" oninput="calculateRow(this)">
+                            </td>
+                            <td>
+                                <input type="number" name="gst_rate[]" class="form-control gst-input" step="0.01" min="0" value="18" oninput="calculateRow(this)">
+                            </td>
+                            <td>
+                                <input type="text" class="form-control amount-display" readonly>
+                            </td>
+                            <td>
+                                <button type="button" class="btn btn-sm btn-danger" onclick="removeRow(this)">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+                
+                <!-- Totals -->
+                <div class="totals-container">
+                    <table class="table table-sm">
+                        <tr>
+                            <td><strong>Subtotal:</strong></td>
+                            <td><strong id="subtotal_display">₹0.00</strong></td>
+                        </tr>
+                        <tr>
+                            <td>CGST:</td>
+                            <td id="cgst_display">₹0.00</td>
+                        </tr>
+                        <tr>
+                            <td>SGST:</td>
+                            <td id="sgst_display">₹0.00</td>
+                        </tr>
+                        <tr>
+                            <td>IGST:</td>
+                            <td id="igst_display">₹0.00</td>
+                        </tr>
+                        <tr>
+                            <td>Other Charges:
+                                <input type="number" name="other_charges" class="form-control form-control-sm" 
+                                       step="0.01" value="0" oninput="calculateTotal()" 
+                                       style="width: 100px; display: inline-block; margin-left: 5px;">
+                            </td>
+                            <td id="other_display"></td>
+                        </tr>
+                        <tr class="table-active">
+                            <td><strong>Total Amount:</strong></td>
+                            <td><strong id="total_display">₹0.00</strong></td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Additional Details Card -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">Additional Details</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Notes</label>
+                    <textarea name="notes" class="form-control" rows="3" placeholder="Internal notes..."></textarea>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Terms & Conditions</label>
+                    <textarea name="terms_conditions" class="form-control" rows="3" placeholder="Payment terms, delivery terms..."></textarea>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Form Actions -->
+    <div class="card" style="margin-bottom: 100px;">
+        <div class="card-body text-end">
+            <a href="{{ url_for('purchase_bills.view_bill', bill_id=bill.id) }}" class="btn btn-secondary btn-lg me-2">
+                Cancel
+            </a>
+            <button type="submit" class="btn btn-success btn-lg">
+                <i class="fas fa-save"></i> Edit Purchase Bill
+            </button>
+        </div>
+    </div>
+</form>
+
+<script>
+// Purchase Bill Form - Initialization
+console.log('Purchase Bill form loaded successfully');
+
+// Load items and vendors into JavaScript
+const items = {{ items|tojson|safe }} || [];
+const vendors = {{ vendors|tojson|safe }} || [];
+
+console.log('=== PURCHASE BILLS AUTOCOMPLETE DEBUG ===');
+console.log('✅ Loaded items:', items.length, items);
+console.log('✅ Loaded vendors:', vendors.length, vendors);
+
+// Verify data structure
+if (items.length > 0) {
+    console.log('📦 Sample item:', items[0]);
+}
+if (vendors.length > 0) {
+    console.log('🏭 Sample vendor:', vendors[0]);
+}
+
+// Vendor Autocomplete (Client-side filtering like items)
+function searchVendors(query) {
+    const dropdown = document.getElementById('vendor_dropdown');
+    query = query.toLowerCase().trim();
+    
+    console.log('🔍 Searching vendors for:', query);
+    
+    if (!query) {
+        dropdown.style.display = 'none';
+        return;
+    }
+    
+    // Filter vendors client-side
+    const filteredVendors = vendors.filter(v => 
+        v.name.toLowerCase().includes(query) ||
+        (v.company_name && v.company_name.toLowerCase().includes(query)) ||
+        (v.phone && v.phone.includes(query)) ||
+        (v.gstin && v.gstin.toLowerCase().includes(query))
+    );
+    
+    console.log('✅ Found vendors:', filteredVendors.length);
+    
+    if (filteredVendors.length === 0) {
+        dropdown.innerHTML = '<div style="padding: 12px; color: #666; text-align: center;">No vendors found. Continue typing to add manually.</div>';
+        dropdown.style.display = 'block';
+        return;
+    }
+    
+    // Build dropdown HTML with safe escaping
+    const escapeHtml = (str) => (str || '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
+    
+    dropdown.innerHTML = filteredVendors.slice(0, 10).map(v => `
+        <div class="autocomplete-item" 
+             data-vendor-id="${v.id}"
+             data-vendor-name="${escapeHtml(v.name)}"
+             data-vendor-phone="${escapeHtml(v.phone)}"
+             data-vendor-email="${escapeHtml(v.email)}"
+             data-vendor-gstin="${escapeHtml(v.gstin)}"
+             data-vendor-state="${escapeHtml(v.state)}"
+             data-vendor-address="${escapeHtml(v.address)}"
+             style="cursor: pointer; padding: 10px 12px; border-bottom: 1px solid #e9ecef;">
+            <div style="font-weight: 600; margin-bottom: 4px;">${escapeHtml(v.name)}</div>
+            <div style="font-size: 12px; color: #666;">
+                ${v.company_name ? escapeHtml(v.company_name) + ' • ' : ''}
+                ${v.phone ? '📱 ' + escapeHtml(v.phone) : ''}
+            </div>
+        </div>
+    `).join('');
+    
+    // Add click listeners
+    dropdown.querySelectorAll('.autocomplete-item').forEach(div => {
+        div.addEventListener('click', function() {
+            selectVendor(
+                this.dataset.vendorId,
+                this.dataset.vendorName,
+                this.dataset.vendorPhone,
+                this.dataset.vendorEmail,
+                this.dataset.vendorGstin,
+                this.dataset.vendorState,
+                this.dataset.vendorAddress
+            );
+        });
+        // Hover effect
+        div.addEventListener('mouseenter', function() {
+            this.style.backgroundColor = '#e3f2fd';
+            this.style.borderLeft = '3px solid #007bff';
+        });
+        div.addEventListener('mouseleave', function() {
+            this.style.backgroundColor = '';
+            this.style.borderLeft = '';
+        });
+    });
+    
+    dropdown.style.display = 'block';
+}
+
+function selectVendor(id, name, phone, email, gstin, state, address) {
+    document.getElementById('vendor_id').value = id;
+    document.getElementById('vendor_name').value = name;
+    document.getElementById('vendor_phone').value = phone;
+    document.getElementById('vendor_email').value = email;
+    document.getElementById('vendor_gstin').value = gstin;
+    document.getElementById('vendor_state').value = state;
+    document.getElementById('vendor_address').value = address;
+    document.getElementById('vendor_search').value = name;
+    document.getElementById('vendor_dropdown').style.display = 'none';
+    
+    console.log('✅ Vendor selected:', name);
+    
+    // Recalculate GST type
+    calculateTotal();
+}
+
+// Item Autocomplete (Matches Invoice Pattern Exactly)
+function searchItems(input, rowId) {
+    const query = input.value.toLowerCase().trim();
+    const dropdown = document.getElementById(`dropdown_${rowId}`);
+    
+    if (!dropdown) {
+        console.error('❌ Dropdown not found for row:', rowId);
+        return;
+    }
+    
+    console.log('🔍 Searching for:', query, 'in row:', rowId);
+    
+    // Update hidden item-name field with whatever is typed
+    const row = input.closest('.item-row');
+    if (row) {
+        const itemNameInput = row.querySelector('.item-name');
+        if (itemNameInput) {
+            itemNameInput.value = input.value;
+        }
+    }
+    
+    if (!query) {
+        dropdown.style.display = 'none';
+        return;
+    }
+    
+    // Filter items client-side (search by name, code, or HSN)
+    const filteredItems = items.filter(item => 
+        item.name.toLowerCase().includes(query) ||
+        (item.item_code && item.item_code.toLowerCase().includes(query)) ||
+        (item.hsn_code && item.hsn_code.toLowerCase().includes(query))
+    );
+    
+    console.log('✅ Filtered items:', filteredItems.length);
+    
+    if (filteredItems.length === 0) {
+        dropdown.innerHTML = `
+            <div class="autocomplete-item" style="background: #fff3cd; color: #856404; cursor: default; border-left: 3px solid #ffc107;">
+                <div style="font-weight: 600;">📝 No matching items found</div>
+                <div style="font-size: 12px;">Continue typing to add "${input.value}" as a new item</div>
+            </div>
+        `;
+        dropdown.style.display = 'block';
+        return;
+    }
+    
+    // Build dropdown HTML
+    dropdown.innerHTML = '';
+    filteredItems.slice(0, 10).forEach(item => {
+        // Extract GST rate
+        let gst_rate = 18; // default
+        if (item.tax_preference && item.tax_preference.includes('GST@')) {
+            try {
+                gst_rate = parseFloat(item.tax_preference.split('@')[1].replace('%', ''));
+            } catch(e) {}
+        }
+        
+        // Escape HTML to prevent issues with special characters
+        const escapeName = (str) => (str || '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
+        
+        const div = document.createElement('div');
+        div.className = 'autocomplete-item';
+        div.style.cursor = 'pointer';
+        div.innerHTML = `
+            <div style="font-weight: 600;">${escapeName(item.name)}</div>
+            <div style="font-size: 12px; color: #666;">📋 HSN: ${escapeName(item.hsn_code) || 'N/A'} • 💰 ₹${item.purchase_price || 0} • 📦 ${item.unit || 'pcs'}</div>
+        `;
+        
+        // Use event listener instead of inline onclick
+        div.addEventListener('click', function() {
+            console.log('🖱️ Item clicked:', item.name);
+            selectItem(
+                div,
+                item.id,
+                item.name,
+                item.hsn_code || '',
+                item.unit || 'pcs',
+                parseFloat(item.purchase_price || 0),
+                gst_rate
+            );
+        });
+        
+        dropdown.appendChild(div);
+    });
+    
+    dropdown.style.display = 'block';
+    console.log('✅ Dropdown shown with', filteredItems.length, 'items');
+}
+
+// Hide dropdown when clicking outside
+document.addEventListener('click', function(e) {
+    if (!e.target.closest('.item-search') && !e.target.closest('.autocomplete-dropdown')) {
+        // Hide all dropdowns
+        for (let i = 1; i <= rowCounter; i++) {
+            const dropdown = document.getElementById(`dropdown_${i}`);
+            if (dropdown) {
+                dropdown.style.display = 'none';
+            }
+        }
+    }
+});
+
+function selectItem(elem, id, name, hsn, unit, price, gst_rate) {
+    const row = elem.closest('.item-row');
+    row.querySelector('.item-id').value = id;
+    row.querySelector('.item-name').value = name;  // ✅ Hidden field for backend
+    row.querySelector('.item-search').value = name; // ✅ Visible input
+    row.querySelector('.hsn-input').value = hsn;
+    row.querySelector('.unit-input').value = unit;
+    row.querySelector('.rate-input').value = price;
+    row.querySelector('.gst-input').value = gst_rate;
+    
+    // Hide dropdown (FIXED: correct class name!)
+    const dropdown = row.querySelector('.autocomplete-dropdown');
+    if (dropdown) {
+        dropdown.style.display = 'none';
+    }
+    
+    calculateRow(row.querySelector('.qty-input'));
+    
+    console.log('✅ Item selected:', name, 'ID:', id, 'Price:', price);
+}
+
+// Row calculation
+function calculateRow(input) {
+    const row = input.closest('.item-row');
+    const qty = parseFloat(row.querySelector('.qty-input').value) || 0;
+    const rate = parseFloat(row.querySelector('.rate-input').value) || 0;
+    const gst_rate = parseFloat(row.querySelector('.gst-input').value) || 0;
+    
+    const taxable = qty * rate;
+    const vendor_state = document.getElementById('vendor_state').value.toLowerCase();
+    const use_igst = (vendor_state !== 'maharashtra');
+    
+    let gst_amount;
+    if (use_igst) {
+        gst_amount = taxable * gst_rate / 100;
+    } else {
+        gst_amount = taxable * gst_rate / 100;
+    }
+    
+    const total = taxable + gst_amount;
+    row.querySelector('.amount-display').value = '₹' + total.toFixed(2);
+    
+    calculateTotal();
+}
+
+// Total calculation
+function calculateTotal() {
+    let subtotal = 0;
+    let total_cgst = 0;
+    let total_sgst = 0;
+    let total_igst = 0;
+    
+    const vendor_state = document.getElementById('vendor_state').value.toLowerCase();
+    const use_igst = (vendor_state !== 'maharashtra');
+    
+    document.querySelectorAll('.item-row').forEach(row => {
+        const qty = parseFloat(row.querySelector('.qty-input').value) || 0;
+        const rate = parseFloat(row.querySelector('.rate-input').value) || 0;
+        const gst_rate = parseFloat(row.querySelector('.gst-input').value) || 0;
+        
+        if (qty > 0 && rate > 0) {
+            const taxable = qty * rate;
+            subtotal += taxable;
+            
+            if (use_igst) {
+                total_igst += taxable * gst_rate / 100;
+            } else {
+                const gst_half = taxable * gst_rate / 200;
+                total_cgst += gst_half;
+                total_sgst += gst_half;
+            }
+        }
+    });
+    
+    const other_charges = parseFloat(document.querySelector('input[name="other_charges"]').value) || 0;
+    const grand_total = subtotal + total_cgst + total_sgst + total_igst + other_charges;
+    
+    document.getElementById('subtotal_display').textContent = '₹' + subtotal.toFixed(2);
+    document.getElementById('cgst_display').textContent = '₹' + total_cgst.toFixed(2);
+    document.getElementById('sgst_display').textContent = '₹' + total_sgst.toFixed(2);
+    document.getElementById('igst_display').textContent = '₹' + total_igst.toFixed(2);
+    document.getElementById('total_display').textContent = '₹' + grand_total.toFixed(2);
+}
+
+// Add/Remove rows
+let rowCounter = 1; // Global counter for unique row IDs
+
+function addRow() {
+    rowCounter++;
+    const tbody = document.getElementById('items_body');
+    const newRow = document.createElement('tr');
+    newRow.className = 'item-row';
+    newRow.id = `row_${rowCounter}`;
+    
+    newRow.innerHTML = `
+        <td>
+            <div style="position: relative;">
+                <input type="text" class="form-control item-search" 
+                       id="item_search_${rowCounter}"
+                       placeholder="Search or type item name..."
+                       autocomplete="off"
+                       oninput="searchItems(this, ${rowCounter})"
+                       onfocus="searchItems(this, ${rowCounter})">
+                <input type="hidden" class="item-id" name="item_id[]" id="item_id_${rowCounter}">
+                <input type="hidden" class="item-name" name="item_name[]">
+                <div class="autocomplete-dropdown" id="dropdown_${rowCounter}" style="display: none;"></div>
+            </div>
+        </td>
+        <td>
+            <input type="text" name="hsn_code[]" class="form-control hsn-input" placeholder="HSN">
+        </td>
+        <td>
+            <input type="number" name="quantity[]" class="form-control qty-input" step="0.001" min="0" value="1" oninput="calculateRow(this)">
+        </td>
+        <td>
+            <input type="text" name="unit[]" class="form-control unit-input" value="pcs">
+        </td>
+        <td>
+            <input type="number" name="rate[]" class="form-control rate-input" step="0.01" min="0" placeholder="0.00" oninput="calculateRow(this)">
+        </td>
+        <td>
+            <input type="number" name="gst_rate[]" class="form-control gst-input" step="0.01" min="0" value="18" oninput="calculateRow(this)">
+        </td>
+        <td class="text-end">
+            <input type="text" class="form-control amount-display" readonly value="₹0.00">
+        </td>
+        <td class="text-center">
+            <button type="button" class="btn btn-sm btn-danger" onclick="removeRow(this)">×</button>
+        </td>
+    `;
+    
+    tbody.appendChild(newRow);
+}
+
+function removeRow(btn) {
+    const tbody = document.getElementById('items_body');
+    if (tbody.querySelectorAll('.item-row').length > 1) {
+        btn.closest('.item-row').remove();
+        calculateTotal();
+    }
+}
+
+// Bill Document Upload Preview
+function previewBillDocument(input) {
+    const preview = document.getElementById('document_preview');
+    const fileName = document.getElementById('file_name');
+    const fileSize = document.getElementById('file_size');
+    const imagePreview = document.getElementById('image_preview');
+    
+    if (input.files && input.files[0]) {
+        const file = input.files[0];
+        
+        // Check file size (10MB limit)
+        if (file.size > 10 * 1024 * 1024) {
+            alert('File size must be less than 10MB');
+            input.value = '';
+            return;
+        }
+        
+        // Show file info
+        fileName.textContent = file.name;
+        fileSize.textContent = `Size: ${(file.size / 1024).toFixed(2)} KB`;
+        preview.style.display = 'block';
+        
+        // Show image preview if it's an image
+        if (file.type.startsWith('image/')) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                imagePreview.src = e.target.result;
+                imagePreview.style.display = 'block';
+            };
+            reader.readAsDataURL(file);
+        } else {
+            imagePreview.style.display = 'none';
+        }
+        
+        console.log('✅ Document selected:', file.name, `(${(file.size / 1024).toFixed(2)} KB)`);
+    }
+}
+
+function clearDocument() {
+    const input = document.getElementById('bill_document');
+    const preview = document.getElementById('document_preview');
+    const imagePreview = document.getElementById('image_preview');
+    
+    input.value = '';
+    preview.style.display = 'none';
+    imagePreview.style.display = 'none';
+    imagePreview.src = '';
+    
+    console.log('🗑️ Document removed');
+}
+
+// Form validation before submit - ensures all item_name fields are filled
+function validatePurchaseBillForm() {
+    // Get all item rows
+    const allRows = document.querySelectorAll('.item-row');
+    
+    if (allRows.length === 0) {
+        alert('⚠️ Error: No item rows found. Please refresh the page.');
+        return false;
+    }
+    
+    let hasItems = false;
+    let itemCount = 0;
+    const allItemNames = [];
+    
+    // Check each item row
+    allRows.forEach((row, index) => {
+        const itemSearch = row.querySelector('.item-search');
+        const itemNameHidden = row.querySelector('.item-name');
+        const itemIdHidden = row.querySelector('.item-id');
+        const qtyInput = row.querySelector('.qty-input');
+        const rateInput = row.querySelector('.rate-input');
+        const hsnInput = row.querySelector('.hsn-input');
+        
+        const itemSearchValue = itemSearch ? itemSearch.value.trim() : '';
+        const itemNameValue = itemNameHidden ? itemNameHidden.value.trim() : '';
+        const qty = qtyInput ? parseFloat(qtyInput.value) || 0 : 0;
+        const rate = rateInput ? parseFloat(rateInput.value) || 0 : 0;
+        
+        // If row has search text OR quantity OR rate, it should be saved
+        if (itemSearchValue || qty > 0 || rate > 0) {
+            // Ensure hidden field is populated
+            if (!itemNameValue && itemSearchValue) {
+                itemNameHidden.value = itemSearchValue;
+            }
+            
+            // Only count if has name AND qty AND rate
+            if (itemNameHidden.value.trim() && qty > 0 && rate > 0) {
+                itemCount++;
+                hasItems = true;
+                allItemNames.push(itemNameHidden.value);
+            }
+        }
+    });
+    
+    if (!hasItems) {
+        alert('⚠️ Please add at least one item with name, quantity and rate!');
+        return false;
+    }
+    
+    return true;
+}
+
+// Close dropdowns on outside click
+// Click handler already added above - no duplicate needed
+</script>
+{% endblock %}
+
