@@ -2,6 +2,10 @@
 
 {% block title %}Purchase Bills - {{ tenant.company_name }}{% endblock %}
 
+{% block header_actions %}
+<!-- Remove default Manual Entry & QR Code buttons - not relevant for Purchase Bills -->
+{% endblock %}
+
 {% block content %}
 <style>
     .stats-card {

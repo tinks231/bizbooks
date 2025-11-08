@@ -2,6 +2,10 @@
 
 {% block title %}Purchase Bill {{ bill.bill_number }}{% endblock %}
 
+{% block header_actions %}
+<!-- Remove default Manual Entry & QR Code buttons - not relevant for Purchase Bills -->
+{% endblock %}
+
 {% block content %}
 <style>
     /* Custom Grid System */
