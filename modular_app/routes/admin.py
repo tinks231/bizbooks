@@ -273,6 +273,26 @@ def edit_site(site_id):
     
     return render_template('admin/edit_site.html', site=site, tenant=g.tenant)
 
+@admin_bp.route('/site/delete/<int:site_id>', methods=['POST'])
+@require_tenant
+@login_required
+def delete_site(site_id):
+    """Delete a site"""
+    tenant_id = get_current_tenant_id()
+    site = Site.query.filter_by(tenant_id=tenant_id, id=site_id).first_or_404()
+    
+    site_name = site.name
+    
+    try:
+        db.session.delete(site)
+        db.session.commit()
+        flash(f'✅ Site "{site_name}" deleted successfully!', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'❌ Error deleting site: {str(e)}', 'error')
+    
+    return redirect(url_for('admin.sites'))
+
 # Inventory Management
 @admin_bp.route('/inventory')
 @require_tenant

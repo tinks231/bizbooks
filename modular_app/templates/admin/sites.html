@@ -71,7 +71,10 @@
                     {% endif %}
                 </td>
                 <td style="padding: 15px; text-align: center;">
-                    <a href="/admin/site/edit/{{ site.id }}" style="text-decoration: none; font-size: 1.2em;" title="Edit Site">✏️</a>
+                    <a href="/admin/site/edit/{{ site.id }}" style="text-decoration: none; font-size: 1.2em; margin-right: 10px;" title="Edit Site">✏️</a>
+                    <form method="POST" action="/admin/site/delete/{{ site.id }}" style="display: inline;" onsubmit="return confirm('⚠️ Are you sure you want to delete site \'{{ site.name }}\'?\n\nThis action cannot be undone.');">
+                        <button type="submit" style="background: none; border: none; cursor: pointer; font-size: 1.2em; color: #dc3545;" title="Delete Site">🗑️</button>
+                    </form>
                 </td>
             </tr>
             {% endfor %}
