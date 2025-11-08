@@ -6,10 +6,10 @@
 
 {% block header_actions %}
 <button onclick="window.print()" class="btn btn-primary">
-    🖨️ Print
+    🖨️ Print / PDF
 </button>
-<a href="{{ url_for('purchase_bills.gstr2_export_excel', start_date=start_date, end_date=end_date) }}" class="btn btn-success">
-    📥 Export to Excel
+<a href="{{ url_for('purchase_bills.gstr2_export_csv', start_date=start_date, end_date=end_date) }}" class="btn btn-success">
+    📊 Export to Excel
 </a>
 {% endblock %}
 

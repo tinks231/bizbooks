@@ -992,9 +992,115 @@ def gstr2_report():
                          bills=bills,
                          start_date=start_date_str,
                          end_date=end_date_str,
-                         itc_summary=itc_summary,
-                         hsn_summary=hsn_list,
-                         vendor_summary=vendor_list)
+                        itc_summary=itc_summary,
+                        hsn_summary=hsn_list,
+                        vendor_summary=vendor_list)
+
+
+@purchase_bills_bp.route('/gstr2/export-csv')
+def gstr2_export_csv():
+    """Export GSTR-2 Report to CSV (Excel-compatible)"""
+    from io import StringIO
+    import csv
+    from flask import make_response
+    
+    tenant_id = get_current_tenant_id()
+    
+    # Get date range (same logic as gstr2_report)
+    start_date_str = request.args.get('start_date', '')
+    end_date_str = request.args.get('end_date', '')
+    
+    if not start_date_str:
+        today = datetime.now()
+        start_date = datetime(today.year, today.month, 1).date()
+        start_date_str = start_date.strftime('%Y-%m-%d')
+    else:
+        start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
+    
+    if not end_date_str:
+        end_date = datetime.now().date()
+        end_date_str = end_date.strftime('%Y-%m-%d')
+    else:
+        end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
+    
+    # Get all approved purchase bills with GST
+    bills = PurchaseBill.query.filter(
+        PurchaseBill.tenant_id == tenant_id,
+        PurchaseBill.status == 'approved',
+        PurchaseBill.bill_date >= start_date,
+        PurchaseBill.bill_date <= end_date,
+        db.or_(
+            PurchaseBill.cgst_amount > 0,
+            PurchaseBill.sgst_amount > 0,
+            PurchaseBill.igst_amount > 0
+        )
+    ).order_by(PurchaseBill.bill_date.asc()).all()
+    
+    # Create CSV in memory
+    si = StringIO()
+    writer = csv.writer(si)
+    
+    # Title
+    writer.writerow([f'{g.tenant.company_name} - GSTR-2 Report'])
+    writer.writerow([f'Period: {start_date_str} to {end_date_str}'])
+    writer.writerow([])
+    
+    # Purchase Register
+    writer.writerow(['PURCHASE REGISTER'])
+    writer.writerow(['Date', 'Bill No.', 'Vendor Name', 'GSTIN', 'State', 'Taxable Value', 'CGST', 'SGST', 'IGST', 'Total Amount'])
+    
+    total_taxable = Decimal('0')
+    total_cgst = Decimal('0')
+    total_sgst = Decimal('0')
+    total_igst = Decimal('0')
+    total_amount = Decimal('0')
+    
+    for bill in bills:
+        writer.writerow([
+            bill.bill_date.strftime('%d-%m-%Y'),
+            bill.bill_number,
+            bill.vendor_name,
+            bill.vendor_gstin or 'N/A',
+            bill.vendor_state or 'Maharashtra',
+            f'{float(bill.subtotal):.2f}',
+            f'{float(bill.cgst_amount):.2f}',
+            f'{float(bill.sgst_amount):.2f}',
+            f'{float(bill.igst_amount):.2f}',
+            f'{float(bill.total_amount):.2f}'
+        ])
+        total_taxable += bill.subtotal
+        total_cgst += bill.cgst_amount
+        total_sgst += bill.sgst_amount
+        total_igst += bill.igst_amount
+        total_amount += bill.total_amount
+    
+    # Totals
+    writer.writerow([
+        'TOTAL', '', '', '', '',
+        f'{float(total_taxable):.2f}',
+        f'{float(total_cgst):.2f}',
+        f'{float(total_sgst):.2f}',
+        f'{float(total_igst):.2f}',
+        f'{float(total_amount):.2f}'
+    ])
+    
+    writer.writerow([])
+    writer.writerow(['ITC SUMMARY'])
+    writer.writerow(['Total Taxable Value', 'Total CGST', 'Total SGST', 'Total IGST', 'Total ITC'])
+    writer.writerow([
+        f'{float(total_taxable):.2f}',
+        f'{float(total_cgst):.2f}',
+        f'{float(total_sgst):.2f}',
+        f'{float(total_igst):.2f}',
+        f'{float(total_cgst + total_sgst + total_igst):.2f}'
+    ])
+    
+    # Generate response
+    output = make_response(si.getvalue())
+    output.headers["Content-Disposition"] = f"attachment; filename=GSTR2_Report_{start_date_str}_to_{end_date_str}.csv"
+    output.headers["Content-type"] = "text/csv"
+    
+    return output
 
 
 @purchase_bills_bp.route('/api/vendors/search')
