@@ -278,10 +278,33 @@ def edit_site(site_id):
 @login_required
 def delete_site(site_id):
     """Delete a site"""
+    from models import ItemStock, Stock
+    
     tenant_id = get_current_tenant_id()
     site = Site.query.filter_by(tenant_id=tenant_id, id=site_id).first_or_404()
     
     site_name = site.name
+    
+    # Check if site has inventory (ItemStock - new system)
+    item_stock_count = ItemStock.query.filter_by(site_id=site_id).filter(
+        ItemStock.quantity_available > 0
+    ).count()
+    
+    # Check if site has materials (Stock - old system)
+    material_stock_count = Stock.query.filter_by(site_id=site_id).filter(
+        Stock.quantity > 0
+    ).count()
+    
+    if item_stock_count > 0 or material_stock_count > 0:
+        flash(
+            f'⚠️ Cannot delete site "{site_name}" - it has {item_stock_count + material_stock_count} items with stock! '
+            f'Please transfer all stock to another site first using Stock Transfer feature.',
+            'warning'
+        )
+        return redirect(url_for('admin.sites'))
+    
+    # Check for other dependencies (attendance, tasks, etc.)
+    # TODO: Add more dependency checks if needed
     
     try:
         db.session.delete(site)
@@ -289,7 +312,7 @@ def delete_site(site_id):
         flash(f'✅ Site "{site_name}" deleted successfully!', 'success')
     except Exception as e:
         db.session.rollback()
-        flash(f'❌ Error deleting site: {str(e)}', 'error')
+        flash(f'❌ Error deleting site: {str(e)}. This site may be referenced by other records.', 'error')
     
     return redirect(url_for('admin.sites'))
 
