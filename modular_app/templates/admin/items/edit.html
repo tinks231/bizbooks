@@ -85,6 +85,14 @@
             </div>
         </div>
 
+        <div class="form-row">
+            <div class="form-group">
+                <label>HSN/SAC Code (for GST)</label>
+                <input type="text" name="hsn_code" placeholder="e.g., 8414, 8544" maxlength="20" value="{{ item.hsn_code or '' }}">
+                <small style="color: #7f8c8d;">Optional - Used in GST reports and invoices</small>
+            </div>
+        </div>
+
         <div class="form-group">
             <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
                 <input type="checkbox" name="is_returnable" {% if item.is_returnable %}checked{% endif %}>
@@ -108,6 +116,17 @@
             <div class="form-group">
                 <label>Selling Price (₹) *</label>
                 <input type="number" name="selling_price" step="0.01" min="0" required value="{{ item.selling_price }}">
+            </div>
+            <div class="form-group">
+                <label>GST Rate *</label>
+                <select name="gst_rate" required>
+                    <option value="0" {% if item.gst_rate == 0 %}selected{% endif %}>0% - Exempted</option>
+                    <option value="5" {% if item.gst_rate == 5 %}selected{% endif %}>5% GST</option>
+                    <option value="12" {% if item.gst_rate == 12 %}selected{% endif %}>12% GST</option>
+                    <option value="18" {% if item.gst_rate == 18 or item.gst_rate is none %}selected{% endif %}>18% GST (Default)</option>
+                    <option value="28" {% if item.gst_rate == 28 %}selected{% endif %}>28% GST</option>
+                </select>
+                <small style="color: #7f8c8d;">Default GST rate for this item</small>
             </div>
             <div class="form-group">
                 <label>Cost Price (₹) *</label>

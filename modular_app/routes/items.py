@@ -142,11 +142,13 @@ def add():
                 ean=request.form.get('ean'),
                 mpn=request.form.get('mpn'),
                 isbn=request.form.get('isbn'),
+                hsn_code=request.form.get('hsn_code'),
                 
                 # Sales Information
                 selling_price=float(request.form.get('selling_price') or 0),
                 sales_description=request.form.get('sales_description'),
                 sales_account=request.form.get('sales_account', 'Sales'),
+                gst_rate=float(request.form.get('gst_rate') or 18),
                 
                 # Purchase Information
                 cost_price=float(request.form.get('cost_price') or 0),
@@ -258,11 +260,13 @@ def edit(item_id):
             item.ean = request.form.get('ean')
             item.mpn = request.form.get('mpn')
             item.isbn = request.form.get('isbn')
+            item.hsn_code = request.form.get('hsn_code')
             
             # Sales Information
             item.selling_price = float(request.form.get('selling_price') or 0)
             item.sales_description = request.form.get('sales_description')
             item.sales_account = request.form.get('sales_account', 'Sales')
+            item.gst_rate = float(request.form.get('gst_rate') or 18)
             
             # Purchase Information
             item.cost_price = float(request.form.get('cost_price') or 0)

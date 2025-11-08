@@ -99,6 +99,7 @@ class Item(db.Model, TimestampMixin):
     sales_description = db.Column(db.Text)
     sales_account = db.Column(db.String(100), default='Sales')
     tax_preference = db.Column(db.String(50))
+    gst_rate = db.Column(db.Float, default=18.0)  # Default GST rate: 0, 5, 12, 18, 28
     
     # ===== Purchase Information =====
     cost_price = db.Column(db.Float, default=0.0)

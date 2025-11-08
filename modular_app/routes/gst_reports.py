@@ -209,11 +209,35 @@ def gstr3b():
         flash(f'Error: {str(e)}', 'error')
         return redirect(url_for('gst_reports.index'))
     
-    # TODO: Add inward supplies (purchases) when purchase bills module is implemented
+    # Calculate inward supplies (ITC from purchase bills)
+    from models.purchase_bill import PurchaseBill
+    
+    purchase_bills = PurchaseBill.query.filter(
+        PurchaseBill.tenant_id == tenant_id,
+        PurchaseBill.status == 'approved',
+        PurchaseBill.bill_date >= start_date,
+        PurchaseBill.bill_date <= end_date,
+        db.or_(
+            PurchaseBill.cgst_amount > 0,
+            PurchaseBill.sgst_amount > 0,
+            PurchaseBill.igst_amount > 0
+        )
+    ).all()
+    
     inward_taxable = Decimal('0')
     inward_cgst = Decimal('0')
     inward_sgst = Decimal('0')
     inward_igst = Decimal('0')
+    
+    try:
+        for bill in purchase_bills:
+            inward_taxable += Decimal(str(bill.subtotal)) if bill.subtotal else Decimal('0')
+            inward_cgst += Decimal(str(bill.cgst_amount)) if bill.cgst_amount else Decimal('0')
+            inward_sgst += Decimal(str(bill.sgst_amount)) if bill.sgst_amount else Decimal('0')
+            inward_igst += Decimal(str(bill.igst_amount)) if bill.igst_amount else Decimal('0')
+    except Exception as e:
+        print(f"❌ Error calculating inward supplies: {str(e)}")
+        # Continue with zero ITC if calculation fails
     
     # Calculate net tax liability
     net_cgst = outward_cgst - inward_cgst

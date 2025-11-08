@@ -848,24 +848,15 @@ def api_search_items():
     
     results = []
     for item in items:
-        # Extract GST rate from tax_preference
-        gst_rate = 18  # default
-        if item.tax_preference:
-            try:
-                if 'GST@' in item.tax_preference:
-                    gst_rate = float(item.tax_preference.split('@')[1].replace('%', ''))
-            except:
-                pass
-        
         results.append({
             'id': item.id,
             'name': item.name,
             'item_code': item.item_code,
             'unit': item.unit or 'pcs',
-            'purchase_price': float(item.purchase_price or 0),
-            'sale_price': float(item.sale_price or 0),
+            'purchase_price': float(item.cost_price or 0),
+            'sale_price': float(item.selling_price or 0),
             'hsn_code': item.hsn_code or '',
-            'gst_rate': gst_rate
+            'gst_rate': float(item.gst_rate) if item.gst_rate is not None else 18.0
         })
     
     return jsonify(results)
@@ -899,12 +890,18 @@ def gstr2_report():
     else:
         end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
     
-    # Get all approved purchase bills in date range
+    # Get all approved purchase bills with GST in date range
+    # Only include bills that have GST (either CGST+SGST or IGST > 0)
     bills = PurchaseBill.query.filter(
         PurchaseBill.tenant_id == tenant_id,
         PurchaseBill.status == 'approved',
         PurchaseBill.bill_date >= start_date,
-        PurchaseBill.bill_date <= end_date
+        PurchaseBill.bill_date <= end_date,
+        db.or_(
+            PurchaseBill.cgst_amount > 0,
+            PurchaseBill.sgst_amount > 0,
+            PurchaseBill.igst_amount > 0
+        )
     ).order_by(PurchaseBill.bill_date.asc()).all()
     
     # Calculate summaries
