@@ -564,6 +564,7 @@ def add_adjustment():
             else:
                 # Create new stock record
                 stock = ItemStock(
+                    tenant_id=tenant_id,
                     item_id=int(item_id),
                     site_id=int(site_id),
                     quantity_available=qty if adj_type == 'add' else 0
@@ -572,6 +573,7 @@ def add_adjustment():
             
             # Create stock movement record
             movement = ItemStockMovement(
+                tenant_id=tenant_id,
                 item_id=int(item_id),
                 site_id=int(site_id),
                 quantity=qty if adj_type == 'add' else -qty,
@@ -659,6 +661,7 @@ def add_transfer():
             dest_stock.quantity_available += quantity
         else:
             dest_stock = ItemStock(
+                tenant_id=tenant_id,
                 item_id=item_id,
                 site_id=to_site_id,
                 quantity_available=quantity
@@ -667,21 +670,27 @@ def add_transfer():
         
         # Record movements
         transfer_out = ItemStockMovement(
+            tenant_id=tenant_id,
             item_id=item_id,
             site_id=from_site_id,
             quantity=-quantity,
             movement_type='transfer_out',
             reference_type='transfer',
+            from_site_id=from_site_id,
+            to_site_id=to_site_id,
             notes=f"Transfer to site {to_site_id}: {notes}"
         )
         db.session.add(transfer_out)
         
         transfer_in = ItemStockMovement(
+            tenant_id=tenant_id,
             item_id=item_id,
             site_id=to_site_id,
             quantity=quantity,
             movement_type='transfer_in',
             reference_type='transfer',
+            from_site_id=from_site_id,
+            to_site_id=to_site_id,
             notes=f"Transfer from site {from_site_id}: {notes}"
         )
         db.session.add(transfer_in)
