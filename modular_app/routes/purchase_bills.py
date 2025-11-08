@@ -691,7 +691,8 @@ def print_bill(bill_id):
         
         return render_template('admin/purchase_bills/print.html',
                              tenant=g.tenant,
-                             bill=bill)
+                             bill=bill,
+                             now=datetime.now(pytz.timezone('Asia/Kolkata')))
     except Exception as e:
         print(f"❌ Error loading purchase bill for print {bill_id}: {str(e)}")
         import traceback
