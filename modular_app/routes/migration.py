@@ -2155,3 +2155,91 @@ def fix_vendor_payment_vendor_id():
             'message': f'Migration failed: {str(e)}',
             'details': str(e)
         }), 500
+
+
+@migration_bp.route('/add-gst-rate-to-items')
+def add_gst_rate_to_items():
+    """
+    Add gst_rate column to items table for GST compliance
+    Safe migration - preserves existing data, sets default 18% GST
+    Access: /migrate/add-gst-rate-to-items
+    """
+    try:
+        db_type = os.environ.get('DATABASE_URL', '').split(':')[0] if os.environ.get('DATABASE_URL') else 'sqlite'
+        
+        if db_type == 'postgresql':
+            # PostgreSQL: Check if column exists
+            check_sql = text("""
+                SELECT column_name 
+                FROM information_schema.columns 
+                WHERE table_name='items' AND column_name='gst_rate'
+            """)
+            has_column = db.session.execute(check_sql).fetchone()
+            
+            if not has_column:
+                # Add gst_rate column with default 18%
+                db.session.execute(text("""
+                    ALTER TABLE items 
+                    ADD COLUMN gst_rate FLOAT DEFAULT 18.0;
+                """))
+                db.session.commit()
+                
+                return jsonify({
+                    'status': 'success',
+                    'message': '✅ GST Rate column added to items table!',
+                    'details': 'All existing items now have default GST rate of 18%',
+                    'next_step': 'You can now add/edit items with correct GST rates',
+                    'features': [
+                        'GST rate auto-fills in transactions',
+                        'Correct GSTR-2 filtering (only GST bills)',
+                        'GSTR-3B ITC calculation working',
+                        'Bulk import now sets GST rates'
+                    ]
+                })
+            else:
+                return jsonify({
+                    'status': 'info',
+                    'message': 'ℹ️ GST Rate column already exists',
+                    'details': 'No migration needed - column is already present'
+                })
+        
+        else:
+            # SQLite: Check if column exists
+            columns_result = db.session.execute(text("PRAGMA table_info(items)")).fetchall()
+            columns = [col[1] for col in columns_result]
+            
+            if 'gst_rate' not in columns:
+                # SQLite doesn't support ADD COLUMN with default for existing rows
+                # So we need to add column, then update all rows
+                db.session.execute(text("""
+                    ALTER TABLE items ADD COLUMN gst_rate FLOAT;
+                """))
+                
+                # Set default 18% for all existing items
+                db.session.execute(text("""
+                    UPDATE items SET gst_rate = 18.0 WHERE gst_rate IS NULL;
+                """))
+                
+                db.session.commit()
+                
+                return jsonify({
+                    'status': 'success',
+                    'message': '✅ GST Rate column added to items table!',
+                    'details': 'All existing items now have default GST rate of 18%',
+                    'database': 'SQLite (local development)'
+                })
+            else:
+                return jsonify({
+                    'status': 'info',
+                    'message': 'ℹ️ GST Rate column already exists',
+                    'details': 'No migration needed - column is already present'
+                })
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({
+            'status': 'error',
+            'message': f'Migration failed: {str(e)}',
+            'details': str(e),
+            'help': 'Contact support if this error persists'
+        }), 500

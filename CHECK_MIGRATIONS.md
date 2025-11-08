@@ -41,7 +41,8 @@ https://mahaveerelectricals.bizbooks-dun.vercel.app/migrate/add-purchase-request
 5. `/migrate/add-customers` - Customer management
 6. `/migrate/add-tasks` - Task management
 7. `/migrate/add-hsn-code-to-items` - HSN code for GST invoices ⭐
-8. `/migrate/add-sales-order-module` - Sales Order & Delivery Challan modules ⭐ NEW!
+8. `/migrate/add-sales-order-module` - Sales Order & Delivery Challan modules ⭐
+9. `/migrate/add-gst-rate-to-items` - GST Rate in Item Master for accurate reporting ⭐ **REQUIRED!**
 
 ## ⚠️ Important:
 - Run each migration **ONLY ONCE** per database
@@ -119,6 +120,41 @@ https://YOUR-SUBDOMAIN.bizbooks-dun.vercel.app/migrate/add-vendor-payment-tracki
 4. View payment history timeline
 
 **Status:** ✅ Ready - Migration available, UI coming next!
+
+---
+
+## ⚠️ **CRITICAL: GST Rate in Item Master Migration** ⚠️
+
+### What it does:
+- Adds `gst_rate` column to `items` table
+- Sets default 18% GST for all existing items
+- Required for accurate GST reports and compliance
+
+### Why you need this:
+**Without this migration, you'll see this error:**
+```
+psycopg2.errors.UndefinedColumn: column items.gst_rate does not exist
+```
+
+### What it enables:
+- ✅ **Item Master**: Add/edit items with correct GST rates (0%, 5%, 12%, 18%, 28%)
+- ✅ **Auto-fill**: GST rate auto-populates in transactions (invoices, purchase bills, etc.)
+- ✅ **GSTR-2 Report**: Only GST bills appear (non-GST bills excluded automatically)
+- ✅ **GSTR-3B ITC**: Accurate Input Tax Credit calculation
+- ✅ **Bulk Import**: Excel import now sets GST rates correctly
+
+### How to run:
+```
+https://YOUR-SUBDOMAIN.bizbooks-dun.vercel.app/migrate/add-gst-rate-to-items
+```
+
+### What to expect after migration:
+- All existing items: 18% GST (most common rate in India)
+- You can edit items to change rates (e.g., 0% for exempted goods, 5% for essentials)
+- New items: Choose rate from dropdown when adding
+- GST reports now correctly filter bills with/without GST
+
+**Status:** ⚠️ **REQUIRED - Run immediately to fix item listing error!**
 
 ---
 
