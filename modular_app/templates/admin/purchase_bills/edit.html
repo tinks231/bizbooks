@@ -343,10 +343,11 @@
                         <input type="text" id="vendor_search" class="form-control"
                                placeholder="Type vendor name or code..."
                                autocomplete="off"
+                               value="{{ bill.vendor_name }}"
                                oninput="searchVendors(this.value)">
                         <div id="vendor_dropdown" class="autocomplete-dropdown"></div>
                     </div>
-                    <input type="hidden" id="vendor_id" name="vendor_id">
+                    <input type="hidden" id="vendor_id" name="vendor_id" value="{{ bill.vendor_id or '' }}">
                 </div>
             </div>
             
@@ -566,11 +567,11 @@
             <div class="row">
                 <div class="col-md-6 mb-3">
                     <label class="form-label">Notes</label>
-                    <textarea name="notes" class="form-control" rows="3" placeholder="Internal notes..."></textarea>
+                    <textarea name="notes" class="form-control" rows="3" placeholder="Internal notes...">{{ bill.notes or '' }}</textarea>
                 </div>
                 <div class="col-md-6 mb-3">
                     <label class="form-label">Terms & Conditions</label>
-                    <textarea name="terms_conditions" class="form-control" rows="3" placeholder="Payment terms, delivery terms..."></textarea>
+                    <textarea name="terms_conditions" class="form-control" rows="3" placeholder="Payment terms, delivery terms...">{{ bill.terms_conditions or '' }}</textarea>
                 </div>
             </div>
         </div>
@@ -1048,6 +1049,62 @@ function validatePurchaseBillForm() {
     
     return true;
 }
+
+// ===== PRE-POPULATE EXISTING ITEMS ON PAGE LOAD =====
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('🔄 Pre-populating existing items...');
+    
+    {% if bill.items %}
+    {% for item in bill.items %}
+    // Add existing item to table
+    const tbody = document.getElementById('items_body');
+    const row = tbody.insertRow();
+    row.className = 'item-row';
+    
+    row.innerHTML = `
+        <td style="position: relative;">
+            <input type="text" class="form-control item-search" 
+                   value="{{ item.item_name }}" 
+                   placeholder="🔍 Search item..."
+                   autocomplete="off"
+                   oninput="searchItems(this.value, this)">
+            <input type="hidden" class="item-name" name="item_name[]" value="{{ item.item_name }}">
+            <input type="hidden" class="item-id" name="item_id[]" value="{{ item.item_id or '' }}">
+            <div class="autocomplete-dropdown"></div>
+        </td>
+        <td><input type="number" name="quantity[]" class="form-control quantity" 
+                   value="{{ item.quantity }}" step="0.01" min="0" required 
+                   onchange="calculateItemTotal(this)"></td>
+        <td><input type="number" name="rate[]" class="form-control rate" 
+                   value="{{ item.rate }}" step="0.01" min="0" required 
+                   onchange="calculateItemTotal(this)"></td>
+        <td><input type="text" name="hsn[]" class="form-control hsn" 
+                   value="{{ item.hsn_code or '' }}" maxlength="20"></td>
+        <td>
+            <select name="gst_rate[]" class="form-control gst_rate" onchange="calculateItemTotal(this)">
+                <option value="0" {% if item.gst_rate == 0 %}selected{% endif %}>0%</option>
+                <option value="5" {% if item.gst_rate == 5 %}selected{% endif %}>5%</option>
+                <option value="12" {% if item.gst_rate == 12 %}selected{% endif %}>12%</option>
+                <option value="18" {% if item.gst_rate == 18 %}selected{% endif %}>18%</option>
+                <option value="28" {% if item.gst_rate == 28 %}selected{% endif %}>28%</option>
+            </select>
+        </td>
+        <td class="item-total">₹{{ "%.2f"|format(item.total_amount) }}</td>
+        <td><button type="button" class="btn btn-danger btn-sm" onclick="removeItem(this)">✕</button></td>
+    `;
+    
+    // Calculate total for this row
+    calculateItemTotal(row.querySelector('.quantity'));
+    {% endfor %}
+    
+    console.log('✅ Pre-populated {{ bill.items|length }} existing items');
+    {% else %}
+    console.log('ℹ️ No existing items to pre-populate');
+    {% endif %}
+    
+    // Recalculate grand totals
+    updateTotals();
+});
 
 // Close dropdowns on outside click
 // Click handler already added above - no duplicate needed
