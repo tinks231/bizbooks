@@ -3,7 +3,18 @@
 {% block title %}Purchase Bill {{ bill.bill_number }}{% endblock %}
 
 {% block header_actions %}
-<!-- Remove default Manual Entry & QR Code buttons - not relevant for Purchase Bills -->
+<!-- Back and Print/PDF buttons in top-right corner -->
+<a href="{{ url_for('purchase_bills.list_bills') }}" 
+   class="btn btn-secondary" 
+   style="padding: 10px 20px; font-size: 14px; font-weight: 600;">
+    ← Back
+</a>
+<a href="{{ url_for('purchase_bills.print_bill', bill_id=bill.id) }}" 
+   target="_blank" 
+   class="btn btn-success" 
+   style="padding: 10px 20px; font-size: 14px; font-weight: 600;">
+    🖨️ Print / PDF
+</a>
 {% endblock %}
 
 {% block content %}
@@ -132,23 +143,8 @@
                     <span style="opacity: 0.9; font-size: 14px;">{{ bill.bill_date.strftime('%d %b %Y') }}</span>
                 </div>
             </div>
+            {% if bill.status == 'draft' %}
             <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                <a href="{{ url_for('purchase_bills.list_bills') }}" 
-                   class="btn" 
-                   style="padding: 10px 20px; font-size: 14px; font-weight: 600; background: white; color: #667eea; border: 2px solid white; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.15); transition: all 0.2s;"
-                   onmouseover="this.style.background='rgba(255,255,255,0.9)'; this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.2)'"
-                   onmouseout="this.style.background='white'; this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 8px rgba(0,0,0,0.15)'">
-                    ← Back
-                </a>
-                <a href="{{ url_for('purchase_bills.print_bill', bill_id=bill.id) }}" 
-                   target="_blank" 
-                   class="btn" 
-                   style="padding: 10px 20px; font-size: 14px; font-weight: 600; background: #28a745; color: white; border: 2px solid #28a745; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.15); transition: all 0.2s;"
-                   onmouseover="this.style.background='#218838'; this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.2)'"
-                   onmouseout="this.style.background='#28a745'; this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 8px rgba(0,0,0,0.15)'">
-                    🖨️ Print / PDF
-                </a>
-                {% if bill.status == 'draft' %}
                 <a href="{{ url_for('purchase_bills.edit_bill', bill_id=bill.id) }}" 
                    class="btn" 
                    style="padding: 10px 20px; font-size: 14px; font-weight: 600; background: #ffc107; color: #000; border: 2px solid #ffc107; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.15); transition: all 0.2s;"
@@ -176,8 +172,8 @@
                         🗑️ Delete
                     </button>
                 </form>
-                {% endif %}
             </div>
+            {% endif %}
         </div>
     </div>
 
