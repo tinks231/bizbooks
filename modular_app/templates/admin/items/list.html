@@ -188,16 +188,16 @@
                         <div style="display: flex; gap: 8px;">
                             <a href="{{ url_for('items.edit', item_id=item.id) }}" 
                                class="btn btn-secondary" 
-                               style="padding: 6px 12px; font-size: 13px;"
+                               style="padding: 8px 12px; font-size: 18px; line-height: 1;"
                                title="Edit">
-                                ✏️ Edit
+                                ✏️
                             </a>
                             <form method="POST" action="{{ url_for('items.delete', item_id=item.id) }}" 
                                   style="display: inline;"
                                   onsubmit="return confirm('⚠️ Delete {{ item.name }}?\n\nThis will also delete:\n• All stock records\n• All stock movements\n\nThis cannot be undone!')">
                                 <button type="submit" 
                                         class="btn btn-danger" 
-                                        style="padding: 6px 12px; font-size: 13px;"
+                                        style="padding: 8px 12px; font-size: 18px; line-height: 1;"
                                         title="Delete">
                                     🗑️
                                 </button>
