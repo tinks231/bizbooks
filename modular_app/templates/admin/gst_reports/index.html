@@ -64,6 +64,18 @@
         </a>
     </div>
     
+    <!-- GSTR-2 Card -->
+    <div class="report-card" style="background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);">
+        <div class="report-icon">📥</div>
+        <h3>GSTR-2</h3>
+        <p>Inward Supplies (Purchases)</p>
+        <p class="report-desc">Input Tax Credit (ITC) details from purchase bills</p>
+        <a href="{{ url_for('purchase_bills.gstr2_report', start_date=start_date, end_date=end_date) }}" 
+           class="btn-report">
+            View Report →
+        </a>
+    </div>
+    
 </div>
 
 <!-- Info Card -->
@@ -85,12 +97,11 @@
             <h4 style="color: #00f2fe; margin-bottom: 5px;">GST Summary</h4>
             <p style="color: #7f8c8d; margin: 0;">Quick overview of GST collected, trends, and rate-wise breakdown for internal analysis.</p>
         </div>
-    </div>
-    
-    <div style="margin-top: 20px; padding: 15px; background: #fff3cd; border-radius: 8px; border-left: 4px solid #ffc107;">
-        <p style="margin: 0; color: #856404;">
-            <strong>💡 Note:</strong> GSTR-2 (Purchase) reports will be available once the Purchase Bills module is implemented. Currently, only sales-based reports are available.
-        </p>
+        
+        <div style="border-left: 4px solid #38ef7d; padding-left: 15px;">
+            <h4 style="color: #11998e; margin-bottom: 5px;">GSTR-2 - Purchase Report</h4>
+            <p style="color: #7f8c8d; margin: 0;">Input Tax Credit (ITC) details from inward supplies. Use this to claim ITC and reconcile with vendors.</p>
+        </div>
     </div>
 </div>
 

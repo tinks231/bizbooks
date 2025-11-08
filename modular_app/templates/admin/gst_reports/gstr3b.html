@@ -54,10 +54,10 @@
     <h3 style="margin-bottom: 15px; color: #3498db;">📥 Inward Supplies & ITC (Input Tax Credit)</h3>
     
     {% if inward_taxable == 0 %}
-    <div style="padding: 40px; text-align: center; background: #fff3cd; border-radius: 8px;">
-        <p style="margin: 0; color: #856404;">
-            <strong>⚠️ Purchase Bills module not yet implemented</strong><br>
-            <small>ITC (Input Tax Credit) will be calculated once purchase bills are recorded in the system.</small>
+    <div style="padding: 40px; text-align: center; background: #d1ecf1; border-radius: 8px;">
+        <p style="margin: 0; color: #0c5460;">
+            <strong>ℹ️ ITC (Input Tax Credit) Available</strong><br>
+            <small>Purchase Bills module is now implemented. View detailed ITC breakdown in <a href="{{ url_for('purchase_bills.gstr2_report', start_date=start_date) }}" style="color: #0c5460; font-weight: bold; text-decoration: underline;">GSTR-2 Report</a>.</small>
         </p>
     </div>
     {% else %}
