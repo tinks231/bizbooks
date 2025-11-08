@@ -8,9 +8,9 @@
 <button onclick="window.print()" class="btn btn-primary">
     🖨️ Print
 </button>
-<button onclick="exportToExcel()" class="btn btn-success">
-    📥 Export Excel
-</button>
+<a href="{{ url_for('purchase_bills.gstr2_export_excel', start_date=start_date, end_date=end_date) }}" class="btn btn-success">
+    📥 Export to Excel
+</a>
 {% endblock %}
 
 {% block content %}
@@ -370,44 +370,8 @@
 </div>
 
 <script>
-function exportToExcel() {
-    // Simple Excel export using HTML table
-    const filename = 'GSTR2_Report_{{ start_date }}_to_{{ end_date }}.xls';
-    
-    let tables = '';
-    tables += '<h2>{{ tenant.company_name }}</h2>';
-    tables += '<h3>GSTR-2 Report: {{ start_date }} to {{ end_date }}</h3><br>';
-    
-    // ITC Summary
-    tables += '<h4>ITC Summary</h4>';
-    tables += '<table border="1"><tr><th>Taxable Value</th><th>CGST</th><th>SGST</th><th>IGST</th><th>Total ITC</th></tr>';
-    tables += '<tr><td>{{ "%.2f"|format(itc_summary.total_taxable_value) }}</td>';
-    tables += '<td>{{ "%.2f"|format(itc_summary.total_cgst) }}</td>';
-    tables += '<td>{{ "%.2f"|format(itc_summary.total_sgst) }}</td>';
-    tables += '<td>{{ "%.2f"|format(itc_summary.total_igst) }}</td>';
-    tables += '<td>{{ "%.2f"|format(itc_summary.total_gst) }}</td></tr></table><br>';
-    
-    // Purchase Register
-    tables += '<h4>Purchase Register</h4>';
-    tables += document.getElementById('purchaseRegister').outerHTML + '<br>';
-    
-    // HSN Summary
-    tables += '<h4>HSN-wise Summary</h4>';
-    tables += document.getElementById('hsnSummary').outerHTML + '<br>';
-    
-    // Vendor Summary
-    tables += '<h4>Vendor-wise Summary</h4>';
-    tables += document.getElementById('vendorSummary').outerHTML;
-    
-    const blob = new Blob([tables], {
-        type: 'application/vnd.ms-excel'
-    });
-    
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = filename;
-    link.click();
-}
+// Excel export now handled by backend route - generates real .xlsx files
+// No JavaScript needed - button directly links to export endpoint
 </script>
 
 {% endblock %}

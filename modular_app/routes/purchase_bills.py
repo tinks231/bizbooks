@@ -997,6 +997,297 @@ def gstr2_report():
                          vendor_summary=vendor_list)
 
 
+@purchase_bills_bp.route('/gstr2/export-excel')
+@login_required
+def gstr2_export_excel():
+    """Export GSTR-2 Report to Excel (Real .xlsx format)"""
+    from openpyxl import Workbook
+    from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
+    from openpyxl.utils import get_column_letter
+    from datetime import datetime, timedelta
+    from decimal import Decimal
+    from collections import defaultdict
+    from io import BytesIO
+    from flask import send_file
+    
+    tenant_id = get_current_tenant_id()
+    
+    # Get date range (same logic as gstr2_report)
+    start_date_str = request.args.get('start_date', '')
+    end_date_str = request.args.get('end_date', '')
+    
+    if not start_date_str:
+        today = datetime.now()
+        start_date = datetime(today.year, today.month, 1).date()
+        start_date_str = start_date.strftime('%Y-%m-%d')
+    else:
+        start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
+    
+    if not end_date_str:
+        end_date = datetime.now().date()
+        end_date_str = end_date.strftime('%Y-%m-%d')
+    else:
+        end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
+    
+    # Get all approved purchase bills with GST
+    bills = PurchaseBill.query.filter(
+        PurchaseBill.tenant_id == tenant_id,
+        PurchaseBill.status == 'approved',
+        PurchaseBill.bill_date >= start_date,
+        PurchaseBill.bill_date <= end_date,
+        db.or_(
+            PurchaseBill.cgst_amount > 0,
+            PurchaseBill.sgst_amount > 0,
+            PurchaseBill.igst_amount > 0
+        )
+    ).order_by(PurchaseBill.bill_date.asc()).all()
+    
+    # Calculate summaries (same logic)
+    total_taxable_value = Decimal('0')
+    total_cgst = Decimal('0')
+    total_sgst = Decimal('0')
+    total_igst = Decimal('0')
+    total_amount = Decimal('0')
+    
+    hsn_summary = defaultdict(lambda: {
+        'hsn_code': '',
+        'description': '',
+        'uqc': '',
+        'total_quantity': Decimal('0'),
+        'total_value': Decimal('0'),
+        'taxable_value': Decimal('0'),
+        'cgst': Decimal('0'),
+        'sgst': Decimal('0'),
+        'igst': Decimal('0'),
+        'total_tax': Decimal('0')
+    })
+    
+    vendor_summary = defaultdict(lambda: {
+        'vendor_name': '',
+        'vendor_gstin': '',
+        'bill_count': 0,
+        'total_taxable_value': Decimal('0'),
+        'total_cgst': Decimal('0'),
+        'total_sgst': Decimal('0'),
+        'total_igst': Decimal('0'),
+        'total_amount': Decimal('0')
+    })
+    
+    for bill in bills:
+        total_taxable_value += bill.subtotal
+        total_cgst += bill.cgst_amount
+        total_sgst += bill.sgst_amount
+        total_igst += bill.igst_amount
+        total_amount += bill.total_amount
+        
+        vendor_key = bill.vendor_id or bill.vendor_name
+        vendor_summary[vendor_key]['vendor_name'] = bill.vendor_name
+        vendor_summary[vendor_key]['vendor_gstin'] = bill.vendor_gstin or 'N/A'
+        vendor_summary[vendor_key]['bill_count'] += 1
+        vendor_summary[vendor_key]['total_taxable_value'] += bill.subtotal
+        vendor_summary[vendor_key]['total_cgst'] += bill.cgst_amount
+        vendor_summary[vendor_key]['total_sgst'] += bill.sgst_amount
+        vendor_summary[vendor_key]['total_igst'] += bill.igst_amount
+        vendor_summary[vendor_key]['total_amount'] += bill.total_amount
+        
+        for item in bill.items:
+            hsn_code = item.hsn_code or 'N/A'
+            hsn_summary[hsn_code]['hsn_code'] = hsn_code
+            hsn_summary[hsn_code]['description'] = item.item_name if not hsn_summary[hsn_code]['description'] else hsn_summary[hsn_code]['description']
+            hsn_summary[hsn_code]['uqc'] = item.unit
+            hsn_summary[hsn_code]['total_quantity'] += item.quantity
+            hsn_summary[hsn_code]['taxable_value'] += item.taxable_value
+            hsn_summary[hsn_code]['cgst'] += item.cgst_amount
+            hsn_summary[hsn_code]['sgst'] += item.sgst_amount
+            hsn_summary[hsn_code]['igst'] += item.igst_amount
+            hsn_summary[hsn_code]['total_tax'] += (item.cgst_amount + item.sgst_amount + item.igst_amount)
+            hsn_summary[hsn_code]['total_value'] += item.total_amount
+    
+    hsn_list = sorted(hsn_summary.values(), key=lambda x: x['hsn_code'])
+    vendor_list = sorted(vendor_summary.values(), key=lambda x: x['vendor_name'])
+    
+    # Create Excel workbook
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "GSTR-2 Report"
+    
+    # Styles
+    header_font = Font(bold=True, size=12, color="FFFFFF")
+    header_fill = PatternFill(start_color="4472C4", end_color="4472C4", fill_type="solid")
+    title_font = Font(bold=True, size=14)
+    border = Border(
+        left=Side(style='thin'),
+        right=Side(style='thin'),
+        top=Side(style='thin'),
+        bottom=Side(style='thin')
+    )
+    
+    # Title
+    ws['A1'] = g.tenant.company_name
+    ws['A1'].font = title_font
+    ws['A2'] = f'GSTR-2 Report: {start_date_str} to {end_date_str}'
+    ws['A2'].font = Font(bold=True)
+    
+    row = 4
+    
+    # ITC Summary
+    ws[f'A{row}'] = 'ITC Summary'
+    ws[f'A{row}'].font = Font(bold=True, size=12)
+    row += 1
+    
+    headers = ['Taxable Value', 'CGST', 'SGST', 'IGST', 'Total ITC', 'Bill Count']
+    for col, header in enumerate(headers, start=1):
+        cell = ws.cell(row, col, header)
+        cell.font = header_font
+        cell.fill = header_fill
+        cell.alignment = Alignment(horizontal='center')
+        cell.border = border
+    
+    row += 1
+    ws.cell(row, 1, float(total_taxable_value)).number_format = '#,##0.00'
+    ws.cell(row, 2, float(total_cgst)).number_format = '#,##0.00'
+    ws.cell(row, 3, float(total_sgst)).number_format = '#,##0.00'
+    ws.cell(row, 4, float(total_igst)).number_format = '#,##0.00'
+    ws.cell(row, 5, float(total_cgst + total_sgst + total_igst)).number_format = '#,##0.00'
+    ws.cell(row, 6, len(bills))
+    
+    for col in range(1, 7):
+        ws.cell(row, col).border = border
+        ws.cell(row, col).alignment = Alignment(horizontal='right')
+    
+    row += 3
+    
+    # Purchase Register
+    ws[f'A{row}'] = 'Purchase Register'
+    ws[f'A{row}'].font = Font(bold=True, size=12)
+    row += 1
+    
+    headers = ['Date', 'Bill No.', 'Vendor Name', 'GSTIN', 'State', 'Taxable Value', 'CGST', 'SGST', 'IGST', 'Total Amount']
+    for col, header in enumerate(headers, start=1):
+        cell = ws.cell(row, col, header)
+        cell.font = header_font
+        cell.fill = header_fill
+        cell.alignment = Alignment(horizontal='center')
+        cell.border = border
+    
+    row += 1
+    for bill in bills:
+        ws.cell(row, 1, bill.bill_date.strftime('%d-%m-%Y'))
+        ws.cell(row, 2, bill.bill_number)
+        ws.cell(row, 3, bill.vendor_name)
+        ws.cell(row, 4, bill.vendor_gstin or 'N/A')
+        ws.cell(row, 5, bill.vendor_state or 'Maharashtra')
+        ws.cell(row, 6, float(bill.subtotal)).number_format = '#,##0.00'
+        ws.cell(row, 7, float(bill.cgst_amount)).number_format = '#,##0.00'
+        ws.cell(row, 8, float(bill.sgst_amount)).number_format = '#,##0.00'
+        ws.cell(row, 9, float(bill.igst_amount)).number_format = '#,##0.00'
+        ws.cell(row, 10, float(bill.total_amount)).number_format = '#,##0.00'
+        
+        for col in range(1, 11):
+            ws.cell(row, col).border = border
+        
+        row += 1
+    
+    # Total row
+    ws.cell(row, 1, 'TOTAL').font = Font(bold=True)
+    ws.cell(row, 6, float(total_taxable_value)).number_format = '#,##0.00'
+    ws.cell(row, 6).font = Font(bold=True)
+    ws.cell(row, 7, float(total_cgst)).number_format = '#,##0.00'
+    ws.cell(row, 7).font = Font(bold=True)
+    ws.cell(row, 8, float(total_sgst)).number_format = '#,##0.00'
+    ws.cell(row, 8).font = Font(bold=True)
+    ws.cell(row, 9, float(total_igst)).number_format = '#,##0.00'
+    ws.cell(row, 9).font = Font(bold=True)
+    ws.cell(row, 10, float(total_amount)).number_format = '#,##0.00'
+    ws.cell(row, 10).font = Font(bold=True)
+    
+    for col in range(1, 11):
+        ws.cell(row, col).border = border
+        ws.cell(row, col).fill = PatternFill(start_color="D9D9D9", end_color="D9D9D9", fill_type="solid")
+    
+    row += 3
+    
+    # HSN Summary
+    ws[f'A{row}'] = 'HSN-wise Summary'
+    ws[f'A{row}'].font = Font(bold=True, size=12)
+    row += 1
+    
+    headers = ['HSN Code', 'Description', 'UQC', 'Quantity', 'Taxable Value', 'CGST', 'SGST', 'IGST', 'Total']
+    for col, header in enumerate(headers, start=1):
+        cell = ws.cell(row, col, header)
+        cell.font = header_font
+        cell.fill = header_fill
+        cell.alignment = Alignment(horizontal='center')
+        cell.border = border
+    
+    row += 1
+    for hsn in hsn_list:
+        ws.cell(row, 1, hsn['hsn_code'])
+        ws.cell(row, 2, hsn['description'])
+        ws.cell(row, 3, hsn['uqc'])
+        ws.cell(row, 4, float(hsn['total_quantity'])).number_format = '#,##0.00'
+        ws.cell(row, 5, float(hsn['taxable_value'])).number_format = '#,##0.00'
+        ws.cell(row, 6, float(hsn['cgst'])).number_format = '#,##0.00'
+        ws.cell(row, 7, float(hsn['sgst'])).number_format = '#,##0.00'
+        ws.cell(row, 8, float(hsn['igst'])).number_format = '#,##0.00'
+        ws.cell(row, 9, float(hsn['total_value'])).number_format = '#,##0.00'
+        
+        for col in range(1, 10):
+            ws.cell(row, col).border = border
+        
+        row += 1
+    
+    row += 2
+    
+    # Vendor Summary
+    ws[f'A{row}'] = 'Vendor-wise Summary'
+    ws[f'A{row}'].font = Font(bold=True, size=12)
+    row += 1
+    
+    headers = ['Vendor Name', 'GSTIN', 'Bills', 'Taxable Value', 'CGST', 'SGST', 'IGST', 'Total']
+    for col, header in enumerate(headers, start=1):
+        cell = ws.cell(row, col, header)
+        cell.font = header_font
+        cell.fill = header_fill
+        cell.alignment = Alignment(horizontal='center')
+        cell.border = border
+    
+    row += 1
+    for vendor in vendor_list:
+        ws.cell(row, 1, vendor['vendor_name'])
+        ws.cell(row, 2, vendor['vendor_gstin'])
+        ws.cell(row, 3, vendor['bill_count'])
+        ws.cell(row, 4, float(vendor['total_taxable_value'])).number_format = '#,##0.00'
+        ws.cell(row, 5, float(vendor['total_cgst'])).number_format = '#,##0.00'
+        ws.cell(row, 6, float(vendor['total_sgst'])).number_format = '#,##0.00'
+        ws.cell(row, 7, float(vendor['total_igst'])).number_format = '#,##0.00'
+        ws.cell(row, 8, float(vendor['total_amount'])).number_format = '#,##0.00'
+        
+        for col in range(1, 9):
+            ws.cell(row, col).border = border
+        
+        row += 1
+    
+    # Auto-adjust column widths
+    for col in range(1, 11):
+        ws.column_dimensions[get_column_letter(col)].width = 15
+    
+    # Save to BytesIO
+    output = BytesIO()
+    wb.save(output)
+    output.seek(0)
+    
+    # Generate filename
+    filename = f'GSTR2_Report_{start_date_str}_to_{end_date_str}.xlsx'
+    
+    return send_file(
+        output,
+        mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        as_attachment=True,
+        download_name=filename
+    )
+
+
 @purchase_bills_bp.route('/api/vendors/search')
 def api_search_vendors():
     """API endpoint to search vendors"""
