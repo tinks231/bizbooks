@@ -329,7 +329,8 @@ def create_bill():
             'sale_price': float(item.selling_price or 0),  # Use selling_price field
             'hsn_code': item.hsn_code or '',
             'unit': item.unit or 'nos',  # Default is 'nos' in model
-            'tax_preference': item.tax_preference or 'GST@18%'
+            'tax_preference': item.tax_preference or 'GST@18%',
+            'gst_rate': float(item.gst_rate or 18.0)
         }
         for item in items
     ]
@@ -496,12 +497,45 @@ def edit_bill(bill_id):
             db.session.rollback()
             flash(f'❌ Error updating bill: {str(e)}', 'error')
     
+    # Get items and vendors for autocomplete (same as create)
     vendors = Vendor.query.filter_by(tenant_id=tenant_id, is_active=True).order_by(Vendor.name).all()
+    items = Item.query.filter_by(tenant_id=tenant_id).all()
+    
+    # Convert to JSON-serializable format
+    items_json = [
+        {
+            'id': item.id,
+            'name': item.name,
+            'item_code': item.sku or '',
+            'purchase_price': float(item.cost_price or 0),
+            'sale_price': float(item.selling_price or 0),
+            'hsn_code': item.hsn_code or '',
+            'unit': item.unit or 'nos',
+            'tax_preference': item.tax_preference or 'GST@18%',
+            'gst_rate': float(item.gst_rate or 18.0)
+        }
+        for item in items
+    ]
+    
+    vendors_json = [
+        {
+            'id': vendor.id,
+            'name': vendor.name,
+            'company_name': vendor.company_name or '',
+            'phone': vendor.phone or '',
+            'email': vendor.email or '',
+            'gstin': vendor.gstin or '',
+            'address': vendor.address or '',
+            'state': vendor.state or 'Maharashtra'
+        }
+        for vendor in vendors
+    ]
     
     return render_template('admin/purchase_bills/edit.html',
                          tenant=g.tenant,
                          bill=bill,
-                         vendors=vendors)
+                         vendors=vendors_json,
+                         items=items_json)
 
 @purchase_bills_bp.route('/<int:bill_id>/approve', methods=['POST'])
 @check_license
