@@ -144,28 +144,28 @@
                 </div>
             </div>
             {% if bill.status == 'draft' %}
-            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+            <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
                 <a href="{{ url_for('purchase_bills.edit_bill', bill_id=bill.id) }}" 
                    class="btn" 
-                   style="padding: 10px 20px; font-size: 14px; font-weight: 600; background: #ffc107; color: #000; border: 2px solid #ffc107; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.15); transition: all 0.2s;"
+                   style="padding: 10px 20px; font-size: 14px; font-weight: 600; background: #ffc107; color: #000; border: 2px solid #ffc107; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.15); transition: all 0.2s; display: inline-block;"
                    onmouseover="this.style.background='#e0a800'; this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.2)'"
                    onmouseout="this.style.background='#ffc107'; this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 8px rgba(0,0,0,0.15)'">
                     ✏️ Edit
                 </a>
-                <form method="POST" action="{{ url_for('purchase_bills.approve_bill', bill_id=bill.id) }}" style="display: inline;">
+                <form method="POST" action="{{ url_for('purchase_bills.approve_bill', bill_id=bill.id) }}" style="display: inline-block; margin: 0;">
                     <button type="submit" 
                             class="btn" 
-                            style="padding: 10px 20px; font-size: 14px; font-weight: 600; background: #28a745; color: white; border: 2px solid #28a745; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.15); transition: all 0.2s;"
+                            style="padding: 10px 20px; font-size: 14px; font-weight: 600; background: #28a745; color: white; border: 2px solid #28a745; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.15); transition: all 0.2s; display: inline-block;"
                             onmouseover="this.style.background='#218838'; this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.2)'"
                             onmouseout="this.style.background='#28a745'; this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 8px rgba(0,0,0,0.15)'"
                             onclick="return confirm('✅ Approve this bill?\n\nThis will update inventory and lock the bill.')">
                         ✓ Approve
                     </button>
                 </form>
-                <form method="POST" action="{{ url_for('purchase_bills.delete_bill', bill_id=bill.id) }}" style="display: inline;">
+                <form method="POST" action="{{ url_for('purchase_bills.delete_bill', bill_id=bill.id) }}" style="display: inline-block; margin: 0;">
                     <button type="submit" 
                             class="btn" 
-                            style="padding: 10px 20px; font-size: 14px; font-weight: 600; background: #dc3545; color: white; border: 2px solid #dc3545; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.15); transition: all 0.2s;"
+                            style="padding: 10px 20px; font-size: 14px; font-weight: 600; background: #dc3545; color: white; border: 2px solid #dc3545; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.15); transition: all 0.2s; display: inline-block;"
                             onmouseover="this.style.background='#c82333'; this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.2)'"
                             onmouseout="this.style.background='#dc3545'; this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 8px rgba(0,0,0,0.15)'"
                             onclick="return confirm('⚠️ Delete this bill?\n\nThis action cannot be undone.')">
