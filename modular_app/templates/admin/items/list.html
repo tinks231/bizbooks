@@ -133,12 +133,46 @@
                     <td>
                         {% if item.track_inventory %}
                             {% set total_stock = item.get_total_stock() %}
-                            <span style="{% if item.is_low_stock() %}color: #e74c3c; font-weight: 700;{% endif %}">
-                                {{ "%.2f"|format(total_stock) }}
-                            </span>
-                            {% if item.is_low_stock() %}
-                            <small style="color: #e74c3c;">⚠️ Low</small>
-                            {% endif %}
+                            <div style="position: relative; display: inline-block; cursor: help;" 
+                                 onmouseenter="showStockTooltip(this, {{ item.id }})" 
+                                 onmouseleave="hideStockTooltip(this)">
+                                <span style="{% if item.is_low_stock() %}color: #e74c3c; font-weight: 700;{% else %}font-weight: 600;{% endif %}">
+                                    {{ "%.2f"|format(total_stock) }} 📍
+                                </span>
+                                {% if item.is_low_stock() %}
+                                <small style="color: #e74c3c;"> ⚠️ Low</small>
+                                {% endif %}
+                                
+                                <!-- Stock breakdown tooltip -->
+                                <div class="stock-tooltip" style="display: none; position: absolute; 
+                                     background: white; border: 2px solid #3498db; border-radius: 8px; 
+                                     padding: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); 
+                                     z-index: 1000; min-width: 200px; left: 50%; transform: translateX(-50%); 
+                                     top: -10px; margin-top: -100%;">
+                                    <div style="font-weight: 700; color: #2c3e50; margin-bottom: 8px; 
+                                                border-bottom: 2px solid #ecf0f1; padding-bottom: 6px;">
+                                        📦 Stock by Site
+                                    </div>
+                                    {% if item.stocks %}
+                                        {% for stock in item.stocks %}
+                                        <div style="display: flex; justify-content: space-between; padding: 4px 0; 
+                                                    border-bottom: 1px solid #ecf0f1;">
+                                            <span style="color: #7f8c8d; font-size: 13px;">{{ stock.site.name if stock.site else 'Unknown' }}</span>
+                                            <span style="font-weight: 600; color: #2c3e50;">{{ "%.2f"|format(stock.quantity_available) }}</span>
+                                        </div>
+                                        {% endfor %}
+                                        <div style="display: flex; justify-content: space-between; padding: 6px 0; 
+                                                    margin-top: 6px; border-top: 2px solid #3498db; font-weight: 700;">
+                                            <span style="color: #2c3e50;">Total</span>
+                                            <span style="color: #3498db;">{{ "%.2f"|format(total_stock) }}</span>
+                                        </div>
+                                    {% else %}
+                                        <div style="color: #95a5a6; font-size: 13px; text-align: center; padding: 8px;">
+                                            No stock records
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
                         {% else %}
                         <span style="color: #95a5a6;">—</span>
                         {% endif %}
@@ -186,5 +220,23 @@
     </div>
     {% endif %}
 </div>
+
+<script>
+// Stock tooltip functions
+function showStockTooltip(element, itemId) {
+    const tooltip = element.querySelector('.stock-tooltip');
+    if (tooltip) {
+        tooltip.style.display = 'block';
+    }
+}
+
+function hideStockTooltip(element) {
+    const tooltip = element.querySelector('.stock-tooltip');
+    if (tooltip) {
+        tooltip.style.display = 'none';
+    }
+}
+</script>
+
 {% endblock %}
 
