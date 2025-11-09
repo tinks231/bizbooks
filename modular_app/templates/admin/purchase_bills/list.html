@@ -145,9 +145,19 @@
         </form>
     </div>
 
+    <!-- View Toggle (Mobile Only) -->
+    <div style="display: flex; justify-content: flex-end; margin-bottom: 15px;">
+        <button id="viewToggle" class="btn btn-primary" onclick="toggleView()" style="display: none;">
+            <span id="toggleIcon">📊</span> <span id="toggleText">Table View</span>
+        </button>
+    </div>
+
     <!-- Bills Table -->
     <div class="bill-table">
         {% if bills %}
+        
+        <!-- Table View (Desktop default) -->
+        <div id="tableView" class="desktop-table">
         <table>
             <thead>
                 <tr>
@@ -219,6 +229,80 @@
                 {% endfor %}
             </tbody>
         </table>
+        </div>
+        <!-- End Table View -->
+        
+        <!-- Mobile Card View (Default on mobile) -->
+        <div id="cardView" class="mobile-cards" style="display: none;">
+            {% for bill in bills %}
+            <div class="bill-card" style="background: white; border: 1px solid #e0e0e0; border-radius: 10px; padding: 15px; margin-bottom: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+                <!-- Card Header -->
+                <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
+                    <div>
+                        <a href="{{ url_for('purchase_bills.view_bill', bill_id=bill.id) }}"
+                           style="font-weight: 700; font-size: 16px; color: #667eea; text-decoration: none;">
+                            {{ bill.bill_number }}
+                        </a>
+                        <div style="color: #7f8c8d; font-size: 13px; margin-top: 4px;">
+                            📅 {{ bill.bill_date.strftime('%d %b %Y') }}
+                        </div>
+                        {% if bill.reference_number %}
+                        <div style="color: #95a5a6; font-size: 12px; margin-top: 2px;">
+                            Ref: {{ bill.reference_number }}
+                        </div>
+                        {% endif %}
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 4px; align-items: flex-end;">
+                        <span class="badge badge-{{ bill.status }}" style="font-size: 10px;">{{ bill.status|upper }}</span>
+                        <span class="badge badge-{{ bill.payment_status }}" style="font-size: 10px;">{{ bill.payment_status|upper }}</span>
+                    </div>
+                </div>
+                
+                <!-- Vendor Info -->
+                <div style="background: #f8f9fa; padding: 12px; border-radius: 6px; margin-bottom: 10px;">
+                    <div style="font-size: 11px; color: #6c757d; margin-bottom: 4px;">Vendor</div>
+                    <div style="font-size: 15px; font-weight: 600; color: #2c3e50;">{{ bill.vendor_name }}</div>
+                    {% if bill.vendor_phone %}
+                    <div style="font-size: 13px; color: #7f8c8d; margin-top: 2px;">📞 {{ bill.vendor_phone }}</div>
+                    {% endif %}
+                </div>
+                
+                <!-- Amount Grid -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 12px;">
+                    <div style="background: #e3f2fd; padding: 10px; border-radius: 6px;">
+                        <div style="font-size: 10px; color: #1976d2; margin-bottom: 4px;">Total</div>
+                        <div style="font-size: 14px; font-weight: 700; color: #0d47a1;">₹{{ "{:,.0f}".format(bill.total_amount) }}</div>
+                    </div>
+                    <div style="background: #c8e6c9; padding: 10px; border-radius: 6px;">
+                        <div style="font-size: 10px; color: #2e7d32; margin-bottom: 4px;">Paid</div>
+                        <div style="font-size: 14px; font-weight: 700; color: #1b5e20;">₹{{ "{:,.0f}".format(bill.paid_amount) }}</div>
+                    </div>
+                    <div style="background: #ffcdd2; padding: 10px; border-radius: 6px;">
+                        <div style="font-size: 10px; color: #c62828; margin-bottom: 4px;">Balance</div>
+                        <div style="font-size: 14px; font-weight: 700; color: #b71c1c;">₹{{ "{:,.0f}".format(bill.balance_due) }}</div>
+                    </div>
+                </div>
+                
+                <!-- Action Buttons -->
+                <div style="display: flex; gap: 8px;">
+                    <a href="{{ url_for('purchase_bills.view_bill', bill_id=bill.id) }}"
+                       style="flex: 1; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; 
+                              padding: 10px; border-radius: 6px; text-align: center; text-decoration: none; font-weight: 600; font-size: 13px;">
+                        👁️ View
+                    </a>
+                    {% if bill.status == 'draft' %}
+                    <a href="{{ url_for('purchase_bills.edit_bill', bill_id=bill.id) }}"
+                       style="flex: 1; background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; 
+                              padding: 10px; border-radius: 6px; text-align: center; text-decoration: none; font-weight: 600; font-size: 13px;">
+                        ✏️ Edit
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        <!-- End Card View -->
+        
         {% else %}
         <div style="text-align: center; padding: 60px 20px; color: #999;">
             <i class="fas fa-file-invoice" style="font-size: 64px; margin-bottom: 20px; opacity: 0.3;"></i>
@@ -237,5 +321,83 @@
         {% endif %}
     </div>
 </div>
+
+<style>
+/* ========================================
+   MOBILE VIEW TOGGLE
+   ======================================== */
+/* Desktop: Always show table, hide toggle */
+@media (min-width: 769px) {
+    #tableView {
+        display: block !important;
+    }
+    #cardView {
+        display: none !important;
+    }
+    #viewToggle {
+        display: none !important;
+    }
+}
+
+/* Mobile: Show toggle button and respect user preference */
+@media (max-width: 768px) {
+    /* Show toggle button */
+    #viewToggle {
+        display: inline-block !important;
+    }
+    
+    /* Default: Card view (when body doesn't have show-table class) */
+    body:not(.show-table) #tableView {
+        display: none !important;
+    }
+    body:not(.show-table) #cardView {
+        display: block !important;
+    }
+    
+    /* Table view (when body has show-table class) */
+    body.show-table #tableView {
+        display: block !important;
+    }
+    body.show-table #cardView {
+        display: none !important;
+    }
+}
+</style>
+
+<script>
+// View toggle function
+function toggleView() {
+    const body = document.body;
+    const toggleIcon = document.getElementById('toggleIcon');
+    const toggleText = document.getElementById('toggleText');
+    
+    if (body.classList.contains('show-table')) {
+        // Switch to Card View
+        body.classList.remove('show-table');
+        toggleIcon.textContent = '📊';
+        toggleText.textContent = 'Table View';
+        localStorage.setItem('purchaseBillViewPreference', 'cards');
+    } else {
+        // Switch to Table View
+        body.classList.add('show-table');
+        toggleIcon.textContent = '📱';
+        toggleText.textContent = 'Card View';
+        localStorage.setItem('purchaseBillViewPreference', 'table');
+    }
+}
+
+// Load user preference on page load
+document.addEventListener('DOMContentLoaded', function() {
+    const preference = localStorage.getItem('purchaseBillViewPreference');
+    const isMobile = window.innerWidth <= 768;
+    
+    if (isMobile && preference === 'table') {
+        document.body.classList.add('show-table');
+        document.getElementById('toggleIcon').textContent = '📱';
+        document.getElementById('toggleText').textContent = 'Card View';
+    }
+});
+</script>
+
 {% endblock %}
 
