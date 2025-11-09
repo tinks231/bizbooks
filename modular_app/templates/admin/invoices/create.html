@@ -148,6 +148,65 @@
         </div>
     </div>
     
+    <!-- Commission Section (Optional) -->
+    <div class="card" style="background: linear-gradient(135deg, #f5f7fa 0%, #ffffff 100%); border: 2px solid #e3f2fd;">
+        <div class="card-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+            <h3 class="card-title">💰 Commission (Optional - Internal Use Only)</h3>
+            <small style="opacity: 0.9; display: block; margin-top: 5px; font-weight: normal;">
+                Select a sales agent to track commission. This will NOT appear on customer invoice.
+            </small>
+        </div>
+        
+        <div class="form-row">
+            <div class="form-group" style="flex: 2;">
+                <label for="commission_agent_id">Sales Agent / Commission Recipient</label>
+                <select id="commission_agent_id" name="commission_agent_id" class="form-control" 
+                        onchange="updateCommissionRate()">
+                    <option value="">--- No Commission ---</option>
+                    <optgroup label="👤 Employees">
+                        {% if commission_agents_employee %}
+                            {% for agent in commission_agents_employee %}
+                            <option value="{{ agent.id }}" 
+                                    data-rate="{{ agent.default_commission_percentage }}"
+                                    data-type="employee"
+                                    {% if invoice and invoice.commission and invoice.commission.agent_id == agent.id %}selected{% endif %}>
+                                {{ agent.name }} ({{ agent.code }}) - {{ agent.default_commission_percentage }}%
+                            </option>
+                            {% endfor %}
+                        {% endif %}
+                    </optgroup>
+                    <optgroup label="👥 External Agents">
+                        {% if commission_agents_external %}
+                            {% for agent in commission_agents_external %}
+                            <option value="{{ agent.id }}" 
+                                    data-rate="{{ agent.default_commission_percentage }}"
+                                    data-type="external"
+                                    {% if invoice and invoice.commission and invoice.commission.agent_id == agent.id %}selected{% endif %}>
+                                {{ agent.name }} ({{ agent.code }}) - {{ agent.default_commission_percentage }}%
+                            </option>
+                            {% endfor %}
+                        {% endif %}
+                    </optgroup>
+                </select>
+                <small style="color: #666;">
+                    💡 Employees must be enabled for commission in the Employee Management section.
+                </small>
+            </div>
+            
+            <div class="form-group">
+                <label for="commission_percentage">Commission % <span style="color: #999;">(Override if needed)</span></label>
+                <input type="number" id="commission_percentage" name="commission_percentage" 
+                       class="form-control" step="0.01" min="0" max="100" 
+                       placeholder="Auto-filled"
+                       value="{% if invoice and invoice.commission %}{{ invoice.commission.commission_percentage }}{% endif %}"
+                       oninput="calculateCommission()">
+                <small style="color: #666;" id="commission_calc_display">
+                    Commission: ₹0.00
+                </small>
+            </div>
+        </div>
+    </div>
+    
     <!-- Invoice Items Card -->
     <div class="card">
         <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
@@ -856,6 +915,65 @@
         document.getElementById('sgstDisplay').textContent = `₹${totalSGST.toFixed(2)}`;
         document.getElementById('igstDisplay').textContent = `₹${totalIGST.toFixed(2)}`;
         document.getElementById('totalDisplay').textContent = `₹${Math.round(total).toFixed(2)}`;
+        
+        // Recalculate commission when invoice total changes
+        calculateCommission();
+    }
+    
+    // Commission Management Functions
+    function updateCommissionRate() {
+        const agentSelect = document.getElementById('commission_agent_id');
+        const selectedOption = agentSelect.options[agentSelect.selectedIndex];
+        const commissionPercentageInput = document.getElementById('commission_percentage');
+        
+        if (selectedOption.value && selectedOption.hasAttribute('data-rate')) {
+            const defaultRate = selectedOption.getAttribute('data-rate');
+            commissionPercentageInput.value = defaultRate;
+            commissionPercentageInput.placeholder = `Default: ${defaultRate}%`;
+        } else {
+            commissionPercentageInput.value = '';
+            commissionPercentageInput.placeholder = 'Auto-filled';
+        }
+        
+        calculateCommission();
+    }
+    
+    function calculateCommission() {
+        const agentSelect = document.getElementById('commission_agent_id');
+        const commissionPercentageInput = document.getElementById('commission_percentage');
+        const commissionDisplay = document.getElementById('commission_calc_display');
+        
+        // If no agent selected, clear commission
+        if (!agentSelect.value) {
+            commissionDisplay.innerHTML = 'Commission: ₹0.00';
+            return;
+        }
+        
+        // Get commission percentage
+        const commissionPercentage = parseFloat(commissionPercentageInput.value) || 0;
+        
+        if (commissionPercentage <= 0) {
+            commissionDisplay.innerHTML = '<span style="color: #e74c3c;">⚠️ Enter commission %</span>';
+            return;
+        }
+        
+        // Get invoice total
+        const totalText = document.getElementById('totalDisplay').textContent;
+        const invoiceTotal = parseFloat(totalText.replace('₹', '').replace(',', '')) || 0;
+        
+        // Calculate commission
+        const commissionAmount = (invoiceTotal * commissionPercentage) / 100;
+        
+        // Display commission
+        const selectedOption = agentSelect.options[agentSelect.selectedIndex];
+        const agentName = selectedOption.text.split('(')[0].trim();
+        
+        commissionDisplay.innerHTML = `
+            <span style="color: #28a745; font-weight: 600;">
+                💰 ${agentName} will earn: ₹${commissionAmount.toFixed(2)} 
+                <small style="color: #666;">(${commissionPercentage}% of ₹${invoiceTotal.toFixed(2)})</small>
+            </span>
+        `;
     }
     
     // Recalculate when state changes

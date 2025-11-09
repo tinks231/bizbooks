@@ -119,6 +119,10 @@ def create():
             payment_method = request.form.get('payment_method')
             payment_reference = request.form.get('payment_reference')
             
+            # Commission data (optional)
+            commission_agent_id = request.form.get('commission_agent_id')
+            commission_percentage = request.form.get('commission_percentage')
+            
             # Convert dates
             if invoice_date:
                 invoice_date = datetime.strptime(invoice_date, '%Y-%m-%d').date()
@@ -353,6 +357,37 @@ def create():
             db.session.add(invoice)
             db.session.commit()
             
+            # Save Commission Data (if agent selected)
+            if commission_agent_id and commission_agent_id.strip() and commission_percentage:
+                try:
+                    from models import CommissionAgent, InvoiceCommission
+                    
+                    agent_id = int(commission_agent_id)
+                    agent = CommissionAgent.query.get(agent_id)
+                    
+                    if agent and agent.tenant_id == tenant_id:
+                        comm_percentage = float(commission_percentage)
+                        commission_amount = (invoice.total_amount * comm_percentage) / 100
+                        
+                        commission_record = InvoiceCommission(
+                            tenant_id=tenant_id,
+                            invoice_id=invoice.id,
+                            agent_id=agent.id,
+                            agent_name=agent.name,  # Denormalized
+                            agent_code=agent.code,  # Denormalized
+                            commission_percentage=comm_percentage,
+                            invoice_amount=invoice.total_amount,
+                            commission_amount=commission_amount,
+                            is_paid=False
+                        )
+                        
+                        db.session.add(commission_record)
+                        db.session.commit()
+                        print(f"💰 Commission saved: {agent.name} will earn ₹{commission_amount:.2f} ({comm_percentage}% of ₹{invoice.total_amount})")
+                except Exception as e:
+                    print(f"⚠️ Error saving commission: {str(e)}")
+                    # Don't fail invoice creation if commission save fails
+            
             # Update stock movement records with invoice reference
             ItemStockMovement.query.filter_by(
                 reference_type='invoice',
@@ -452,13 +487,29 @@ def create():
     # Get tenant settings
     tenant_settings = json.loads(g.tenant.settings) if g.tenant.settings else {}
     
+    # Fetch commission agents (for commission dropdown)
+    from models import CommissionAgent
+    commission_agents_employee = CommissionAgent.query.filter_by(
+        tenant_id=tenant_id,
+        agent_type='employee',
+        is_active=True
+    ).all()
+    
+    commission_agents_external = CommissionAgent.query.filter_by(
+        tenant_id=tenant_id,
+        agent_type='external',
+        is_active=True
+    ).all()
+    
     return render_template('admin/invoices/create.html',
                          tenant=g.tenant,
                          items=items_json,
                          today=date.today().strftime('%Y-%m-%d'),
                          tenant_settings=tenant_settings,
                          sales_order=sales_order,
-                         delivery_challan=delivery_challan)
+                         delivery_challan=delivery_challan,
+                         commission_agents_employee=commission_agents_employee,
+                         commission_agents_external=commission_agents_external)
 
 
 @invoices_bp.route('/<int:invoice_id>')
