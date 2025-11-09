@@ -22,7 +22,7 @@
         <div class="stat-label">Active Items</div>
     </div>
     <div class="stat-card" style="border-left-color: #e74c3c;">
-        <div class="stat-value">{{ items|selectattr('track_inventory')|selectattr('is_low_stock')|list|length }}</div>
+        <div class="stat-value">{{ low_stock_count }}</div>
         <div class="stat-label">Low Stock Alerts</div>
     </div>
 </div>

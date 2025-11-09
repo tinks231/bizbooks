@@ -94,10 +94,15 @@ def index():
     categories = ItemCategory.query.filter_by(tenant_id=tenant_id).all()
     groups = ItemGroup.query.filter_by(tenant_id=tenant_id).all()
     
+    # Calculate accurate low stock count from ALL items (not filtered)
+    all_items_query = Item.query.filter_by(tenant_id=tenant_id, is_active=True, track_inventory=True).all()
+    low_stock_count = sum(1 for item in all_items_query if item.reorder_point and item.get_total_stock() < item.reorder_point)
+    
     return render_template('admin/items/list.html',
                          items=items,
                          categories=categories,
                          groups=groups,
+                         low_stock_count=low_stock_count,
                          tenant=g.tenant)
 
 

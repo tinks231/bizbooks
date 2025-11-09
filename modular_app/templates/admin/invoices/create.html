@@ -643,6 +643,15 @@
             const escapedName = item.name.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
             const escapedHsn = (item.hsn_code || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
             
+            // Stock availability display
+            let stockDisplay = '';
+            if (item.track_inventory) {
+                const stock = typeof item.stock === 'number' ? item.stock : 0;
+                const stockColor = stock > 0 ? (stock < 10 ? '#f39c12' : '#28a745') : '#e74c3c';
+                const stockIcon = stock > 0 ? '✓' : '⚠️';
+                stockDisplay = `<span style="color: ${stockColor};">${stockIcon} Stock: ${stock.toFixed(2)}</span>`;
+            }
+            
             html += `
                 <div class="autocomplete-item" 
                      data-row-id="${rowId}"
@@ -654,6 +663,7 @@
                     <div class="autocomplete-item-details">
                         <span>💰 Rate: ₹${item.selling_price || 0}</span>
                         ${item.hsn_code ? `<span>📋 HSN: ${escapedHsn}</span>` : ''}
+                        ${stockDisplay ? stockDisplay : ''}
                     </div>
                 </div>
             `;

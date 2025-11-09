@@ -275,13 +275,18 @@ def create():
                             if item_stock:
                                 # Check if sufficient stock available
                                 if item_stock.quantity_available < quantity:
-                                    # Allow negative stock but log warning
+                                    # Show warning to user
+                                    flash(f'⚠️ Warning: {item_obj.name} has insufficient stock! Available: {item_stock.quantity_available:.2f}, Selling: {quantity}. Stock will go negative.', 'warning')
                                     print(f"⚠️  WARNING: Insufficient stock for {item_obj.name}! Available: {item_stock.quantity_available}, Requested: {quantity}")
                                 
-                                # Reduce stock (allow negative for flexibility)
+                                # Reduce stock (allow negative but warn user)
                                 old_qty = item_stock.quantity_available
                                 item_stock.quantity_available -= quantity
                                 new_qty = item_stock.quantity_available
+                                
+                                # Alert if stock went negative
+                                if new_qty < 0:
+                                    flash(f'🚨 {item_obj.name} is now OUT OF STOCK (Qty: {new_qty:.2f}). Please reorder!', 'danger')
                                 
                                 # Update stock value
                                 if item_obj.cost_price:
@@ -406,19 +411,23 @@ def create():
             flash(f'Error creating invoice: {str(e)}', 'error')
     
     # GET request - show form
-    # Get all items for autocomplete
+    # Get all items for autocomplete with stock info
     items = Item.query.filter_by(tenant_id=tenant_id, is_active=True).all()
     
-    # Prepare items for JSON (only needed fields)
-    items_json = [
-        {
+    # Prepare items for JSON (with stock availability)
+    items_json = []
+    for item in items:
+        # Get total available stock across all sites
+        total_stock = item.get_total_stock() if item.track_inventory else None
+        
+        items_json.append({
             'id': item.id,
             'name': item.name,
             'selling_price': item.selling_price or 0,
-            'hsn_code': item.hsn_code or ''
-        }
-        for item in items
-    ]
+            'hsn_code': item.hsn_code or '',
+            'track_inventory': item.track_inventory,
+            'stock': total_stock if total_stock is not None else 'N/A'
+        })
     
     # Check if converting from sales order
     from_order = request.args.get('from_order')
@@ -643,15 +652,19 @@ def edit(invoice_id):
     # GET - show edit form (using create template)
     try:
         items = Item.query.filter_by(tenant_id=tenant_id, is_active=True).all()
-        items_json = [
-            {
+        items_json = []
+        for item in items:
+            # Get total available stock across all sites
+            total_stock = item.get_total_stock() if item.track_inventory else None
+            
+            items_json.append({
                 'id': item.id,
                 'name': item.name,
                 'selling_price': item.selling_price or 0,
-                'hsn_code': item.hsn_code or ''
-            }
-            for item in items
-        ]
+                'hsn_code': item.hsn_code or '',
+                'track_inventory': item.track_inventory,
+                'stock': total_stock if total_stock is not None else 'N/A'
+            })
         
         # Convert invoice items to JSON-serializable format
         invoice_items_json = [
