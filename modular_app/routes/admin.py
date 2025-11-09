@@ -199,22 +199,40 @@ def dashboard():
 @login_required
 def employees():
     """Manage employees"""
+    from models import CommissionAgent
+    
     tenant_id = get_current_tenant_id()
     employees = Employee.query.filter_by(tenant_id=tenant_id).all()
     sites = Site.query.filter_by(tenant_id=tenant_id, active=True).all()
-    return render_template('admin/employees.html', employees=employees, sites=sites, tenant=g.tenant)
+    
+    # Fetch commission agents for each employee
+    commission_agents = {}
+    for emp in employees:
+        agent = CommissionAgent.query.filter_by(tenant_id=tenant_id, employee_id=emp.id, is_active=True).first()
+        if agent:
+            commission_agents[emp.id] = agent
+    
+    return render_template('admin/employees.html', 
+                         employees=employees, 
+                         sites=sites, 
+                         commission_agents=commission_agents,
+                         tenant=g.tenant)
 
 @admin_bp.route('/employee/add', methods=['POST'])
 @require_tenant
 @login_required
 def add_employee():
     """Add new employee"""
+    from models import CommissionAgent
+    
     tenant_id = get_current_tenant_id()
     name = request.form.get('name')
     pin = request.form.get('pin')
     phone = request.form.get('phone')
     email = request.form.get('email')  # NEW: Email for purchase request notifications
     site_id = request.form.get('site_id')
+    enable_commission = request.form.get('enable_commission') == '1'  # NEW: Commission checkbox
+    commission_percentage = request.form.get('commission_percentage')  # NEW: Commission %
     
     # Convert empty string to None for site_id (PostgreSQL requirement)
     if site_id == '' or not site_id:
@@ -242,7 +260,31 @@ def add_employee():
     db.session.add(employee)
     db.session.commit()
     
-    flash(f'Employee {name} added successfully!', 'success')
+    # Create Commission Agent if enabled
+    if enable_commission:
+        try:
+            commission_rate = float(commission_percentage) if commission_percentage else 1.0
+            agent = CommissionAgent(
+                tenant_id=tenant_id,
+                name=name,
+                code=f"EMP-{pin}",  # Auto-generate code from PIN
+                phone=phone,
+                email=email,
+                default_commission_percentage=commission_rate,
+                employee_id=employee.id,
+                agent_type='employee',
+                is_active=True,
+                created_by=g.user.id if hasattr(g, 'user') else None
+            )
+            db.session.add(agent)
+            db.session.commit()
+            flash(f'✅ Employee {name} added with {commission_rate}% commission!', 'success')
+        except Exception as e:
+            print(f"❌ Error creating commission agent: {str(e)}")
+            flash(f'⚠️ Employee added but commission setup failed: {str(e)}', 'warning')
+    else:
+        flash(f'Employee {name} added successfully!', 'success')
+    
     return redirect(url_for('admin.employees'))
 
 @admin_bp.route('/employee/delete/<int:emp_id>')

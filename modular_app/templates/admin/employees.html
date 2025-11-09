@@ -47,6 +47,28 @@
             <input type="file" name="document" accept=".pdf,.jpg,.jpeg,.png">
             <small style="color: #7f8c8d;">Supported: PDF, JPG, PNG</small>
         </div>
+        
+        <!-- NEW: Commission Section -->
+        <div class="form-group" style="grid-column: span 2; background: #f8f9fa; padding: 15px; border-radius: 8px; border: 2px solid #e0e6ed;">
+            <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 10px;">
+                <input type="checkbox" name="enable_commission" id="enable_commission" value="1" 
+                       style="width: 20px; height: 20px; cursor: pointer;"
+                       onchange="document.getElementById('commission_percentage').disabled = !this.checked">
+                <label for="enable_commission" style="margin: 0; font-weight: 600; color: #2c3e50; cursor: pointer;">
+                    💰 Enable Commission for this Employee
+                </label>
+            </div>
+            <div style="display: grid; grid-template-columns: 200px 1fr; gap: 10px; align-items: center; margin-left: 35px;">
+                <label style="color: #7f8c8d;">Commission %:</label>
+                <input type="number" name="commission_percentage" id="commission_percentage" 
+                       step="0.01" min="0" max="100" value="1.0" disabled
+                       style="padding: 8px; border: 1px solid #ddd; border-radius: 4px; background: white;">
+            </div>
+            <small style="color: #7f8c8d; margin-left: 35px; display: block; margin-top: 8px;">
+                ℹ️ If enabled, this employee will earn commission on sales. You can track and manage commissions in the Invoice section.
+            </small>
+        </div>
+        
         <div style="grid-column: span 2;">
             <button type="submit" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 12px 30px; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">➕ Add Employee</button>
         </div>
@@ -63,6 +85,7 @@
                 <th style="padding: 15px; text-align: left; font-weight: 600;">Phone</th>
                 <th style="padding: 15px; text-align: left; font-weight: 600;">Email</th>
                 <th style="padding: 15px; text-align: left; font-weight: 600;">Site</th>
+                <th style="padding: 15px; text-align: center; font-weight: 600;">Commission</th>
                 <th style="padding: 15px; text-align: center; font-weight: 600;">Document</th>
                 <th style="padding: 15px; text-align: center; font-weight: 600;">Status</th>
                 <th style="padding: 15px; text-align: center; font-weight: 600;">Actions</th>
@@ -76,6 +99,15 @@
                 <td style="padding: 15px; color: #666;">{{ employee.phone or '-' }}</td>
                 <td style="padding: 15px; color: #666;">{{ employee.email or '-' }}</td>
                 <td style="padding: 15px;">{{ employee.site.name if employee.site else '-' }}</td>
+                <td style="padding: 15px; text-align: center;">
+                    {% if employee.id in commission_agents %}
+                    <span style="background: #d4edda; color: #155724; padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; white-space: nowrap;">
+                        💰 {{ commission_agents[employee.id].default_commission_percentage }}%
+                    </span>
+                    {% else %}
+                    <span style="color: #999;">-</span>
+                    {% endif %}
+                </td>
                 <td style="padding: 15px; text-align: center;">
                     {% if employee.document_path %}
                     <a href="/admin/employee/document/{{ employee.id }}" target="_blank" style="color: #3498db; text-decoration: none;">
