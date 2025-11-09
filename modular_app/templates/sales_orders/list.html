@@ -287,19 +287,30 @@
     margin: 0 -15px;
 }
 
+/* Mobile: Reduce row margin for 2-card layout */
+@media (max-width: 767px) {
+    .row {
+        margin: 0 -8px;
+    }
+}
+
 .col-md-12, .col-md-6, .col-md-4, .col-md-3, .col-md-2 {
     padding: 0 15px;
     box-sizing: border-box;
 }
 
-/* Mobile First - Stack on small screens */
-.col-md-12,
+/* Mobile First - 2 cards per row on small screens */
+.col-md-12 {
+    flex: 0 0 100%;
+    max-width: 100%;
+}
+
 .col-md-6,
 .col-md-4,
 .col-md-3,
 .col-md-2 {
-    flex: 0 0 100%;
-    max-width: 100%;
+    flex: 0 0 50%;  /* 2 cards per row on mobile */
+    max-width: 50%;
 }
 
 /* Desktop breakpoint (768px and up) */
@@ -370,22 +381,32 @@
     color: #6c757d;
 }
 
-/* Mobile: Add bottom margin for stacked cards */
+/* Mobile: 2 cards per row styling */
 @media (max-width: 767px) {
     .col-md-2 {
-        margin-bottom: 15px;
+        margin-bottom: 12px;
     }
     
-    .col-md-2:last-child {
+    /* Remove bottom margin from last 2 cards in last row */
+    .col-md-2:nth-last-child(-n+2) {
         margin-bottom: 0;
     }
     
     .card.text-center h3 {
-        font-size: 1.75rem;
+        font-size: 1.5rem;  /* Smaller to fit 2 cards */
+    }
+    
+    .card.text-center small {
+        font-size: 0.7rem;  /* Smaller label */
     }
     
     .card-body {
-        padding: 15px;
+        padding: 12px 8px;  /* Tighter padding */
+    }
+    
+    /* Reduce padding between cards */
+    .col-md-2 {
+        padding: 0 8px;
     }
 }
 
