@@ -2243,3 +2243,184 @@ def add_gst_rate_to_items():
             'details': str(e),
             'help': 'Contact support if this error persists'
         }), 500
+
+
+@migration_bp.route('/add-commission-tables')
+def add_commission_tables():
+    """
+    Add commission tracking tables for sales agents
+    
+    Creates:
+    - commission_agents table (tracks sales agents and their commission %)
+    - invoice_commissions table (links invoices to agents with commission amounts)
+    
+    Safe migration - only creates new tables, no modification to existing data
+    Access this URL once: /migrate/add-commission-tables
+    """
+    try:
+        db_url = db.engine.url.drivername
+        
+        if 'postgresql' in db_url:
+            # PostgreSQL syntax
+            create_tables = text("""
+                -- Create commission_agents table
+                CREATE TABLE IF NOT EXISTS commission_agents (
+                    id SERIAL PRIMARY KEY,
+                    tenant_id INTEGER NOT NULL REFERENCES tenants(id),
+                    name VARCHAR(200) NOT NULL,
+                    code VARCHAR(50),
+                    phone VARCHAR(20),
+                    email VARCHAR(120),
+                    default_commission_percentage FLOAT DEFAULT 1.0,
+                    employee_id INTEGER REFERENCES employees(id),
+                    agent_type VARCHAR(20) DEFAULT 'external',
+                    is_active BOOLEAN DEFAULT TRUE,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    created_by INTEGER REFERENCES users(id),
+                    CONSTRAINT unique_tenant_employee_agent UNIQUE (tenant_id, employee_id),
+                    CONSTRAINT unique_tenant_agent_code UNIQUE (tenant_id, code)
+                );
+                
+                -- Create index for performance
+                CREATE INDEX IF NOT EXISTS idx_tenant_active ON commission_agents(tenant_id, is_active);
+                
+                -- Create invoice_commissions table
+                CREATE TABLE IF NOT EXISTS invoice_commissions (
+                    id SERIAL PRIMARY KEY,
+                    tenant_id INTEGER NOT NULL REFERENCES tenants(id),
+                    invoice_id INTEGER NOT NULL REFERENCES invoices(id),
+                    agent_id INTEGER NOT NULL REFERENCES commission_agents(id),
+                    agent_name VARCHAR(200) NOT NULL,
+                    agent_code VARCHAR(50),
+                    commission_percentage FLOAT NOT NULL,
+                    invoice_amount FLOAT NOT NULL,
+                    commission_amount FLOAT NOT NULL,
+                    is_paid BOOLEAN DEFAULT FALSE,
+                    paid_date DATE,
+                    payment_notes TEXT,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    CONSTRAINT unique_invoice_commission UNIQUE (invoice_id)
+                );
+                
+                -- Create indexes for performance
+                CREATE INDEX IF NOT EXISTS idx_tenant_agent_paid ON invoice_commissions(tenant_id, agent_id, is_paid);
+                CREATE INDEX IF NOT EXISTS idx_tenant_paid_date ON invoice_commissions(tenant_id, paid_date);
+            """)
+            
+            db.session.execute(create_tables)
+            db.session.commit()
+            
+            return jsonify({
+                'status': 'success',
+                'message': '✅ Commission tracking tables created successfully!',
+                'details': {
+                    'tables_created': [
+                        'commission_agents (Sales agents with commission %)',
+                        'invoice_commissions (Commission records per invoice)'
+                    ],
+                    'indexes_created': [
+                        'idx_tenant_active (commission_agents)',
+                        'idx_tenant_agent_paid (invoice_commissions)',
+                        'idx_tenant_paid_date (invoice_commissions)'
+                    ]
+                },
+                'database': 'PostgreSQL (Production)',
+                'next_steps': [
+                    '1. Go to Admin > Parties > Commission Agents',
+                    '2. Add commission agents (internal employees or external)',
+                    '3. Edit employees to link them as commission agents',
+                    '4. Commission section will appear on invoice creation'
+                ]
+            })
+        
+        else:
+            # SQLite syntax
+            create_tables = text("""
+                -- Create commission_agents table
+                CREATE TABLE IF NOT EXISTS commission_agents (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    tenant_id INTEGER NOT NULL,
+                    name VARCHAR(200) NOT NULL,
+                    code VARCHAR(50),
+                    phone VARCHAR(20),
+                    email VARCHAR(120),
+                    default_commission_percentage REAL DEFAULT 1.0,
+                    employee_id INTEGER,
+                    agent_type VARCHAR(20) DEFAULT 'external',
+                    is_active INTEGER DEFAULT 1,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    created_by INTEGER,
+                    FOREIGN KEY (tenant_id) REFERENCES tenants(id),
+                    FOREIGN KEY (employee_id) REFERENCES employees(id),
+                    FOREIGN KEY (created_by) REFERENCES users(id),
+                    UNIQUE (tenant_id, employee_id),
+                    UNIQUE (tenant_id, code)
+                );
+                
+                -- Create index for performance
+                CREATE INDEX IF NOT EXISTS idx_tenant_active ON commission_agents(tenant_id, is_active);
+                
+                -- Create invoice_commissions table
+                CREATE TABLE IF NOT EXISTS invoice_commissions (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    tenant_id INTEGER NOT NULL,
+                    invoice_id INTEGER NOT NULL,
+                    agent_id INTEGER NOT NULL,
+                    agent_name VARCHAR(200) NOT NULL,
+                    agent_code VARCHAR(50),
+                    commission_percentage REAL NOT NULL,
+                    invoice_amount REAL NOT NULL,
+                    commission_amount REAL NOT NULL,
+                    is_paid INTEGER DEFAULT 0,
+                    paid_date DATE,
+                    payment_notes TEXT,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (tenant_id) REFERENCES tenants(id),
+                    FOREIGN KEY (invoice_id) REFERENCES invoices(id),
+                    FOREIGN KEY (agent_id) REFERENCES commission_agents(id),
+                    UNIQUE (invoice_id)
+                );
+                
+                -- Create indexes for performance
+                CREATE INDEX IF NOT EXISTS idx_tenant_agent_paid ON invoice_commissions(tenant_id, agent_id, is_paid);
+                CREATE INDEX IF NOT EXISTS idx_tenant_paid_date ON invoice_commissions(tenant_id, paid_date);
+            """)
+            
+            db.session.execute(create_tables)
+            db.session.commit()
+            
+            return jsonify({
+                'status': 'success',
+                'message': '✅ Commission tracking tables created successfully!',
+                'details': {
+                    'tables_created': [
+                        'commission_agents (Sales agents with commission %)',
+                        'invoice_commissions (Commission records per invoice)'
+                    ],
+                    'indexes_created': [
+                        'idx_tenant_active (commission_agents)',
+                        'idx_tenant_agent_paid (invoice_commissions)',
+                        'idx_tenant_paid_date (invoice_commissions)'
+                    ]
+                },
+                'database': 'SQLite (Local Development)',
+                'next_steps': [
+                    '1. Go to Admin > Parties > Commission Agents',
+                    '2. Add commission agents (internal employees or external)',
+                    '3. Edit employees to link them as commission agents',
+                    '4. Commission section will appear on invoice creation'
+                ]
+            })
+    
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({
+            'status': 'error',
+            'message': f'Commission migration failed: {str(e)}',
+            'details': str(e),
+            'help': 'Check if tables already exist or contact support'
+        }), 500

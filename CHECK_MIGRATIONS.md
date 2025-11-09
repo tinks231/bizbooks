@@ -43,6 +43,7 @@ https://mahaveerelectricals.bizbooks-dun.vercel.app/migrate/add-purchase-request
 7. `/migrate/add-hsn-code-to-items` - HSN code for GST invoices ⭐
 8. `/migrate/add-sales-order-module` - Sales Order & Delivery Challan modules ⭐
 9. `/migrate/add-gst-rate-to-items` - GST Rate in Item Master for accurate reporting ⭐ **REQUIRED!**
+10. `/migrate/add-commission-tables` - Commission tracking for sales agents (optional feature) 🆕
 
 ## ⚠️ Important:
 - Run each migration **ONLY ONCE** per database
