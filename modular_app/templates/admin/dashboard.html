@@ -5,7 +5,9 @@
 {% block page_title %}Business Dashboard{% endblock %}
 
 {% block header_actions %}
-<!-- Clean header - no buttons -->
+<button onclick="openWidgetModal()" class="btn btn-primary" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none;">
+    ➕ Add More
+</button>
 {% endblock %}
 
 {% block content %}
@@ -112,6 +114,13 @@
         text-align: center;
         box-shadow: 0 2px 6px rgba(0,0,0,0.06);
         border-top: 3px solid #667eea;
+        transition: all 0.2s;
+        display: block;
+    }
+    
+    .stat-box:hover {
+        box-shadow: 0 4px 15px rgba(0,0,0,0.12);
+        transform: translateY(-3px);
     }
     
     .stat-box.green {
@@ -353,31 +362,31 @@
         </div>
     </div>
     
-    <!-- Quick Stats -->
+    <!-- Quick Stats (Clickable) -->
     <div class="stats-grid">
-        <div class="stat-box green">
+        <a href="/admin/items" class="stat-box green" style="text-decoration: none; cursor: pointer;">
             <div class="stat-icon">📦</div>
             <div class="stat-number">{{ total_items }}</div>
             <div class="stat-label">Total Items</div>
-        </div>
+        </a>
         
-        <div class="stat-box red">
+        <a href="/admin/items?low_stock=1" class="stat-box red" style="text-decoration: none; cursor: pointer;">
             <div class="stat-icon">⚠️</div>
             <div class="stat-number">{{ low_stock_count }}</div>
             <div class="stat-label">Low Stock Items</div>
-        </div>
+        </a>
         
-        <div class="stat-box blue">
+        <a href="/admin/customers" class="stat-box blue" style="text-decoration: none; cursor: pointer;">
             <div class="stat-icon">👥</div>
             <div class="stat-number">{{ total_customers }}</div>
             <div class="stat-label">Customers</div>
-        </div>
+        </a>
         
-        <div class="stat-box orange">
+        <a href="/admin/vendors" class="stat-box orange" style="text-decoration: none; cursor: pointer;">
             <div class="stat-icon">🏢</div>
             <div class="stat-number">{{ total_vendors }}</div>
             <div class="stat-label">Vendors</div>
-        </div>
+        </a>
     </div>
     
     <!-- Quick Actions -->
@@ -476,6 +485,209 @@
             {% endif %}
         </div>
     </div>
+    
+    <!-- Add Widget Section -->
+    <div style="background: white; border-radius: 12px; padding: 30px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); text-align: center; border: 2px dashed #e0e0e0;">
+        <div style="font-size: 18px; color: #7f8c8d; margin-bottom: 10px;">📊 Customize Your Dashboard</div>
+        <div style="font-size: 14px; color: #95a5a6; margin-bottom: 20px;">Add widgets to track what matters most to your business</div>
+        <button onclick="openWidgetModal()" class="btn btn-primary" style="padding: 12px 30px; font-size: 15px;">
+            ➕ Add Widget
+        </button>
+    </div>
 </div>
+
+<!-- Widget Selection Modal -->
+<div id="widgetModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9999; overflow-y: auto;">
+    <div style="min-height: 100%; display: flex; align-items: center; justify-content: center; padding: 20px;">
+        <div style="background: white; border-radius: 16px; max-width: 900px; width: 100%; box-shadow: 0 10px 40px rgba(0,0,0,0.2); max-height: 90vh; overflow-y: auto;">
+            <!-- Modal Header -->
+            <div style="padding: 25px 30px; border-bottom: 2px solid #f0f0f0; display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <h2 style="margin: 0; font-size: 24px; color: #2c3e50;">Add Widget to Dashboard</h2>
+                    <p style="margin: 5px 0 0 0; color: #7f8c8d; font-size: 14px;">Select widgets to customize your dashboard view</p>
+                </div>
+                <button onclick="closeWidgetModal()" style="background: none; border: none; font-size: 28px; color: #95a5a6; cursor: pointer; line-height: 1; padding: 0; width: 32px; height: 32px;">×</button>
+            </div>
+            
+            <!-- Modal Body -->
+            <div style="padding: 30px;">
+                <!-- Widget Categories -->
+                <div style="margin-bottom: 30px;">
+                    <h3 style="font-size: 16px; color: #2c3e50; margin-bottom: 15px; font-weight: 600;">💰 Financial Widgets</h3>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 15px;">
+                        <div class="widget-option" onclick="addWidget('purchases')">
+                            <div style="font-size: 24px; margin-bottom: 8px;">🛒</div>
+                            <div style="font-weight: 600; margin-bottom: 5px;">Total Purchases</div>
+                            <div style="font-size: 12px; color: #7f8c8d;">Track all purchase expenses</div>
+                        </div>
+                        
+                        <div class="widget-option" onclick="addWidget('expenses')">
+                            <div style="font-size: 24px; margin-bottom: 8px;">💸</div>
+                            <div style="font-weight: 600; margin-bottom: 5px;">Expenses</div>
+                            <div style="font-size: 12px; color: #7f8c8d;">Monitor business expenses</div>
+                        </div>
+                        
+                        <div class="widget-option" onclick="addWidget('profit')">
+                            <div style="font-size: 24px; margin-bottom: 8px;">💹</div>
+                            <div style="font-weight: 600; margin-bottom: 5px;">Profit Margin</div>
+                            <div style="font-size: 12px; color: #7f8c8d;">Sales minus expenses</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div style="margin-bottom: 30px;">
+                    <h3 style="font-size: 16px; color: #2c3e50; margin-bottom: 15px; font-weight: 600;">📦 Inventory Widgets</h3>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 15px;">
+                        <div class="widget-option" onclick="addWidget('stock_value')">
+                            <div style="font-size: 24px; margin-bottom: 8px;">💎</div>
+                            <div style="font-weight: 600; margin-bottom: 5px;">Stock Value</div>
+                            <div style="font-size: 12px; color: #7f8c8d;">Total inventory worth</div>
+                        </div>
+                        
+                        <div class="widget-option" onclick="addWidget('low_stock_list')">
+                            <div style="font-size: 24px; margin-bottom: 8px;">⚠️</div>
+                            <div style="font-weight: 600; margin-bottom: 5px;">Low Stock List</div>
+                            <div style="font-size: 12px; color: #7f8c8d;">Items needing reorder</div>
+                        </div>
+                        
+                        <div class="widget-option" onclick="addWidget('top_selling')">
+                            <div style="font-size: 24px; margin-bottom: 8px;">🔥</div>
+                            <div style="font-weight: 600; margin-bottom: 5px;">Top Selling Items</div>
+                            <div style="font-size: 12px; color: #7f8c8d;">Best performers</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div style="margin-bottom: 30px;">
+                    <h3 style="font-size: 16px; color: #2c3e50; margin-bottom: 15px; font-weight: 600;">🏦 Banking & Cash</h3>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 15px;">
+                        <div class="widget-option" onclick="addWidget('cash_in_hand')">
+                            <div style="font-size: 24px; margin-bottom: 8px;">💵</div>
+                            <div style="font-weight: 600; margin-bottom: 5px;">Cash In Hand</div>
+                            <div style="font-size: 12px; color: #7f8c8d;">Available cash balance</div>
+                        </div>
+                        
+                        <div class="widget-option" onclick="addWidget('bank_balance')">
+                            <div style="font-size: 24px; margin-bottom: 8px;">🏦</div>
+                            <div style="font-weight: 600; margin-bottom: 5px;">Bank Balance</div>
+                            <div style="font-size: 12px; color: #7f8c8d;">Total bank accounts</div>
+                        </div>
+                        
+                        <div class="widget-option" onclick="addWidget('outstanding')">
+                            <div style="font-size: 24px; margin-bottom: 8px;">📊</div>
+                            <div style="font-weight: 600; margin-bottom: 5px;">Outstanding Report</div>
+                            <div style="font-size: 12px; color: #7f8c8d;">Pending collections</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div style="margin-bottom: 20px;">
+                    <h3 style="font-size: 16px; color: #2c3e50; margin-bottom: 15px; font-weight: 600;">📋 Reports & Analytics</h3>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 15px;">
+                        <div class="widget-option" onclick="addWidget('gst_summary')">
+                            <div style="font-size: 24px; margin-bottom: 8px;">📄</div>
+                            <div style="font-weight: 600; margin-bottom: 5px;">GST Summary</div>
+                            <div style="font-size: 12px; color: #7f8c8d;">Quick GST overview</div>
+                        </div>
+                        
+                        <div class="widget-option" onclick="addWidget('sales_chart')">
+                            <div style="font-size: 24px; margin-bottom: 8px;">📈</div>
+                            <div style="font-weight: 600; margin-bottom: 5px;">Sales Chart</div>
+                            <div style="font-size: 12px; color: #7f8c8d;">Visual sales trends</div>
+                        </div>
+                        
+                        <div class="widget-option" onclick="addWidget('party_wise')">
+                            <div style="font-size: 24px; margin-bottom: 8px;">👥</div>
+                            <div style="font-weight: 600; margin-bottom: 5px;">Party-wise Summary</div>
+                            <div style="font-size: 12px; color: #7f8c8d;">Customer transactions</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Modal Footer -->
+            <div style="padding: 20px 30px; border-top: 2px solid #f0f0f0; background: #f8f9fa; border-radius: 0 0 16px 16px;">
+                <div style="font-size: 13px; color: #7f8c8d;">
+                    💡 <strong>Pro Tip:</strong> Widgets will appear on your dashboard below this section. You can customize your view based on your business needs.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .widget-option {
+        background: white;
+        border: 2px solid #e0e0e0;
+        border-radius: 10px;
+        padding: 20px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    
+    .widget-option:hover {
+        border-color: #667eea;
+        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.2);
+        transform: translateY(-2px);
+    }
+</style>
+
+<script>
+function openWidgetModal() {
+    document.getElementById('widgetModal').style.display = 'block';
+    document.body.style.overflow = 'hidden';
+}
+
+function closeWidgetModal() {
+    document.getElementById('widgetModal').style.display = 'none';
+    document.body.style.overflow = 'auto';
+}
+
+function addWidget(widgetType) {
+    // Map widget types to their respective pages
+    const widgetRoutes = {
+        'purchases': '/admin/purchase-bills',
+        'expenses': '/admin/expenses',
+        'profit': '/admin/reports/profit-loss',
+        'stock_value': '/admin/items/reports?tab=valuation',
+        'low_stock_list': '/admin/items?low_stock=1',
+        'top_selling': '/admin/items/reports?tab=sales',
+        'cash_in_hand': '/admin/cash-bank',
+        'bank_balance': '/admin/cash-bank',
+        'outstanding': '/admin/customers/outstanding',
+        'gst_summary': '/admin/gst-reports',
+        'sales_chart': '/admin/reports/sales',
+        'party_wise': '/admin/customers'
+    };
+    
+    const widgetNames = {
+        'purchases': 'Purchases',
+        'expenses': 'Expenses',
+        'profit': 'Profit Margin',
+        'stock_value': 'Stock Value',
+        'low_stock_list': 'Low Stock Items',
+        'top_selling': 'Top Selling Items',
+        'cash_in_hand': 'Cash In Hand',
+        'bank_balance': 'Bank Balance',
+        'outstanding': 'Outstanding Report',
+        'gst_summary': 'GST Summary',
+        'sales_chart': 'Sales Chart',
+        'party_wise': 'Party-wise Summary'
+    };
+    
+    // For now, redirect to the relevant page
+    // In future, we can save preferences and dynamically load widgets
+    alert('✅ Opening ' + widgetNames[widgetType] + '...\n\nNote: Widget customization will be saved in future updates!');
+    window.location.href = widgetRoutes[widgetType];
+}
+
+// Close modal when clicking outside
+document.getElementById('widgetModal')?.addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeWidgetModal();
+    }
+});
+</script>
 
 {% endblock %}
