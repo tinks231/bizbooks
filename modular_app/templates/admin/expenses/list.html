@@ -68,10 +68,20 @@
     </form>
 </div>
 
+<!-- View Toggle (Mobile Only) -->
+<div style="display: flex; justify-content: flex-end; margin-bottom: 15px;">
+    <button id="viewToggle" class="btn btn-primary" onclick="toggleView()" style="display: none;">
+        <span id="toggleIcon">📊</span> <span id="toggleText">Table View</span>
+    </button>
+</div>
+
 <!-- Expenses List -->
 <div class="card">
     <h3>All Expenses</h3>
     {% if expenses %}
+    
+    <!-- Table View (Desktop default) -->
+    <div id="tableView" class="desktop-table">
     <table style="width: 100%; border-collapse: collapse;">
         <thead>
             <tr style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
@@ -99,8 +109,157 @@
             {% endfor %}
         </tbody>
     </table>
+    </div>
+    <!-- End Table View -->
+    
+    <!-- Mobile Card View (Default on mobile) -->
+    <div id="cardView" class="mobile-cards" style="display: none;">
+        {% for expense in expenses %}
+        <div class="expense-card" style="background: white; border: 1px solid #e0e0e0; border-radius: 10px; padding: 15px; margin-bottom: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+            <!-- Card Header -->
+            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
+                <div style="flex: 1;">
+                    <div style="font-weight: 700; font-size: 16px; color: #2c3e50;">
+                        {{ expense.category.name }}
+                    </div>
+                    <div style="color: #7f8c8d; font-size: 13px; margin-top: 4px;">
+                        📅 {{ expense.expense_date.strftime('%d %b %Y') }}
+                    </div>
+                </div>
+                <div style="font-size: 20px; font-weight: 700; color: #e74c3c;">
+                    ₹{{ "{:,.2f}".format(expense.amount) }}
+                </div>
+            </div>
+            
+            <!-- Description -->
+            <div style="background: #f8f9fa; padding: 12px; border-radius: 6px; margin-bottom: 10px;">
+                <div style="font-size: 11px; color: #6c757d; margin-bottom: 4px;">Description</div>
+                <div style="font-size: 14px; color: #2c3e50; line-height: 1.4;">{{ expense.description }}</div>
+            </div>
+            
+            <!-- Details Grid -->
+            {% if expense.vendor_name or expense.payment_method or expense.reference_number %}
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; font-size: 13px;">
+                {% if expense.vendor_name %}
+                <div>
+                    <div style="font-size: 11px; color: #6c757d;">Vendor</div>
+                    <div style="font-weight: 600; color: #495057;">{{ expense.vendor_name }}</div>
+                </div>
+                {% endif %}
+                {% if expense.payment_method %}
+                <div>
+                    <div style="font-size: 11px; color: #6c757d;">Payment</div>
+                    <div style="font-weight: 600; color: #495057;">{{ expense.payment_method }}</div>
+                </div>
+                {% endif %}
+                {% if expense.reference_number %}
+                <div style="grid-column: span 2;">
+                    <div style="font-size: 11px; color: #6c757d;">Reference</div>
+                    <div style="font-weight: 600; color: #495057;">{{ expense.reference_number }}</div>
+                </div>
+                {% endif %}
+            </div>
+            {% endif %}
+            
+            <!-- Action Buttons -->
+            <div style="display: flex; gap: 8px;">
+                <a href="{{ url_for('expenses.edit', expense_id=expense.id) }}"
+                   style="flex: 1; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; 
+                          padding: 10px; border-radius: 6px; text-align: center; text-decoration: none; font-weight: 600; font-size: 13px;">
+                    ✏️ Edit
+                </a>
+                <a href="{{ url_for('expenses.delete', expense_id=expense.id) }}"
+                   onclick="return confirm('Delete this expense?')"
+                   style="flex: 1; background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; 
+                          padding: 10px; border-radius: 6px; text-align: center; text-decoration: none; font-weight: 600; font-size: 13px;">
+                    🗑️ Delete
+                </a>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    <!-- End Card View -->
+    
     {% else %}
     <p style="text-align: center; padding: 40px; color: #7f8c8d;">No expenses yet</p>
     {% endif %}
 </div>
+
+<style>
+/* ========================================
+   MOBILE VIEW TOGGLE
+   ======================================== */
+/* Desktop: Always show table, hide toggle */
+@media (min-width: 769px) {
+    #tableView {
+        display: block !important;
+    }
+    #cardView {
+        display: none !important;
+    }
+    #viewToggle {
+        display: none !important;
+    }
+}
+
+/* Mobile: Show toggle button and respect user preference */
+@media (max-width: 768px) {
+    /* Show toggle button */
+    #viewToggle {
+        display: inline-block !important;
+    }
+    
+    /* Default: Card view (when body doesn't have show-table class) */
+    body:not(.show-table) #tableView {
+        display: none !important;
+    }
+    body:not(.show-table) #cardView {
+        display: block !important;
+    }
+    
+    /* Table view (when body has show-table class) */
+    body.show-table #tableView {
+        display: block !important;
+    }
+    body.show-table #cardView {
+        display: none !important;
+    }
+}
+</style>
+
+<script>
+// View toggle function
+function toggleView() {
+    const body = document.body;
+    const toggleIcon = document.getElementById('toggleIcon');
+    const toggleText = document.getElementById('toggleText');
+    
+    if (body.classList.contains('show-table')) {
+        // Switch to Card View
+        body.classList.remove('show-table');
+        toggleIcon.textContent = '📊';
+        toggleText.textContent = 'Table View';
+        localStorage.setItem('expenseViewPreference', 'cards');
+    } else {
+        // Switch to Table View
+        body.classList.add('show-table');
+        toggleIcon.textContent = '📱';
+        toggleText.textContent = 'Card View';
+        localStorage.setItem('expenseViewPreference', 'table');
+    }
+}
+
+// Load user preference on page load
+document.addEventListener('DOMContentLoaded', function() {
+    const preference = localStorage.getItem('expenseViewPreference');
+    const isMobile = window.innerWidth <= 768;
+    
+    if (isMobile && preference === 'table') {
+        document.body.classList.add('show-table');
+        document.getElementById('toggleIcon').textContent = '📱';
+        document.getElementById('toggleText').textContent = 'Card View';
+    }
+});
+</script>
+
 {% endblock %}
