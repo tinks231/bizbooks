@@ -70,9 +70,15 @@
             Search
         </button>
         
-        {% if request.args.get('search') or request.args.get('category') or request.args.get('group') or request.args.get('status', 'active') != 'active' %}
+        {% if request.args.get('low_stock') %}
+        <span style="background: #fff3cd; color: #856404; padding: 8px 15px; border-radius: 6px; font-weight: 600; margin-bottom: 0;">
+            ⚠️ Showing Low Stock Items Only
+        </span>
+        {% endif %}
+        
+        {% if request.args.get('search') or request.args.get('category') or request.args.get('group') or request.args.get('status', 'active') != 'active' or request.args.get('low_stock') %}
         <a href="{{ url_for('items.index') }}" class="btn btn-secondary" style="margin-bottom: 0;">
-            Clear Filters
+            Clear All Filters
         </a>
         {% endif %}
     </form>

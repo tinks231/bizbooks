@@ -160,12 +160,9 @@ def dashboard():
     # Quick stats
     total_items = Item.query.filter_by(tenant_id=tenant_id, is_active=True).count()
     
-    # Low stock count
-    low_stock_items = ItemStock.query.join(Item).filter(
-        ItemStock.tenant_id == tenant_id,
-        Item.reorder_point.isnot(None),
-        ItemStock.quantity_available < Item.reorder_point
-    ).count()
+    # Low stock count - count unique items, not stock records
+    items_with_stock = Item.query.filter_by(tenant_id=tenant_id, is_active=True, track_inventory=True).all()
+    low_stock_items = sum(1 for item in items_with_stock if item.reorder_point and item.get_total_stock() < item.reorder_point)
     
     total_customers = Customer.query.filter_by(tenant_id=tenant_id, is_active=True).count()
     total_vendors = Vendor.query.filter_by(tenant_id=tenant_id, is_active=True).count()

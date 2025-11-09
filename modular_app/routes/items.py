@@ -64,6 +64,7 @@ def index():
     group_id = request.args.get('group', type=int)
     search = request.args.get('search', '')
     status = request.args.get('status', 'active')  # 'active', 'inactive', 'all'
+    low_stock_filter = request.args.get('low_stock', type=int)  # 1 = show only low stock
     
     # Build query
     query = Item.query.filter_by(tenant_id=tenant_id)
@@ -81,7 +82,13 @@ def index():
         query = query.filter_by(is_active=False)
     
     # Get items
-    items = query.order_by(Item.created_at.desc()).all()
+    all_items = query.order_by(Item.created_at.desc()).all()
+    
+    # Apply low stock filter (done in Python because it involves aggregating stock across sites)
+    if low_stock_filter == 1:
+        items = [item for item in all_items if item.track_inventory and item.reorder_point and item.get_total_stock() < item.reorder_point]
+    else:
+        items = all_items
     
     # Get categories and groups for filters
     categories = ItemCategory.query.filter_by(tenant_id=tenant_id).all()
