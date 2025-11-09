@@ -110,31 +110,91 @@ def logout():
 @require_tenant
 @login_required
 def dashboard():
-    """Admin dashboard"""
+    """Business dashboard with key metrics"""
+    from models import Invoice, PurchaseBill, Customer, Vendor, Item, ItemStock
+    
     tenant_id = get_current_tenant_id()
     tenant = get_current_tenant()
+    today = datetime.now()
     
-    # Stats (filtered by tenant)
-    total_employees = Employee.query.filter_by(tenant_id=tenant_id, active=True).count()
-    total_sites = Site.query.filter_by(tenant_id=tenant_id, active=True).count()
-    total_materials = Material.query.filter_by(tenant_id=tenant_id, active=True).count()
+    # Today's sales
+    today_start = datetime.combine(today.date(), datetime.min.time())
+    today_end = datetime.combine(today.date(), datetime.max.time())
     
-    # Recent attendance (filtered by tenant)
-    recent_attendance = Attendance.query.filter_by(tenant_id=tenant_id).order_by(Attendance.timestamp.desc()).limit(10).all()
+    today_invoices = Invoice.query.filter(
+        Invoice.tenant_id == tenant_id,
+        Invoice.invoice_date >= today_start,
+        Invoice.invoice_date <= today_end
+    ).all()
     
-    # Low stock items (filtered by tenant)
-    low_stock = Stock.query.filter(
-        Stock.tenant_id == tenant_id,
-        Stock.quantity < Stock.min_stock_alert
+    today_sales = sum(inv.total_amount or 0 for inv in today_invoices)
+    today_invoice_count = len(today_invoices)
+    
+    # This month's sales
+    month_start = datetime(today.year, today.month, 1)
+    month_invoices = Invoice.query.filter(
+        Invoice.tenant_id == tenant_id,
+        Invoice.invoice_date >= month_start
+    ).all()
+    
+    month_sales = sum(inv.total_amount or 0 for inv in month_invoices)
+    month_invoice_count = len(month_invoices)
+    
+    # Pending receivables (unpaid invoices)
+    pending_invoices = Invoice.query.filter(
+        Invoice.tenant_id == tenant_id,
+        Invoice.payment_status != 'paid'
+    ).all()
+    pending_receivables = sum(inv.total_amount or 0 for inv in pending_invoices)
+    
+    # This month's purchases
+    month_bills = PurchaseBill.query.filter(
+        PurchaseBill.tenant_id == tenant_id,
+        PurchaseBill.bill_date >= month_start,
+        PurchaseBill.status == 'approved'
+    ).all()
+    
+    month_purchases = sum(bill.total_amount or 0 for bill in month_bills)
+    month_bill_count = len(month_bills)
+    
+    # Quick stats
+    total_items = Item.query.filter_by(tenant_id=tenant_id, is_active=True).count()
+    
+    # Low stock count
+    low_stock_items = ItemStock.query.join(Item).filter(
+        ItemStock.tenant_id == tenant_id,
+        Item.reorder_point.isnot(None),
+        ItemStock.quantity_available < Item.reorder_point
+    ).count()
+    
+    total_customers = Customer.query.filter_by(tenant_id=tenant_id, is_active=True).count()
+    total_vendors = Vendor.query.filter_by(tenant_id=tenant_id, is_active=True).count()
+    
+    # Recent activity
+    recent_invoices = Invoice.query.filter_by(tenant_id=tenant_id).order_by(
+        Invoice.created_at.desc()
+    ).limit(5).all()
+    
+    recent_bills = PurchaseBill.query.filter_by(tenant_id=tenant_id).order_by(
+        PurchaseBill.created_at.desc()
     ).limit(5).all()
     
     return render_template('admin/dashboard.html',
                          tenant=tenant,
-                         total_employees=total_employees,
-                         total_sites=total_sites,
-                         total_materials=total_materials,
-                         recent_attendance=recent_attendance,
-                         low_stock=low_stock)
+                         today=today,
+                         today_sales=today_sales,
+                         today_invoice_count=today_invoice_count,
+                         month_sales=month_sales,
+                         month_invoice_count=month_invoice_count,
+                         pending_receivables=pending_receivables,
+                         month_purchases=month_purchases,
+                         month_bill_count=month_bill_count,
+                         total_items=total_items,
+                         low_stock_count=low_stock_items,
+                         total_customers=total_customers,
+                         total_vendors=total_vendors,
+                         recent_invoices=recent_invoices,
+                         recent_bills=recent_bills)
 
 # Employees Management
 @admin_bp.route('/employees')
