@@ -37,7 +37,15 @@
             </div>
         </form>
 
-        <!-- Delivery Challans Table -->
+        <!-- View Toggle (Mobile Only) -->
+        <div style="display: flex; justify-content: flex-end; margin-bottom: 15px;">
+            <button id="viewToggle" class="btn btn-primary" onclick="toggleView()" style="display: none;">
+                <span id="toggleIcon">📊</span> <span id="toggleText">Table View</span>
+            </button>
+        </div>
+
+        <!-- Table View (Desktop default) -->
+        <div id="tableView" class="desktop-table">
         <div class="table-responsive">
             <table class="table table-hover">
                 <thead>
@@ -105,7 +113,168 @@
                 </tbody>
             </table>
         </div>
+        </div>
+        <!-- End Table View -->
+
+        <!-- Mobile Card View (Default on mobile) -->
+        <div id="cardView" class="mobile-cards" style="display: none;">
+            {% if challans %}
+                {% for challan in challans %}
+                <div class="challan-card" style="background: white; border: 1px solid #e0e0e0; border-radius: 10px; padding: 15px; margin-bottom: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+                    <!-- Card Header -->
+                    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
+                        <div>
+                            <a href="{{ url_for('delivery_challans.view_challan', challan_id=challan.id) }}"
+                               style="font-weight: 700; font-size: 16px; color: #007bff; text-decoration: none;">
+                                {{ challan.challan_number }}
+                            </a>
+                            <div style="color: #7f8c8d; font-size: 13px; margin-top: 4px;">
+                                📅 {{ challan.challan_date.strftime('%d %b %Y') }}
+                            </div>
+                        </div>
+                        <div>
+                            {% if challan.status == 'draft' %}
+                            <span style="background: #6c757d; color: white; padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 600;">
+                                Draft
+                            </span>
+                            {% elif challan.status == 'dispatched' %}
+                            <span style="background: #17a2b8; color: white; padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 600;">
+                                Dispatched
+                            </span>
+                            {% elif challan.status == 'delivered' %}
+                            <span style="background: #28a745; color: white; padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 600;">
+                                Delivered
+                            </span>
+                            {% elif challan.status == 'invoiced' %}
+                            <span style="background: #007bff; color: white; padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 600;">
+                                Invoiced
+                            </span>
+                            {% elif challan.status == 'cancelled' %}
+                            <span style="background: #dc3545; color: white; padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 600;">
+                                Cancelled
+                            </span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <!-- Customer Info -->
+                    <div style="background: #f8f9fa; padding: 12px; border-radius: 6px; margin-bottom: 10px;">
+                        <div style="font-size: 11px; color: #6c757d; margin-bottom: 4px;">Customer</div>
+                        <div style="font-size: 15px; font-weight: 600; color: #2c3e50;">{{ challan.customer_name }}</div>
+                    </div>
+                    
+                    <!-- Info Grid -->
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px;">
+                        <div style="background: #e3f2fd; padding: 10px; border-radius: 6px;">
+                            <div style="font-size: 11px; color: #1976d2; margin-bottom: 4px;">Amount</div>
+                            <div style="font-size: 18px; font-weight: 700; color: #0d47a1;">₹{{ "{:,.2f}".format(challan.total_amount) }}</div>
+                        </div>
+                        <div style="background: #f3e5f5; padding: 10px; border-radius: 6px;">
+                            <div style="font-size: 11px; color: #7b1fa2; margin-bottom: 4px;">SO Reference</div>
+                            <div style="font-size: 13px; font-weight: 600; color: #4a148c;">
+                                {% if challan.sales_order %}
+                                <a href="{{ url_for('sales_orders.view_order', order_id=challan.sales_order.id) }}"
+                                   style="color: #7b1fa2; text-decoration: none;">
+                                    {{ challan.sales_order.order_number }}
+                                </a>
+                                {% else %}
+                                —
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Action Button -->
+                    <a href="{{ url_for('delivery_challans.view_challan', challan_id=challan.id) }}"
+                       style="display: block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; 
+                              padding: 12px; border-radius: 6px; text-align: center; text-decoration: none; font-weight: 600; font-size: 14px;">
+                        👁️ View Details
+                    </a>
+                </div>
+                {% endfor %}
+            {% endif %}
+        </div>
+        <!-- End Card View -->
+
     </div>
 </div>
+
+<style>
+/* ========================================
+   MOBILE VIEW TOGGLE
+   ======================================== */
+/* Desktop: Always show table, hide toggle */
+@media (min-width: 769px) {
+    #tableView {
+        display: block !important;
+    }
+    #cardView {
+        display: none !important;
+    }
+    #viewToggle {
+        display: none !important;
+    }
+}
+
+/* Mobile: Show toggle button and respect user preference */
+@media (max-width: 768px) {
+    /* Show toggle button */
+    #viewToggle {
+        display: inline-block !important;
+    }
+    
+    /* Default: Card view (when body doesn't have show-table class) */
+    body:not(.show-table) #tableView {
+        display: none !important;
+    }
+    body:not(.show-table) #cardView {
+        display: block !important;
+    }
+    
+    /* Table view (when body has show-table class) */
+    body.show-table #tableView {
+        display: block !important;
+    }
+    body.show-table #cardView {
+        display: none !important;
+    }
+}
+</style>
+
+<script>
+// View toggle function
+function toggleView() {
+    const body = document.body;
+    const toggleIcon = document.getElementById('toggleIcon');
+    const toggleText = document.getElementById('toggleText');
+    
+    if (body.classList.contains('show-table')) {
+        // Switch to Card View
+        body.classList.remove('show-table');
+        toggleIcon.textContent = '📊';
+        toggleText.textContent = 'Table View';
+        localStorage.setItem('dcViewPreference', 'cards');
+    } else {
+        // Switch to Table View
+        body.classList.add('show-table');
+        toggleIcon.textContent = '📱';
+        toggleText.textContent = 'Card View';
+        localStorage.setItem('dcViewPreference', 'table');
+    }
+}
+
+// Load user preference on page load
+document.addEventListener('DOMContentLoaded', function() {
+    const preference = localStorage.getItem('dcViewPreference');
+    const isMobile = window.innerWidth <= 768;
+    
+    if (isMobile && preference === 'table') {
+        document.body.classList.add('show-table');
+        document.getElementById('toggleIcon').textContent = '📱';
+        document.getElementById('toggleText').textContent = 'Card View';
+    }
+});
+</script>
+
 {% endblock %}
 
