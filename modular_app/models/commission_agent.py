@@ -11,7 +11,7 @@ Features:
 """
 
 from datetime import datetime
-from modular_app import db
+from .database import db
 
 
 class CommissionAgent(db.Model):
