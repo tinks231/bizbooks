@@ -119,20 +119,26 @@
                 </td>
                 <td style="padding: 15px; text-align: center;">
                     {% if employee.active %}
-                    <span style="background: #d4edda; color: #155724; padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 600;">● Active</span>
+                    <span style="background: #d4edda; color: #155724; padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; white-space: nowrap; display: inline-block;">● Active</span>
                     {% else %}
-                    <span style="background: #f8d7da; color: #721c24; padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 600;">● Inactive</span>
+                    <span style="background: #f8d7da; color: #721c24; padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; white-space: nowrap; display: inline-block;">● Inactive</span>
                     {% endif %}
                 </td>
                 <td style="padding: 15px; text-align: center;">
                     {% if employee.active %}
-                    <button onclick="editEmployee({{ employee.id }}, '{{ employee.name }}', '{{ employee.pin }}', '{{ employee.phone or '' }}', '{{ employee.email or '' }}', {{ employee.site_id or 'null' }}, {{ commission_agents[employee.id].default_commission_percentage if employee.id in commission_agents else 0 }})" 
-                            style="color: #667eea; background: none; border: none; cursor: pointer; font-weight: 600; margin-right: 10px;">
-                        ✏️ Edit
-                    </button>
-                    <a href="/admin/employee/delete/{{ employee.id }}" 
-                       onclick="return confirm('Deactivate this employee? They will no longer be active but all records will be preserved.')"
-                       style="color: #dc3545; text-decoration: none; font-weight: 600;">🗑️ Deactivate</a>
+                    <div style="display: flex; gap: 8px; align-items: center; justify-content: center;">
+                        <button onclick="editEmployee({{ employee.id }}, '{{ employee.name }}', '{{ employee.pin }}', '{{ employee.phone or '' }}', '{{ employee.email or '' }}', {{ employee.site_id or 'null' }}, {{ commission_agents[employee.id].default_commission_percentage if employee.id in commission_agents else 0 }})" 
+                                style="color: #667eea; background: none; border: none; cursor: pointer; font-size: 18px; padding: 8px 12px; line-height: 1;"
+                                title="Edit Employee">
+                            ✏️
+                        </button>
+                        <a href="/admin/employee/delete/{{ employee.id }}" 
+                           onclick="return confirm('Deactivate this employee? They will no longer be active but all records will be preserved.')"
+                           style="color: #dc3545; text-decoration: none; font-size: 18px; padding: 8px 12px; line-height: 1; display: inline-block;"
+                           title="Deactivate Employee">
+                            🗑️
+                        </a>
+                    </div>
                     {% endif %}
                 </td>
             </tr>

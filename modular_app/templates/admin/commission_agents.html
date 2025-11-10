@@ -78,22 +78,26 @@
                     </td>
                     <td style="padding: 15px; text-align: center;">
                         {% if agent.is_active %}
-                        <span style="background: #d4edda; color: #155724; padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 600;">● Active</span>
+                        <span style="background: #d4edda; color: #155724; padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; white-space: nowrap; display: inline-block;">● Active</span>
                         {% else %}
-                        <span style="background: #f8d7da; color: #721c24; padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 600;">● Inactive</span>
+                        <span style="background: #f8d7da; color: #721c24; padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; white-space: nowrap; display: inline-block;">● Inactive</span>
                         {% endif %}
                     </td>
                     <td style="padding: 15px; text-align: center;">
                         {% if agent.is_active %}
-                        <button onclick="editAgent({{ agent.id }}, '{{ agent.name }}', '{{ agent.code or '' }}', '{{ agent.phone or '' }}', '{{ agent.email or '' }}', {{ agent.default_commission_percentage }})" 
-                                style="color: #667eea; background: none; border: none; cursor: pointer; font-weight: 600; margin-right: 10px;">
-                            ✏️ Edit
-                        </button>
-                        <form method="POST" action="/admin/commission-agent/delete/{{ agent.id }}" style="display: inline;" onsubmit="return confirm('Deactivate this agent? They will no longer appear in the commission dropdown.')">
-                            <button type="submit" style="color: #dc3545; background: none; border: none; cursor: pointer; font-weight: 600;">
-                                🗑️ Deactivate
+                        <div style="display: flex; gap: 8px; align-items: center; justify-content: center;">
+                            <button onclick="editAgent({{ agent.id }}, '{{ agent.name }}', '{{ agent.code or '' }}', '{{ agent.phone or '' }}', '{{ agent.email or '' }}', {{ agent.default_commission_percentage }})" 
+                                    style="color: #667eea; background: none; border: none; cursor: pointer; font-size: 18px; padding: 8px 12px; line-height: 1;"
+                                    title="Edit Agent">
+                                ✏️
                             </button>
-                        </form>
+                            <form method="POST" action="/admin/commission-agent/delete/{{ agent.id }}" style="display: inline;" onsubmit="return confirm('Deactivate this agent? They will no longer appear in the commission dropdown.')">
+                                <button type="submit" style="color: #dc3545; background: none; border: none; cursor: pointer; font-size: 18px; padding: 8px 12px; line-height: 1;"
+                                        title="Deactivate Agent">
+                                    🗑️
+                                </button>
+                            </form>
+                        </div>
                         {% else %}
                         <span style="color: #999;">-</span>
                         {% endif %}
