@@ -1,5 +1,6 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, g, jsonify, session
 from models import db, PurchaseBill, PurchaseBillItem, Vendor, Item, ItemStock, Site, Tenant, VendorPayment, PaymentAllocation
+from sqlalchemy import func
 from utils.tenant_middleware import get_current_tenant_id
 from utils.license_check import check_license
 from datetime import datetime, date
