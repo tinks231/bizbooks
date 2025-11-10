@@ -93,6 +93,7 @@ from routes.attendance import attendance_bp
 from routes.inventory import inventory_bp
 from routes.admin import admin_bp
 from routes.migration import migration_bp
+from routes.add_indexes import add_indexes_bp  # NEW: Performance optimization indexes
 from routes.superadmin import superadmin_bp
 from routes.items import items_bp  # NEW: Professional items management
 from routes.expenses import expenses_bp  # NEW: Expenses tracking
@@ -114,6 +115,7 @@ app.register_blueprint(attendance_bp)
 app.register_blueprint(inventory_bp)
 app.register_blueprint(admin_bp)
 app.register_blueprint(migration_bp)
+app.register_blueprint(add_indexes_bp)  # Performance optimization indexes
 app.register_blueprint(superadmin_bp)
 app.register_blueprint(items_bp)  # NEW: Register items blueprint
 app.register_blueprint(expenses_bp)  # NEW: Register expenses blueprint
