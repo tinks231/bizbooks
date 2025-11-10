@@ -106,18 +106,25 @@ def logout():
     flash('Logged out successfully', 'success')
     return redirect(url_for('admin.login'))
 
-@admin_bp.route('/dashboard')
+@admin_bp.route('/dashboard', strict_slashes=False)
 @require_tenant
 @login_required
 def dashboard():
-    """Business dashboard with key metrics"""
+    """Business dashboard with key metrics - OPTIMIZED + PROFILED"""
+    import time
+    start_time = time.time()
+    
     from models import Invoice, PurchaseBill, Customer, Vendor, Item, ItemStock
     
     tenant_id = get_current_tenant_id()
     tenant = get_current_tenant()
     today = datetime.now()
     
+    print(f"\n⏱️  DASHBOARD PERFORMANCE:")
+    print(f"1. Imports + tenant: {(time.time() - start_time)*1000:.0f}ms")
+    
     # Today's sales (OPTIMIZED: SQL aggregation, no loading all records!)
+    t1 = time.time()
     today_start = datetime.combine(today.date(), datetime.min.time())
     today_end = datetime.combine(today.date(), datetime.max.time())
     
@@ -134,8 +141,10 @@ def dashboard():
     
     today_sales = today_result.total or 0
     today_invoice_count = today_result.count or 0
+    print(f"2. Today's sales query: {(time.time() - t1)*1000:.0f}ms")
     
     # This month's sales (OPTIMIZED: SQL aggregation)
+    t2 = time.time()
     month_start = datetime(today.year, today.month, 1)
     
     month_result = db.session.query(
@@ -148,8 +157,10 @@ def dashboard():
     
     month_sales = month_result.total or 0
     month_invoice_count = month_result.count or 0
+    print(f"3. Month's sales query: {(time.time() - t2)*1000:.0f}ms")
     
     # Pending receivables (OPTIMIZED: SQL aggregation)
+    t3 = time.time()
     receivables_result = db.session.query(
         func.sum(Invoice.total_amount).label('total')
     ).filter(
@@ -158,8 +169,10 @@ def dashboard():
     ).first()
     
     pending_receivables = receivables_result.total or 0
+    print(f"4. Receivables query: {(time.time() - t3)*1000:.0f}ms")
     
     # This month's purchases (OPTIMIZED: SQL aggregation)
+    t4 = time.time()
     purchases_result = db.session.query(
         func.count(PurchaseBill.id).label('count'),
         func.sum(PurchaseBill.total_amount).label('total')
@@ -171,12 +184,15 @@ def dashboard():
     
     month_purchases = purchases_result.total or 0
     month_bill_count = purchases_result.count or 0
+    print(f"5. Month's purchases query: {(time.time() - t4)*1000:.0f}ms")
     
     # Quick stats
+    t5 = time.time()
     total_items = Item.query.filter_by(tenant_id=tenant_id, is_active=True).count()
+    print(f"6. Items count: {(time.time() - t5)*1000:.0f}ms")
     
     # OPTIMIZED: Low stock count using SQL aggregation (ONE query!)
-    from sqlalchemy import func
+    t6 = time.time()
     items_with_stock_query = db.session.query(
         Item.id,
         Item.reorder_point,
@@ -191,11 +207,15 @@ def dashboard():
     ).group_by(Item.id, Item.reorder_point).all()
     
     low_stock_items = sum(1 for item in items_with_stock_query if (item.total_stock or 0) < item.reorder_point)
+    print(f"7. Low stock query: {(time.time() - t6)*1000:.0f}ms")
     
+    t7 = time.time()
     total_customers = Customer.query.filter_by(tenant_id=tenant_id, is_active=True).count()
     total_vendors = Vendor.query.filter_by(tenant_id=tenant_id, is_active=True).count()
+    print(f"8. Customers + vendors count: {(time.time() - t7)*1000:.0f}ms")
     
     # Recent activity
+    t8 = time.time()
     recent_invoices = Invoice.query.filter_by(tenant_id=tenant_id).order_by(
         Invoice.created_at.desc()
     ).limit(5).all()
@@ -203,8 +223,10 @@ def dashboard():
     recent_bills = PurchaseBill.query.filter_by(tenant_id=tenant_id).order_by(
         PurchaseBill.created_at.desc()
     ).limit(5).all()
+    print(f"9. Recent activity queries: {(time.time() - t8)*1000:.0f}ms")
     
-    return render_template('admin/dashboard.html',
+    t9 = time.time()
+    result = render_template('admin/dashboard.html',
                          tenant=tenant,
                          today=today,
                          today_sales=today_sales,
@@ -220,6 +242,9 @@ def dashboard():
                          total_vendors=total_vendors,
                          recent_invoices=recent_invoices,
                          recent_bills=recent_bills)
+    print(f"10. Render template: {(time.time() - t9)*1000:.0f}ms")
+    print(f"✅ TOTAL DASHBOARD TIME: {(time.time() - start_time)*1000:.0f}ms\n")
+    return result
 
 # Employees Management
 @admin_bp.route('/employees')
