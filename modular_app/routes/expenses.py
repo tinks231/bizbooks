@@ -35,7 +35,7 @@ def login_required(f):
 @require_tenant
 @login_required
 def index():
-    """List all expenses"""
+    """List all expenses - OPTIMIZED with pagination"""
     tenant_id = get_current_tenant_id()
     ist = pytz.timezone('Asia/Kolkata')
     
@@ -43,6 +43,8 @@ def index():
     category_id = request.args.get('category', type=int)
     month = request.args.get('month', type=int)
     year = request.args.get('year', type=int, default=datetime.now(ist).year)
+    page = request.args.get('page', 1, type=int)
+    per_page = 50
     
     # Build query
     query = Expense.query.filter_by(tenant_id=tenant_id)
@@ -58,10 +60,26 @@ def index():
     elif year:
         query = query.filter(extract('year', Expense.expense_date) == year)
     
-    expenses = query.order_by(Expense.expense_date.desc()).all()
+    # OPTIMIZED: Paginate expenses (instead of loading ALL)
+    query = query.order_by(Expense.expense_date.desc())
+    pagination = query.paginate(page=page, per_page=per_page, error_out=False)
+    expenses = pagination.items
     
-    # Calculate totals
-    total_amount = sum(e.amount for e in expenses)
+    # OPTIMIZED: Calculate totals using SQL aggregation
+    total_query = Expense.query.filter_by(tenant_id=tenant_id)
+    if category_id:
+        total_query = total_query.filter_by(category_id=category_id)
+    if month:
+        total_query = total_query.filter(
+            extract('month', Expense.expense_date) == month,
+            extract('year', Expense.expense_date) == year
+        )
+    elif year:
+        total_query = total_query.filter(extract('year', Expense.expense_date) == year)
+    
+    total_amount = db.session.query(func.sum(Expense.amount)).filter(
+        Expense.id.in_([e.id for e in total_query.with_entities(Expense.id).all()])
+    ).scalar() or 0
     
     # Get monthly breakdown for current year
     monthly_totals = db.session.query(
@@ -79,6 +97,9 @@ def index():
     
     return render_template('admin/expenses/list.html',
                          expenses=expenses,
+                         page=page,
+                         total_pages=pagination.pages,
+                         total_items=pagination.total,
                          categories=categories,
                          total_amount=total_amount,
                          monthly_data=monthly_data,

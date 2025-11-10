@@ -18,7 +18,7 @@ def check_auth():
 
 @delivery_challan_bp.route('/list')
 def list_challans():
-    """List all delivery challans"""
+    """List all delivery challans - OPTIMIZED with pagination"""
     auth_check = check_auth()
     if auth_check:
         return auth_check
@@ -28,6 +28,8 @@ def list_challans():
     # Get filter parameters
     status_filter = request.args.get('status', '')
     search = request.args.get('search', '')
+    page = request.args.get('page', 1, type=int)
+    per_page = 50
     
     # Base query
     query = DeliveryChallan.query.filter_by(tenant_id=tenant_id)
@@ -42,12 +44,17 @@ def list_challans():
             (DeliveryChallan.customer_name.ilike(f'%{search}%'))
         )
     
-    # Order by most recent first
-    challans = query.order_by(DeliveryChallan.challan_date.desc()).all()
+    # OPTIMIZED: Paginate challans (instead of loading ALL)
+    query = query.order_by(DeliveryChallan.challan_date.desc())
+    pagination = query.paginate(page=page, per_page=per_page, error_out=False)
+    challans = pagination.items
     
     return render_template('delivery_challans/list.html',
                          tenant=g.tenant,
                          challans=challans,
+                         page=page,
+                         total_pages=pagination.pages,
+                         total_items=pagination.total,
                          status_filter=status_filter,
                          search=search)
 

@@ -8,7 +8,7 @@ from models import Invoice, InvoiceItem, Tenant
 # Temporarily disabled until quotations module is ready
 # from models import Quotation, QuotationItem
 from datetime import datetime, timedelta
-from sqlalchemy import or_, and_, func
+from sqlalchemy import or_, and_, func, case
 import pytz
 from decimal import Decimal
 
@@ -33,7 +33,7 @@ def check_auth():
 @sales_order_bp.route('/')
 @sales_order_bp.route('/list')
 def list_orders():
-    """List all sales orders with filters"""
+    """List all sales orders with filters - OPTIMIZED with pagination"""
     tenant_id = session['tenant_admin_id']
     
     # Get filter parameters
@@ -42,6 +42,8 @@ def list_orders():
     date_from = request.args.get('date_from', '')
     date_to = request.args.get('date_to', '')
     customer_id = request.args.get('customer_id', '')
+    page = request.args.get('page', 1, type=int)
+    per_page = 50
     
     # Base query
     query = SalesOrder.query.filter_by(tenant_id=tenant_id)
@@ -68,17 +70,28 @@ def list_orders():
     if customer_id:
         query = query.filter_by(customer_id=customer_id)
     
-    # Order by date (newest first)
-    orders = query.order_by(SalesOrder.order_date.desc(), SalesOrder.id.desc()).all()
+    # OPTIMIZED: Paginate orders (instead of loading ALL)
+    query = query.order_by(SalesOrder.order_date.desc(), SalesOrder.id.desc())
+    pagination = query.paginate(page=page, per_page=per_page, error_out=False)
+    orders = pagination.items
     
-    # Get statistics
+    # OPTIMIZED: Get statistics using single query with case aggregation
+    stats_result = db.session.query(
+        func.count(SalesOrder.id).label('total'),
+        func.sum(case((SalesOrder.status == 'pending', 1), else_=0)).label('pending'),
+        func.sum(case((SalesOrder.status == 'confirmed', 1), else_=0)).label('confirmed'),
+        func.sum(case((SalesOrder.status == 'partially_delivered', 1), else_=0)).label('partially_delivered'),
+        func.sum(case((SalesOrder.status == 'delivered', 1), else_=0)).label('delivered'),
+        func.sum(case((SalesOrder.status == 'invoiced', 1), else_=0)).label('invoiced')
+    ).filter(SalesOrder.tenant_id == tenant_id).first()
+    
     stats = {
-        'total': SalesOrder.query.filter_by(tenant_id=tenant_id).count(),
-        'pending': SalesOrder.query.filter_by(tenant_id=tenant_id, status='pending').count(),
-        'confirmed': SalesOrder.query.filter_by(tenant_id=tenant_id, status='confirmed').count(),
-        'partially_delivered': SalesOrder.query.filter_by(tenant_id=tenant_id, status='partially_delivered').count(),
-        'delivered': SalesOrder.query.filter_by(tenant_id=tenant_id, status='delivered').count(),
-        'invoiced': SalesOrder.query.filter_by(tenant_id=tenant_id, status='invoiced').count(),
+        'total': stats_result.total or 0,
+        'pending': stats_result.pending or 0,
+        'confirmed': stats_result.confirmed or 0,
+        'partially_delivered': stats_result.partially_delivered or 0,
+        'delivered': stats_result.delivered or 0,
+        'invoiced': stats_result.invoiced or 0,
     }
     
     # Calculate total pending value
@@ -93,6 +106,9 @@ def list_orders():
     return render_template(
         'sales_orders/list.html',
         orders=orders,
+        page=page,
+        total_pages=pagination.pages,
+        total_items=pagination.total,
         stats=stats,
         customers=customers,
         status_filter=status_filter,
