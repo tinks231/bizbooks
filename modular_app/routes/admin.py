@@ -117,45 +117,60 @@ def dashboard():
     tenant = get_current_tenant()
     today = datetime.now()
     
-    # Today's sales
+    # Today's sales (OPTIMIZED: SQL aggregation, no loading all records!)
     today_start = datetime.combine(today.date(), datetime.min.time())
     today_end = datetime.combine(today.date(), datetime.max.time())
     
-    today_invoices = Invoice.query.filter(
+    from sqlalchemy import func
+    
+    today_result = db.session.query(
+        func.count(Invoice.id).label('count'),
+        func.sum(Invoice.total_amount).label('total')
+    ).filter(
         Invoice.tenant_id == tenant_id,
         Invoice.invoice_date >= today_start,
         Invoice.invoice_date <= today_end
-    ).all()
+    ).first()
     
-    today_sales = sum(inv.total_amount or 0 for inv in today_invoices)
-    today_invoice_count = len(today_invoices)
+    today_sales = today_result.total or 0
+    today_invoice_count = today_result.count or 0
     
-    # This month's sales
+    # This month's sales (OPTIMIZED: SQL aggregation)
     month_start = datetime(today.year, today.month, 1)
-    month_invoices = Invoice.query.filter(
+    
+    month_result = db.session.query(
+        func.count(Invoice.id).label('count'),
+        func.sum(Invoice.total_amount).label('total')
+    ).filter(
         Invoice.tenant_id == tenant_id,
         Invoice.invoice_date >= month_start
-    ).all()
+    ).first()
     
-    month_sales = sum(inv.total_amount or 0 for inv in month_invoices)
-    month_invoice_count = len(month_invoices)
+    month_sales = month_result.total or 0
+    month_invoice_count = month_result.count or 0
     
-    # Pending receivables (unpaid invoices)
-    pending_invoices = Invoice.query.filter(
+    # Pending receivables (OPTIMIZED: SQL aggregation)
+    receivables_result = db.session.query(
+        func.sum(Invoice.total_amount).label('total')
+    ).filter(
         Invoice.tenant_id == tenant_id,
         Invoice.payment_status != 'paid'
-    ).all()
-    pending_receivables = sum(inv.total_amount or 0 for inv in pending_invoices)
+    ).first()
     
-    # This month's purchases
-    month_bills = PurchaseBill.query.filter(
+    pending_receivables = receivables_result.total or 0
+    
+    # This month's purchases (OPTIMIZED: SQL aggregation)
+    purchases_result = db.session.query(
+        func.count(PurchaseBill.id).label('count'),
+        func.sum(PurchaseBill.total_amount).label('total')
+    ).filter(
         PurchaseBill.tenant_id == tenant_id,
         PurchaseBill.bill_date >= month_start,
         PurchaseBill.status == 'approved'
-    ).all()
+    ).first()
     
-    month_purchases = sum(bill.total_amount or 0 for bill in month_bills)
-    month_bill_count = len(month_bills)
+    month_purchases = purchases_result.total or 0
+    month_bill_count = purchases_result.count or 0
     
     # Quick stats
     total_items = Item.query.filter_by(tenant_id=tenant_id, is_active=True).count()
