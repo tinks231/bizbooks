@@ -52,19 +52,15 @@ def generate_sku(tenant_id):
 
 
 # ===== ITEMS LISTING =====
-@items_bp.route('/')
+@items_bp.route('/', strict_slashes=False)
 @require_tenant
 @login_required
 def index():
-    """List all items with OPTIMIZED QUERIES + PERFORMANCE PROFILING"""
-    import time
+    """List all items with OPTIMIZED QUERIES"""
     from sqlalchemy.orm import joinedload
     from sqlalchemy import func
     
-    start_time = time.time()
     tenant_id = get_current_tenant_id()
-    print(f"\n⏱️  PERFORMANCE PROFILE - All Items Page")
-    print(f"1. Get tenant_id: {(time.time() - start_time)*1000:.0f}ms")
     
     # Get filter parameters
     category_id = request.args.get('category', type=int)
@@ -76,7 +72,6 @@ def index():
     per_page = 50  # Show 50 items per page
     
     # Build query with EAGER LOADING (fixes N+1 problem!)
-    t1 = time.time()
     query = Item.query.options(joinedload(Item.stocks)).filter_by(tenant_id=tenant_id)
     
     # Apply filters
@@ -93,10 +88,8 @@ def index():
     
     # Order by created date
     query = query.order_by(Item.created_at.desc())
-    print(f"2. Build query: {(time.time() - t1)*1000:.0f}ms")
     
     # Apply pagination
-    t2 = time.time()
     if low_stock_filter == 1:
         # For low stock filter, we need to get all items first then filter
         # (Can't filter in SQL as it requires aggregation across sites)
@@ -115,16 +108,12 @@ def index():
         items = pagination.items
         total_pages = pagination.pages
         total_items = pagination.total
-    print(f"3. Execute query + paginate: {(time.time() - t2)*1000:.0f}ms")
     
     # Get categories and groups for filters
-    t3 = time.time()
     categories = ItemCategory.query.filter_by(tenant_id=tenant_id).all()
     groups = ItemGroup.query.filter_by(tenant_id=tenant_id).all()
-    print(f"4. Get categories/groups: {(time.time() - t3)*1000:.0f}ms")
     
     # OPTIMIZED: Calculate low stock count using SQL aggregation (ONE query!)
-    t4 = time.time()
     items_with_stock_query = db.session.query(
         Item.id,
         Item.reorder_point,
@@ -140,10 +129,8 @@ def index():
     
     # Count items where total_stock < reorder_point
     low_stock_count = sum(1 for item in items_with_stock_query if (item.total_stock or 0) < item.reorder_point)
-    print(f"5. Calculate low stock: {(time.time() - t4)*1000:.0f}ms")
     
-    t5 = time.time()
-    result = render_template('admin/items/list.html',
+    return render_template('admin/items/list.html',
                          items=items,
                          categories=categories,
                          groups=groups,
@@ -152,9 +139,6 @@ def index():
                          total_pages=total_pages,
                          total_items=total_items if not low_stock_filter else len(items_filtered) if low_stock_filter == 1 else total_items,
                          tenant=g.tenant)
-    print(f"6. Render template: {(time.time() - t5)*1000:.0f}ms")
-    print(f"✅ TOTAL TIME: {(time.time() - start_time)*1000:.0f}ms\n")
-    return result
 
 
 # ===== ADD NEW ITEM =====
