@@ -28,18 +28,25 @@ def login_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
-@admin_bp.route('/login', methods=['GET', 'POST'])
+@admin_bp.route('/login', methods=['GET', 'POST'], strict_slashes=False)
 @require_tenant
 def login():
-    """Tenant admin login page"""
+    """Tenant admin login page - PROFILED"""
+    import time
+    start_time = time.time()
+    
     tenant = get_current_tenant()
+    print(f"\n⏱️  LOGIN PERFORMANCE:")
+    print(f"1. Get tenant: {(time.time() - start_time)*1000:.0f}ms")
     
     if request.method == 'POST':
+        t1 = time.time()
         email = request.form.get('email')
         password = request.form.get('password')
         
         # Hash password for comparison
         password_hash = hashlib.sha256(password.encode()).hexdigest()
+        print(f"2. Hash password: {(time.time() - t1)*1000:.0f}ms")
         
         # Check if credentials match tenant admin
         if tenant.admin_email == email and tenant.admin_password_hash == password_hash:
@@ -51,12 +58,15 @@ def login():
                 return render_template('admin/login.html', tenant=tenant, email=email)
             
             # Make session permanent (lasts for PERMANENT_SESSION_LIFETIME)
+            t2 = time.time()
             session.permanent = True
             session['tenant_admin_id'] = tenant.id
             session['tenant_subdomain'] = tenant.subdomain
             session['admin_name'] = tenant.admin_name
             tenant.last_login_at = datetime.utcnow()
             db.session.commit()
+            print(f"3. Update session + last_login: {(time.time() - t2)*1000:.0f}ms")
+            print(f"✅ TOTAL LOGIN TIME: {(time.time() - start_time)*1000:.0f}ms\n")
             flash(f'Welcome back, {tenant.admin_name}!', 'success')
             return redirect(url_for('admin.dashboard'))
         else:
@@ -214,16 +224,31 @@ def dashboard():
     total_vendors = Vendor.query.filter_by(tenant_id=tenant_id, is_active=True).count()
     print(f"8. Customers + vendors count: {(time.time() - t7)*1000:.0f}ms")
     
-    # Recent activity
+    # Recent activity (OPTIMIZED: only load essential fields, not full objects)
     t8 = time.time()
-    recent_invoices = Invoice.query.filter_by(tenant_id=tenant_id).order_by(
-        Invoice.created_at.desc()
-    ).limit(5).all()
+    from sqlalchemy import desc
+    recent_invoices = db.session.query(
+        Invoice.id,
+        Invoice.invoice_number,
+        Invoice.customer_name,
+        Invoice.total_amount,
+        Invoice.payment_status,
+        Invoice.invoice_date
+    ).filter(
+        Invoice.tenant_id == tenant_id
+    ).order_by(desc(Invoice.created_at)).limit(5).all()
     
-    recent_bills = PurchaseBill.query.filter_by(tenant_id=tenant_id).order_by(
-        PurchaseBill.created_at.desc()
-    ).limit(5).all()
-    print(f"9. Recent activity queries: {(time.time() - t8)*1000:.0f}ms")
+    recent_bills = db.session.query(
+        PurchaseBill.id,
+        PurchaseBill.bill_number,
+        PurchaseBill.vendor_name,
+        PurchaseBill.total_amount,
+        PurchaseBill.payment_status,
+        PurchaseBill.bill_date
+    ).filter(
+        PurchaseBill.tenant_id == tenant_id
+    ).order_by(desc(PurchaseBill.created_at)).limit(5).all()
+    print(f"9. Recent activity queries (optimized): {(time.time() - t8)*1000:.0f}ms")
     
     t9 = time.time()
     result = render_template('admin/dashboard.html',
