@@ -495,32 +495,40 @@ def delete_group(group_id):
 @require_tenant
 @login_required
 def stock_summary():
-    """Show current stock levels for all items across all sites - OPTIMIZED"""
+    """Show current stock levels for all items across all sites - HYPER-OPTIMIZED"""
+    from sqlalchemy.orm import joinedload
+    
     tenant_id = get_current_tenant_id()
     
     # Pagination
     page = request.args.get('page', 1, type=int)
     per_page = 50
     
-    # Get all sites
+    # Get all sites (usually just 2-3 sites, so this is fast)
     sites = Site.query.filter_by(tenant_id=tenant_id).all()
     
-    # OPTIMIZATION 1: Load ALL stock data in ONE query (instead of N+1)
-    all_stock_records = ItemStock.query.filter(
-        ItemStock.tenant_id == tenant_id
-    ).all()
-    
-    # Build a lookup dictionary: {(item_id, site_id): quantity}
-    stock_lookup = {}
-    for stock in all_stock_records:
-        stock_lookup[(stock.item_id, stock.site_id)] = stock.quantity_available
-    
-    # OPTIMIZATION 2: Paginate items query
+    # HYPER-OPTIMIZATION: Paginate FIRST, then load stock for ONLY those items
     items_query = Item.query.filter_by(tenant_id=tenant_id, is_active=True).order_by(Item.name)
     pagination = items_query.paginate(page=page, per_page=per_page, error_out=False)
     items = pagination.items
     
-    # OPTIMIZATION 3: Build stock summary using lookup (no queries in loop!)
+    # Get item IDs for this page only
+    item_ids = [item.id for item in items]
+    
+    # OPTIMIZATION: Load stock ONLY for paginated items (not all items!)
+    # Before: 500 items × 2 sites = 1000 stock records
+    # After: 50 items × 2 sites = 100 stock records (10x less!)
+    stock_records = ItemStock.query.filter(
+        ItemStock.tenant_id == tenant_id,
+        ItemStock.item_id.in_(item_ids)
+    ).all()
+    
+    # Build a lookup dictionary: {(item_id, site_id): quantity}
+    stock_lookup = {}
+    for stock in stock_records:
+        stock_lookup[(stock.item_id, stock.site_id)] = stock.quantity_available
+    
+    # Build stock summary using lookup (no queries in loop!)
     stock_data = []
     for item in items:
         # Calculate total stock from lookup (no query!)
