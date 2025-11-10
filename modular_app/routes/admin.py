@@ -419,6 +419,138 @@ def delete_commission_agent(agent_id):
     flash(f'Agent "{agent.name}" deactivated successfully.', 'success')
     return redirect(url_for('admin.commission_agents'))
 
+# Commission Reports
+@admin_bp.route('/commission-reports')
+@require_tenant
+@login_required
+def commission_reports():
+    """Commission reports and payment tracking"""
+    from models import CommissionAgent, InvoiceCommission, Invoice
+    from sqlalchemy import func
+    from datetime import datetime, timedelta
+    
+    tenant_id = get_current_tenant_id()
+    
+    # Get date filters (default: current month)
+    start_date_str = request.args.get('start_date')
+    end_date_str = request.args.get('end_date')
+    agent_filter = request.args.get('agent_id')
+    status_filter = request.args.get('status')  # 'paid', 'unpaid', or 'all'
+    
+    # Default to current month
+    if not start_date_str:
+        start_date = datetime.now().replace(day=1).date()
+    else:
+        start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
+    
+    if not end_date_str:
+        end_date = datetime.now().date()
+    else:
+        end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
+    
+    # Build query
+    query = InvoiceCommission.query.filter_by(tenant_id=tenant_id)
+    
+    # Join with Invoice to get invoice_date for filtering
+    query = query.join(Invoice, InvoiceCommission.invoice_id == Invoice.id)
+    query = query.filter(Invoice.invoice_date >= start_date, Invoice.invoice_date <= end_date)
+    
+    # Apply filters
+    if agent_filter and agent_filter != 'all':
+        query = query.filter(InvoiceCommission.agent_id == int(agent_filter))
+    
+    if status_filter == 'paid':
+        query = query.filter(InvoiceCommission.is_paid == True)
+    elif status_filter == 'unpaid':
+        query = query.filter(InvoiceCommission.is_paid == False)
+    
+    # Get all commissions
+    commissions = query.order_by(Invoice.invoice_date.desc()).all()
+    
+    # Calculate summary stats
+    total_commission = sum(c.commission_amount for c in commissions)
+    paid_commission = sum(c.commission_amount for c in commissions if c.is_paid)
+    unpaid_commission = total_commission - paid_commission
+    
+    # Agent-wise summary
+    agent_summary = {}
+    for comm in commissions:
+        if comm.agent_id not in agent_summary:
+            agent_summary[comm.agent_id] = {
+                'agent_name': comm.agent_name,
+                'agent_code': comm.agent_code,
+                'total': 0,
+                'paid': 0,
+                'unpaid': 0,
+                'count': 0
+            }
+        agent_summary[comm.agent_id]['total'] += comm.commission_amount
+        if comm.is_paid:
+            agent_summary[comm.agent_id]['paid'] += comm.commission_amount
+        else:
+            agent_summary[comm.agent_id]['unpaid'] += comm.commission_amount
+        agent_summary[comm.agent_id]['count'] += 1
+    
+    # Get all active agents for filter dropdown
+    all_agents = CommissionAgent.query.filter_by(tenant_id=tenant_id, is_active=True).order_by(CommissionAgent.name).all()
+    
+    from datetime import date
+    return render_template('admin/commission_reports.html',
+                         tenant=g.tenant,
+                         commissions=commissions,
+                         agent_summary=agent_summary,
+                         all_agents=all_agents,
+                         total_commission=total_commission,
+                         paid_commission=paid_commission,
+                         unpaid_commission=unpaid_commission,
+                         start_date=start_date,
+                         end_date=end_date,
+                         selected_agent=agent_filter,
+                         selected_status=status_filter or 'all',
+                         today=date.today().strftime('%Y-%m-%d'))
+
+@admin_bp.route('/commission/mark-paid/<int:commission_id>', methods=['POST'])
+@require_tenant
+@login_required
+def mark_commission_paid(commission_id):
+    """Mark commission as paid"""
+    from models import InvoiceCommission
+    from datetime import date
+    
+    tenant_id = get_current_tenant_id()
+    commission = InvoiceCommission.query.filter_by(tenant_id=tenant_id, id=commission_id).first_or_404()
+    
+    payment_date = request.form.get('payment_date')
+    payment_notes = request.form.get('payment_notes')
+    
+    commission.is_paid = True
+    commission.paid_date = datetime.strptime(payment_date, '%Y-%m-%d').date() if payment_date else date.today()
+    commission.payment_notes = payment_notes
+    
+    db.session.commit()
+    
+    flash(f'✅ Commission of ₹{commission.commission_amount:.2f} marked as paid to {commission.agent_name}!', 'success')
+    return redirect(url_for('admin.commission_reports'))
+
+@admin_bp.route('/commission/mark-unpaid/<int:commission_id>', methods=['POST'])
+@require_tenant
+@login_required
+def mark_commission_unpaid(commission_id):
+    """Mark commission as unpaid (undo payment)"""
+    from models import InvoiceCommission
+    
+    tenant_id = get_current_tenant_id()
+    commission = InvoiceCommission.query.filter_by(tenant_id=tenant_id, id=commission_id).first_or_404()
+    
+    commission.is_paid = False
+    commission.paid_date = None
+    commission.payment_notes = None
+    
+    db.session.commit()
+    
+    flash(f'Commission of ₹{commission.commission_amount:.2f} marked as unpaid.', 'success')
+    return redirect(url_for('admin.commission_reports'))
+
 # Sites Management
 @admin_bp.route('/sites')
 @require_tenant
