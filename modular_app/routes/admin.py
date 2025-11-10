@@ -287,16 +287,83 @@ def add_employee():
     
     return redirect(url_for('admin.employees'))
 
+@admin_bp.route('/employee/edit/<int:emp_id>', methods=['POST'])
+@require_tenant
+@login_required
+def edit_employee(emp_id):
+    """Edit employee details"""
+    from models import CommissionAgent
+    
+    tenant_id = get_current_tenant_id()
+    employee = Employee.query.filter_by(tenant_id=tenant_id, id=emp_id).first_or_404()
+    
+    # Update employee details
+    new_pin = request.form.get('pin')
+    
+    # Check if new PIN is different and already exists (within this tenant)
+    if new_pin != employee.pin:
+        existing = Employee.query.filter_by(tenant_id=tenant_id, pin=new_pin).first()
+        if existing:
+            flash('PIN already exists!', 'error')
+            return redirect(url_for('admin.employees'))
+    
+    employee.name = request.form.get('name')
+    employee.pin = new_pin
+    employee.phone = request.form.get('phone')
+    employee.email = request.form.get('email')
+    
+    site_id = request.form.get('site_id')
+    if site_id == '' or not site_id:
+        employee.site_id = None
+    else:
+        employee.site_id = int(site_id)
+    
+    # Update commission if changed
+    commission_percentage = request.form.get('commission_percentage')
+    commission_agent = CommissionAgent.query.filter_by(tenant_id=tenant_id, employee_id=emp_id).first()
+    
+    if commission_percentage and float(commission_percentage) > 0:
+        # Update or create commission agent
+        if commission_agent:
+            commission_agent.name = employee.name
+            commission_agent.phone = employee.phone
+            commission_agent.email = employee.email
+            commission_agent.default_commission_percentage = float(commission_percentage)
+            commission_agent.is_active = True
+        else:
+            # Create new commission agent
+            agent = CommissionAgent(
+                tenant_id=tenant_id,
+                name=employee.name,
+                code=f"EMP-{employee.pin}",
+                phone=employee.phone,
+                email=employee.email,
+                default_commission_percentage=float(commission_percentage),
+                employee_id=employee.id,
+                agent_type='employee',
+                is_active=True,
+                created_by=g.user.id if hasattr(g, 'user') else None
+            )
+            db.session.add(agent)
+    else:
+        # Remove commission if percentage is 0 or empty
+        if commission_agent:
+            commission_agent.is_active = False
+    
+    db.session.commit()
+    flash(f'✅ Employee "{employee.name}" updated successfully!', 'success')
+    return redirect(url_for('admin.employees'))
+
 @admin_bp.route('/employee/delete/<int:emp_id>')
 @require_tenant
 @login_required
 def delete_employee(emp_id):
-    """Delete employee"""
+    """Deactivate employee (keeps records)"""
     tenant_id = get_current_tenant_id()
     employee = Employee.query.filter_by(tenant_id=tenant_id, id=emp_id).first_or_404()
     employee.active = False
     db.session.commit()
-    flash('Employee deactivated', 'success')
+    flash('Employee deactivated successfully. All records are preserved.', 'success')
     return redirect(url_for('admin.employees'))
 
 @admin_bp.route('/employee/document/<int:emp_id>')
@@ -398,11 +465,47 @@ def add_commission_agent():
     flash(f'✅ External agent "{name}" added with {commission_rate}% commission!', 'success')
     return redirect(url_for('admin.commission_agents'))
 
+@admin_bp.route('/commission-agent/edit/<int:agent_id>', methods=['POST'])
+@require_tenant
+@login_required
+def edit_commission_agent(agent_id):
+    """Edit external commission agent"""
+    from models import CommissionAgent
+    
+    tenant_id = get_current_tenant_id()
+    agent = CommissionAgent.query.filter_by(tenant_id=tenant_id, id=agent_id).first_or_404()
+    
+    # Only allow editing of external agents from this page
+    if agent.agent_type == 'employee':
+        flash('⚠️ Employee agents must be managed from the Employee page.', 'warning')
+        return redirect(url_for('admin.commission_agents'))
+    
+    # Update agent details
+    new_code = request.form.get('code')
+    
+    # Check if new code is different and already exists (within this tenant)
+    if new_code and new_code.strip() and new_code != agent.code:
+        existing = CommissionAgent.query.filter_by(tenant_id=tenant_id, code=new_code).first()
+        if existing:
+            flash('Agent code already exists!', 'error')
+            return redirect(url_for('admin.commission_agents'))
+    
+    agent.name = request.form.get('name')
+    agent.code = new_code if new_code and new_code.strip() else None
+    agent.phone = request.form.get('phone')
+    agent.email = request.form.get('email')
+    agent.default_commission_percentage = float(request.form.get('commission_percentage'))
+    
+    db.session.commit()
+    
+    flash(f'✅ Agent "{agent.name}" updated successfully!', 'success')
+    return redirect(url_for('admin.commission_agents'))
+
 @admin_bp.route('/commission-agent/delete/<int:agent_id>', methods=['POST'])
 @require_tenant
 @login_required
 def delete_commission_agent(agent_id):
-    """Delete/deactivate commission agent"""
+    """Deactivate commission agent (keeps records)"""
     from models import CommissionAgent
     
     tenant_id = get_current_tenant_id()
@@ -416,7 +519,7 @@ def delete_commission_agent(agent_id):
     agent.is_active = False
     db.session.commit()
     
-    flash(f'Agent "{agent.name}" deactivated successfully.', 'success')
+    flash(f'Agent "{agent.name}" deactivated successfully. All records are preserved.', 'success')
     return redirect(url_for('admin.commission_agents'))
 
 # Commission Reports

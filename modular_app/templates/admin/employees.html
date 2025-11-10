@@ -126,9 +126,13 @@
                 </td>
                 <td style="padding: 15px; text-align: center;">
                     {% if employee.active %}
+                    <button onclick="editEmployee({{ employee.id }}, '{{ employee.name }}', '{{ employee.pin }}', '{{ employee.phone or '' }}', '{{ employee.email or '' }}', {{ employee.site_id or 'null' }}, {{ commission_agents[employee.id].default_commission_percentage if employee.id in commission_agents else 0 }})" 
+                            style="color: #667eea; background: none; border: none; cursor: pointer; font-weight: 600; margin-right: 10px;">
+                        ✏️ Edit
+                    </button>
                     <a href="/admin/employee/delete/{{ employee.id }}" 
-                       onclick="return confirm('Deactivate this employee?')"
-                       style="color: #dc3545; text-decoration: none; font-weight: 600;">Deactivate</a>
+                       onclick="return confirm('Deactivate this employee? They will no longer be active but all records will be preserved.')"
+                       style="color: #dc3545; text-decoration: none; font-weight: 600;">🗑️ Deactivate</a>
                     {% endif %}
                 </td>
             </tr>
@@ -136,5 +140,76 @@
         </tbody>
     </table>
     </div>
+
+    <!-- Edit Employee Modal -->
+    <div id="editModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9999; align-items: center; justify-content: center;">
+        <div style="background: white; padding: 30px; border-radius: 12px; max-width: 600px; width: 90%; max-height: 90vh; overflow-y: auto;">
+            <h3 style="margin: 0 0 20px 0; color: #2c3e50;">✏️ Edit Employee</h3>
+            <form method="POST" id="editForm" action="" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                <div class="form-group">
+                    <label>Name:</label>
+                    <input type="text" name="name" id="edit_name" required>
+                </div>
+                <div class="form-group">
+                    <label>PIN (4 digits):</label>
+                    <input type="text" name="pin" id="edit_pin" pattern="[0-9]{4}" maxlength="4" required>
+                </div>
+                <div class="form-group">
+                    <label>Phone:</label>
+                    <input type="tel" name="phone" id="edit_phone">
+                </div>
+                <div class="form-group">
+                    <label>Email:</label>
+                    <input type="email" name="email" id="edit_email">
+                </div>
+                <div class="form-group">
+                    <label>Site:</label>
+                    <select name="site_id" id="edit_site_id">
+                        <option value="">Select Site</option>
+                        {% for site in sites %}
+                        <option value="{{ site.id }}">{{ site.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Commission %:</label>
+                    <input type="number" name="commission_percentage" id="edit_commission_percentage" step="0.01" min="0" max="100" placeholder="Leave empty to remove commission">
+                    <small style="color: #7f8c8d; display: block; margin-top: 5px;">Enter 0 or leave empty to remove commission</small>
+                </div>
+                <div style="grid-column: span 2; display: flex; gap: 10px; margin-top: 10px;">
+                    <button type="submit" style="flex: 1; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 12px; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">
+                        ✅ Update Employee
+                    </button>
+                    <button type="button" onclick="closeEditModal()" style="flex: 1; background: #6c757d; color: white; padding: 12px; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">
+                        Cancel
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        function editEmployee(id, name, pin, phone, email, siteId, commissionPercentage) {
+            document.getElementById('editModal').style.display = 'flex';
+            document.getElementById('editForm').action = '/admin/employee/edit/' + id;
+            document.getElementById('edit_name').value = name;
+            document.getElementById('edit_pin').value = pin;
+            document.getElementById('edit_phone').value = phone;
+            document.getElementById('edit_email').value = email;
+            document.getElementById('edit_site_id').value = siteId || '';
+            document.getElementById('edit_commission_percentage').value = commissionPercentage || '';
+        }
+        
+        function closeEditModal() {
+            document.getElementById('editModal').style.display = 'none';
+        }
+        
+        // Close modal on outside click
+        document.getElementById('editModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeEditModal();
+            }
+        });
+    </script>
 {% endblock %}
 

@@ -4,6 +4,10 @@
 
 {% block page_title %}Commission Agents{% endblock %}
 
+{% block header_actions %}
+<!-- Manual Entry and QR Code buttons removed - not relevant for Commission Agents -->
+{% endblock %}
+
 {% block content %}
     <!-- Add External Agent Card -->
     <div style="background: white; border-radius: 8px; padding: 25px; margin-bottom: 25px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
@@ -81,9 +85,13 @@
                     </td>
                     <td style="padding: 15px; text-align: center;">
                         {% if agent.is_active %}
+                        <button onclick="editAgent({{ agent.id }}, '{{ agent.name }}', '{{ agent.code or '' }}', '{{ agent.phone or '' }}', '{{ agent.email or '' }}', {{ agent.default_commission_percentage }})" 
+                                style="color: #667eea; background: none; border: none; cursor: pointer; font-weight: 600; margin-right: 10px;">
+                            ✏️ Edit
+                        </button>
                         <form method="POST" action="/admin/commission-agent/delete/{{ agent.id }}" style="display: inline;" onsubmit="return confirm('Deactivate this agent? They will no longer appear in the commission dropdown.')">
                             <button type="submit" style="color: #dc3545; background: none; border: none; cursor: pointer; font-weight: 600;">
-                                Deactivate
+                                🗑️ Deactivate
                             </button>
                         </form>
                         {% else %}
@@ -151,5 +159,65 @@
         </div>
         {% endif %}
     </div>
+
+    <!-- Edit Agent Modal -->
+    <div id="editAgentModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9999; align-items: center; justify-content: center;">
+        <div style="background: white; padding: 30px; border-radius: 12px; max-width: 600px; width: 90%;">
+            <h3 style="margin: 0 0 20px 0; color: #2c3e50;">✏️ Edit External Agent</h3>
+            <form method="POST" id="editAgentForm" action="" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                <div class="form-group">
+                    <label>Name:</label>
+                    <input type="text" name="name" id="edit_agent_name" required>
+                </div>
+                <div class="form-group">
+                    <label>Agent Code:</label>
+                    <input type="text" name="code" id="edit_agent_code">
+                </div>
+                <div class="form-group">
+                    <label>Phone:</label>
+                    <input type="tel" name="phone" id="edit_agent_phone">
+                </div>
+                <div class="form-group">
+                    <label>Email:</label>
+                    <input type="email" name="email" id="edit_agent_email">
+                </div>
+                <div class="form-group">
+                    <label>Commission %:</label>
+                    <input type="number" name="commission_percentage" id="edit_agent_commission" step="0.01" min="0" max="100" required>
+                </div>
+                <div style="grid-column: span 2; display: flex; gap: 10px; margin-top: 10px;">
+                    <button type="submit" style="flex: 1; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 12px; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">
+                        ✅ Update Agent
+                    </button>
+                    <button type="button" onclick="closeEditAgentModal()" style="flex: 1; background: #6c757d; color: white; padding: 12px; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">
+                        Cancel
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        function editAgent(id, name, code, phone, email, commissionPercentage) {
+            document.getElementById('editAgentModal').style.display = 'flex';
+            document.getElementById('editAgentForm').action = '/admin/commission-agent/edit/' + id;
+            document.getElementById('edit_agent_name').value = name;
+            document.getElementById('edit_agent_code').value = code;
+            document.getElementById('edit_agent_phone').value = phone;
+            document.getElementById('edit_agent_email').value = email;
+            document.getElementById('edit_agent_commission').value = commissionPercentage;
+        }
+        
+        function closeEditAgentModal() {
+            document.getElementById('editAgentModal').style.display = 'none';
+        }
+        
+        // Close modal on outside click
+        document.getElementById('editAgentModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeEditAgentModal();
+            }
+        });
+    </script>
 {% endblock %}
 
