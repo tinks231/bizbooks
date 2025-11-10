@@ -29,13 +29,15 @@ def check_auth():
 @purchase_bills_bp.route('/')
 @check_license
 def list_bills():
-    """List all purchase bills"""
+    """List all purchase bills - OPTIMIZED with pagination"""
     tenant_id = get_current_tenant_id()
     
     # Get filter parameters
     status_filter = request.args.get('status', 'all')
     payment_filter = request.args.get('payment', 'all')
     search_query = request.args.get('search', '').strip()
+    page = request.args.get('page', 1, type=int)
+    per_page = 50
     
     # Base query
     query = PurchaseBill.query.filter_by(tenant_id=tenant_id)
@@ -56,18 +58,43 @@ def list_bills():
             )
         )
     
-    # Get bills sorted by date (newest first)
-    bills = query.order_by(PurchaseBill.bill_date.desc()).all()
+    # OPTIMIZED: Paginate bills (instead of loading ALL)
+    query = query.order_by(PurchaseBill.bill_date.desc())
+    pagination = query.paginate(page=page, per_page=per_page, error_out=False)
+    bills = pagination.items
     
-    # Calculate summary stats
-    total_bills = len(bills)
-    total_amount = sum([bill.total_amount for bill in bills])
-    total_paid = sum([bill.paid_amount for bill in bills])
-    total_due = sum([bill.balance_due for bill in bills])
+    # Calculate summary stats (using SQL aggregation for better performance)
+    stats_query = PurchaseBill.query.filter_by(tenant_id=tenant_id)
+    if status_filter != 'all':
+        stats_query = stats_query.filter_by(status=status_filter)
+    if payment_filter != 'all':
+        stats_query = stats_query.filter_by(payment_status=payment_filter)
+    
+    total_bills = stats_query.count()
+    total_amount = db.session.query(func.sum(PurchaseBill.total_amount)).filter(
+        PurchaseBill.tenant_id == tenant_id,
+        PurchaseBill.status == status_filter if status_filter != 'all' else True,
+        PurchaseBill.payment_status == payment_filter if payment_filter != 'all' else True
+    ).scalar() or 0
+    
+    total_paid = db.session.query(func.sum(PurchaseBill.paid_amount)).filter(
+        PurchaseBill.tenant_id == tenant_id,
+        PurchaseBill.status == status_filter if status_filter != 'all' else True,
+        PurchaseBill.payment_status == payment_filter if payment_filter != 'all' else True
+    ).scalar() or 0
+    
+    total_due = db.session.query(func.sum(PurchaseBill.balance_due)).filter(
+        PurchaseBill.tenant_id == tenant_id,
+        PurchaseBill.status == status_filter if status_filter != 'all' else True,
+        PurchaseBill.payment_status == payment_filter if payment_filter != 'all' else True
+    ).scalar() or 0
     
     return render_template('admin/purchase_bills/list.html',
                          tenant=g.tenant,
                          bills=bills,
+                         page=page,
+                         total_pages=pagination.pages,
+                         total_items=pagination.total,
                          status_filter=status_filter,
                          payment_filter=payment_filter,
                          search_query=search_query,

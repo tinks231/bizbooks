@@ -495,31 +495,43 @@ def delete_group(group_id):
 @require_tenant
 @login_required
 def stock_summary():
-    """Show current stock levels for all items across all sites"""
+    """Show current stock levels for all items across all sites - OPTIMIZED"""
     tenant_id = get_current_tenant_id()
     
-    # Get all items with their stock
-    items = Item.query.filter_by(tenant_id=tenant_id, is_active=True).all()
+    # Pagination
+    page = request.args.get('page', 1, type=int)
+    per_page = 50
     
     # Get all sites
     sites = Site.query.filter_by(tenant_id=tenant_id).all()
     
-    # Build stock summary data
+    # OPTIMIZATION 1: Load ALL stock data in ONE query (instead of N+1)
+    all_stock_records = ItemStock.query.filter(
+        ItemStock.tenant_id == tenant_id
+    ).all()
+    
+    # Build a lookup dictionary: {(item_id, site_id): quantity}
+    stock_lookup = {}
+    for stock in all_stock_records:
+        stock_lookup[(stock.item_id, stock.site_id)] = stock.quantity_available
+    
+    # OPTIMIZATION 2: Paginate items query
+    items_query = Item.query.filter_by(tenant_id=tenant_id, is_active=True).order_by(Item.name)
+    pagination = items_query.paginate(page=page, per_page=per_page, error_out=False)
+    items = pagination.items
+    
+    # OPTIMIZATION 3: Build stock summary using lookup (no queries in loop!)
     stock_data = []
     for item in items:
-        # Get total stock across all sites
-        total_stock = db.session.query(func.sum(ItemStock.quantity_available)).filter_by(
-            item_id=item.id
-        ).scalar() or 0
+        # Calculate total stock from lookup (no query!)
+        total_stock = sum(
+            stock_lookup.get((item.id, site.id), 0) for site in sites
+        )
         
-        # Get stock by site
-        stock_by_site = {}
-        for site in sites:
-            site_stock = ItemStock.query.filter_by(
-                item_id=item.id,
-                site_id=site.id
-            ).first()
-            stock_by_site[site.id] = site_stock.quantity_available if site_stock else 0
+        # Get stock by site from lookup (no query!)
+        stock_by_site = {
+            site.id: stock_lookup.get((item.id, site.id), 0) for site in sites
+        }
         
         stock_data.append({
             'item': item,
@@ -531,6 +543,9 @@ def stock_summary():
     return render_template('admin/items/stock_summary.html',
                          stock_data=stock_data,
                          sites=sites,
+                         page=page,
+                         total_pages=pagination.pages,
+                         total_items=pagination.total,
                          tenant=g.tenant)
 
 

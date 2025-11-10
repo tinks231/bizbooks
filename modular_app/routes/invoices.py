@@ -42,13 +42,15 @@ def login_required(f):
 @require_tenant
 @login_required
 def index():
-    """List all invoices"""
+    """List all invoices - OPTIMIZED with pagination"""
     tenant_id = g.tenant.id
     
     # Filters
     status_filter = request.args.get('status', 'all')
     payment_filter = request.args.get('payment', 'all')
     search = request.args.get('search', '').strip()
+    page = request.args.get('page', 1, type=int)
+    per_page = 50
     
     # Base query
     query = Invoice.query.filter_by(tenant_id=tenant_id)
@@ -67,8 +69,10 @@ def index():
             )
         )
     
-    # Get invoices
-    invoices = query.order_by(desc(Invoice.invoice_date), desc(Invoice.id)).all()
+    # OPTIMIZED: Paginate invoices (instead of loading ALL)
+    query = query.order_by(desc(Invoice.invoice_date), desc(Invoice.id))
+    pagination = query.paginate(page=page, per_page=per_page, error_out=False)
+    invoices = pagination.items
     
     # Stats
     total_invoices = Invoice.query.filter_by(tenant_id=tenant_id, status='sent').count()
@@ -85,6 +89,9 @@ def index():
     return render_template('admin/invoices/list.html',
                          tenant=g.tenant,
                          invoices=invoices,
+                         page=page,
+                         total_pages=pagination.pages,
+                         total_items=pagination.total,
                          total_invoices=total_invoices,
                          total_revenue=total_revenue,
                          paid_revenue=paid_revenue,
