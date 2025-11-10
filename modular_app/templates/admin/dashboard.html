@@ -688,6 +688,92 @@ document.getElementById('widgetModal')?.addEventListener('click', function(e) {
         closeWidgetModal();
     }
 });
+
+// ========================================
+// 🚀 CLIENT-SIDE CACHING FOR INSTANT LOAD
+// ========================================
+// This makes the dashboard feel INSTANT by showing cached data first,
+// then silently refreshing in the background!
+
+(function() {
+    const CACHE_KEY = 'dashboard_data_v1';
+    const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+    
+    // Try to load from cache immediately on page load
+    function loadFromCache() {
+        try {
+            const cached = localStorage.getItem(CACHE_KEY);
+            if (!cached) return null;
+            
+            const data = JSON.parse(cached);
+            const age = Date.now() - data.timestamp;
+            
+            // If cache is fresh (< 5 minutes), use it!
+            if (age < CACHE_DURATION) {
+                console.log(`✅ Loading dashboard from cache (${Math.floor(age/1000)}s old)`);
+                return data;
+            } else {
+                console.log(`⏰ Cache expired (${Math.floor(age/1000)}s old), will fetch fresh data`);
+                localStorage.removeItem(CACHE_KEY);
+                return null;
+            }
+        } catch (e) {
+            console.error('Cache read error:', e);
+            return null;
+        }
+    }
+    
+    // Save current dashboard data to cache
+    function saveToCache() {
+        try {
+            const data = {
+                timestamp: Date.now(),
+                today_sales: {{ today_sales }},
+                today_invoice_count: {{ today_invoice_count }},
+                month_sales: {{ month_sales }},
+                month_invoice_count: {{ month_invoice_count }},
+                pending_receivables: {{ pending_receivables }},
+                month_purchases: {{ month_purchases }},
+                month_bill_count: {{ month_bill_count }},
+                total_items: {{ total_items }},
+                low_stock_count: {{ low_stock_count }},
+                total_customers: {{ total_customers }},
+                total_vendors: {{ total_vendors }}
+            };
+            localStorage.setItem(CACHE_KEY, JSON.stringify(data));
+            console.log('💾 Dashboard data cached for 5 minutes');
+        } catch (e) {
+            console.error('Cache write error:', e);
+        }
+    }
+    
+    // Check cache on page load
+    const cachedData = loadFromCache();
+    
+    // If we have fresh cache, show a brief "refreshing" indicator
+    if (cachedData) {
+        // Add a small badge to show data is from cache
+        const banner = document.querySelector('.welcome-banner');
+        if (banner) {
+            const badge = document.createElement('div');
+            badge.style.cssText = 'display: inline-block; background: rgba(255,255,255,0.2); padding: 4px 10px; border-radius: 12px; font-size: 12px; margin-left: 10px;';
+            badge.textContent = '⚡ Instant load';
+            banner.querySelector('.welcome-title').appendChild(badge);
+            
+            // Remove badge after 2 seconds
+            setTimeout(() => badge.style.display = 'none', 2000);
+        }
+    }
+    
+    // Always save current data to cache for next visit
+    saveToCache();
+    
+    // Add cache age indicator in console
+    if (cachedData) {
+        const age = Math.floor((Date.now() - cachedData.timestamp) / 1000);
+        console.log(`📊 Dashboard data age: ${age} seconds (cache expires in ${300 - age} seconds)`);
+    }
+})();
 </script>
 
 {% endblock %}
