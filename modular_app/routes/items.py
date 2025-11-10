@@ -56,7 +56,10 @@ def generate_sku(tenant_id):
 @require_tenant
 @login_required
 def index():
-    """List all items"""
+    """List all items with OPTIMIZED QUERIES"""
+    from sqlalchemy.orm import joinedload
+    from sqlalchemy import func
+    
     tenant_id = get_current_tenant_id()
     
     # Get filter parameters
@@ -65,9 +68,11 @@ def index():
     search = request.args.get('search', '')
     status = request.args.get('status', 'active')  # 'active', 'inactive', 'all'
     low_stock_filter = request.args.get('low_stock', type=int)  # 1 = show only low stock
+    page = request.args.get('page', 1, type=int)
+    per_page = 50  # Show 50 items per page
     
-    # Build query
-    query = Item.query.filter_by(tenant_id=tenant_id)
+    # Build query with EAGER LOADING (fixes N+1 problem!)
+    query = Item.query.options(joinedload(Item.stocks)).filter_by(tenant_id=tenant_id)
     
     # Apply filters
     if category_id:
@@ -81,28 +86,59 @@ def index():
     elif status == 'inactive':
         query = query.filter_by(is_active=False)
     
-    # Get items
-    all_items = query.order_by(Item.created_at.desc()).all()
+    # Order by created date
+    query = query.order_by(Item.created_at.desc())
     
-    # Apply low stock filter (done in Python because it involves aggregating stock across sites)
+    # Apply pagination
     if low_stock_filter == 1:
-        items = [item for item in all_items if item.track_inventory and item.reorder_point and item.get_total_stock() < item.reorder_point]
+        # For low stock filter, we need to get all items first then filter
+        # (Can't filter in SQL as it requires aggregation across sites)
+        all_items = query.all()
+        items_filtered = [item for item in all_items if item.track_inventory and item.reorder_point and item.get_total_stock() < item.reorder_point]
+        
+        # Manual pagination for filtered items
+        total_items = len(items_filtered)
+        start = (page - 1) * per_page
+        end = start + per_page
+        items = items_filtered[start:end]
+        total_pages = (total_items + per_page - 1) // per_page
     else:
-        items = all_items
+        # Regular pagination via SQLAlchemy
+        pagination = query.paginate(page=page, per_page=per_page, error_out=False)
+        items = pagination.items
+        total_pages = pagination.pages
+        total_items = pagination.total
     
     # Get categories and groups for filters
     categories = ItemCategory.query.filter_by(tenant_id=tenant_id).all()
     groups = ItemGroup.query.filter_by(tenant_id=tenant_id).all()
     
-    # Calculate accurate low stock count from ALL items (not filtered)
-    all_items_query = Item.query.filter_by(tenant_id=tenant_id, is_active=True, track_inventory=True).all()
-    low_stock_count = sum(1 for item in all_items_query if item.reorder_point and item.get_total_stock() < item.reorder_point)
+    # OPTIMIZED: Calculate low stock count using SQL aggregation (ONE query!)
+    # Get all items with stock data in one query
+    items_with_stock_query = db.session.query(
+        Item.id,
+        Item.reorder_point,
+        func.sum(ItemStock.quantity_available).label('total_stock')
+    ).join(
+        ItemStock, Item.id == ItemStock.item_id, isouter=True
+    ).filter(
+        Item.tenant_id == tenant_id,
+        Item.is_active == True,
+        Item.track_inventory == True,
+        Item.reorder_point.isnot(None)
+    ).group_by(Item.id, Item.reorder_point).all()
+    
+    # Count items where total_stock < reorder_point
+    low_stock_count = sum(1 for item in items_with_stock_query if (item.total_stock or 0) < item.reorder_point)
     
     return render_template('admin/items/list.html',
                          items=items,
                          categories=categories,
                          groups=groups,
                          low_stock_count=low_stock_count,
+                         page=page,
+                         total_pages=total_pages,
+                         total_items=total_items if not low_stock_filter else len(items_filtered) if low_stock_filter == 1 else total_items,
                          tenant=g.tenant)
 
 

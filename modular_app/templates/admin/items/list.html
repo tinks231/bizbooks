@@ -14,12 +14,12 @@
 <!-- Stats Cards -->
 <div class="stats-grid" style="margin-bottom: 30px;">
     <div class="stat-card">
-        <div class="stat-value">{{ items|length }}</div>
-        <div class="stat-label">Total Items</div>
+        <div class="stat-value">{{ total_items }}</div>
+        <div class="stat-label">Total Items (Filtered)</div>
     </div>
-    <div class="stat-card" style="border-left-color: #28a745;">
-        <div class="stat-value">{{ items|selectattr('is_active')|list|length }}</div>
-        <div class="stat-label">Active Items</div>
+    <div class="stat-card" style="border-left-color: #667eea;">
+        <div class="stat-value">{{ items|length }}</div>
+        <div class="stat-label">Showing on Page {{ page }}</div>
     </div>
     <div class="stat-card" style="border-left-color: #e74c3c;">
         <div class="stat-value">{{ low_stock_count }}</div>
@@ -337,6 +337,29 @@
         <a href="{{ url_for('items.add') }}" class="btn btn-primary" style="margin-top: 20px;">
             ➕ Add New Item
         </a>
+    </div>
+    {% endif %}
+    
+    <!-- Pagination Controls -->
+    {% if total_pages > 1 %}
+    <div style="display: flex; justify-content: center; align-items: center; margin-top: 30px; gap: 10px;">
+        {% if page > 1 %}
+        <a href="{{ url_for('items.index', page=page-1, category=request.args.get('category', ''), group=request.args.get('group', ''), search=request.args.get('search', ''), status=request.args.get('status', 'active'), low_stock=request.args.get('low_stock', '')) }}" 
+           style="padding: 8px 16px; background: #667eea; color: white; text-decoration: none; border-radius: 6px; font-weight: 600;">
+            ← Previous
+        </a>
+        {% endif %}
+        
+        <span style="padding: 8px 16px; background: #f8f9fa; border-radius: 6px; font-weight: 600; color: #2c3e50;">
+            Page {{ page }} of {{ total_pages }} ({{ total_items }} total items)
+        </span>
+        
+        {% if page < total_pages %}
+        <a href="{{ url_for('items.index', page=page+1, category=request.args.get('category', ''), group=request.args.get('group', ''), search=request.args.get('search', ''), status=request.args.get('status', 'active'), low_stock=request.args.get('low_stock', '')) }}" 
+           style="padding: 8px 16px; background: #667eea; color: white; text-decoration: none; border-radius: 6px; font-weight: 600;">
+            Next →
+        </a>
+        {% endif %}
     </div>
     {% endif %}
 </div>

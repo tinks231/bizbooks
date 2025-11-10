@@ -160,9 +160,22 @@ def dashboard():
     # Quick stats
     total_items = Item.query.filter_by(tenant_id=tenant_id, is_active=True).count()
     
-    # Low stock count - count unique items, not stock records
-    items_with_stock = Item.query.filter_by(tenant_id=tenant_id, is_active=True, track_inventory=True).all()
-    low_stock_items = sum(1 for item in items_with_stock if item.reorder_point and item.get_total_stock() < item.reorder_point)
+    # OPTIMIZED: Low stock count using SQL aggregation (ONE query!)
+    from sqlalchemy import func
+    items_with_stock_query = db.session.query(
+        Item.id,
+        Item.reorder_point,
+        func.sum(ItemStock.quantity_available).label('total_stock')
+    ).join(
+        ItemStock, Item.id == ItemStock.item_id, isouter=True
+    ).filter(
+        Item.tenant_id == tenant_id,
+        Item.is_active == True,
+        Item.track_inventory == True,
+        Item.reorder_point.isnot(None)
+    ).group_by(Item.id, Item.reorder_point).all()
+    
+    low_stock_items = sum(1 for item in items_with_stock_query if (item.total_stock or 0) < item.reorder_point)
     
     total_customers = Customer.query.filter_by(tenant_id=tenant_id, is_active=True).count()
     total_vendors = Vendor.query.filter_by(tenant_id=tenant_id, is_active=True).count()
