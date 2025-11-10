@@ -63,10 +63,16 @@ def login():
             session['tenant_admin_id'] = tenant.id
             session['tenant_subdomain'] = tenant.subdomain
             session['admin_name'] = tenant.admin_name
-            tenant.last_login_at = datetime.utcnow()
-            db.session.commit()
-            print(f"3. Update session + last_login: {(time.time() - t2)*1000:.0f}ms")
-            print(f"✅ TOTAL LOGIN TIME: {(time.time() - start_time)*1000:.0f}ms\n")
+            
+            # REMOVED: tenant.last_login_at update (was adding 1.5s!)
+            # This database write required a full round trip to Mumbai
+            # India → Vercel (US) → DB (Mumbai) → Vercel (US) → India = 1.6s
+            # Not critical for login, so removed to improve UX
+            # If needed, can be done async in background
+            
+            print(f"3. Update session (no DB write): {(time.time() - t2)*1000:.0f}ms")
+            print(f"✅ TOTAL LOGIN TIME: {(time.time() - start_time)*1000:.0f}ms")
+            print(f"🎯 IMPROVEMENT: Removed last_login_at DB write (saves 1.5s!)\n")
             flash(f'Welcome back, {tenant.admin_name}!', 'success')
             return redirect(url_for('admin.dashboard'))
         else:
