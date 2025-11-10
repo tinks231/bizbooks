@@ -1,0 +1,155 @@
+{% extends "base_sidebar.html" %}
+
+{% block title %}Commission Agents - {{ tenant.company_name }}{% endblock %}
+
+{% block page_title %}Commission Agents{% endblock %}
+
+{% block content %}
+    <!-- Add External Agent Card -->
+    <div style="background: white; border-radius: 8px; padding: 25px; margin-bottom: 25px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+        <h3 style="margin: 0 0 10px 0; color: #2c3e50;">➕ Add External Commission Agent</h3>
+        <p style="color: #7f8c8d; margin-bottom: 20px; font-size: 14px;">
+            External agents like electricians, brokers, or referral partners who earn commission on sales. 
+            <strong>Note:</strong> Employee commissions are managed in the <a href="/admin/employees" style="color: #667eea;">Employee section</a>.
+        </p>
+        
+        <form method="POST" action="/admin/commission-agent/add" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+            <div class="form-group">
+                <label>Name: <span style="color: #e74c3c;">*</span></label>
+                <input type="text" name="name" required placeholder="e.g., Ramesh (Electrician)">
+            </div>
+            <div class="form-group">
+                <label>Agent Code: <span style="color: #999;">(Optional)</span></label>
+                <input type="text" name="code" placeholder="e.g., REF-001">
+            </div>
+            <div class="form-group">
+                <label>Phone:</label>
+                <input type="tel" name="phone" placeholder="98XXXXXXXX">
+            </div>
+            <div class="form-group">
+                <label>Email:</label>
+                <input type="email" name="email" placeholder="agent@example.com">
+            </div>
+            <div class="form-group">
+                <label>Commission %: <span style="color: #e74c3c;">*</span></label>
+                <input type="number" name="commission_percentage" step="0.01" min="0" max="100" value="1.0" required placeholder="1.0">
+                <small style="color: #7f8c8d;">Default commission percentage for this agent</small>
+            </div>
+            <div style="grid-column: span 2;">
+                <button type="submit" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 12px 30px; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">
+                    ➕ Add External Agent
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- External Agents List -->
+    <div style="background: white; border-radius: 8px; padding: 25px; margin-bottom: 25px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+        <h3 style="margin: 0 0 20px 0; color: #2c3e50;">👥 External Commission Agents</h3>
+        
+        {% if external_agents %}
+        <table style="width: 100%; border-collapse: collapse;">
+            <thead>
+                <tr style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                    <th style="padding: 15px; text-align: left; font-weight: 600;">Name</th>
+                    <th style="padding: 15px; text-align: left; font-weight: 600;">Code</th>
+                    <th style="padding: 15px; text-align: left; font-weight: 600;">Phone</th>
+                    <th style="padding: 15px; text-align: left; font-weight: 600;">Email</th>
+                    <th style="padding: 15px; text-align: center; font-weight: 600;">Commission %</th>
+                    <th style="padding: 15px; text-align: center; font-weight: 600;">Status</th>
+                    <th style="padding: 15px; text-align: center; font-weight: 600;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for agent in external_agents %}
+                <tr style="border-bottom: 1px solid #e0e0e0;">
+                    <td style="padding: 15px; font-weight: 500;">{{ agent.name }}</td>
+                    <td style="padding: 15px; color: #666;">{{ agent.code or '-' }}</td>
+                    <td style="padding: 15px; color: #666;">{{ agent.phone or '-' }}</td>
+                    <td style="padding: 15px; color: #666;">{{ agent.email or '-' }}</td>
+                    <td style="padding: 15px; text-align: center;">
+                        <span style="background: #d4edda; color: #155724; padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; white-space: nowrap;">
+                            💰 {{ agent.default_commission_percentage }}%
+                        </span>
+                    </td>
+                    <td style="padding: 15px; text-align: center;">
+                        {% if agent.is_active %}
+                        <span style="background: #d4edda; color: #155724; padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 600;">● Active</span>
+                        {% else %}
+                        <span style="background: #f8d7da; color: #721c24; padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 600;">● Inactive</span>
+                        {% endif %}
+                    </td>
+                    <td style="padding: 15px; text-align: center;">
+                        {% if agent.is_active %}
+                        <form method="POST" action="/admin/commission-agent/delete/{{ agent.id }}" style="display: inline;" onsubmit="return confirm('Deactivate this agent? They will no longer appear in the commission dropdown.')">
+                            <button type="submit" style="color: #dc3545; background: none; border: none; cursor: pointer; font-weight: 600;">
+                                Deactivate
+                            </button>
+                        </form>
+                        {% else %}
+                        <span style="color: #999;">-</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div style="text-align: center; padding: 40px; color: #7f8c8d;">
+            <div style="font-size: 48px; margin-bottom: 15px;">👥</div>
+            <p style="font-size: 16px; margin: 0;">No external agents added yet.</p>
+            <p style="font-size: 14px; margin: 10px 0 0 0;">Add external agents like electricians, brokers, or referral partners above.</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Employee Agents Reference (Read-Only) -->
+    <div style="background: linear-gradient(135deg, #f5f7fa 0%, #ffffff 100%); border: 2px solid #e3f2fd; border-radius: 8px; padding: 25px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+        <h3 style="margin: 0 0 10px 0; color: #2c3e50;">👤 Employee Commission Agents (Reference)</h3>
+        <p style="color: #7f8c8d; margin-bottom: 20px; font-size: 14px;">
+            These are employees who have commission enabled. To manage employee commissions, go to the 
+            <a href="/admin/employees" style="color: #667eea; font-weight: 600;">Employee Management</a> page.
+        </p>
+        
+        {% if employee_agents %}
+        <table style="width: 100%; border-collapse: collapse;">
+            <thead>
+                <tr style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                    <th style="padding: 15px; text-align: left; font-weight: 600;">Name</th>
+                    <th style="padding: 15px; text-align: left; font-weight: 600;">Code</th>
+                    <th style="padding: 15px; text-align: left; font-weight: 600;">Phone</th>
+                    <th style="padding: 15px; text-align: center; font-weight: 600;">Commission %</th>
+                    <th style="padding: 15px; text-align: center; font-weight: 600;">Type</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for agent in employee_agents %}
+                <tr style="border-bottom: 1px solid #e0e0e0;">
+                    <td style="padding: 15px; font-weight: 500;">{{ agent.name }}</td>
+                    <td style="padding: 15px; color: #666;">{{ agent.code }}</td>
+                    <td style="padding: 15px; color: #666;">{{ agent.phone or '-' }}</td>
+                    <td style="padding: 15px; text-align: center;">
+                        <span style="background: #d4edda; color: #155724; padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; white-space: nowrap;">
+                            💰 {{ agent.default_commission_percentage }}%
+                        </span>
+                    </td>
+                    <td style="padding: 15px; text-align: center;">
+                        <span style="background: #e3f2fd; color: #1565c0; padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 600;">
+                            👤 Employee
+                        </span>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div style="text-align: center; padding: 30px; color: #7f8c8d;">
+            <p style="font-size: 14px; margin: 0;">No employees have commission enabled yet.</p>
+            <p style="font-size: 14px; margin: 10px 0 0 0;">
+                Enable commission for employees in the <a href="/admin/employees" style="color: #667eea; font-weight: 600;">Employee Management</a> page.
+            </p>
+        </div>
+        {% endif %}
+    </div>
+{% endblock %}
+

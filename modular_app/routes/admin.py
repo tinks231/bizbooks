@@ -322,6 +322,103 @@ def view_employee_document(emp_id):
         flash('No document found', 'error')
         return redirect(url_for('admin.employees'))
 
+# Commission Agents Management
+@admin_bp.route('/commission-agents')
+@require_tenant
+@login_required
+def commission_agents():
+    """Manage commission agents (external only - employees managed in employee section)"""
+    from models import CommissionAgent
+    
+    tenant_id = get_current_tenant_id()
+    
+    # Get all external agents
+    external_agents = CommissionAgent.query.filter_by(
+        tenant_id=tenant_id,
+        agent_type='external'
+    ).order_by(CommissionAgent.created_at.desc()).all()
+    
+    # Get all employee agents (for reference)
+    employee_agents = CommissionAgent.query.filter_by(
+        tenant_id=tenant_id,
+        agent_type='employee',
+        is_active=True
+    ).order_by(CommissionAgent.name).all()
+    
+    return render_template('admin/commission_agents.html',
+                         external_agents=external_agents,
+                         employee_agents=employee_agents,
+                         tenant=g.tenant)
+
+@admin_bp.route('/commission-agent/add', methods=['POST'])
+@require_tenant
+@login_required
+def add_commission_agent():
+    """Add external commission agent"""
+    from models import CommissionAgent
+    
+    tenant_id = get_current_tenant_id()
+    name = request.form.get('name')
+    code = request.form.get('code')  # Optional unique code
+    phone = request.form.get('phone')
+    email = request.form.get('email')
+    commission_percentage = request.form.get('commission_percentage')
+    
+    # Validate commission percentage
+    try:
+        commission_rate = float(commission_percentage) if commission_percentage else 1.0
+    except:
+        flash('Invalid commission percentage!', 'error')
+        return redirect(url_for('admin.commission_agents'))
+    
+    # Check if code already exists (if provided)
+    if code and code.strip():
+        existing = CommissionAgent.query.filter_by(tenant_id=tenant_id, code=code).first()
+        if existing:
+            flash('Agent code already exists!', 'error')
+            return redirect(url_for('admin.commission_agents'))
+    
+    # Create external agent
+    agent = CommissionAgent(
+        tenant_id=tenant_id,
+        name=name,
+        code=code if code and code.strip() else None,
+        phone=phone,
+        email=email,
+        default_commission_percentage=commission_rate,
+        employee_id=None,  # External agents don't link to employees
+        agent_type='external',
+        is_active=True,
+        created_by=g.user.id if hasattr(g, 'user') else None
+    )
+    
+    db.session.add(agent)
+    db.session.commit()
+    
+    flash(f'✅ External agent "{name}" added with {commission_rate}% commission!', 'success')
+    return redirect(url_for('admin.commission_agents'))
+
+@admin_bp.route('/commission-agent/delete/<int:agent_id>', methods=['POST'])
+@require_tenant
+@login_required
+def delete_commission_agent(agent_id):
+    """Delete/deactivate commission agent"""
+    from models import CommissionAgent
+    
+    tenant_id = get_current_tenant_id()
+    agent = CommissionAgent.query.filter_by(tenant_id=tenant_id, id=agent_id).first_or_404()
+    
+    # Only allow deletion of external agents from this page
+    if agent.agent_type == 'employee':
+        flash('⚠️ Employee agents must be managed from the Employee page.', 'warning')
+        return redirect(url_for('admin.commission_agents'))
+    
+    agent.is_active = False
+    db.session.commit()
+    
+    flash(f'Agent "{agent.name}" deactivated successfully.', 'success')
+    return redirect(url_for('admin.commission_agents'))
+
 # Sites Management
 @admin_bp.route('/sites')
 @require_tenant
