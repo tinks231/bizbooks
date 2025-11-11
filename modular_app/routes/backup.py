@@ -20,6 +20,7 @@ from models.task import Task, TaskUpdate
 from models.commission_agent import CommissionAgent, InvoiceCommission
 from models.vendor_payment import VendorPayment, PaymentAllocation
 from utils.tenant_middleware import require_tenant, get_current_tenant, get_current_tenant_id
+from utils.license import check_license
 from datetime import datetime
 import json
 import io
@@ -31,6 +32,7 @@ backup_bp = Blueprint('backup', __name__, url_prefix='/admin/backup')
 def login_required(f):
     from functools import wraps
     @wraps(f)
+    @check_license  # Check license/trial before allowing access
     def decorated_function(*args, **kwargs):
         if 'tenant_admin_id' not in session:
             flash('Please login first', 'error')
