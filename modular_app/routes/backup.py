@@ -84,6 +84,9 @@ def download_backup():
             if exclude_fields is None:
                 exclude_fields = []
             
+            from datetime import date
+            from decimal import Decimal
+            
             data = {}
             for column in obj.__table__.columns:
                 if column.name not in exclude_fields:
@@ -95,6 +98,12 @@ def download_backup():
                             value = pytz.UTC.localize(value)
                         ist = pytz.timezone('Asia/Kolkata')
                         value = value.astimezone(ist).isoformat()
+                    # Handle date objects (invoice_date, bill_date, etc.)
+                    elif isinstance(value, date):
+                        value = value.isoformat()  # Convert to 'YYYY-MM-DD' string
+                    # Handle Decimal objects (amounts, prices, etc.)
+                    elif isinstance(value, Decimal):
+                        value = float(value)  # Convert to float for JSON
                     data[column.name] = value
             return data
         
@@ -305,13 +314,22 @@ def restore_backup():
         
         # BEGIN TRANSACTION
         try:
-            # Helper to convert ISO datetime string back to datetime object
+            # Helper to convert ISO datetime/date string back to datetime/date object
             def parse_datetime(date_str):
+                """Parse ISO format datetime or date string"""
                 if date_str:
                     try:
-                        return datetime.fromisoformat(date_str)
+                        from datetime import date
+                        # Try parsing as datetime first
+                        parsed = datetime.fromisoformat(date_str)
+                        return parsed
                     except:
-                        return None
+                        try:
+                            # If that fails, try parsing as date
+                            parsed = date.fromisoformat(date_str)
+                            return parsed
+                        except:
+                            return None
                 return None
             
             # Delete business data (PRESERVE Tenant!)
@@ -370,12 +388,16 @@ def restore_backup():
             
             # Helper to create objects
             def create_objects(model_class, data_list):
+                from decimal import Decimal
                 objects = []
                 for item_data in data_list:
-                    # Convert datetime strings back to datetime objects
+                    # Convert datetime/date strings back to datetime/date objects
                     for key, value in item_data.items():
                         if isinstance(value, str) and ('_at' in key or '_date' in key):
                             item_data[key] = parse_datetime(value)
+                        # Convert float back to Decimal for amount fields
+                        elif isinstance(value, float) and any(x in key for x in ['amount', 'price', 'total', 'cost', 'rate', 'percentage', 'commission']):
+                            item_data[key] = Decimal(str(value))
                     obj = model_class(**item_data)
                     objects.append(obj)
                 if objects:
