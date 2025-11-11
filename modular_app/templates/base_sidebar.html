@@ -890,6 +890,23 @@
                 </div>
             </div>
             
+            <!-- SETTINGS & BACKUP Section (Collapsible) -->
+            <div class="nav-section-collapsible">
+                <div class="nav-section-header" onclick="toggleSection('settings')">
+                    <div class="nav-section-label">
+                        <span class="nav-section-icon">⚙️</span>
+                        <span>Settings & Backup</span>
+                    </div>
+                    <span class="nav-section-arrow">▶</span>
+                </div>
+                <div class="nav-section-content" id="section-settings">
+                    <a href="/admin/backup" class="nav-item {% if '/admin/backup' in request.path %}active{% endif %}">
+                        <i>💾</i> Backup & Restore
+                    </a>
+                    <!-- Future: Other settings like Invoice Settings, Company Profile, etc. -->
+                </div>
+            </div>
+            
             <!-- Logout -->
             <a href="/admin/logout" class="nav-item logout">
                 <i>🚪</i> Logout
