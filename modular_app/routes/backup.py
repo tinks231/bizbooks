@@ -3,24 +3,22 @@ Backup & Restore Module
 Allows tenant to backup/restore business data locally
 """
 from flask import Blueprint, render_template, request, flash, redirect, url_for, session, jsonify, send_file
-from models import db
-from models.tenant import Tenant
-from models.customer import Customer
-from models.vendor import Vendor
-from models.item import Item, ItemCategory, ItemGroup, ItemStock, ItemImage
-from models.invoice import Invoice, InvoiceItem
-from models.purchase_bill import PurchaseBill, PurchaseBillItem
-from models.purchase_request import PurchaseRequest
-from models.sales_order import SalesOrder, SalesOrderItem
-from models.delivery_challan import DeliveryChallan, DeliveryChallanItem
-from models.expense import Expense, ExpenseCategory
-from models.employee import Employee
-from models.site import Site
-from models.task import Task, TaskUpdate
-from models.commission_agent import CommissionAgent, InvoiceCommission
-from models.vendor_payment import VendorPayment, PaymentAllocation
+from models import (
+    db, Tenant, Customer, Vendor, Employee, Site,
+    Item, ItemCategory, ItemGroup, ItemStock, ItemImage,
+    Invoice, InvoiceItem, 
+    PurchaseBill, PurchaseBillItem,
+    PurchaseRequest,
+    SalesOrder, SalesOrderItem,
+    DeliveryChallan, DeliveryChallanItem,
+    Expense, ExpenseCategory,
+    Task, TaskUpdate,
+    CommissionAgent, InvoiceCommission,
+    VendorPayment, PaymentAllocation
+)
 from utils.tenant_middleware import require_tenant, get_current_tenant, get_current_tenant_id
-from utils.license import check_license
+from utils.license_check import check_license
+from functools import wraps
 from datetime import datetime
 import json
 import io
@@ -30,7 +28,7 @@ backup_bp = Blueprint('backup', __name__, url_prefix='/admin/backup')
 
 # Login required decorator
 def login_required(f):
-    from functools import wraps
+    """Decorator to require admin login (also checks license)"""
     @wraps(f)
     @check_license  # Check license/trial before allowing access
     def decorated_function(*args, **kwargs):
