@@ -900,8 +900,14 @@
                     <span class="nav-section-arrow">▶</span>
                 </div>
                 <div class="nav-section-content" id="section-settings">
-                    <a href="/admin/backup" class="nav-item {% if '/admin/backup' in request.path %}active{% endif %}">
-                        <i>💾</i> Backup & Restore
+                    <a href="/admin/backup/download-page" class="nav-item {% if '/admin/backup/download-page' in request.path %}active{% endif %}">
+                        <i>💾</i> Backup to Computer
+                    </a>
+                    <a href="/admin/backup/restore-page" class="nav-item {% if '/admin/backup/restore-page' in request.path %}active{% endif %}">
+                        <i>🔄</i> Restore Backup
+                    </a>
+                    <a href="/admin/backup/sync-share" class="nav-item {% if '/admin/backup/sync-share' in request.path %}active{% endif %}">
+                        <i>☁️</i> Sync & Share
                     </a>
                     <!-- Future: Other settings like Invoice Settings, Company Profile, etc. -->
                 </div>

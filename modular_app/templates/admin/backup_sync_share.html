@@ -1,0 +1,324 @@
+{% extends "base_sidebar.html" %}
+
+{% block title %}Sync & Share{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="page-header">
+        <h1>☁️ Sync & Share</h1>
+        <p class="text-muted">Cloud-based multi-device sync and collaboration</p>
+    </div>
+
+    <!-- Premium Feature Banner -->
+    <div class="premium-banner">
+        <div class="premium-icon">🔒</div>
+        <h2>Premium Feature - Coming Soon!</h2>
+        <p class="subtitle">Cloud sync and multi-device sharing will be available in the next update</p>
+    </div>
+
+    <!-- Features Grid -->
+    <div class="features-grid">
+        <div class="feature-card">
+            <div class="feature-icon">🔄</div>
+            <h3>Real-time Sync</h3>
+            <p>Automatically sync data across all your devices in real-time. Changes appear instantly everywhere!</p>
+        </div>
+
+        <div class="feature-card">
+            <div class="feature-icon">👥</div>
+            <h3>Share with Staff</h3>
+            <p>Invite team members with role-based access. Control what each person can view and edit.</p>
+        </div>
+
+        <div class="feature-card">
+            <div class="feature-icon">☁️</div>
+            <h3>Cloud Storage</h3>
+            <p>Automatic cloud backups. Never worry about losing your data again!</p>
+        </div>
+
+        <div class="feature-card">
+            <div class="feature-icon">📱</div>
+            <h3>Mobile App</h3>
+            <p>Access your business from anywhere on iOS and Android. Work on the go!</p>
+        </div>
+
+        <div class="feature-card">
+            <div class="feature-icon">🔌</div>
+            <h3>Offline Mode</h3>
+            <p>Work without internet. Changes sync automatically when you're back online.</p>
+        </div>
+
+        <div class="feature-card">
+            <div class="feature-icon">🔐</div>
+            <h3>Advanced Security</h3>
+            <p>End-to-end encryption. Two-factor authentication. Enterprise-grade security.</p>
+        </div>
+    </div>
+
+    <!-- Benefits Section -->
+    <div class="card" style="margin-top: 40px;">
+        <div class="card-header">
+            <h3 style="margin: 0;">🎯 Why Upgrade to Premium?</h3>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <h5>For Business Owners:</h5>
+                    <ul class="benefits-list">
+                        <li>Access from office, home, or anywhere</li>
+                        <li>Monitor business in real-time</li>
+                        <li>Automatic backups (peace of mind)</li>
+                        <li>Scale to multiple locations easily</li>
+                    </ul>
+                </div>
+                <div class="col-md-6">
+                    <h5>For Teams:</h5>
+                    <ul class="benefits-list">
+                        <li>Collaborate seamlessly</li>
+                        <li>No more manual data entry duplication</li>
+                        <li>Everyone works on latest data</li>
+                        <li>Role-based access control</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Current Alternative -->
+    <div class="alert alert-info" style="margin-top: 30px;">
+        <h5 style="margin-top: 0;">💡 For Now: Use Local Backup</h5>
+        <p style="margin-bottom: 15px;">
+            While we're building the premium cloud sync feature, you can use our <strong>FREE Local Backup</strong> to keep your data safe!
+        </p>
+        <a href="{{ url_for('backup.backup_download_page') }}" class="btn btn-primary">
+            <i class="fas fa-download"></i> Go to Backup Page
+        </a>
+    </div>
+
+    <!-- Coming Soon Timeline -->
+    <div class="card" style="margin-top: 30px;">
+        <div class="card-header">
+            <h3 style="margin: 0;">📅 Development Timeline</h3>
+        </div>
+        <div class="card-body">
+            <div class="timeline">
+                <div class="timeline-item">
+                    <div class="timeline-badge">✅</div>
+                    <div class="timeline-content">
+                        <h5>Phase 1: Local Backup (Current)</h5>
+                        <p>Download/restore backups to your computer - <strong>Available Now!</strong></p>
+                    </div>
+                </div>
+                
+                <div class="timeline-item">
+                    <div class="timeline-badge">🔄</div>
+                    <div class="timeline-content">
+                        <h5>Phase 2: Cloud Backup (Next)</h5>
+                        <p>Automatic cloud backups - <strong>Coming in 2-3 weeks</strong></p>
+                    </div>
+                </div>
+                
+                <div class="timeline-item">
+                    <div class="timeline-badge">⏳</div>
+                    <div class="timeline-content">
+                        <h5>Phase 3: Multi-Device Sync</h5>
+                        <p>Real-time sync across devices - <strong>Coming in 4-6 weeks</strong></p>
+                    </div>
+                </div>
+                
+                <div class="timeline-item">
+                    <div class="timeline-badge">⏳</div>
+                    <div class="timeline-content">
+                        <h5>Phase 4: Team Collaboration</h5>
+                        <p>Share with staff, role-based access - <strong>Coming in 8-10 weeks</strong></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notify Me -->
+    <div class="card" style="margin-top: 30px; margin-bottom: 40px;">
+        <div class="card-body" style="text-align: center; padding: 40px;">
+            <h3>Get Notified When Available!</h3>
+            <p style="color: #666;">We'll send you an email when Sync & Share goes live.</p>
+            <div style="margin-top: 20px;">
+                <a href="mailto:{{ tenant.admin_email }}?subject=Notify me about Sync & Share" class="btn btn-primary btn-lg">
+                    <i class="fas fa-bell"></i> Notify Me When Ready
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.premium-banner {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 60px 40px;
+    border-radius: 15px;
+    text-align: center;
+    margin-bottom: 40px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+}
+
+.premium-icon {
+    font-size: 80px;
+    margin-bottom: 20px;
+}
+
+.premium-banner h2 {
+    font-size: 36px;
+    margin-bottom: 15px;
+    font-weight: 700;
+}
+
+.subtitle {
+    font-size: 18px;
+    opacity: 0.9;
+}
+
+.features-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 25px;
+    margin-bottom: 40px;
+}
+
+.feature-card {
+    background: white;
+    padding: 30px;
+    border-radius: 12px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+    border: 1px solid #e0e0e0;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.feature-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.12);
+}
+
+.feature-icon {
+    font-size: 48px;
+    margin-bottom: 15px;
+}
+
+.feature-card h3 {
+    font-size: 20px;
+    margin-bottom: 12px;
+    color: #333;
+}
+
+.feature-card p {
+    color: #666;
+    line-height: 1.6;
+    margin: 0;
+}
+
+.card {
+    border-radius: 12px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+    border: 1px solid #e0e0e0;
+}
+
+.card-header {
+    background: #f8f9fa;
+    border-bottom: 2px solid #e0e0e0;
+    padding: 20px;
+    border-radius: 12px 12px 0 0;
+}
+
+.card-body {
+    padding: 25px;
+}
+
+.benefits-list {
+    list-style: none;
+    padding-left: 0;
+}
+
+.benefits-list li {
+    padding: 8px 0;
+    padding-left: 25px;
+    position: relative;
+}
+
+.benefits-list li:before {
+    content: "✓";
+    position: absolute;
+    left: 0;
+    color: #28a745;
+    font-weight: bold;
+}
+
+.timeline {
+    position: relative;
+    padding-left: 40px;
+}
+
+.timeline:before {
+    content: '';
+    position: absolute;
+    left: 15px;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: #e0e0e0;
+}
+
+.timeline-item {
+    position: relative;
+    margin-bottom: 30px;
+}
+
+.timeline-badge {
+    position: absolute;
+    left: -29px;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: white;
+    border: 2px solid #667eea;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+}
+
+.timeline-content h5 {
+    margin-bottom: 8px;
+    color: #333;
+}
+
+.timeline-content p {
+    color: #666;
+    margin: 0;
+}
+
+.btn-lg {
+    padding: 12px 30px;
+    font-size: 18px;
+    border-radius: 8px;
+}
+
+.alert {
+    border-radius: 8px;
+}
+
+@media (max-width: 768px) {
+    .premium-banner {
+        padding: 40px 20px;
+    }
+    
+    .premium-banner h2 {
+        font-size: 28px;
+    }
+    
+    .features-grid {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
+{% endblock %}
+

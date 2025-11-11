@@ -43,7 +43,15 @@ def login_required(f):
 @require_tenant
 @login_required
 def index():
-    """Backup & Restore main page"""
+    """Backup & Restore main page - redirects to download page"""
+    return redirect(url_for('backup.backup_download_page'))
+
+
+@backup_bp.route('/download-page')
+@require_tenant
+@login_required
+def backup_download_page():
+    """Backup to Computer page"""
     tenant = get_current_tenant()
     tenant_id = get_current_tenant_id()
     
@@ -63,10 +71,28 @@ def index():
     
     total_records = sum(stats.values())
     
-    return render_template('admin/backup.html', 
+    return render_template('admin/backup_download.html', 
                          tenant=tenant, 
                          stats=stats,
                          total_records=total_records)
+
+
+@backup_bp.route('/restore-page')
+@require_tenant
+@login_required
+def backup_restore_page():
+    """Restore Backup page"""
+    tenant = get_current_tenant()
+    return render_template('admin/backup_restore.html', tenant=tenant)
+
+
+@backup_bp.route('/sync-share')
+@require_tenant
+@login_required
+def backup_sync_share_page():
+    """Sync & Share page (premium feature placeholder)"""
+    tenant = get_current_tenant()
+    return render_template('admin/backup_sync_share.html', tenant=tenant)
 
 
 @backup_bp.route('/download')

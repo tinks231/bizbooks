@@ -1,0 +1,155 @@
+{% extends "base_sidebar.html" %}
+
+{% block title %}Backup to Computer{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="page-header">
+        <h1>💾 Backup to Computer</h1>
+        <p class="text-muted">Download all your business data to your local computer</p>
+    </div>
+
+    <!-- Info Banner -->
+    <div class="alert alert-info" style="margin-bottom: 30px;">
+        <h5 style="margin-top: 0;">📌 How Backup Works:</h5>
+        <ul style="margin-bottom: 0;">
+            <li><strong>Backup:</strong> Downloads all your business data as a JSON file ({{ total_records }} records)</li>
+            <li><strong>File Size:</strong> ~{{ (total_records * 0.001)|round(1) }} MB</li>
+            <li><strong>Download Time:</strong> 5-10 seconds</li>
+            <li><strong>Recommendation:</strong> Take weekly backups for safety!</li>
+        </ul>
+    </div>
+
+    <!-- Create Backup Section -->
+    <div class="card">
+        <div class="card-header">
+            <h3 style="margin: 0;">📦 Create Backup</h3>
+        </div>
+        <div class="card-body">
+            <!-- What's Included -->
+            <div class="row">
+                <div class="col-md-6">
+                    <h5>✅ What's Included:</h5>
+                    <ul class="backup-list">
+                        <li>Customers ({{ stats.customers }})</li>
+                        <li>Vendors ({{ stats.vendors }})</li>
+                        <li>Items ({{ stats.items }})</li>
+                        <li>Item Stock (all locations)</li>
+                        <li>Invoices ({{ stats.invoices }})</li>
+                        <li>Purchase Bills ({{ stats.purchase_bills }})</li>
+                        <li>Sales Orders ({{ stats.sales_orders }})</li>
+                        <li>Delivery Challans ({{ stats.delivery_challans }})</li>
+                        <li>Expenses ({{ stats.expenses }})</li>
+                        <li>Employees ({{ stats.employees }})</li>
+                        <li>Sites ({{ stats.sites }})</li>
+                        <li>Tasks (text only)</li>
+                        <li>Commission Agents</li>
+                    </ul>
+                </div>
+                <div class="col-md-6">
+                    <h5>⚠️ What's NOT Included:</h5>
+                    <ul class="backup-list-warning">
+                        <li>❌ Item images (product photos)</li>
+                        <li>❌ Purchase bill attachments (PDFs)</li>
+                        <li>❌ Task photos/videos</li>
+                        <li>❌ Attendance records (selfies)</li>
+                        <li>❌ Your admin password (security)</li>
+                    </ul>
+                    <div class="alert alert-warning" style="margin-top: 15px; margin-bottom: 0;">
+                        💡 <strong>Image backup will be added in next update!</strong><br>
+                        For now, this backs up all text/numeric data.
+                    </div>
+                </div>
+            </div>
+
+            <!-- Backup Stats -->
+            <div style="margin-top: 30px; padding: 20px; background: #f8f9fa; border-radius: 8px;">
+                <h5>📊 Your Data Summary:</h5>
+                <p style="margin-bottom: 0;">
+                    <strong>Total Records:</strong> {{ total_records }}<br>
+                    <strong>Estimated Backup Size:</strong> ~{{ (total_records * 0.001)|round(1) }} MB<br>
+                    <strong>Download Time:</strong> ~5-10 seconds
+                </p>
+            </div>
+
+            <!-- Download Button -->
+            <div style="margin-top: 30px; text-align: center;">
+                <a href="{{ url_for('backup.download_backup') }}" class="btn btn-primary btn-lg">
+                    <i class="fas fa-download"></i> Download Backup Now
+                </a>
+            </div>
+
+            <!-- Storage Tips -->
+            <div class="alert alert-success" style="margin-top: 30px; margin-bottom: 0;">
+                <h5 style="margin-top: 0;">💡 Where to Save Your Backup:</h5>
+                <ul style="margin-bottom: 0;">
+                    <li>✅ Your computer's Documents folder</li>
+                    <li>✅ External hard drive or USB</li>
+                    <li>✅ Cloud storage (Google Drive, Dropbox, OneDrive)</li>
+                    <li>✅ Keep multiple copies in different locations!</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.card {
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    border: 1px solid #e0e0e0;
+}
+
+.card-header {
+    background: #f8f9fa;
+    border-bottom: 2px solid #e0e0e0;
+    padding: 20px;
+}
+
+.card-body {
+    padding: 25px;
+}
+
+.backup-list {
+    list-style: none;
+    padding-left: 0;
+}
+
+.backup-list li {
+    padding: 6px 0;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.backup-list li:before {
+    content: "✅ ";
+    margin-right: 8px;
+}
+
+.backup-list-warning {
+    list-style: none;
+    padding-left: 0;
+}
+
+.backup-list-warning li {
+    padding: 6px 0;
+    color: #856404;
+}
+
+.btn-lg {
+    padding: 12px 30px;
+    font-size: 18px;
+    border-radius: 8px;
+}
+
+.alert {
+    border-radius: 8px;
+}
+
+@media (max-width: 768px) {
+    .col-md-6 {
+        margin-bottom: 20px;
+    }
+}
+</style>
+{% endblock %}
+
