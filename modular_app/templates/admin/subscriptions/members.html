@@ -1,0 +1,311 @@
+{% extends "base_sidebar.html" %}
+
+{% block title %}Active Members{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="page-header">
+        <h1>👥 Active Members</h1>
+        <p class="text-muted">Manage customer subscriptions and renewals</p>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="row" style="margin-bottom: 30px;">
+        <div class="col-md-3">
+            <div class="stat-card stat-active">
+                <div class="stat-icon">🟢</div>
+                <div class="stat-details">
+                    <h3>{{ stats.active }}</h3>
+                    <p>Active</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card stat-due-soon">
+                <div class="stat-icon">🟡</div>
+                <div class="stat-details">
+                    <h3>{{ stats.due_soon }}</h3>
+                    <p>Due Soon (3 days)</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card stat-overdue">
+                <div class="stat-icon">🔴</div>
+                <div class="stat-details">
+                    <h3>{{ stats.overdue }}</h3>
+                    <p>Overdue</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card stat-expired">
+                <div class="stat-icon">⚫</div>
+                <div class="stat-details">
+                    <h3>{{ stats.expired }}</h3>
+                    <p>Expired</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters & Search -->
+    <div class="card" style="margin-bottom: 20px;">
+        <div class="card-body">
+            <form method="GET" action="{{ url_for('subscriptions.members') }}" class="filter-form">
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label><strong>Status Filter</strong></label>
+                            <select name="status" class="form-control" onchange="this.form.submit()">
+                                <option value="active" {% if status_filter == 'active' %}selected{% endif %}>Active</option>
+                                <option value="due_soon" {% if status_filter == 'due_soon' %}selected{% endif %}>Due Soon</option>
+                                <option value="overdue" {% if status_filter == 'overdue' %}selected{% endif %}>Overdue</option>
+                                <option value="expired" {% if status_filter == 'expired' %}selected{% endif %}>Expired</option>
+                                <option value="cancelled" {% if status_filter == 'cancelled' %}selected{% endif %}>Cancelled</option>
+                                <option value="all" {% if status_filter == 'all' %}selected{% endif %}>All</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label><strong>Plan Filter</strong></label>
+                            <select name="plan" class="form-control" onchange="this.form.submit()">
+                                <option value="">All Plans</option>
+                                {% for plan in active_plans %}
+                                <option value="{{ plan.id }}" {% if plan_filter|string == plan.id|string %}selected{% endif %}>
+                                    {{ plan.name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label><strong>Search Customer</strong></label>
+                            <input type="text" name="search" class="form-control" placeholder="Name or phone..." value="{{ search_query }}">
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="form-group">
+                            <label>&nbsp;</label>
+                            <button type="submit" class="btn btn-primary btn-block">
+                                <i class="fas fa-search"></i> Filter
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Members Table -->
+    <div class="card">
+        <div class="card-header">
+            <div class="row align-items-center">
+                <div class="col-md-6">
+                    <h3 style="margin: 0;">Subscriptions</h3>
+                </div>
+                <div class="col-md-6 text-right">
+                    <a href="{{ url_for('subscriptions.enroll_member') }}" class="btn btn-primary">
+                        <i class="fas fa-plus"></i> Enroll New Member
+                    </a>
+                </div>
+            </div>
+        </div>
+        <div class="card-body">
+            {% if subscriptions %}
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Customer</th>
+                            <th>Plan</th>
+                            <th>Start Date</th>
+                            <th>Next Due Date</th>
+                            <th>Days Remaining</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for subscription in subscriptions %}
+                        <tr>
+                            <td>
+                                <strong>{{ subscription.customer.name }}</strong><br>
+                                <small style="color: #666;">{{ subscription.customer.phone }}</small>
+                            </td>
+                            <td>
+                                <strong>{{ subscription.plan.name }}</strong><br>
+                                <small style="color: #666;">₹{{ '{:,.2f}'.format(subscription.plan.price) }}/{{ subscription.plan.duration_display }}</small>
+                            </td>
+                            <td>{{ subscription.start_date.strftime('%d %b %Y') }}</td>
+                            <td>
+                                <strong>{{ subscription.current_period_end.strftime('%d %b %Y') }}</strong>
+                            </td>
+                            <td>
+                                {% if subscription.days_remaining > 0 %}
+                                    <span class="badge badge-info">{{ subscription.days_remaining }} days</span>
+                                {% else %}
+                                    <span class="badge badge-danger">Overdue</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ subscription.status_display|safe }}</td>
+                            <td>
+                                <a href="{{ url_for('subscriptions.member_detail', subscription_id=subscription.id) }}" class="btn btn-sm btn-outline-primary" title="View Details">
+                                    👁️
+                                </a>
+                                {% if subscription.is_overdue or subscription.is_due_soon %}
+                                <a href="{{ url_for('subscriptions.collect_payment', subscription_id=subscription.id) }}" class="btn btn-sm btn-outline-success" title="Collect Payment">
+                                    💰
+                                </a>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination -->
+            {% if pagination.pages > 1 %}
+            <div style="margin-top: 30px; text-align: center;">
+                <nav>
+                    <ul class="pagination justify-content-center">
+                        {% if pagination.has_prev %}
+                        <li class="page-item">
+                            <a class="page-link" href="{{ url_for('subscriptions.members', page=pagination.prev_num, status=status_filter, search=search_query, plan=plan_filter) }}">Previous</a>
+                        </li>
+                        {% endif %}
+                        
+                        {% for page_num in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+                            {% if page_num %}
+                                {% if page_num == pagination.page %}
+                                <li class="page-item active"><span class="page-link">{{ page_num }}</span></li>
+                                {% else %}
+                                <li class="page-item"><a class="page-link" href="{{ url_for('subscriptions.members', page=page_num, status=status_filter, search=search_query, plan=plan_filter) }}">{{ page_num }}</a></li>
+                                {% endif %}
+                            {% else %}
+                                <li class="page-item disabled"><span class="page-link">...</span></li>
+                            {% endif %}
+                        {% endfor %}
+                        
+                        {% if pagination.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="{{ url_for('subscriptions.members', page=pagination.next_num, status=status_filter, search=search_query, plan=plan_filter) }}">Next</a>
+                        </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+            </div>
+            {% endif %}
+            {% else %}
+            <div style="text-align: center; padding: 60px 20px; color: #999;">
+                <div style="font-size: 60px; margin-bottom: 20px;">👥</div>
+                <h3 style="color: #666;">No Members Found</h3>
+                <p>
+                    {% if status_filter != 'active' %}
+                    Try changing your filters or <a href="{{ url_for('subscriptions.members', status='active') }}">view active members</a>
+                    {% else %}
+                    Enroll your first customer to get started!
+                    {% endif %}
+                </p>
+                {% if status_filter == 'active' %}
+                <a href="{{ url_for('subscriptions.enroll_member') }}" class="btn btn-primary btn-lg" style="margin-top: 20px;">
+                    <i class="fas fa-plus"></i> Enroll First Member
+                </a>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<style>
+.stat-card {
+    background: white;
+    border-radius: 10px;
+    padding: 20px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    border-left: 4px solid #ccc;
+}
+
+.stat-card.stat-active {
+    border-left-color: #28a745;
+}
+
+.stat-card.stat-due-soon {
+    border-left-color: #ffc107;
+}
+
+.stat-card.stat-overdue {
+    border-left-color: #dc3545;
+}
+
+.stat-card.stat-expired {
+    border-left-color: #6c757d;
+}
+
+.stat-icon {
+    font-size: 40px;
+}
+
+.stat-details h3 {
+    margin: 0;
+    font-size: 32px;
+    font-weight: 700;
+}
+
+.stat-details p {
+    margin: 0;
+    color: #666;
+}
+
+.card {
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    border: 1px solid #e0e0e0;
+}
+
+.card-header {
+    background: #f8f9fa;
+    border-bottom: 2px solid #e0e0e0;
+    padding: 20px;
+}
+
+.table {
+    margin-bottom: 0;
+}
+
+.table th {
+    background: #f8f9fa;
+    font-weight: 600;
+}
+
+.btn-sm {
+    padding: 4px 10px;
+    margin-right: 5px;
+}
+
+.filter-form .form-group {
+    margin-bottom: 0;
+}
+
+.pagination {
+    margin: 0;
+}
+
+.page-link {
+    color: #0066cc;
+}
+
+.page-item.active .page-link {
+    background-color: #0066cc;
+    border-color: #0066cc;
+}
+</style>
+{% endblock %}
+

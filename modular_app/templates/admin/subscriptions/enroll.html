@@ -1,0 +1,362 @@
+{% extends "base_sidebar.html" %}
+
+{% block title %}Enroll New Member{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="page-header">
+        <h1>➕ Enroll New Member</h1>
+        <p class="text-muted">Subscribe a customer to a membership plan</p>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h3 style="margin: 0;">Enrollment Form</h3>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('subscriptions.enroll_member') }}" onsubmit="return validateForm()">
+                        <!-- Step 1: Select Customer -->
+                        <div class="form-section">
+                            <h4>1️⃣ Select Customer</h4>
+                            <div class="form-group">
+                                <label><strong>Customer *</strong></label>
+                                <select name="customer_id" id="customer_id" class="form-control" required onchange="showCustomerDetails()">
+                                    <option value="">-- Select Customer --</option>
+                                    {% for customer in customers %}
+                                    <option value="{{ customer.id }}" data-phone="{{ customer.phone }}" data-email="{{ customer.email or '' }}">
+                                        {{ customer.name }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                                <small class="form-text text-muted">
+                                    Don't see the customer? <a href="/admin/customers/add" target="_blank">Add new customer</a>
+                                </small>
+                            </div>
+                            <div id="customer_details" style="display: none; margin-top: 15px; padding: 15px; background: #f8f9fa; border-radius: 8px;">
+                                <strong>Contact:</strong> <span id="customer_phone"></span><br>
+                                <strong>Email:</strong> <span id="customer_email"></span>
+                            </div>
+                        </div>
+
+                        <!-- Step 2: Choose Plan -->
+                        <div class="form-section">
+                            <h4>2️⃣ Choose Subscription Plan</h4>
+                            <div class="form-group">
+                                <div id="plans_grid">
+                                    {% if not plans %}
+                                    <div class="alert alert-warning">
+                                        <strong>⚠️ No active plans found!</strong><br>
+                                        Please <a href="/admin/subscriptions/plans">create a plan</a> first.
+                                    </div>
+                                    {% else %}
+                                    {% for plan in plans %}
+                                    <div class="plan-card" onclick="selectPlan({{ plan.id }}, {{ plan.price }}, {{ plan.duration_days }})">
+                                        <input type="radio" name="plan_id" id="plan_{{ plan.id }}" value="{{ plan.id }}" required style="display: none;">
+                                        <div class="plan-header">
+                                            <h5>{{ plan.name }}</h5>
+                                            <div class="plan-price">₹{{ '{:,.2f}'.format(plan.price) }}</div>
+                                        </div>
+                                        <div class="plan-details">
+                                            <div class="plan-duration">{{ plan.duration_display }}</div>
+                                            {% if plan.description %}
+                                            <div class="plan-description">{{ plan.description }}</div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Step 3: Start Date -->
+                        <div class="form-section">
+                            <h4>3️⃣ Start Date</h4>
+                            <div class="form-group">
+                                <label><strong>Subscription Start Date *</strong></label>
+                                <input type="date" name="start_date" id="start_date" class="form-control" required onchange="calculatePeriodEnd()">
+                                <small class="form-text text-muted">Usually today's date</small>
+                            </div>
+                            <div id="period_summary" style="display: none; margin-top: 15px; padding: 15px; background: #e7f3ff; border-radius: 8px; border-left: 4px solid #0066cc;">
+                                <strong>📅 Billing Period:</strong> <span id="period_display"></span><br>
+                                <strong>⏰ Next Payment Due:</strong> <span id="next_due_display"></span>
+                            </div>
+                        </div>
+
+                        <!-- Step 4: First Payment -->
+                        <div class="form-section">
+                            <h4>4️⃣ First Payment</h4>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label><strong>Amount (₹) *</strong></label>
+                                        <input type="number" name="payment_amount" id="payment_amount" class="form-control" step="0.01" min="0" required>
+                                        <small class="form-text text-muted">Auto-filled from plan price</small>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label><strong>Payment Mode *</strong></label>
+                                        <select name="payment_mode" class="form-control" required>
+                                            <option value="Cash">Cash</option>
+                                            <option value="UPI">UPI</option>
+                                            <option value="Card">Card</option>
+                                            <option value="Bank Transfer">Bank Transfer</option>
+                                            <option value="Cheque">Cheque</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <div class="custom-control custom-checkbox">
+                                    <input type="checkbox" class="custom-control-input" id="generate_invoice" name="generate_invoice" checked>
+                                    <label class="custom-control-label" for="generate_invoice">
+                                        <strong>Generate Invoice</strong> (Recommended for accounting)
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Submit -->
+                        <div class="form-section" style="border-top: 2px solid #e0e0e0; padding-top: 20px;">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <a href="{{ url_for('subscriptions.members') }}" class="btn btn-secondary btn-block">
+                                        <i class="fas fa-times"></i> Cancel
+                                    </a>
+                                </div>
+                                <div class="col-md-6">
+                                    <button type="submit" class="btn btn-primary btn-block btn-lg">
+                                        <i class="fas fa-check"></i> Enroll Member
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right sidebar with tips -->
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header" style="background: #e7f3ff;">
+                    <h5 style="margin: 0; color: #0066cc;">💡 Enrollment Tips</h5>
+                </div>
+                <div class="card-body">
+                    <h6><strong>Before Enrolling:</strong></h6>
+                    <ul>
+                        <li>Verify customer details are correct</li>
+                        <li>Confirm they agree to the plan terms</li>
+                        <li>Collect first payment</li>
+                    </ul>
+                    
+                    <h6 style="margin-top: 20px;"><strong>After Enrollment:</strong></h6>
+                    <ul>
+                        <li>Customer appears in "Active Members"</li>
+                        <li>You'll see payment reminders 3 days before due</li>
+                        <li>Auto-renewal can be managed later</li>
+                    </ul>
+                    
+                    <h6 style="margin-top: 20px;"><strong>Payment Options:</strong></h6>
+                    <ul>
+                        <li><strong>Full Payment:</strong> Collect full plan amount</li>
+                        <li><strong>Partial:</strong> Enter amount received (create invoice later for balance)</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="card" style="margin-top: 20px; background: #fffbf0; border-color: #f39c12;">
+                <div class="card-body">
+                    <h6 style="color: #f39c12;"><strong>⚡ Quick Actions:</strong></h6>
+                    <a href="/admin/customers/add" target="_blank" class="btn btn-outline-primary btn-sm btn-block">
+                        <i class="fas fa-plus"></i> Add New Customer
+                    </a>
+                    <a href="/admin/subscriptions/plans" class="btn btn-outline-primary btn-sm btn-block">
+                        <i class="fas fa-cog"></i> Manage Plans
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.form-section {
+    margin-bottom: 40px;
+    padding-bottom: 30px;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.form-section:last-child {
+    border-bottom: none;
+}
+
+.form-section h4 {
+    margin-bottom: 20px;
+    color: #333;
+}
+
+#plans_grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 20px;
+}
+
+.plan-card {
+    border: 2px solid #e0e0e0;
+    border-radius: 12px;
+    padding: 20px;
+    cursor: pointer;
+    transition: all 0.3s;
+    background: white;
+}
+
+.plan-card:hover {
+    border-color: #0066cc;
+    box-shadow: 0 4px 12px rgba(0, 102, 204, 0.2);
+    transform: translateY(-2px);
+}
+
+.plan-card.selected {
+    border-color: #0066cc;
+    background: #e7f3ff;
+    box-shadow: 0 4px 12px rgba(0, 102, 204, 0.3);
+}
+
+.plan-header {
+    border-bottom: 1px solid #e0e0e0;
+    padding-bottom: 15px;
+    margin-bottom: 15px;
+}
+
+.plan-header h5 {
+    margin: 0 0 10px 0;
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.plan-price {
+    font-size: 28px;
+    font-weight: 700;
+    color: #0066cc;
+}
+
+.plan-duration {
+    font-size: 16px;
+    color: #666;
+    margin-bottom: 10px;
+}
+
+.plan-description {
+    font-size: 14px;
+    color: #888;
+}
+
+.card {
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    border: 1px solid #e0e0e0;
+    margin-bottom: 20px;
+}
+
+.card-header {
+    background: #f8f9fa;
+    border-bottom: 2px solid #e0e0e0;
+    padding: 20px;
+}
+</style>
+
+<script>
+// Set today as default start date
+document.getElementById('start_date').valueAsDate = new Date();
+
+function showCustomerDetails() {
+    const select = document.getElementById('customer_id');
+    const selected = select.options[select.selectedIndex];
+    
+    if (selected.value) {
+        document.getElementById('customer_phone').textContent = selected.getAttribute('data-phone') || '-';
+        document.getElementById('customer_email').textContent = selected.getAttribute('data-email') || '-';
+        document.getElementById('customer_details').style.display = 'block';
+    } else {
+        document.getElementById('customer_details').style.display = 'none';
+    }
+}
+
+let selectedPlanDuration = 0;
+
+function selectPlan(planId, price, duration) {
+    // Remove selected class from all plans
+    document.querySelectorAll('.plan-card').forEach(card => {
+        card.classList.remove('selected');
+    });
+    
+    // Add selected class to clicked plan
+    event.currentTarget.classList.add('selected');
+    
+    // Check the radio button
+    document.getElementById('plan_' + planId).checked = true;
+    
+    // Auto-fill payment amount
+    document.getElementById('payment_amount').value = price;
+    
+    // Store duration for calculation
+    selectedPlanDuration = duration;
+    
+    // Calculate period end if start date is set
+    calculatePeriodEnd();
+}
+
+function calculatePeriodEnd() {
+    const startDate = document.getElementById('start_date').value;
+    
+    if (startDate && selectedPlanDuration > 0) {
+        const start = new Date(startDate);
+        const end = new Date(start);
+        end.setDate(end.getDate() + selectedPlanDuration);
+        
+        // Format dates
+        const options = { year: 'numeric', month: 'short', day: 'numeric' };
+        const periodDisplay = start.toLocaleDateString('en-IN', options) + ' to ' + end.toLocaleDateString('en-IN', options);
+        const nextDueDisplay = end.toLocaleDateString('en-IN', options);
+        
+        document.getElementById('period_display').textContent = periodDisplay;
+        document.getElementById('next_due_display').textContent = nextDueDisplay;
+        document.getElementById('period_summary').style.display = 'block';
+    }
+}
+
+function validateForm() {
+    const customerId = document.getElementById('customer_id').value;
+    const planRadio = document.querySelector('input[name="plan_id"]:checked');
+    const startDate = document.getElementById('start_date').value;
+    const paymentAmount = document.getElementById('payment_amount').value;
+    
+    if (!customerId) {
+        alert('⚠️ Please select a customer');
+        return false;
+    }
+    
+    if (!planRadio) {
+        alert('⚠️ Please select a subscription plan');
+        return false;
+    }
+    
+    if (!startDate) {
+        alert('⚠️ Please select a start date');
+        return false;
+    }
+    
+    if (!paymentAmount || parseFloat(paymentAmount) <= 0) {
+        alert('⚠️ Please enter a valid payment amount');
+        return false;
+    }
+    
+    return confirm('Confirm enrollment? Customer will be subscribed and payment will be recorded.');
+}
+</script>
+{% endblock %}
+

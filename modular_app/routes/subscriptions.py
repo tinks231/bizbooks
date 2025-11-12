@@ -363,3 +363,155 @@ def enroll_member():
         flash(f'❌ Error enrolling member: {str(e)}', 'error')
         return redirect(url_for('subscriptions.enroll_member'))
 
+
+# ============================================================
+# MEMBER DETAIL & PAYMENT HISTORY
+# ============================================================
+@subscriptions_bp.route('/members/<int:subscription_id>', methods=['GET'], strict_slashes=False)
+@require_tenant
+@check_license
+@login_required
+def member_detail(subscription_id):
+    """View member subscription details and payment history"""
+    tenant_id = get_current_tenant_id()
+    
+    subscription = CustomerSubscription.query.filter_by(
+        id=subscription_id,
+        tenant_id=tenant_id
+    ).first_or_404()
+    
+    # Get all payments for this subscription
+    payments = SubscriptionPayment.query.filter_by(
+        subscription_id=subscription_id
+    ).order_by(SubscriptionPayment.payment_date.desc()).all()
+    
+    return render_template('admin/subscriptions/member_detail.html',
+                         subscription=subscription,
+                         payments=payments)
+
+
+# ============================================================
+# PAYMENT COLLECTION
+# ============================================================
+@subscriptions_bp.route('/members/<int:subscription_id>/collect-payment', methods=['GET', 'POST'], strict_slashes=False)
+@require_tenant
+@check_license
+@login_required
+def collect_payment(subscription_id):
+    """Collect payment and renew subscription"""
+    tenant_id = get_current_tenant_id()
+    
+    subscription = CustomerSubscription.query.filter_by(
+        id=subscription_id,
+        tenant_id=tenant_id
+    ).first_or_404()
+    
+    if request.method == 'GET':
+        # Show payment collection form
+        return render_template('admin/subscriptions/collect_payment.html',
+                             subscription=subscription)
+    
+    # POST - Process payment
+    try:
+        payment_amount = Decimal(request.form['payment_amount'])
+        payment_mode = request.form['payment_mode']
+        payment_date_str = request.form.get('payment_date', datetime.now().strftime('%Y-%m-%d'))
+        generate_invoice = request.form.get('generate_invoice') == 'on'
+        
+        payment_date = datetime.strptime(payment_date_str, '%Y-%m-%d').date()
+        
+        # Calculate new period
+        new_period_start = subscription.current_period_end + timedelta(days=1)
+        new_period_end = new_period_start + timedelta(days=subscription.plan.duration_days)
+        
+        # Create billing label
+        billing_period_label = new_period_start.strftime('%b %Y') if subscription.plan.duration_days == 30 else f"{new_period_start.strftime('%b')}-{new_period_end.strftime('%b %Y')}"
+        
+        # Record payment
+        payment = SubscriptionPayment(
+            tenant_id=tenant_id,
+            subscription_id=subscription.id,
+            payment_date=payment_date,
+            amount=payment_amount,
+            payment_mode=payment_mode,
+            period_start=new_period_start,
+            period_end=new_period_end,
+            billing_period_label=billing_period_label
+        )
+        
+        db.session.add(payment)
+        
+        # Renew subscription
+        subscription.renew_subscription()
+        
+        # Generate invoice if requested
+        if generate_invoice:
+            invoice = Invoice(
+                tenant_id=tenant_id,
+                customer_id=subscription.customer_id,
+                invoice_date=payment_date,
+                invoice_number=f"SUB-{datetime.now().strftime('%Y%m%d%H%M%S')}",
+                total_amount=payment_amount,
+                balance_due=Decimal('0.00'),
+                status='paid',
+                payment_mode=payment_mode
+            )
+            
+            db.session.add(invoice)
+            db.session.flush()
+            
+            # Add invoice item
+            item = InvoiceItem(
+                tenant_id=tenant_id,
+                invoice_id=invoice.id,
+                description=f"{subscription.plan.name} - {billing_period_label}",
+                quantity=1,
+                unit_price=payment_amount,
+                total=payment_amount
+            )
+            
+            db.session.add(item)
+            
+            # Link payment to invoice
+            payment.invoice_id = invoice.id
+        
+        db.session.commit()
+        
+        flash(f'✅ Payment collected successfully! Subscription renewed until {new_period_end.strftime("%d %b %Y")}', 'success')
+        return redirect(url_for('subscriptions.member_detail', subscription_id=subscription.id))
+        
+    except Exception as e:
+        db.session.rollback()
+        flash(f'❌ Error collecting payment: {str(e)}', 'error')
+        return redirect(url_for('subscriptions.collect_payment', subscription_id=subscription.id))
+
+
+# ============================================================
+# CANCEL SUBSCRIPTION
+# ============================================================
+@subscriptions_bp.route('/members/<int:subscription_id>/cancel', methods=['POST'], strict_slashes=False)
+@require_tenant
+@check_license
+@login_required
+def cancel_subscription(subscription_id):
+    """Cancel a customer subscription"""
+    tenant_id = get_current_tenant_id()
+    
+    subscription = CustomerSubscription.query.filter_by(
+        id=subscription_id,
+        tenant_id=tenant_id
+    ).first_or_404()
+    
+    try:
+        reason = request.form.get('reason', 'No reason provided')
+        subscription.cancel_subscription(reason)
+        db.session.commit()
+        
+        flash(f'✅ Subscription cancelled successfully!', 'success')
+        
+    except Exception as e:
+        db.session.rollback()
+        flash(f'❌ Error cancelling subscription: {str(e)}', 'error')
+    
+    return redirect(url_for('subscriptions.member_detail', subscription_id=subscription.id))
+
