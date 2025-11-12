@@ -1,0 +1,255 @@
+{% extends "base_sidebar.html" %}
+
+{% block title %}Collect Payment - {{ subscription.customer.name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="page-header">
+        <h1>💰 Collect Payment</h1>
+        <p class="text-muted">{{ subscription.customer.name }} - {{ subscription.plan.name }}</p>
+    </div>
+
+    <div class="row">
+        <!-- Payment Form -->
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h3 style="margin: 0;">Payment Details</h3>
+                </div>
+                <div class="card-body">
+                    <!-- Current Subscription Info -->
+                    <div class="info-box">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <strong>Customer:</strong> {{ subscription.customer.name }}<br>
+                                <strong>Phone:</strong> {{ subscription.customer.phone }}<br>
+                                <strong>Plan:</strong> {{ subscription.plan.name }}
+                            </div>
+                            <div class="col-md-6">
+                                <strong>Current Period:</strong> {{ subscription.current_period_start.strftime('%d %b %Y') }} - {{ subscription.current_period_end.strftime('%d %b %Y') }}<br>
+                                <strong>Status:</strong> {{ subscription.status_display|safe }}<br>
+                                <strong>Days Remaining:</strong> 
+                                {% if subscription.days_remaining > 0 %}
+                                    {{ subscription.days_remaining }} days
+                                {% else %}
+                                    <span style="color: #dc3545;">Overdue by {{ subscription.days_remaining * -1 }} days</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Payment Form -->
+                    <form method="POST" action="{{ url_for('subscriptions.collect_payment', subscription_id=subscription.id) }}" onsubmit="return confirmPayment()">
+                        <div class="form-section">
+                            <h4>Next Billing Period</h4>
+                            <div id="next_period_info" class="next-period-box">
+                                {% set next_start = subscription.current_period_end + timedelta(days=1) %}
+                                {% set next_end = next_start + timedelta(days=subscription.plan.duration_days) %}
+                                <strong>📅 Period:</strong> {{ next_start.strftime('%d %b %Y') }} - {{ next_end.strftime('%d %b %Y') }}<br>
+                                <strong>💰 Amount Due:</strong> ₹{{ '{:,.2f}'.format(subscription.plan.price) }}
+                            </div>
+                        </div>
+
+                        <div class="form-section">
+                            <h4>Payment Information</h4>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label><strong>Payment Date *</strong></label>
+                                        <input type="date" name="payment_date" id="payment_date" class="form-control" required>
+                                        <small class="form-text text-muted">Usually today's date</small>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label><strong>Amount (₹) *</strong></label>
+                                        <input type="number" name="payment_amount" id="payment_amount" class="form-control" step="0.01" min="0" value="{{ subscription.plan.price }}" required>
+                                        <small class="form-text text-muted">Auto-filled from plan price</small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label><strong>Payment Mode *</strong></label>
+                                <select name="payment_mode" class="form-control" required>
+                                    <option value="Cash">Cash</option>
+                                    <option value="UPI">UPI</option>
+                                    <option value="Card">Card</option>
+                                    <option value="Bank Transfer">Bank Transfer</option>
+                                    <option value="Cheque">Cheque</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <div class="custom-control custom-checkbox">
+                                    <input type="checkbox" class="custom-control-input" id="generate_invoice" name="generate_invoice" checked>
+                                    <label class="custom-control-label" for="generate_invoice">
+                                        <strong>Generate Invoice</strong> (Recommended for accounting)
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Summary -->
+                        <div class="summary-box">
+                            <h5><strong>💡 What Happens Next:</strong></h5>
+                            <ul>
+                                <li>Payment of <strong>₹{{ '{:,.2f}'.format(subscription.plan.price) }}</strong> will be recorded</li>
+                                <li>Subscription will be renewed for <strong>{{ subscription.plan.duration_display }}</strong></li>
+                                {% set next_start = subscription.current_period_end + timedelta(days=1) %}
+                                {% set next_end = next_start + timedelta(days=subscription.plan.duration_days) %}
+                                <li>New billing period: <strong>{{ next_start.strftime('%d %b') }} - {{ next_end.strftime('%d %b %Y') }}</strong></li>
+                                <li>Next payment due: <strong>{{ next_end.strftime('%d %b %Y') }}</strong></li>
+                                <li>Status will remain: <strong>🟢 Active</strong></li>
+                            </ul>
+                        </div>
+
+                        <!-- Submit -->
+                        <div style="margin-top: 30px;">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <a href="{{ url_for('subscriptions.member_detail', subscription_id=subscription.id) }}" class="btn btn-secondary btn-block">
+                                        <i class="fas fa-times"></i> Cancel
+                                    </a>
+                                </div>
+                                <div class="col-md-6">
+                                    <button type="submit" class="btn btn-success btn-block btn-lg">
+                                        <i class="fas fa-check"></i> Collect Payment & Renew
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column - Payment History -->
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header" style="background: #e7f3ff;">
+                    <h5 style="margin: 0; color: #0066cc;">📜 Recent Payments</h5>
+                </div>
+                <div class="card-body">
+                    {% if subscription.payments %}
+                    {% for payment in subscription.payments[:5] %}
+                    <div class="payment-item">
+                        <div class="payment-date">{{ payment.payment_date.strftime('%d %b %Y') }}</div>
+                        <div class="payment-amount">₹{{ '{:,.2f}'.format(payment.amount) }}</div>
+                        <div class="payment-period">{{ payment.period_display }}</div>
+                    </div>
+                    {% endfor %}
+                    {% else %}
+                    <p style="color: #999;">No payment history yet</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="card" style="margin-top: 20px; background: #fffbf0; border-color: #f39c12;">
+                <div class="card-body">
+                    <h6 style="color: #f39c12;"><strong>💡 Payment Tips:</strong></h6>
+                    <ul style="margin-bottom: 0; font-size: 14px;">
+                        <li>Verify payment received before submitting</li>
+                        <li>Invoice will be generated automatically</li>
+                        <li>Subscription extends from current end date</li>
+                        <li>Customer will see updated due date</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.card {
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    border: 1px solid #e0e0e0;
+}
+
+.card-header {
+    background: #f8f9fa;
+    border-bottom: 2px solid #e0e0e0;
+    padding: 20px;
+}
+
+.info-box {
+    padding: 20px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    margin-bottom: 30px;
+}
+
+.form-section {
+    margin-bottom: 30px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.form-section:last-child {
+    border-bottom: none;
+}
+
+.form-section h4 {
+    margin-bottom: 20px;
+    color: #333;
+}
+
+.next-period-box {
+    padding: 20px;
+    background: #e7f3ff;
+    border-radius: 8px;
+    border-left: 4px solid #0066cc;
+}
+
+.summary-box {
+    padding: 20px;
+    background: #d4edda;
+    border-radius: 8px;
+    border-left: 4px solid #28a745;
+}
+
+.summary-box h5 {
+    margin-bottom: 15px;
+    color: #155724;
+}
+
+.summary-box ul {
+    margin-bottom: 0;
+    color: #155724;
+}
+
+.payment-item {
+    padding: 12px;
+    margin-bottom: 10px;
+    background: #f8f9fa;
+    border-radius: 6px;
+    border-left: 3px solid #28a745;
+}
+
+.payment-date {
+    font-size: 12px;
+    color: #666;
+}
+
+.payment-amount {
+    font-size: 18px;
+    font-weight: 700;
+    color: #28a745;
+}
+
+.payment-period {
+    font-size: 12px;
+    color: #888;
+}
+</style>
+
+<script>
+// Set today as default payment date
+document.getElementById('payment_date').valueAsDate = new Date();
+
+function confirmPayment() {
+    const amount = document.getElementById('payment_amount').value;
+    return confirm(`Confirm collection of ₹${amount}?\n\nThis will renew the subscription for the next billing period.`);
+}
+</script>
+{% endblock %}
+

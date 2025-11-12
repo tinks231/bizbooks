@@ -1,0 +1,324 @@
+{% extends "base_sidebar.html" %}
+
+{% block title %}{{ subscription.customer.name }} - Subscription Details{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="page-header">
+        <h1>👤 {{ subscription.customer.name }}</h1>
+        <p class="text-muted">Subscription Details & Payment History</p>
+    </div>
+
+    <div class="row">
+        <!-- Left Column - Subscription Info -->
+        <div class="col-md-8">
+            <!-- Current Subscription Card -->
+            <div class="card">
+                <div class="card-header">
+                    <h3 style="margin: 0;">💳 Current Subscription</h3>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <table class="details-table">
+                                <tr>
+                                    <th>Customer:</th>
+                                    <td><strong>{{ subscription.customer.name }}</strong></td>
+                                </tr>
+                                <tr>
+                                    <th>Phone:</th>
+                                    <td>{{ subscription.customer.phone }}</td>
+                                </tr>
+                                {% if subscription.customer.email %}
+                                <tr>
+                                    <th>Email:</th>
+                                    <td>{{ subscription.customer.email }}</td>
+                                </tr>
+                                {% endif %}
+                                <tr>
+                                    <th>Plan:</th>
+                                    <td><strong>{{ subscription.plan.name }}</strong></td>
+                                </tr>
+                                <tr>
+                                    <th>Price:</th>
+                                    <td><strong>₹{{ '{:,.2f}'.format(subscription.plan.price) }}</strong> / {{ subscription.plan.duration_display }}</td>
+                                </tr>
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <table class="details-table">
+                                <tr>
+                                    <th>Status:</th>
+                                    <td>{{ subscription.status_display|safe }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Started:</th>
+                                    <td>{{ subscription.start_date.strftime('%d %b %Y') }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Current Period:</th>
+                                    <td>
+                                        {{ subscription.current_period_start.strftime('%d %b %Y') }} -<br>
+                                        <strong>{{ subscription.current_period_end.strftime('%d %b %Y') }}</strong>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>Days Remaining:</th>
+                                    <td>
+                                        {% if subscription.days_remaining > 0 %}
+                                            <span class="badge badge-info">{{ subscription.days_remaining }} days</span>
+                                        {% else %}
+                                            <span class="badge badge-danger">Overdue</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>Auto-Renew:</th>
+                                    <td>
+                                        {% if subscription.auto_renew %}
+                                        <span class="badge badge-success">Yes</span>
+                                        {% else %}
+                                        <span class="badge badge-secondary">No</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Actions -->
+                    <div style="margin-top: 30px; padding-top: 20px; border-top: 2px solid #e0e0e0;">
+                        <div class="row">
+                            <div class="col-md-6">
+                                {% if subscription.status == 'active' %}
+                                <a href="{{ url_for('subscriptions.collect_payment', subscription_id=subscription.id) }}" class="btn btn-success btn-block">
+                                    <i class="fas fa-money-bill-wave"></i> Collect Payment
+                                </a>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6">
+                                {% if subscription.status == 'active' %}
+                                <button class="btn btn-danger btn-block" onclick="openCancelModal()">
+                                    <i class="fas fa-times-circle"></i> Cancel Subscription
+                                </button>
+                                {% elif subscription.status == 'cancelled' %}
+                                <div class="alert alert-warning" style="margin: 0;">
+                                    <strong>Cancelled:</strong> {{ subscription.cancelled_at.strftime('%d %b %Y') }}<br>
+                                    <strong>Reason:</strong> {{ subscription.cancellation_reason }}
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Payment History Card -->
+            <div class="card" style="margin-top: 30px;">
+                <div class="card-header">
+                    <h3 style="margin: 0;">💰 Payment History</h3>
+                </div>
+                <div class="card-body">
+                    {% if payments %}
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Billing Period</th>
+                                    <th>Amount</th>
+                                    <th>Mode</th>
+                                    <th>Invoice</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for payment in payments %}
+                                <tr>
+                                    <td>{{ payment.payment_date.strftime('%d %b %Y') }}</td>
+                                    <td>{{ payment.period_display }}</td>
+                                    <td><strong>₹{{ '{:,.2f}'.format(payment.amount) }}</strong></td>
+                                    <td>
+                                        <span class="badge badge-secondary">{{ payment.payment_mode }}</span>
+                                    </td>
+                                    <td>
+                                        {% if payment.invoice_id %}
+                                        <a href="/admin/invoices/{{ payment.invoice_id }}" target="_blank">
+                                            #{{ payment.invoice_id }}
+                                        </a>
+                                        {% else %}
+                                        -
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                            <tfoot>
+                                <tr style="font-weight: bold; background: #f8f9fa;">
+                                    <td colspan="2" class="text-right">Total Paid:</td>
+                                    <td colspan="3"><strong>₹{{ '{:,.2f}'.format(subscription.total_paid) }}</strong> ({{ subscription.payment_count }} payments)</td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div style="text-align: center; padding: 40px; color: #999;">
+                        <p>No payment history yet</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column - Quick Stats & Actions -->
+        <div class="col-md-4">
+            <!-- Quick Stats -->
+            <div class="card">
+                <div class="card-header" style="background: #e7f3ff;">
+                    <h5 style="margin: 0; color: #0066cc;">📊 Quick Stats</h5>
+                </div>
+                <div class="card-body">
+                    <div class="quick-stat">
+                        <div class="quick-stat-label">Total Paid</div>
+                        <div class="quick-stat-value">₹{{ '{:,.2f}'.format(subscription.total_paid) }}</div>
+                    </div>
+                    <div class="quick-stat">
+                        <div class="quick-stat-label">Payments Made</div>
+                        <div class="quick-stat-value">{{ subscription.payment_count }}</div>
+                    </div>
+                    <div class="quick-stat">
+                        <div class="quick-stat-label">Member Since</div>
+                        <div class="quick-stat-value">{{ subscription.start_date.strftime('%b %Y') }}</div>
+                    </div>
+                    {% if subscription.status == 'active' %}
+                    <div class="quick-stat">
+                        <div class="quick-stat-label">Next Payment</div>
+                        <div class="quick-stat-value">
+                            {% if subscription.is_overdue %}
+                                <span style="color: #dc3545;">Overdue!</span>
+                            {% elif subscription.is_due_soon %}
+                                <span style="color: #ffc107;">{{ subscription.days_remaining }} days</span>
+                            {% else %}
+                                {{ subscription.days_remaining }} days
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="card" style="margin-top: 20px;">
+                <div class="card-header">
+                    <h5 style="margin: 0;">⚡ Quick Actions</h5>
+                </div>
+                <div class="card-body">
+                    <a href="{{ url_for('subscriptions.members') }}" class="btn btn-outline-primary btn-sm btn-block">
+                        <i class="fas fa-arrow-left"></i> Back to Members
+                    </a>
+                    <a href="/admin/customers/{{ subscription.customer_id }}" class="btn btn-outline-primary btn-sm btn-block">
+                        <i class="fas fa-user"></i> View Customer Profile
+                    </a>
+                    {% if subscription.status == 'active' %}
+                    <a href="{{ url_for('subscriptions.collect_payment', subscription_id=subscription.id) }}" class="btn btn-success btn-sm btn-block">
+                        <i class="fas fa-money-bill-wave"></i> Collect Payment
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Cancel Subscription Modal -->
+<div class="modal fade" id="cancelModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">❌ Cancel Subscription</h5>
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+            </div>
+            <form method="POST" action="{{ url_for('subscriptions.cancel_subscription', subscription_id=subscription.id) }}">
+                <div class="modal-body">
+                    <div class="alert alert-warning">
+                        <strong>⚠️ Warning:</strong> This will cancel the subscription. The customer will no longer be billed.
+                    </div>
+                    <div class="form-group">
+                        <label><strong>Reason for Cancellation</strong></label>
+                        <textarea name="reason" class="form-control" rows="3" placeholder="e.g., Customer requested, Moving to different location, etc."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Keep Subscription</button>
+                    <button type="submit" class="btn btn-danger">Cancel Subscription</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<style>
+.card {
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    border: 1px solid #e0e0e0;
+    margin-bottom: 20px;
+}
+
+.card-header {
+    background: #f8f9fa;
+    border-bottom: 2px solid #e0e0e0;
+    padding: 20px;
+}
+
+.details-table {
+    width: 100%;
+}
+
+.details-table th {
+    padding: 8px 0;
+    width: 40%;
+    color: #666;
+    font-weight: normal;
+}
+
+.details-table td {
+    padding: 8px 0;
+    font-weight: 500;
+}
+
+.table {
+    margin-bottom: 0;
+}
+
+.table th {
+    background: #f8f9fa;
+    font-weight: 600;
+}
+
+.quick-stat {
+    padding: 15px;
+    margin-bottom: 10px;
+    background: #f8f9fa;
+    border-radius: 8px;
+}
+
+.quick-stat-label {
+    font-size: 14px;
+    color: #666;
+    margin-bottom: 5px;
+}
+
+.quick-stat-value {
+    font-size: 24px;
+    font-weight: 700;
+    color: #333;
+}
+</style>
+
+<script>
+function openCancelModal() {
+    $('#cancelModal').modal('show');
+}
+</script>
+{% endblock %}
+
