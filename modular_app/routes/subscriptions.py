@@ -361,7 +361,8 @@ def enroll_member():
                 gst_rate=0,  # No GST on subscriptions
                 cgst_amount=0,
                 sgst_amount=0,
-                igst_amount=0
+                igst_amount=0,
+                total_amount=float(payment_amount)  # Total = taxable_value + GST (0 in this case)
             )
             
             db.session.add(item)
@@ -498,7 +499,8 @@ def collect_payment(subscription_id):
                 gst_rate=0,  # No GST on subscriptions
                 cgst_amount=0,
                 sgst_amount=0,
-                igst_amount=0
+                igst_amount=0,
+                total_amount=float(payment_amount)  # Total = taxable_value + GST (0 in this case)
             )
             
             db.session.add(item)
