@@ -46,7 +46,6 @@ def login_required(f):
 # ============================================================
 @subscriptions_bp.route('/plans', methods=['GET'], strict_slashes=False)
 @require_tenant
-@check_license
 @login_required
 def plans():
     """List all subscription plans"""
@@ -75,7 +74,6 @@ def plans():
 
 @subscriptions_bp.route('/plans/add', methods=['POST'], strict_slashes=False)
 @require_tenant
-@check_license
 @login_required
 def add_plan():
     """Add new subscription plan"""
@@ -105,7 +103,6 @@ def add_plan():
 
 @subscriptions_bp.route('/plans/edit/<int:plan_id>', methods=['POST'], strict_slashes=False)
 @require_tenant
-@check_license
 @login_required
 def edit_plan(plan_id):
     """Edit subscription plan"""
@@ -134,7 +131,6 @@ def edit_plan(plan_id):
 
 @subscriptions_bp.route('/plans/delete/<int:plan_id>', methods=['POST'], strict_slashes=False)
 @require_tenant
-@check_license
 @login_required
 def delete_plan(plan_id):
     """Delete subscription plan (soft delete - mark as inactive)"""
@@ -171,7 +167,6 @@ def delete_plan(plan_id):
 # ============================================================
 @subscriptions_bp.route('/members', methods=['GET'], strict_slashes=False)
 @require_tenant
-@check_license
 @login_required
 def members():
     """List all active members with subscriptions"""
@@ -264,7 +259,6 @@ def members():
 
 @subscriptions_bp.route('/members/enroll', methods=['GET', 'POST'], strict_slashes=False)
 @require_tenant
-@check_license
 @login_required
 def enroll_member():
     """Enroll a customer in a subscription plan"""
@@ -378,7 +372,6 @@ def enroll_member():
 # ============================================================
 @subscriptions_bp.route('/members/<int:subscription_id>', methods=['GET'], strict_slashes=False)
 @require_tenant
-@check_license
 @login_required
 def member_detail(subscription_id):
     """View member subscription details and payment history"""
@@ -404,7 +397,6 @@ def member_detail(subscription_id):
 # ============================================================
 @subscriptions_bp.route('/members/<int:subscription_id>/collect-payment', methods=['GET', 'POST'], strict_slashes=False)
 @require_tenant
-@check_license
 @login_required
 def collect_payment(subscription_id):
     """Collect payment and renew subscription"""
@@ -506,7 +498,6 @@ def collect_payment(subscription_id):
 # ============================================================
 @subscriptions_bp.route('/members/<int:subscription_id>/cancel', methods=['POST'], strict_slashes=False)
 @require_tenant
-@check_license
 @login_required
 def cancel_subscription(subscription_id):
     """Cancel a customer subscription"""
