@@ -407,9 +407,15 @@ def collect_payment(subscription_id):
     ).first_or_404()
     
     if request.method == 'GET':
+        # Calculate next billing period for display
+        next_period_start = subscription.current_period_end + timedelta(days=1)
+        next_period_end = next_period_start + timedelta(days=subscription.plan.duration_days)
+        
         # Show payment collection form
         return render_template('admin/subscriptions/collect_payment.html',
-                             subscription=subscription)
+                             subscription=subscription,
+                             next_period_start=next_period_start,
+                             next_period_end=next_period_end)
     
     # POST - Process payment
     try:
