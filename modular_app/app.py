@@ -111,6 +111,7 @@ from routes.gst_reports import gst_reports_bp  # NEW: GST Reports
 from routes.purchase_bills import purchase_bills_bp  # NEW: Purchase Bills management
 from routes.backup import backup_bp  # NEW: Backup & Restore
 from routes.subscription_migration import subscription_migration_bp  # NEW: Subscription management migration
+from routes.subscriptions import subscriptions_bp  # NEW: Subscription management
 
 app.register_blueprint(registration_bp)
 app.register_blueprint(employee_portal_bp)  # Register unified portal
@@ -136,6 +137,7 @@ app.register_blueprint(gst_reports_bp)  # NEW: GST Reports
 app.register_blueprint(purchase_bills_bp)  # NEW: Purchase Bills management
 app.register_blueprint(backup_bp)  # NEW: Backup & Restore
 app.register_blueprint(subscription_migration_bp)  # NEW: Subscription management migration
+app.register_blueprint(subscriptions_bp)  # NEW: Subscription management
 
 # ============================================================
 # Main route

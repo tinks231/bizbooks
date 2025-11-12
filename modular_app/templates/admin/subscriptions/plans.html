@@ -1,0 +1,283 @@
+{% extends "base_sidebar.html" %}
+
+{% block title %}Subscription Plans{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="page-header">
+        <h1>📋 Subscription Plans</h1>
+        <p class="text-muted">Manage membership plans and pricing</p>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="row" style="margin-bottom: 30px;">
+        <div class="col-md-4">
+            <div class="stat-card">
+                <div class="stat-icon">📦</div>
+                <div class="stat-details">
+                    <h3>{{ stats.total_plans }}</h3>
+                    <p>Total Plans</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="stat-card">
+                <div class="stat-icon">✅</div>
+                <div class="stat-details">
+                    <h3>{{ stats.active_plans }}</h3>
+                    <p>Active Plans</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="stat-card">
+                <div class="stat-icon">👥</div>
+                <div class="stat-details">
+                    <h3>{{ stats.total_members }}</h3>
+                    <p>Active Members</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Plan Button -->
+    <div style="margin-bottom: 20px; text-align: right;">
+        <button class="btn btn-primary" onclick="openAddPlanModal()">
+            <i class="fas fa-plus"></i> Add New Plan
+        </button>
+    </div>
+
+    <!-- Plans Table -->
+    <div class="card">
+        <div class="card-header">
+            <h3 style="margin: 0;">Available Plans</h3>
+        </div>
+        <div class="card-body">
+            {% if plans %}
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Plan Name</th>
+                            <th>Description</th>
+                            <th>Price</th>
+                            <th>Duration</th>
+                            <th>Active Members</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for plan in plans %}
+                        <tr>
+                            <td><strong>{{ plan.name }}</strong></td>
+                            <td>{{ plan.description or '-' }}</td>
+                            <td><strong>₹{{ '{:,.2f}'.format(plan.price) }}</strong></td>
+                            <td>{{ plan.duration_display }}</td>
+                            <td>
+                                <span class="badge badge-info">{{ plan.active_members_count }}</span>
+                            </td>
+                            <td>
+                                {% if plan.is_active %}
+                                <span class="badge badge-success">Active</span>
+                                {% else %}
+                                <span class="badge badge-secondary">Inactive</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <button class="btn btn-sm btn-outline-primary" onclick="openEditPlanModal({{ plan.id }}, '{{ plan.name }}', '{{ plan.description }}', {{ plan.price }}, {{ plan.duration_days }}, {{ plan.is_active|lower }})" title="Edit Plan">
+                                    ✏️
+                                </button>
+                                <form method="POST" action="{{ url_for('subscriptions.delete_plan', plan_id=plan.id) }}" style="display: inline;" onsubmit="return confirm('Deactivate this plan?')">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger" title="Deactivate Plan">
+                                        🗑️
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div style="text-align: center; padding: 60px 20px; color: #999;">
+                <div style="font-size: 60px; margin-bottom: 20px;">📋</div>
+                <h3 style="color: #666;">No Subscription Plans Yet</h3>
+                <p>Create your first subscription plan to get started!</p>
+                <button class="btn btn-primary btn-lg" onclick="openAddPlanModal()" style="margin-top: 20px;">
+                    <i class="fas fa-plus"></i> Create First Plan
+                </button>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Add Plan Modal -->
+<div class="modal fade" id="addPlanModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">➕ Add New Plan</h5>
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+            </div>
+            <form method="POST" action="{{ url_for('subscriptions.add_plan') }}">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label><strong>Plan Name *</strong></label>
+                        <input type="text" name="name" class="form-control" placeholder="e.g., Monthly Gym Membership" required>
+                    </div>
+                    <div class="form-group">
+                        <label><strong>Description</strong></label>
+                        <textarea name="description" class="form-control" rows="2" placeholder="e.g., Includes all equipment access"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label><strong>Price (₹) *</strong></label>
+                        <input type="number" name="price" class="form-control" step="0.01" min="0" placeholder="2000" required>
+                    </div>
+                    <div class="form-group">
+                        <label><strong>Duration *</strong></label>
+                        <div class="input-group">
+                            <input type="number" name="duration_days" class="form-control" min="1" placeholder="30" required>
+                            <div class="input-group-append">
+                                <span class="input-group-text">days</span>
+                            </div>
+                        </div>
+                        <small class="form-text text-muted">
+                            Common: 30 days (1 month), 90 days (3 months), 365 days (1 year)
+                        </small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Create Plan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Plan Modal -->
+<div class="modal fade" id="editPlanModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">✏️ Edit Plan</h5>
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+            </div>
+            <form method="POST" id="editPlanForm">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label><strong>Plan Name *</strong></label>
+                        <input type="text" name="name" id="edit_name" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label><strong>Description</strong></label>
+                        <textarea name="description" id="edit_description" class="form-control" rows="2"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label><strong>Price (₹) *</strong></label>
+                        <input type="number" name="price" id="edit_price" class="form-control" step="0.01" min="0" required>
+                    </div>
+                    <div class="form-group">
+                        <label><strong>Duration *</strong></label>
+                        <div class="input-group">
+                            <input type="number" name="duration_days" id="edit_duration_days" class="form-control" min="1" required>
+                            <div class="input-group-append">
+                                <span class="input-group-text">days</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <div class="custom-control custom-checkbox">
+                            <input type="checkbox" class="custom-control-input" id="edit_is_active" name="is_active">
+                            <label class="custom-control-label" for="edit_is_active">Plan is Active</label>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Update Plan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<style>
+.stat-card {
+    background: white;
+    border-radius: 10px;
+    padding: 20px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.stat-icon {
+    font-size: 40px;
+    opacity: 0.8;
+}
+
+.stat-details h3 {
+    margin: 0;
+    font-size: 32px;
+    font-weight: 700;
+}
+
+.stat-details p {
+    margin: 0;
+    color: #666;
+}
+
+.card {
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    border: 1px solid #e0e0e0;
+}
+
+.card-header {
+    background: #f8f9fa;
+    border-bottom: 2px solid #e0e0e0;
+    padding: 20px;
+}
+
+.table {
+    margin-bottom: 0;
+}
+
+.table th {
+    background: #f8f9fa;
+    font-weight: 600;
+}
+
+.btn-sm {
+    padding: 4px 10px;
+}
+
+.badge {
+    padding: 6px 12px;
+    font-size: 14px;
+}
+</style>
+
+<script>
+function openAddPlanModal() {
+    $('#addPlanModal').modal('show');
+}
+
+function openEditPlanModal(id, name, description, price, duration, is_active) {
+    document.getElementById('edit_name').value = name;
+    document.getElementById('edit_description').value = description || '';
+    document.getElementById('edit_price').value = price;
+    document.getElementById('edit_duration_days').value = duration;
+    document.getElementById('edit_is_active').checked = is_active;
+    
+    document.getElementById('editPlanForm').action = '/admin/subscriptions/plans/edit/' + id;
+    
+    $('#editPlanModal').modal('show');
+}
+</script>
+{% endblock %}
+

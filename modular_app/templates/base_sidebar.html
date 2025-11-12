@@ -865,6 +865,37 @@
                 </div>
             </div>
             
+            <!-- SUBSCRIPTIONS Section (Collapsible) -->
+            <div class="nav-section-collapsible">
+                <div class="nav-section-header" onclick="toggleSection('subscriptions')">
+                    <div class="nav-section-label">
+                        <span class="nav-section-icon">💳</span>
+                        <span>Subscriptions</span>
+                    </div>
+                    <span class="nav-section-arrow">▶</span>
+                </div>
+                <div class="nav-section-content" id="section-subscriptions">
+                    <a href="/admin/subscriptions/plans" class="nav-item {% if '/admin/subscriptions/plans' in request.path %}active{% endif %}">
+                        <i>📋</i> Subscription Plans
+                    </a>
+                    <a href="/admin/subscriptions/members" class="nav-item {% if '/admin/subscriptions/members' in request.path %}active{% endif %}">
+                        <i>👥</i> Active Members
+                    </a>
+                    <a href="/admin/subscriptions/members/enroll" class="nav-item {% if '/admin/subscriptions/members/enroll' in request.path %}active{% endif %}">
+                        <i>➕</i> Enroll Member
+                    </a>
+                    <!-- Coming soon: -->
+                    <!--
+                    <a href="/admin/subscriptions/due-soon" class="nav-item">
+                        <i>⏰</i> Due Soon
+                    </a>
+                    <a href="/admin/subscriptions/reports" class="nav-item">
+                        <i>📊</i> Reports
+                    </a>
+                    -->
+                </div>
+            </div>
+            
             <!-- OPERATIONS Section (Collapsible) -->
             <div class="nav-section-collapsible">
                 <div class="nav-section-header" onclick="toggleSection('operations')">
