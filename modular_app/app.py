@@ -137,8 +137,7 @@ app.register_blueprint(gst_reports_bp)  # NEW: GST Reports
 app.register_blueprint(purchase_bills_bp)  # NEW: Purchase Bills management
 app.register_blueprint(backup_bp)  # NEW: Backup & Restore
 app.register_blueprint(subscription_migration_bp)  # NEW: Subscription management migration
-# TEMPORARILY DISABLED - Testing fix
-# app.register_blueprint(subscriptions_bp)  # NEW: Subscription management
+app.register_blueprint(subscriptions_bp)  # NEW: Subscription management
 
 # ============================================================
 # Main route

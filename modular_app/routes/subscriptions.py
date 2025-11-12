@@ -17,6 +17,15 @@ subscriptions_bp = Blueprint('subscriptions', __name__, url_prefix='/admin/subsc
 
 
 # ============================================================
+# TEST ROUTE (for debugging)
+# ============================================================
+@subscriptions_bp.route('/test', methods=['GET'])
+def test_route():
+    """Simple test route to verify blueprint is working"""
+    return "✅ Subscriptions blueprint is working!", 200
+
+
+# ============================================================
 # DECORATORS
 # ============================================================
 def login_required(f):
