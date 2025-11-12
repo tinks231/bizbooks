@@ -34,8 +34,12 @@ def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         from flask import session
-        if 'tenant_id' not in session:
+        if 'tenant_admin_id' not in session:
             flash('⚠️ Please login first', 'warning')
+            return redirect(url_for('admin.login'))
+        # Verify session tenant matches current tenant
+        if session.get('tenant_admin_id') != get_current_tenant_id():
+            flash('⚠️ Session expired. Please login again.', 'warning')
             return redirect(url_for('admin.login'))
         return f(*args, **kwargs)
     return decorated_function
