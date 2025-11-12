@@ -334,12 +334,16 @@ def enroll_member():
             invoice = Invoice(
                 tenant_id=tenant_id,
                 customer_id=customer_id,
+                customer_name=customer.name,
+                customer_phone=customer.phone or '',
+                customer_email=customer.email or '',
                 invoice_date=start_date,
                 invoice_number=f"SUB-{datetime.now().strftime('%Y%m%d%H%M%S')}",
-                total_amount=payment_amount,
-                balance_due=Decimal('0.00'),  # Paid in full
-                status='paid',
-                payment_mode=payment_mode
+                total_amount=float(payment_amount),
+                payment_status='paid',  # Paid in full
+                paid_amount=float(payment_amount),
+                payment_method=payment_mode,
+                status='paid'
             )
             
             db.session.add(invoice)
@@ -347,12 +351,17 @@ def enroll_member():
             
             # Add invoice item
             item = InvoiceItem(
-                tenant_id=tenant_id,
                 invoice_id=invoice.id,
+                item_name=f"Subscription - {plan.name}",
                 description=f"{plan.name} - {billing_period_label}",
                 quantity=1,
-                unit_price=payment_amount,
-                total=payment_amount
+                unit='Service',
+                rate=float(payment_amount),
+                taxable_value=float(payment_amount),
+                gst_rate=0,  # No GST on subscriptions
+                cgst_amount=0,
+                sgst_amount=0,
+                igst_amount=0
             )
             
             db.session.add(item)
@@ -457,15 +466,21 @@ def collect_payment(subscription_id):
         
         # Generate invoice if requested
         if generate_invoice:
+            customer = subscription.customer
+            
             invoice = Invoice(
                 tenant_id=tenant_id,
                 customer_id=subscription.customer_id,
+                customer_name=customer.name,
+                customer_phone=customer.phone or '',
+                customer_email=customer.email or '',
                 invoice_date=payment_date,
                 invoice_number=f"SUB-{datetime.now().strftime('%Y%m%d%H%M%S')}",
-                total_amount=payment_amount,
-                balance_due=Decimal('0.00'),
-                status='paid',
-                payment_mode=payment_mode
+                total_amount=float(payment_amount),
+                payment_status='paid',
+                paid_amount=float(payment_amount),
+                payment_method=payment_mode,
+                status='paid'
             )
             
             db.session.add(invoice)
@@ -473,12 +488,17 @@ def collect_payment(subscription_id):
             
             # Add invoice item
             item = InvoiceItem(
-                tenant_id=tenant_id,
                 invoice_id=invoice.id,
+                item_name=f"Subscription - {subscription.plan.name}",
                 description=f"{subscription.plan.name} - {billing_period_label}",
                 quantity=1,
-                unit_price=payment_amount,
-                total=payment_amount
+                unit='Service',
+                rate=float(payment_amount),
+                taxable_value=float(payment_amount),
+                gst_rate=0,  # No GST on subscriptions
+                cgst_amount=0,
+                sgst_amount=0,
+                igst_amount=0
             )
             
             db.session.add(item)
