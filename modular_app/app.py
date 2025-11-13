@@ -112,6 +112,7 @@ from routes.purchase_bills import purchase_bills_bp  # NEW: Purchase Bills manag
 from routes.backup import backup_bp  # NEW: Backup & Restore
 from routes.subscription_migration import subscription_migration_bp  # NEW: Subscription management migration
 from routes.subscriptions import subscriptions_bp  # NEW: Subscription management
+from routes.subscription_indexes import subscription_indexes_bp  # NEW: Subscription performance indexes
 
 app.register_blueprint(registration_bp)
 app.register_blueprint(employee_portal_bp)  # Register unified portal
@@ -138,6 +139,7 @@ app.register_blueprint(purchase_bills_bp)  # NEW: Purchase Bills management
 app.register_blueprint(backup_bp)  # NEW: Backup & Restore
 app.register_blueprint(subscription_migration_bp)  # NEW: Subscription management migration
 app.register_blueprint(subscriptions_bp)  # NEW: Subscription management
+app.register_blueprint(subscription_indexes_bp)  # NEW: Subscription performance indexes
 
 # ============================================================
 # Main route
