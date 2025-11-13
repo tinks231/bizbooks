@@ -89,36 +89,53 @@
                             </div>
                         </div>
 
-                        <!-- Step 4: First Payment -->
+                        <!-- Step 4: Payment Status -->
                         <div class="form-section">
-                            <h4>4️⃣ First Payment</h4>
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <div class="form-group">
-                                        <label><strong>Amount (₹) *</strong></label>
-                                        <input type="number" name="payment_amount" id="payment_amount" class="form-control" step="0.01" min="0" required>
-                                        <small class="form-text text-muted">Auto-filled from plan price</small>
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="form-group">
-                                        <label><strong>Payment Mode *</strong></label>
-                                        <select name="payment_mode" class="form-control" required>
-                                            <option value="Cash">Cash</option>
-                                            <option value="UPI">UPI</option>
-                                            <option value="Card">Card</option>
-                                            <option value="Bank Transfer">Bank Transfer</option>
-                                            <option value="Cheque">Cheque</option>
-                                        </select>
-                                    </div>
-                                </div>
-                            </div>
+                            <h4>4️⃣ Payment Status</h4>
+                            
+                            <!-- Payment Collection Status -->
                             <div class="form-group">
                                 <div class="custom-control custom-checkbox">
-                                    <input type="checkbox" class="custom-control-input" id="generate_invoice" name="generate_invoice" checked>
-                                    <label class="custom-control-label" for="generate_invoice">
-                                        <strong>Generate Invoice</strong> (Recommended for accounting)
+                                    <input type="checkbox" class="custom-control-input" id="payment_collected" name="payment_collected" checked onchange="togglePaymentFields()">
+                                    <label class="custom-control-label" for="payment_collected">
+                                        <strong>💰 Payment Collected?</strong> 
+                                        <small class="text-muted d-block">Uncheck if member will pay later (trial period, pay after few days, etc.)</small>
                                     </label>
+                                </div>
+                            </div>
+                            
+                            <!-- Payment Details (only visible if payment collected) -->
+                            <div id="payment-details-section">
+                                <div class="row" style="margin-top: 20px;">
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label><strong>Amount (₹) *</strong></label>
+                                            <input type="number" name="payment_amount" id="payment_amount" class="form-control" step="0.01" min="0">
+                                            <small class="form-text text-muted">Auto-filled from plan price</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label><strong>Payment Mode *</strong></label>
+                                            <select name="payment_mode" class="form-control">
+                                                <option value="Cash">Cash</option>
+                                                <option value="UPI">UPI</option>
+                                                <option value="Card">Card</option>
+                                                <option value="Bank Transfer">Bank Transfer</option>
+                                                <option value="Cheque">Cheque</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Invoice Generation (only visible if payment collected) -->
+                                <div class="form-group">
+                                    <div class="custom-control custom-checkbox">
+                                        <input type="checkbox" class="custom-control-input" id="generate_invoice" name="generate_invoice" checked>
+                                        <label class="custom-control-label" for="generate_invoice">
+                                            <strong>Generate Invoice</strong> (Recommended for accounting)
+                                        </label>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -333,10 +350,24 @@ function calculatePeriodEnd() {
     }
 }
 
+function togglePaymentFields() {
+    const paymentCollected = document.getElementById('payment_collected').checked;
+    const paymentDetailsSection = document.getElementById('payment-details-section');
+    
+    if (paymentCollected) {
+        // Show payment fields and invoice option
+        paymentDetailsSection.style.display = 'block';
+    } else {
+        // Hide payment fields and invoice option
+        paymentDetailsSection.style.display = 'none';
+    }
+}
+
 function validateForm() {
     const customerId = document.getElementById('customer_id').value;
     const planRadio = document.querySelector('input[name="plan_id"]:checked');
     const startDate = document.getElementById('start_date').value;
+    const paymentCollected = document.getElementById('payment_collected').checked;
     const paymentAmount = document.getElementById('payment_amount').value;
     
     if (!customerId) {
@@ -354,12 +385,16 @@ function validateForm() {
         return false;
     }
     
-    if (!paymentAmount || parseFloat(paymentAmount) <= 0) {
-        alert('⚠️ Please enter a valid payment amount');
-        return false;
+    // Only validate payment if payment is collected
+    if (paymentCollected) {
+        if (!paymentAmount || parseFloat(paymentAmount) <= 0) {
+            alert('⚠️ Please enter a valid payment amount');
+            return false;
+        }
+        return confirm('Confirm enrollment? Customer will be subscribed and payment will be recorded.');
+    } else {
+        return confirm('Confirm enrollment? Member will be enrolled but payment is PENDING. They can pay later.');
     }
-    
-    return confirm('Confirm enrollment? Customer will be subscribed and payment will be recorded.');
 }
 </script>
 {% endblock %}

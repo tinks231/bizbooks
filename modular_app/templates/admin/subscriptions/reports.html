@@ -1,0 +1,310 @@
+{% extends "base_sidebar.html" %}
+
+{% block title %}Subscription Reports{% endblock %}
+
+{% block header_actions %}
+<!-- No Manual Entry or QR buttons for subscription pages -->
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="page-header">
+        <h1>📊 Subscription Reports</h1>
+        <p class="text-muted">Comprehensive subscription analytics and member data</p>
+    </div>
+
+    <!-- Summary Stats Cards -->
+    <div class="row" style="margin-bottom: 30px;">
+        <div class="col-md-2">
+            <div class="stat-card" style="background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%); border-left: 4px solid #4caf50;">
+                <div class="stat-icon">💰</div>
+                <div class="stat-details">
+                    <h3>₹{{ "%.2f"|format(stats.total_revenue) }}</h3>
+                    <p>Total Revenue</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="stat-card" style="background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%); border-left: 4px solid #2196f3;">
+                <div class="stat-icon">📈</div>
+                <div class="stat-details">
+                    <h3>₹{{ "%.2f"|format(stats.mrr) }}</h3>
+                    <p>MRR</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="stat-card stat-active">
+                <div class="stat-icon">🟢</div>
+                <div class="stat-details">
+                    <h3>{{ stats.active }}</h3>
+                    <p>Active</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="stat-card stat-pending" style="background: linear-gradient(135deg, #fff4e6 0%, #ffe0b2 100%); border-left: 4px solid #f57c00;">
+                <div class="stat-icon">⏳</div>
+                <div class="stat-details">
+                    <h3>{{ stats.pending_payment }}</h3>
+                    <p>Pending</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="stat-card stat-due-soon">
+                <div class="stat-icon">🟡</div>
+                <div class="stat-details">
+                    <h3>{{ stats.due_soon }}</h3>
+                    <p>Due Soon</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="stat-card stat-overdue">
+                <div class="stat-icon">🔴</div>
+                <div class="stat-details">
+                    <h3>{{ stats.overdue }}</h3>
+                    <p>Overdue</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="card" style="margin-bottom: 20px;">
+        <div class="card-header" style="background: #f5f5f5;">
+            <h5 style="margin: 0;">🔍 Filters</h5>
+        </div>
+        <div class="card-body">
+            <form method="GET" action="{{ url_for('subscriptions.reports') }}" class="filter-form">
+                <div class="row">
+                    <div class="col-md-2">
+                        <div class="form-group">
+                            <label><strong>Start Date</strong></label>
+                            <input type="date" name="start_date" class="form-control" value="{{ start_date }}">
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="form-group">
+                            <label><strong>End Date</strong></label>
+                            <input type="date" name="end_date" class="form-control" value="{{ end_date }}">
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label><strong>Plan</strong></label>
+                            <select name="plan" class="form-control">
+                                <option value="">All Plans</option>
+                                {% for plan in active_plans %}
+                                <option value="{{ plan.id }}" {% if plan_filter|string == plan.id|string %}selected{% endif %}>
+                                    {{ plan.name }} (₹{{ plan.price }})
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label><strong>Status</strong></label>
+                            <select name="status" class="form-control">
+                                <option value="all" {% if status_filter == 'all' %}selected{% endif %}>All Status</option>
+                                <option value="active" {% if status_filter == 'active' %}selected{% endif %}>Active</option>
+                                <option value="pending_payment" {% if status_filter == 'pending_payment' %}selected{% endif %}>⏳ Pending Payment</option>
+                                <option value="due_soon" {% if status_filter == 'due_soon' %}selected{% endif %}>Due Soon</option>
+                                <option value="overdue" {% if status_filter == 'overdue' %}selected{% endif %}>Overdue</option>
+                                <option value="expired" {% if status_filter == 'expired' %}selected{% endif %}>Expired</option>
+                                <option value="cancelled" {% if status_filter == 'cancelled' %}selected{% endif %}>Cancelled</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="form-group">
+                            <label style="display: block;">&nbsp;</label>
+                            <button type="submit" class="btn btn-primary btn-block">Apply Filters</button>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Detailed Table -->
+    <div class="card">
+        <div class="card-header" style="background: #f5f5f5; display: flex; justify-content: space-between; align-items: center;">
+            <h5 style="margin: 0;">📋 Subscription Details ({{ pagination.total }} records)</h5>
+            <a href="#" onclick="exportToExcel(); return false;" class="btn btn-success btn-sm">
+                <i class="fas fa-file-excel"></i> Export to Excel
+            </a>
+        </div>
+        <div class="card-body" style="padding: 0;">
+            <div class="table-responsive">
+                <table class="table table-striped table-hover" id="reports-table">
+                    <thead style="background: #f5f5f5;">
+                        <tr>
+                            <th>Member</th>
+                            <th>Plan</th>
+                            <th>Enrollment Date</th>
+                            <th>Start Date</th>
+                            <th>Next Due Date</th>
+                            <th>Status</th>
+                            <th>Total Paid</th>
+                            <th>Payments Made</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if subscriptions %}
+                            {% for sub in subscriptions %}
+                            <tr>
+                                <td>
+                                    <strong>{{ sub.customer.name }}</strong><br>
+                                    <small class="text-muted">{{ sub.customer.phone }}</small>
+                                </td>
+                                <td>
+                                    {{ sub.plan.name }}<br>
+                                    <small class="text-muted">₹{{ sub.plan.price }}/month</small>
+                                </td>
+                                <td>{{ sub.start_date.strftime('%d %b %Y') }}</td>
+                                <td>{{ sub.current_period_start.strftime('%d %b %Y') }}</td>
+                                <td>
+                                    {% if sub.status == 'pending_payment' %}
+                                        <span class="badge badge-warning">Payment Pending</span>
+                                    {% elif sub.status == 'active' %}
+                                        {{ sub.current_period_end.strftime('%d %b %Y') }}
+                                        <br><small class="text-muted">({{ sub.days_remaining }} days left)</small>
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </td>
+                                <td>{{ sub.status_display }}</td>
+                                <td>₹{{ "%.2f"|format(sub.total_paid) }}</td>
+                                <td>{{ sub.payments|length }}</td>
+                                <td>
+                                    <a href="{{ url_for('subscriptions.member_detail', subscription_id=sub.id) }}" 
+                                       class="btn btn-sm btn-info" title="View Details">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="9" class="text-center" style="padding: 50px;">
+                                    <i class="fas fa-inbox" style="font-size: 48px; color: #ccc; margin-bottom: 10px;"></i>
+                                    <p style="color: #999;">No subscriptions found with the selected filters.</p>
+                                </td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <!-- Pagination -->
+        {% if pagination.pages > 1 %}
+        <div class="card-footer" style="background: #f5f5f5;">
+            <div class="pagination-wrapper">
+                <nav>
+                    <ul class="pagination justify-content-center" style="margin: 0;">
+                        <!-- Previous -->
+                        <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
+                            <a class="page-link" href="{% if pagination.has_prev %}{{ url_for('subscriptions.reports', page=pagination.prev_num, start_date=start_date, end_date=end_date, plan=plan_filter, status=status_filter) }}{% else %}#{% endif %}">Previous</a>
+                        </li>
+                        
+                        <!-- Page Numbers -->
+                        {% for page_num in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+                            {% if page_num %}
+                                <li class="page-item {% if page_num == pagination.page %}active{% endif %}">
+                                    <a class="page-link" href="{{ url_for('subscriptions.reports', page=page_num, start_date=start_date, end_date=end_date, plan=plan_filter, status=status_filter) }}">{{ page_num }}</a>
+                                </li>
+                            {% else %}
+                                <li class="page-item disabled">
+                                    <span class="page-link">...</span>
+                                </li>
+                            {% endif %}
+                        {% endfor %}
+                        
+                        <!-- Next -->
+                        <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
+                            <a class="page-link" href="{% if pagination.has_next %}{{ url_for('subscriptions.reports', page=pagination.next_num, start_date=start_date, end_date=end_date, plan=plan_filter, status=status_filter) }}{% else %}#{% endif %}">Next</a>
+                        </li>
+                    </ul>
+                </nav>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+.stat-card {
+    padding: 20px;
+    border-radius: 12px;
+    border-left: 4px solid #0066cc;
+    display: flex;
+    align-items: center;
+    margin-bottom: 15px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.stat-active {
+    background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
+    border-left-color: #4caf50;
+}
+
+.stat-due-soon {
+    background: linear-gradient(135deg, #fff9e6 0%, #ffe599 100%);
+    border-left-color: #ffc107;
+}
+
+.stat-overdue {
+    background: linear-gradient(135deg, #ffebee 0%, #ffcdd2 100%);
+    border-left-color: #f44336;
+}
+
+.stat-icon {
+    font-size: 36px;
+    margin-right: 15px;
+}
+
+.stat-details h3 {
+    margin: 0;
+    font-size: 28px;
+    font-weight: bold;
+    color: #333;
+}
+
+.stat-details p {
+    margin: 5px 0 0 0;
+    font-size: 14px;
+    color: #666;
+}
+
+.table th {
+    font-weight: 600;
+    color: #333;
+    border-bottom: 2px solid #dee2e6;
+}
+
+.badge {
+    padding: 5px 10px;
+    font-size: 11px;
+}
+</style>
+
+<script>
+function exportToExcel() {
+    // Simple client-side export to Excel
+    const table = document.getElementById('reports-table');
+    const wb = XLSX.utils.table_to_book(table, {sheet: "Subscription Reports"});
+    XLSX.writeFile(wb, 'subscription_reports.xlsx');
+}
+
+// Load SheetJS library for Excel export
+const script = document.createElement('script');
+script.src = 'https://cdn.sheetjs.com/xlsx-0.18.5/package/dist/xlsx.full.min.js';
+document.head.appendChild(script);
+</script>
+{% endblock %}
+

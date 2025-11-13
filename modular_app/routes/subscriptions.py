@@ -189,6 +189,8 @@ def members():
     # Apply filters
     if status_filter == 'active':
         query = query.filter(CustomerSubscription.status == 'active')
+    elif status_filter == 'pending_payment':
+        query = query.filter(CustomerSubscription.status == 'pending_payment')
     elif status_filter == 'due_soon':
         today = datetime.now().date()
         three_days = today + timedelta(days=3)
@@ -235,6 +237,7 @@ def members():
     
     stats = {
         'active': CustomerSubscription.query.filter_by(tenant_id=tenant_id, status='active').count(),
+        'pending_payment': CustomerSubscription.query.filter_by(tenant_id=tenant_id, status='pending_payment').count(),
         'due_soon': CustomerSubscription.query.filter(
             CustomerSubscription.tenant_id == tenant_id,
             CustomerSubscription.status == 'active',
@@ -282,9 +285,7 @@ def enroll_member():
         customer_id = int(request.form['customer_id'])
         plan_id = int(request.form['plan_id'])
         start_date_str = request.form['start_date']
-        payment_amount = Decimal(request.form['payment_amount'])
-        payment_mode = request.form['payment_mode']
-        generate_invoice = request.form.get('generate_invoice') == 'on'
+        payment_collected = request.form.get('payment_collected') == 'on'
         
         # Parse start date
         start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
@@ -295,6 +296,9 @@ def enroll_member():
         # Calculate period end
         period_end = start_date + timedelta(days=plan.duration_days)
         
+        # Determine subscription status
+        subscription_status = 'active' if payment_collected else 'pending_payment'
+        
         # Create subscription
         subscription = CustomerSubscription(
             tenant_id=tenant_id,
@@ -303,76 +307,85 @@ def enroll_member():
             start_date=start_date,
             current_period_start=start_date,
             current_period_end=period_end,
-            status='active',
+            status=subscription_status,
             auto_renew=True
         )
         
         db.session.add(subscription)
         db.session.flush()  # Get subscription ID
         
-        # Record payment
-        billing_period_label = start_date.strftime('%b %Y') if plan.duration_days == 30 else f"{start_date.strftime('%b')}-{period_end.strftime('%b %Y')}"
-        
-        payment = SubscriptionPayment(
-            tenant_id=tenant_id,
-            subscription_id=subscription.id,
-            payment_date=start_date,
-            amount=payment_amount,
-            payment_mode=payment_mode,
-            period_start=start_date,
-            period_end=period_end,
-            billing_period_label=billing_period_label
-        )
-        
-        db.session.add(payment)
-        
-        # Generate invoice if requested
-        if generate_invoice:
-            customer = Customer.query.get(customer_id)
+        # Record payment and invoice only if payment collected
+        if payment_collected:
+            payment_amount = Decimal(request.form['payment_amount'])
+            payment_mode = request.form['payment_mode']
+            generate_invoice = request.form.get('generate_invoice') == 'on'
             
-            # Create invoice
-            invoice = Invoice(
+            billing_period_label = start_date.strftime('%b %Y') if plan.duration_days == 30 else f"{start_date.strftime('%b')}-{period_end.strftime('%b %Y')}"
+            
+            payment = SubscriptionPayment(
                 tenant_id=tenant_id,
-                customer_id=customer_id,
-                customer_name=customer.name,
-                customer_phone=customer.phone or '',
-                customer_email=customer.email or '',
-                invoice_date=start_date,
-                invoice_number=f"SUB-{datetime.now().strftime('%Y%m%d%H%M%S')}",
-                total_amount=float(payment_amount),
-                payment_status='paid',  # Paid in full
-                paid_amount=float(payment_amount),
-                payment_method=payment_mode,
-                status='paid'
+                subscription_id=subscription.id,
+                payment_date=start_date,
+                amount=payment_amount,
+                payment_mode=payment_mode,
+                period_start=start_date,
+                period_end=period_end,
+                billing_period_label=billing_period_label
             )
             
-            db.session.add(invoice)
-            db.session.flush()
+            db.session.add(payment)
             
-            # Add invoice item
-            item = InvoiceItem(
-                invoice_id=invoice.id,
-                item_name=f"Subscription - {plan.name}",
-                description=f"{plan.name} - {billing_period_label}",
-                quantity=1,
-                unit='Service',
-                rate=float(payment_amount),
-                taxable_value=float(payment_amount),
-                gst_rate=0,  # No GST on subscriptions
-                cgst_amount=0,
-                sgst_amount=0,
-                igst_amount=0,
-                total_amount=float(payment_amount)  # Total = taxable_value + GST (0 in this case)
-            )
-            
-            db.session.add(item)
-            
-            # Link payment to invoice
-            payment.invoice_id = invoice.id
+            # Generate invoice if requested
+            if generate_invoice:
+                customer = Customer.query.get(customer_id)
+                
+                # Create invoice
+                invoice = Invoice(
+                    tenant_id=tenant_id,
+                    customer_id=customer_id,
+                    customer_name=customer.name,
+                    customer_phone=customer.phone or '',
+                    customer_email=customer.email or '',
+                    invoice_date=start_date,
+                    invoice_number=f"SUB-{datetime.now().strftime('%Y%m%d%H%M%S')}",
+                    total_amount=float(payment_amount),
+                    payment_status='paid',  # Paid in full
+                    paid_amount=float(payment_amount),
+                    payment_method=payment_mode,
+                    status='paid'
+                )
+                
+                db.session.add(invoice)
+                db.session.flush()
+                
+                # Add invoice item
+                item = InvoiceItem(
+                    invoice_id=invoice.id,
+                    item_name=f"Subscription - {plan.name}",
+                    description=f"{plan.name} - {billing_period_label}",
+                    quantity=1,
+                    unit='Service',
+                    rate=float(payment_amount),
+                    taxable_value=float(payment_amount),
+                    gst_rate=0,  # No GST on subscriptions
+                    cgst_amount=0,
+                    sgst_amount=0,
+                    igst_amount=0,
+                    total_amount=float(payment_amount)  # Total = taxable_value + GST (0 in this case)
+                )
+                
+                db.session.add(item)
+                
+                # Link payment to invoice
+                payment.invoice_id = invoice.id
         
         db.session.commit()
         
-        flash(f'✅ Customer enrolled successfully in "{plan.name}"!', 'success')
+        if payment_collected:
+            flash(f'✅ Customer enrolled successfully in "{plan.name}" and payment recorded!', 'success')
+        else:
+            flash(f'✅ Customer enrolled in "{plan.name}". Payment is PENDING - collect it later.', 'warning')
+        
         return redirect(url_for('subscriptions.members'))
         
     except Exception as e:
@@ -441,12 +454,27 @@ def collect_payment(subscription_id):
         
         payment_date = datetime.strptime(payment_date_str, '%Y-%m-%d').date()
         
-        # Calculate new period
-        new_period_start = subscription.current_period_end + timedelta(days=1)
-        new_period_end = new_period_start + timedelta(days=subscription.plan.duration_days)
+        # Check if this is the first payment (pending_payment status)
+        is_first_payment = subscription.status == 'pending_payment'
+        
+        if is_first_payment:
+            # First payment - use existing period
+            period_start = subscription.current_period_start
+            period_end = subscription.current_period_end
+            
+            # Activate subscription
+            subscription.status = 'active'
+        else:
+            # Renewal payment - calculate new period
+            period_start = subscription.current_period_end + timedelta(days=1)
+            period_end = period_start + timedelta(days=subscription.plan.duration_days)
+            
+            # Renew subscription
+            subscription.current_period_start = period_start
+            subscription.current_period_end = period_end
         
         # Create billing label
-        billing_period_label = new_period_start.strftime('%b %Y') if subscription.plan.duration_days == 30 else f"{new_period_start.strftime('%b')}-{new_period_end.strftime('%b %Y')}"
+        billing_period_label = period_start.strftime('%b %Y') if subscription.plan.duration_days == 30 else f"{period_start.strftime('%b')}-{period_end.strftime('%b %Y')}"
         
         # Record payment
         payment = SubscriptionPayment(
@@ -455,15 +483,12 @@ def collect_payment(subscription_id):
             payment_date=payment_date,
             amount=payment_amount,
             payment_mode=payment_mode,
-            period_start=new_period_start,
-            period_end=new_period_end,
+            period_start=period_start,
+            period_end=period_end,
             billing_period_label=billing_period_label
         )
         
         db.session.add(payment)
-        
-        # Renew subscription
-        subscription.renew_subscription()
         
         # Generate invoice if requested
         if generate_invoice:
@@ -510,7 +535,11 @@ def collect_payment(subscription_id):
         
         db.session.commit()
         
-        flash(f'✅ Payment collected successfully! Subscription renewed until {new_period_end.strftime("%d %b %Y")}', 'success')
+        if is_first_payment:
+            flash(f'✅ Payment collected! Subscription is now ACTIVE until {period_end.strftime("%d %b %Y")}', 'success')
+        else:
+            flash(f'✅ Payment collected successfully! Subscription renewed until {period_end.strftime("%d %b %Y")}', 'success')
+        
         return redirect(url_for('subscriptions.member_detail', subscription_id=subscription.id))
         
     except Exception as e:
@@ -546,4 +575,150 @@ def cancel_subscription(subscription_id):
         flash(f'❌ Error cancelling subscription: {str(e)}', 'error')
     
     return redirect(url_for('subscriptions.member_detail', subscription_id=subscription.id))
+
+
+# ============================================================
+# DELETE SUBSCRIPTION/MEMBER
+# ============================================================
+@subscriptions_bp.route('/members/<int:subscription_id>/delete', methods=['POST'], strict_slashes=False)
+@require_tenant
+@login_required
+def delete_member(subscription_id):
+    """Delete a subscription and all related data"""
+    tenant_id = get_current_tenant_id()
+    
+    try:
+        # Get subscription
+        subscription = CustomerSubscription.query.filter_by(
+            id=subscription_id,
+            tenant_id=tenant_id
+        ).first_or_404()
+        
+        customer_name = subscription.customer.name
+        
+        # Delete related payment records first (foreign key constraint)
+        SubscriptionPayment.query.filter_by(subscription_id=subscription.id).delete()
+        
+        # Delete the subscription
+        db.session.delete(subscription)
+        db.session.commit()
+        
+        flash(f'✅ Subscription for "{customer_name}" has been permanently deleted!', 'success')
+        
+    except Exception as e:
+        db.session.rollback()
+        flash(f'❌ Error deleting subscription: {str(e)}', 'error')
+        return redirect(url_for('subscriptions.member_detail', subscription_id=subscription_id))
+    
+    return redirect(url_for('subscriptions.members'))
+
+
+# ============================================================
+# SUBSCRIPTION REPORTS
+# ============================================================
+@subscriptions_bp.route('/reports', methods=['GET'], strict_slashes=False)
+@require_tenant
+@login_required
+def reports():
+    """Comprehensive subscription reports page"""
+    tenant_id = get_current_tenant_id()
+    
+    # Get filter parameters
+    start_date_str = request.args.get('start_date', '')
+    end_date_str = request.args.get('end_date', '')
+    plan_filter = request.args.get('plan', '')
+    status_filter = request.args.get('status', 'all')
+    
+    # Base query with eager loading
+    query = CustomerSubscription.query.join(Customer).join(SubscriptionPlan).filter(
+        CustomerSubscription.tenant_id == tenant_id
+    )
+    
+    # Apply date filter (enrollment date or due date based on context)
+    if start_date_str:
+        start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
+        query = query.filter(CustomerSubscription.start_date >= start_date)
+    
+    if end_date_str:
+        end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
+        query = query.filter(CustomerSubscription.start_date <= end_date)
+    
+    # Apply plan filter
+    if plan_filter:
+        query = query.filter(SubscriptionPlan.id == int(plan_filter))
+    
+    # Apply status filter
+    today = datetime.now().date()
+    three_days = today + timedelta(days=3)
+    
+    if status_filter == 'active':
+        query = query.filter(CustomerSubscription.status == 'active')
+    elif status_filter == 'pending_payment':
+        query = query.filter(CustomerSubscription.status == 'pending_payment')
+    elif status_filter == 'due_soon':
+        query = query.filter(
+            CustomerSubscription.status == 'active',
+            CustomerSubscription.current_period_end <= three_days
+        )
+    elif status_filter == 'overdue':
+        query = query.filter(
+            CustomerSubscription.status == 'active',
+            CustomerSubscription.current_period_end < today
+        )
+    elif status_filter == 'expired':
+        query = query.filter(CustomerSubscription.status == 'expired')
+    elif status_filter == 'cancelled':
+        query = query.filter(CustomerSubscription.status == 'cancelled')
+    
+    # Get subscriptions with pagination
+    page = request.args.get('page', 1, type=int)
+    per_page = 100
+    pagination = query.order_by(
+        CustomerSubscription.start_date.desc()
+    ).paginate(page=page, per_page=per_page, error_out=False)
+    
+    subscriptions_list = pagination.items
+    
+    # Calculate summary statistics
+    all_subscriptions = CustomerSubscription.query.filter_by(tenant_id=tenant_id).all()
+    
+    total_revenue = sum([sub.total_paid for sub in all_subscriptions])
+    active_count = CustomerSubscription.query.filter_by(tenant_id=tenant_id, status='active').count()
+    pending_payment_count = CustomerSubscription.query.filter_by(tenant_id=tenant_id, status='pending_payment').count()
+    due_soon_count = CustomerSubscription.query.filter(
+        CustomerSubscription.tenant_id == tenant_id,
+        CustomerSubscription.status == 'active',
+        CustomerSubscription.current_period_end <= three_days
+    ).count()
+    overdue_count = CustomerSubscription.query.filter(
+        CustomerSubscription.tenant_id == tenant_id,
+        CustomerSubscription.status == 'active',
+        CustomerSubscription.current_period_end < today
+    ).count()
+    
+    # Calculate MRR (Monthly Recurring Revenue) - sum of all active subscriptions' monthly value
+    active_subscriptions = CustomerSubscription.query.filter_by(tenant_id=tenant_id, status='active').all()
+    mrr = sum([sub.plan.price for sub in active_subscriptions])
+    
+    stats = {
+        'total_revenue': total_revenue,
+        'mrr': mrr,
+        'active': active_count,
+        'pending_payment': pending_payment_count,
+        'due_soon': due_soon_count,
+        'overdue': overdue_count
+    }
+    
+    # Get all active plans for filter dropdown
+    active_plans = SubscriptionPlan.query.filter_by(tenant_id=tenant_id, is_active=True).all()
+    
+    return render_template('admin/subscriptions/reports.html',
+                         subscriptions=subscriptions_list,
+                         pagination=pagination,
+                         stats=stats,
+                         active_plans=active_plans,
+                         start_date=start_date_str,
+                         end_date=end_date_str,
+                         plan_filter=plan_filter,
+                         status_filter=status_filter)
 

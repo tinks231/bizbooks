@@ -124,7 +124,9 @@ class CustomerSubscription(db.Model):
     @property
     def status_display(self):
         """User-friendly status with emoji"""
-        if self.is_overdue:
+        if self.status == 'pending_payment':
+            return '⏳ Pending Payment'
+        elif self.is_overdue:
             return '🔴 Overdue'
         elif self.is_due_soon:
             return '🟡 Due Soon'

@@ -15,7 +15,7 @@
 
     <!-- Stats Cards -->
     <div class="row" style="margin-bottom: 30px;">
-        <div class="col-md-3">
+        <div class="col-md-2">
             <div class="stat-card stat-active">
                 <div class="stat-icon">🟢</div>
                 <div class="stat-details">
@@ -24,16 +24,25 @@
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
+        <div class="col-md-2">
+            <div class="stat-card stat-pending" style="background: linear-gradient(135deg, #fff4e6 0%, #ffe0b2 100%); border-left: 4px solid #f57c00;">
+                <div class="stat-icon">⏳</div>
+                <div class="stat-details">
+                    <h3>{{ stats.pending_payment }}</h3>
+                    <p>Pending Payment</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
             <div class="stat-card stat-due-soon">
                 <div class="stat-icon">🟡</div>
                 <div class="stat-details">
                     <h3>{{ stats.due_soon }}</h3>
-                    <p>Due Soon (3 days)</p>
+                    <p>Due Soon</p>
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
+        <div class="col-md-2">
             <div class="stat-card stat-overdue">
                 <div class="stat-icon">🔴</div>
                 <div class="stat-details">
@@ -42,7 +51,7 @@
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
+        <div class="col-md-2">
             <div class="stat-card stat-expired">
                 <div class="stat-icon">⚫</div>
                 <div class="stat-details">
@@ -63,6 +72,7 @@
                             <label><strong>Status Filter</strong></label>
                             <select name="status" class="form-control" onchange="this.form.submit()">
                                 <option value="active" {% if status_filter == 'active' %}selected{% endif %}>Active</option>
+                                <option value="pending_payment" {% if status_filter == 'pending_payment' %}selected{% endif %}>⏳ Pending Payment</option>
                                 <option value="due_soon" {% if status_filter == 'due_soon' %}selected{% endif %}>Due Soon</option>
                                 <option value="overdue" {% if status_filter == 'overdue' %}selected{% endif %}>Overdue</option>
                                 <option value="expired" {% if status_filter == 'expired' %}selected{% endif %}>Expired</option>
@@ -164,6 +174,11 @@
                                     💰
                                 </a>
                                 {% endif %}
+                                <form method="POST" action="{{ url_for('subscriptions.delete_member', subscription_id=subscription.id) }}" style="display: inline;" onsubmit="return confirmDelete('{{ subscription.customer.name }}');">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger" title="Delete Permanently">
+                                        🗑️
+                                    </button>
+                                </form>
                             </td>
                         </tr>
                         {% endfor %}
@@ -311,5 +326,19 @@
     border-color: #0066cc;
 }
 </style>
+
+<script>
+function confirmDelete(customerName) {
+    return confirm(
+        '⚠️ WARNING: PERMANENT DELETION\n\n' +
+        'Are you sure you want to DELETE this subscription for "' + customerName + '"?\n\n' +
+        '✗ This action CANNOT be undone\n' +
+        '✗ All payment history will be permanently lost\n' +
+        '✗ Customer record will remain, but subscription data will be gone\n\n' +
+        'If you just want to stop billing, use "Cancel Subscription" instead.\n\n' +
+        'Click OK to DELETE PERMANENTLY, or Cancel to keep it.'
+    );
+}
+</script>
 {% endblock %}
 
