@@ -94,7 +94,11 @@
                     <div style="margin-top: 30px; padding-top: 20px; border-top: 2px solid #e0e0e0;">
                         <div class="row">
                             <div class="col-md-6">
-                                {% if subscription.status == 'active' %}
+                                {% if subscription.status == 'pending_payment' %}
+                                <a href="{{ url_for('subscriptions.collect_payment', subscription_id=subscription.id) }}" class="btn btn-warning btn-block">
+                                    <i class="fas fa-money-bill-wave"></i> Collect First Payment
+                                </a>
+                                {% elif subscription.status == 'active' %}
                                 <a href="{{ url_for('subscriptions.collect_payment', subscription_id=subscription.id) }}" class="btn btn-success btn-block">
                                     <i class="fas fa-money-bill-wave"></i> Collect Payment
                                 </a>
@@ -103,6 +107,10 @@
                             <div class="col-md-6">
                                 {% if subscription.status == 'active' %}
                                 <button class="btn btn-danger btn-block" onclick="openCancelModal()">
+                                    <i class="fas fa-times-circle"></i> Cancel Subscription
+                                </button>
+                                {% elif subscription.status == 'pending_payment' %}
+                                <button class="btn btn-outline-danger btn-block" onclick="openCancelModal()">
                                     <i class="fas fa-times-circle"></i> Cancel Subscription
                                 </button>
                                 {% elif subscription.status == 'cancelled' %}
