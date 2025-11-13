@@ -236,6 +236,25 @@ def members():
     
     subscriptions_list = pagination.items
     
+    # ============================================================
+    # FIX N+1: Pre-calculate total_paid for all subscriptions in ONE query
+    # ============================================================
+    if subscriptions_list:
+        subscription_ids = [sub.id for sub in subscriptions_list]
+        payment_totals = db.session.query(
+            SubscriptionPayment.subscription_id,
+            func.sum(SubscriptionPayment.amount).label('total_paid')
+        ).filter(
+            SubscriptionPayment.subscription_id.in_(subscription_ids)
+        ).group_by(SubscriptionPayment.subscription_id).all()
+        
+        # Create a dictionary for quick lookup
+        payment_totals_dict = {sub_id: total for sub_id, total in payment_totals}
+        
+        # Attach total_paid to each subscription (avoid calling the property)
+        for sub in subscriptions_list:
+            sub._cached_total_paid = payment_totals_dict.get(sub.id, 0)
+    
     # Stats
     today = datetime.now().date()
     three_days = today + timedelta(days=3)
@@ -735,6 +754,25 @@ def reports():
     ).paginate(page=page, per_page=per_page, error_out=False)
     
     subscriptions_list = pagination.items
+    
+    # ============================================================
+    # FIX N+1: Pre-calculate total_paid for all subscriptions in ONE query
+    # ============================================================
+    if subscriptions_list:
+        subscription_ids = [sub.id for sub in subscriptions_list]
+        payment_totals = db.session.query(
+            SubscriptionPayment.subscription_id,
+            func.sum(SubscriptionPayment.amount).label('total_paid')
+        ).filter(
+            SubscriptionPayment.subscription_id.in_(subscription_ids)
+        ).group_by(SubscriptionPayment.subscription_id).all()
+        
+        # Create a dictionary for quick lookup
+        payment_totals_dict = {sub_id: total for sub_id, total in payment_totals}
+        
+        # Attach total_paid to each subscription (avoid calling the property)
+        for sub in subscriptions_list:
+            sub._cached_total_paid = payment_totals_dict.get(sub.id, 0)
     
     # Get all active plans for filter dropdown
     active_plans = SubscriptionPlan.query.filter_by(tenant_id=tenant_id, is_active=True).all()

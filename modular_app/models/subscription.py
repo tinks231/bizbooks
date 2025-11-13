@@ -141,6 +141,11 @@ class CustomerSubscription(db.Model):
     @property
     def total_paid(self):
         """Total amount paid for this subscription"""
+        # Check if we have a cached value (set by route to avoid N+1 queries)
+        if hasattr(self, '_cached_total_paid'):
+            return self._cached_total_paid
+        
+        # Fallback: Calculate on demand (slower, causes N+1 if used in loops)
         total = db.session.query(db.func.sum(SubscriptionPayment.amount)).filter(
             SubscriptionPayment.subscription_id == self.id
         ).scalar()
