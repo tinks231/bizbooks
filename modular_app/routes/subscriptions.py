@@ -183,10 +183,10 @@ def members():
     plan_filter = request.args.get('plan', '')
     
     # Base query with eager loading to prevent N+1 queries
+    # NOTE: Only load customer and plan (payments not used in members list)
     query = CustomerSubscription.query.options(
         joinedload(CustomerSubscription.customer),
-        joinedload(CustomerSubscription.plan),
-        joinedload(CustomerSubscription.payments)
+        joinedload(CustomerSubscription.plan)
     ).filter(
         CustomerSubscription.tenant_id == tenant_id
     )
@@ -236,24 +236,8 @@ def members():
     
     subscriptions_list = pagination.items
     
-    # ============================================================
-    # FIX N+1: Pre-calculate total_paid for all subscriptions in ONE query
-    # ============================================================
-    if subscriptions_list:
-        subscription_ids = [sub.id for sub in subscriptions_list]
-        payment_totals = db.session.query(
-            SubscriptionPayment.subscription_id,
-            func.sum(SubscriptionPayment.amount).label('total_paid')
-        ).filter(
-            SubscriptionPayment.subscription_id.in_(subscription_ids)
-        ).group_by(SubscriptionPayment.subscription_id).all()
-        
-        # Create a dictionary for quick lookup
-        payment_totals_dict = {sub_id: total for sub_id, total in payment_totals}
-        
-        # Attach total_paid to each subscription (avoid calling the property)
-        for sub in subscriptions_list:
-            sub._cached_total_paid = payment_totals_dict.get(sub.id, 0)
+    # NOTE: Removed total_paid calculation - not displayed on members page
+    # (Only needed for reports page where payment amounts are shown)
     
     # ============================================================
     # OPTIMIZED STATS: Calculate all counts in ONE query with CASE
