@@ -11,7 +11,7 @@ from utils.tenant_middleware import require_tenant, get_current_tenant, get_curr
 from utils.license_check import check_license
 from datetime import datetime, timedelta
 from decimal import Decimal
-from sqlalchemy import func, or_
+from sqlalchemy import func, or_, case
 from sqlalchemy.orm import joinedload
 
 subscriptions_bp = Blueprint('subscriptions', __name__, url_prefix='/admin/subscriptions')
@@ -255,24 +255,35 @@ def members():
         for sub in subscriptions_list:
             sub._cached_total_paid = payment_totals_dict.get(sub.id, 0)
     
-    # Stats
+    # ============================================================
+    # OPTIMIZED STATS: Calculate all counts in ONE query with CASE
+    # ============================================================
     today = datetime.now().date()
     three_days = today + timedelta(days=3)
     
+    stats_result = db.session.query(
+        func.count(case((CustomerSubscription.status == 'active', 1))).label('active'),
+        func.count(case((CustomerSubscription.status == 'pending_payment', 1))).label('pending_payment'),
+        func.count(case((
+            (CustomerSubscription.status == 'active') &
+            (CustomerSubscription.current_period_end <= three_days) &
+            (CustomerSubscription.current_period_end >= today), 1
+        ))).label('due_soon'),
+        func.count(case((
+            (CustomerSubscription.status == 'active') &
+            (CustomerSubscription.current_period_end < today), 1
+        ))).label('overdue'),
+        func.count(case((CustomerSubscription.status == 'expired', 1))).label('expired')
+    ).filter(
+        CustomerSubscription.tenant_id == tenant_id
+    ).first()
+    
     stats = {
-        'active': CustomerSubscription.query.filter_by(tenant_id=tenant_id, status='active').count(),
-        'pending_payment': CustomerSubscription.query.filter_by(tenant_id=tenant_id, status='pending_payment').count(),
-        'due_soon': CustomerSubscription.query.filter(
-            CustomerSubscription.tenant_id == tenant_id,
-            CustomerSubscription.status == 'active',
-            CustomerSubscription.current_period_end <= three_days
-        ).count(),
-        'overdue': CustomerSubscription.query.filter(
-            CustomerSubscription.tenant_id == tenant_id,
-            CustomerSubscription.status == 'active',
-            CustomerSubscription.current_period_end < today
-        ).count(),
-        'expired': CustomerSubscription.query.filter_by(tenant_id=tenant_id, status='expired').count()
+        'active': stats_result.active or 0,
+        'pending_payment': stats_result.pending_payment or 0,
+        'due_soon': stats_result.due_soon or 0,
+        'overdue': stats_result.overdue or 0,
+        'expired': stats_result.expired or 0
     }
     
     # Get all active plans for filter dropdown
