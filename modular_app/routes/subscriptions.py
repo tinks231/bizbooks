@@ -12,6 +12,7 @@ from utils.license_check import check_license
 from datetime import datetime, timedelta
 from decimal import Decimal
 from sqlalchemy import func, or_
+from sqlalchemy.orm import joinedload
 
 subscriptions_bp = Blueprint('subscriptions', __name__, url_prefix='/admin/subscriptions')
 
@@ -181,8 +182,12 @@ def members():
     search_query = request.args.get('search', '').strip()
     plan_filter = request.args.get('plan', '')
     
-    # Base query with eager loading
-    query = CustomerSubscription.query.join(Customer).join(SubscriptionPlan).filter(
+    # Base query with eager loading to prevent N+1 queries
+    query = CustomerSubscription.query.options(
+        joinedload(CustomerSubscription.customer),
+        joinedload(CustomerSubscription.plan),
+        joinedload(CustomerSubscription.payments)
+    ).filter(
         CustomerSubscription.tenant_id == tenant_id
     )
     
@@ -211,7 +216,7 @@ def members():
     
     # Search filter
     if search_query:
-        query = query.filter(
+        query = query.join(CustomerSubscription.customer).filter(
             or_(
                 Customer.name.ilike(f'%{search_query}%'),
                 Customer.phone.ilike(f'%{search_query}%')
@@ -220,7 +225,7 @@ def members():
     
     # Plan filter
     if plan_filter:
-        query = query.filter(SubscriptionPlan.id == int(plan_filter))
+        query = query.filter(CustomerSubscription.plan_id == int(plan_filter))
     
     # Get subscriptions with pagination
     page = request.args.get('page', 1, type=int)
@@ -629,8 +634,62 @@ def reports():
     plan_filter = request.args.get('plan', '')
     status_filter = request.args.get('status', 'all')
     
-    # Base query with eager loading
-    query = CustomerSubscription.query.join(Customer).join(SubscriptionPlan).filter(
+    # Calculate date constants
+    today = datetime.now().date()
+    three_days = today + timedelta(days=3)
+    
+    # ============================================================
+    # OPTIMIZED STATS CALCULATION (SQL Aggregation)
+    # ============================================================
+    # Calculate total revenue from all payments (SQL aggregation)
+    total_revenue = db.session.query(func.sum(SubscriptionPayment.amount)).filter(
+        SubscriptionPayment.tenant_id == tenant_id
+    ).scalar() or 0
+    
+    # Calculate MRR from active subscriptions (SQL aggregation with JOIN)
+    mrr = db.session.query(func.sum(SubscriptionPlan.price)).join(
+        CustomerSubscription, SubscriptionPlan.id == CustomerSubscription.plan_id
+    ).filter(
+        CustomerSubscription.tenant_id == tenant_id,
+        CustomerSubscription.status == 'active'
+    ).scalar() or 0
+    
+    # Count by status (simple counts, very fast with indexes)
+    active_count = CustomerSubscription.query.filter_by(tenant_id=tenant_id, status='active').count()
+    pending_payment_count = CustomerSubscription.query.filter_by(tenant_id=tenant_id, status='pending_payment').count()
+    
+    # Count due soon and overdue (fast with composite index)
+    due_soon_count = CustomerSubscription.query.filter(
+        CustomerSubscription.tenant_id == tenant_id,
+        CustomerSubscription.status == 'active',
+        CustomerSubscription.current_period_end <= three_days,
+        CustomerSubscription.current_period_end >= today
+    ).count()
+    
+    overdue_count = CustomerSubscription.query.filter(
+        CustomerSubscription.tenant_id == tenant_id,
+        CustomerSubscription.status == 'active',
+        CustomerSubscription.current_period_end < today
+    ).count()
+    
+    stats = {
+        'total_revenue': total_revenue,
+        'mrr': mrr,
+        'active': active_count,
+        'pending_payment': pending_payment_count,
+        'due_soon': due_soon_count,
+        'overdue': overdue_count
+    }
+    
+    # ============================================================
+    # OPTIMIZED SUBSCRIPTION QUERY (with Eager Loading)
+    # ============================================================
+    # Base query with eager loading to prevent N+1 queries
+    query = CustomerSubscription.query.options(
+        joinedload(CustomerSubscription.customer),
+        joinedload(CustomerSubscription.plan),
+        joinedload(CustomerSubscription.payments)
+    ).filter(
         CustomerSubscription.tenant_id == tenant_id
     )
     
@@ -645,12 +704,9 @@ def reports():
     
     # Apply plan filter
     if plan_filter:
-        query = query.filter(SubscriptionPlan.id == int(plan_filter))
+        query = query.filter(CustomerSubscription.plan_id == int(plan_filter))
     
     # Apply status filter
-    today = datetime.now().date()
-    three_days = today + timedelta(days=3)
-    
     if status_filter == 'active':
         query = query.filter(CustomerSubscription.status == 'active')
     elif status_filter == 'pending_payment':
@@ -658,7 +714,8 @@ def reports():
     elif status_filter == 'due_soon':
         query = query.filter(
             CustomerSubscription.status == 'active',
-            CustomerSubscription.current_period_end <= three_days
+            CustomerSubscription.current_period_end <= three_days,
+            CustomerSubscription.current_period_end >= today
         )
     elif status_filter == 'overdue':
         query = query.filter(
@@ -670,44 +727,14 @@ def reports():
     elif status_filter == 'cancelled':
         query = query.filter(CustomerSubscription.status == 'cancelled')
     
-    # Get subscriptions with pagination
+    # Get subscriptions with pagination (reduced from 100 to 50 per page)
     page = request.args.get('page', 1, type=int)
-    per_page = 100
+    per_page = 50
     pagination = query.order_by(
         CustomerSubscription.start_date.desc()
     ).paginate(page=page, per_page=per_page, error_out=False)
     
     subscriptions_list = pagination.items
-    
-    # Calculate summary statistics
-    all_subscriptions = CustomerSubscription.query.filter_by(tenant_id=tenant_id).all()
-    
-    total_revenue = sum([sub.total_paid for sub in all_subscriptions])
-    active_count = CustomerSubscription.query.filter_by(tenant_id=tenant_id, status='active').count()
-    pending_payment_count = CustomerSubscription.query.filter_by(tenant_id=tenant_id, status='pending_payment').count()
-    due_soon_count = CustomerSubscription.query.filter(
-        CustomerSubscription.tenant_id == tenant_id,
-        CustomerSubscription.status == 'active',
-        CustomerSubscription.current_period_end <= three_days
-    ).count()
-    overdue_count = CustomerSubscription.query.filter(
-        CustomerSubscription.tenant_id == tenant_id,
-        CustomerSubscription.status == 'active',
-        CustomerSubscription.current_period_end < today
-    ).count()
-    
-    # Calculate MRR (Monthly Recurring Revenue) - sum of all active subscriptions' monthly value
-    active_subscriptions = CustomerSubscription.query.filter_by(tenant_id=tenant_id, status='active').all()
-    mrr = sum([sub.plan.price for sub in active_subscriptions])
-    
-    stats = {
-        'total_revenue': total_revenue,
-        'mrr': mrr,
-        'active': active_count,
-        'pending_payment': pending_payment_count,
-        'due_soon': due_soon_count,
-        'overdue': overdue_count
-    }
     
     # Get all active plans for filter dropdown
     active_plans = SubscriptionPlan.query.filter_by(tenant_id=tenant_id, is_active=True).all()
