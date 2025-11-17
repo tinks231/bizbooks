@@ -15,34 +15,136 @@ Run this ONCE after deploying CASCADE DELETE fix to clean up existing orphaned d
 import sys
 import os
 
-# Add parent directory to path
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+# Add modular_app directory to path
+current_dir = os.path.dirname(os.path.abspath(__file__))
+modular_app_dir = os.path.join(current_dir, 'modular_app')
+sys.path.insert(0, modular_app_dir)
 
-from modular_app.app import create_app
-from modular_app.models import db
-from modular_app.models.tenant import Tenant
+# Now import from app directly
+from app import app, db
+from models.tenant import Tenant
 
-# Import all models that might have orphaned data
-from modular_app.models.item import Item, ItemGroup, ItemCategory, ItemStock, ItemStockMovement
-from modular_app.models.inventory import Material, Stock, StockMovement, Transfer, InventoryAdjustment, InventoryAdjustmentLine
-from modular_app.models.customer import Customer
-from modular_app.models.invoice import Invoice, InvoiceItem
-from modular_app.models.vendor import Vendor
-from modular_app.models.purchase_bill import PurchaseBill
-from modular_app.models.purchase_bill_item import PurchaseBillItem
-from modular_app.models.vendor_payment import VendorPayment
-from modular_app.models.sales_order import SalesOrder, SalesOrderItem
-from modular_app.models.delivery_challan import DeliveryChallan, DeliveryChallanItem
-from modular_app.models.employee import Employee
-from modular_app.models.site import Site
-from modular_app.models.attendance import Attendance
-from modular_app.models.task import Task, TaskUpdate, TaskMaterial, TaskMedia
-from modular_app.models.expense import Expense, ExpenseCategory
-from modular_app.models.purchase_request import PurchaseRequest, PurchaseRequestItem
-from modular_app.models.subscription import SubscriptionPlan, Subscription, SubscriptionPayment
-from modular_app.models.commission_agent import CommissionAgent, AgentCommission
+# Import all models that might have orphaned data (with safe fallbacks)
+try:
+    from models.item import Item, ItemGroup, ItemCategory, ItemStock, ItemStockMovement, InventoryAdjustment
+except ImportError as e:
+    print(f"Warning: Could not import some item models: {e}")
+    Item = ItemGroup = ItemCategory = ItemStock = ItemStockMovement = InventoryAdjustment = None
 
-app = create_app()
+try:
+    from models.inventory import Material, Stock, StockMovement, Transfer
+except ImportError as e:
+    print(f"Warning: Could not import inventory models: {e}")
+    Material = Stock = StockMovement = Transfer = None
+
+try:
+    from models.customer import Customer
+except ImportError:
+    Customer = None
+
+try:
+    from models.invoice import Invoice
+except ImportError:
+    Invoice = None
+
+try:
+    from models.vendor import Vendor
+except ImportError:
+    Vendor = None
+
+try:
+    from models.purchase_bill import PurchaseBill
+except ImportError:
+    PurchaseBill = None
+
+try:
+    from models.vendor_payment import VendorPayment
+except ImportError:
+    VendorPayment = None
+
+try:
+    from models.sales_order import SalesOrder
+except ImportError:
+    SalesOrder = None
+
+try:
+    from models.delivery_challan import DeliveryChallan
+except ImportError:
+    DeliveryChallan = None
+
+try:
+    from models.employee import Employee
+except ImportError:
+    Employee = None
+
+try:
+    from models.site import Site
+except ImportError:
+    Site = None
+
+try:
+    from models.attendance import Attendance
+except ImportError:
+    Attendance = None
+
+try:
+    from models.task import Task
+except ImportError:
+    Task = None
+
+try:
+    from models.expense import Expense, ExpenseCategory
+except ImportError:
+    Expense = ExpenseCategory = None
+
+try:
+    from models.purchase_request import PurchaseRequest
+except ImportError:
+    PurchaseRequest = None
+
+try:
+    from models.subscription import SubscriptionPlan, CustomerSubscription, SubscriptionPayment
+except ImportError:
+    SubscriptionPlan = CustomerSubscription = SubscriptionPayment = None
+
+try:
+    from models.commission_agent import CommissionAgent, AgentCommission
+except ImportError:
+    CommissionAgent = AgentCommission = None
+
+# Try to import child models (may not all exist)
+try:
+    from models.item import InventoryAdjustmentLine
+except ImportError:
+    InventoryAdjustmentLine = None
+
+try:
+    from models.invoice import InvoiceItem
+except ImportError:
+    InvoiceItem = None
+    
+try:
+    from models.purchase_bill_item import PurchaseBillItem
+except ImportError:
+    PurchaseBillItem = None
+    
+try:
+    from models.sales_order_item import SalesOrderItem
+except ImportError:
+    SalesOrderItem = None
+    
+try:
+    from models.delivery_challan_item import DeliveryChallanItem
+except ImportError:
+    DeliveryChallanItem = None
+    
+try:
+    from models.task import TaskUpdate, TaskMaterial, TaskMedia
+except ImportError:
+    TaskUpdate = TaskMaterial = TaskMedia = None
+
+# PurchaseRequestItem doesn't exist as separate model
+PurchaseRequestItem = None
 
 def find_orphaned_records():
     """Find all records with tenant_id that doesn't exist in tenants table"""
@@ -94,11 +196,14 @@ def find_orphaned_records():
             ('Stock Movements', StockMovement),
             ('Transfers', Transfer),
             ('Subscription Plans', SubscriptionPlan),
-            ('Subscriptions', Subscription),
+            ('Subscriptions', CustomerSubscription),
             ('Subscription Payments', SubscriptionPayment),
             ('Commission Agents', CommissionAgent),
             ('Agent Commissions', AgentCommission),
         ]
+        
+        # Filter out None models (models that didn't import)
+        models_to_check = [(name, model) for name, model in models_to_check if model is not None]
         
         print("\n📊 Scanning models for orphaned records...")
         print("-" * 70)
