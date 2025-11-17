@@ -46,9 +46,31 @@ def migrate():
                 # SQLite doesn't support DROP CONSTRAINT
                 # Must recreate table
                 
-                # Step 1: Create new table with correct constraint
-                print("1. Creating new items table...")
-                db.session.execute(text("""
+                # Cleanup any leftover temp table from previous failed migration
+                try:
+                    db.session.execute(text("DROP TABLE IF EXISTS items_new;"))
+                    db.session.commit()
+                except:
+                    pass
+                
+                # First, get the actual columns from existing table
+                print("1. Analyzing existing table structure...")
+                result = db.session.execute(text("PRAGMA table_info(items);"))
+                existing_columns = []
+                for row in result:
+                    col_name = row[1]  # Column name is second field
+                    existing_columns.append(col_name)
+                
+                print(f"   Found {len(existing_columns)} columns in existing table")
+                
+                # Create column list string for INSERT
+                column_list = ', '.join(existing_columns)
+                
+                # Step 2: Create new table with correct constraint (only existing columns)
+                print("2. Creating new items table...")
+                
+                # Build CREATE TABLE dynamically based on existing columns
+                create_sql = """
                     CREATE TABLE items_new (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
                         tenant_id INTEGER NOT NULL,
@@ -64,55 +86,53 @@ def migrate():
                         dimensions_unit VARCHAR(10) DEFAULT 'cm',
                         weight FLOAT,
                         weight_unit VARCHAR(10) DEFAULT 'kg',
-                        manufacturer VARCHAR(100),
+                        manufacturer VARCHAR(200),
                         brand VARCHAR(100),
                         upc VARCHAR(50),
                         ean VARCHAR(50),
                         mpn VARCHAR(50),
                         isbn VARCHAR(50),
-                        hsn_code VARCHAR(20),
                         selling_price FLOAT DEFAULT 0,
                         sales_description TEXT,
                         sales_account VARCHAR(100) DEFAULT 'Sales',
-                        tax_preference VARCHAR(20) DEFAULT 'taxable',
-                        gst_rate FLOAT DEFAULT 18,
+                        tax_preference VARCHAR(50) DEFAULT 'taxable',
                         cost_price FLOAT DEFAULT 0,
                         purchase_description TEXT,
                         purchase_account VARCHAR(100) DEFAULT 'Cost of Goods Sold',
-                        preferred_vendor VARCHAR(100),
+                        preferred_vendor VARCHAR(200),
                         track_inventory BOOLEAN DEFAULT 0,
                         opening_stock FLOAT DEFAULT 0,
                         opening_stock_value FLOAT DEFAULT 0,
                         reorder_point FLOAT DEFAULT 0,
-                        primary_image VARCHAR(500),
-                        is_active BOOLEAN DEFAULT 1,
+                        primary_image TEXT,
+                        is_active BOOLEAN DEFAULT 0,
                         is_returnable BOOLEAN DEFAULT 0,
                         created_by VARCHAR(100),
-                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        created_at DATETIME,
+                        updated_at DATETIME,
                         FOREIGN KEY (tenant_id) REFERENCES tenants(id),
                         FOREIGN KEY (category_id) REFERENCES item_categories(id),
                         FOREIGN KEY (item_group_id) REFERENCES item_groups(id),
                         UNIQUE(tenant_id, sku)
                     );
-                """))
+                """
+                db.session.execute(text(create_sql))
                 
-                # Step 2: Copy data
-                print("2. Copying data from old table...")
-                db.session.execute(text("""
-                    INSERT INTO items_new SELECT * FROM items;
-                """))
+                # Step 3: Copy data with explicit column list
+                print("3. Copying data from old table...")
+                copy_sql = f"INSERT INTO items_new ({column_list}) SELECT {column_list} FROM items;"
+                db.session.execute(text(copy_sql))
                 
-                # Step 3: Drop old table
-                print("3. Dropping old table...")
+                # Step 4: Drop old table
+                print("4. Dropping old table...")
                 db.session.execute(text("DROP TABLE items;"))
                 
-                # Step 4: Rename new table
-                print("4. Renaming new table...")
+                # Step 5: Rename new table
+                print("5. Renaming new table...")
                 db.session.execute(text("ALTER TABLE items_new RENAME TO items;"))
                 
-                # Step 5: Recreate indexes
-                print("5. Recreating indexes...")
+                # Step 6: Recreate indexes
+                print("6. Recreating indexes...")
                 db.session.execute(text("""
                     CREATE INDEX idx_item_tenant ON items(tenant_id, is_active);
                 """))
