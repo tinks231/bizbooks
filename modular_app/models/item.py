@@ -58,6 +58,9 @@ class Item(db.Model, TimestampMixin):
         db.Index('idx_item_tenant', 'tenant_id', 'is_active'),
         db.Index('idx_item_sku', 'sku'),
         db.Index('idx_item_category', 'category_id'),
+        # SKU must be unique PER TENANT, not globally
+        # This allows Tenant A and Tenant B to both have ITEM-0001
+        db.UniqueConstraint('tenant_id', 'sku', name='uq_tenant_sku'),
     )
     
     id = db.Column(db.Integer, primary_key=True)
@@ -65,7 +68,7 @@ class Item(db.Model, TimestampMixin):
     
     # ===== Basic Information =====
     name = db.Column(db.String(200), nullable=False)
-    sku = db.Column(db.String(100), unique=True, nullable=False)  # Auto-generated: ITEM-0001
+    sku = db.Column(db.String(100), nullable=False)  # Auto-generated: ITEM-0001 (unique per tenant)
     type = db.Column(db.String(20), default='goods')  # 'goods' or 'service'
     
     # ===== Classification =====
