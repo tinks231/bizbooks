@@ -231,7 +231,7 @@
         <div class="form-row">
             <div class="form-group">
                 <label>Cost Price (₹) *</label>
-                <input type="number" name="cost_price" step="0.01" min="0" required placeholder="0.00">
+                <input type="number" id="costPrice" name="cost_price" step="0.01" min="0" required placeholder="0.00" onchange="calculateOpeningStockValue()">
             </div>
             <div class="form-group">
                 <label>Account</label>
@@ -272,13 +272,13 @@
             <div class="form-row">
                 <div class="form-group">
                     <label>Opening Stock</label>
-                    <input type="number" name="opening_stock" step="0.01" min="0" placeholder="0.00">
-                    <small style="color: #7f8c8d;">Initial stock quantity</small>
+                    <input type="number" id="openingStock" name="opening_stock" step="0.01" min="0" placeholder="0.00" onchange="calculateOpeningStockValue()">
+                    <small style="color: #7f8c8d;">Initial stock quantity (how much you already have)</small>
                 </div>
                 <div class="form-group">
-                    <label>Opening Stock Value (₹)</label>
-                    <input type="number" name="opening_stock_value" step="0.01" min="0" placeholder="0.00">
-                    <small style="color: #7f8c8d;">Total value of opening stock</small>
+                    <label>Opening Stock Value (₹) <span style="color: #27ae60; font-weight: normal; font-size: 12px;">⚡ Auto-calculated</span></label>
+                    <input type="number" id="openingStockValue" name="opening_stock_value" step="0.01" min="0" placeholder="0.00" readonly style="background: #f8f9fa; cursor: not-allowed;">
+                    <small style="color: #7f8c8d;">= Opening Stock × Cost Price (auto-calculated)</small>
                 </div>
             </div>
 
@@ -337,6 +337,27 @@
         } else {
             inventoryFields.style.display = 'none';
         }
+    }
+    
+    // Auto-calculate Opening Stock Value
+    function calculateOpeningStockValue() {
+        const openingStock = parseFloat(document.getElementById('openingStock').value) || 0;
+        const costPrice = parseFloat(document.getElementById('costPrice').value) || 0;
+        
+        // Formula: Opening Stock Value = Opening Stock × Cost Price
+        const openingStockValue = openingStock * costPrice;
+        
+        // Update the field
+        document.getElementById('openingStockValue').value = openingStockValue.toFixed(2);
+        
+        // Visual feedback (flash green briefly)
+        const valueField = document.getElementById('openingStockValue');
+        valueField.style.background = '#d4edda';
+        valueField.style.borderColor = '#28a745';
+        setTimeout(() => {
+            valueField.style.background = '#f8f9fa';
+            valueField.style.borderColor = '#dfe6e9';
+        }, 500);
     }
     
     // Initialize on page load
