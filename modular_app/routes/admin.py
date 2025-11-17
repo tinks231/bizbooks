@@ -59,6 +59,10 @@ def login():
             
             # Make session permanent (lasts for PERMANENT_SESSION_LIFETIME)
             t2 = time.time()
+            
+            # Clear any existing session data (prevents flash message accumulation)
+            session.clear()
+            
             session.permanent = True
             session['tenant_admin_id'] = tenant.id
             session['tenant_subdomain'] = tenant.subdomain

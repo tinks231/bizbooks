@@ -48,9 +48,52 @@ class Tenant(db.Model):
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     last_login_at = db.Column(db.DateTime)
     
-    # Relationships
+    # Relationships (CASCADE DELETE - deleting tenant deletes ALL related data)
     employees = db.relationship('Employee', backref='tenant', lazy=True, cascade='all, delete-orphan')
     sites = db.relationship('Site', backref='tenant', lazy=True, cascade='all, delete-orphan')
+    
+    # Inventory & Items
+    items = db.relationship('Item', backref='tenant', lazy='dynamic', cascade='all, delete-orphan')
+    item_groups = db.relationship('ItemGroup', backref='tenant', lazy='dynamic', cascade='all, delete-orphan')
+    item_categories = db.relationship('ItemCategory', backref='tenant', lazy='dynamic', cascade='all, delete-orphan')
+    item_stocks = db.relationship('ItemStock', backref='tenant', lazy='dynamic', cascade='all, delete-orphan')
+    item_stock_movements = db.relationship('ItemStockMovement', backref='tenant', lazy='dynamic', cascade='all, delete-orphan')
+    inventory_adjustments = db.relationship('InventoryAdjustment', backref='tenant', lazy='dynamic', cascade='all, delete-orphan')
+    
+    # Sales
+    customers = db.relationship('Customer', backref='tenant', lazy='dynamic', cascade='all, delete-orphan')
+    invoices = db.relationship('Invoice', backref='tenant', lazy='dynamic', cascade='all, delete-orphan')
+    sales_orders = db.relationship('SalesOrder', backref='tenant', lazy='dynamic', cascade='all, delete-orphan')
+    delivery_challans = db.relationship('DeliveryChallan', backref='tenant', lazy='dynamic', cascade='all, delete-orphan')
+    
+    # Purchases
+    vendors = db.relationship('Vendor', backref='tenant', lazy='dynamic', cascade='all, delete-orphan')
+    purchase_bills = db.relationship('PurchaseBill', backref='tenant', lazy='dynamic', cascade='all, delete-orphan')
+    vendor_payments = db.relationship('VendorPayment', backref='tenant', lazy='dynamic', cascade='all, delete-orphan')
+    
+    # Operations
+    tasks = db.relationship('Task', backref='tenant', lazy='dynamic', cascade='all, delete-orphan')
+    purchase_requests = db.relationship('PurchaseRequest', backref='tenant', lazy='dynamic', cascade='all, delete-orphan')
+    expenses = db.relationship('Expense', backref='tenant', lazy='dynamic', cascade='all, delete-orphan')
+    expense_categories = db.relationship('ExpenseCategory', backref='tenant', lazy='dynamic', cascade='all, delete-orphan')
+    
+    # Old inventory system (materials)
+    materials = db.relationship('Material', backref='tenant', lazy='dynamic', cascade='all, delete-orphan')
+    stocks = db.relationship('Stock', backref='tenant', lazy='dynamic', cascade='all, delete-orphan')
+    stock_movements = db.relationship('StockMovement', backref='tenant', lazy='dynamic', cascade='all, delete-orphan')
+    transfers = db.relationship('Transfer', backref='tenant', lazy='dynamic', cascade='all, delete-orphan')
+    
+    # Attendance
+    attendance_records = db.relationship('Attendance', backref='tenant', lazy='dynamic', cascade='all, delete-orphan')
+    
+    # Subscriptions (new feature)
+    subscription_plans = db.relationship('SubscriptionPlan', backref='tenant', lazy='dynamic', cascade='all, delete-orphan')
+    subscriptions = db.relationship('Subscription', backref='tenant', lazy='dynamic', cascade='all, delete-orphan')
+    subscription_payments = db.relationship('SubscriptionPayment', backref='tenant', lazy='dynamic', cascade='all, delete-orphan')
+    
+    # Commission Agents (new feature)
+    commission_agents = db.relationship('CommissionAgent', backref='tenant', lazy='dynamic', cascade='all, delete-orphan')
+    agent_commissions = db.relationship('AgentCommission', backref='tenant', lazy='dynamic', cascade='all, delete-orphan')
     
     def __init__(self, **kwargs):
         super(Tenant, self).__init__(**kwargs)

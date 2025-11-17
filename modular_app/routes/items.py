@@ -33,22 +33,38 @@ def login_required(f):
 
 
 def generate_sku(tenant_id):
-    """Auto-generate SKU for new items"""
-    # Get the last item for this tenant
-    last_item = Item.query.filter_by(tenant_id=tenant_id).order_by(Item.id.desc()).first()
+    """Auto-generate SKU for new items - finds highest ITEM-#### number"""
+    # Get all items with ITEM-#### pattern SKUs for this tenant
+    items = Item.query.filter_by(tenant_id=tenant_id).filter(
+        Item.sku.like('ITEM-%')
+    ).all()
     
-    if last_item and last_item.sku:
-        # Extract number from last SKU (e.g., ITEM-0012 -> 12)
+    # Find the highest number in use
+    max_number = 0
+    for item in items:
         try:
-            last_number = int(last_item.sku.split('-')[1])
-            new_number = last_number + 1
-        except:
-            new_number = 1
-    else:
-        new_number = 1
+            # Extract number from SKU (e.g., ITEM-0012 -> 12)
+            if item.sku and '-' in item.sku:
+                number_part = item.sku.split('-')[1]
+                number = int(number_part)
+                if number > max_number:
+                    max_number = number
+        except (ValueError, IndexError):
+            # Skip malformed SKUs
+            continue
+    
+    # Generate next number
+    new_number = max_number + 1
     
     # Format as ITEM-0001, ITEM-0002, etc.
-    return f"ITEM-{new_number:04d}"
+    new_sku = f"ITEM-{new_number:04d}"
+    
+    # Double-check it doesn't exist (safety check)
+    while Item.query.filter_by(tenant_id=tenant_id, sku=new_sku).first():
+        new_number += 1
+        new_sku = f"ITEM-{new_number:04d}"
+    
+    return new_sku
 
 
 # ===== ITEMS LISTING =====
@@ -258,7 +274,21 @@ def add():
             
         except Exception as e:
             db.session.rollback()
-            flash(f'❌ Error adding item: {str(e)}', 'error')
+            
+            # Check if it's a duplicate SKU error
+            error_str = str(e)
+            if 'duplicate key' in error_str.lower() and 'sku' in error_str.lower():
+                # Extract SKU from error if possible
+                try:
+                    sku_value = request.form.get('sku', '').strip() or sku
+                except:
+                    sku_value = 'unknown'
+                
+                flash(f'❌ Duplicate SKU Error: An item with SKU "{sku_value}" already exists!', 'error')
+                flash('💡 Solution: Either use a different SKU or leave it blank to auto-generate', 'info')
+            else:
+                # Generic error
+                flash(f'❌ Error adding item: {str(e)}', 'error')
     
     # GET request - show form
     categories = ItemCategory.query.filter_by(tenant_id=tenant_id).all()
