@@ -33,11 +33,13 @@ def login_required(f):
 
 
 def generate_sku(tenant_id):
-    """Auto-generate SKU for new items - finds highest ITEM-#### number"""
-    # Get all items with ITEM-#### pattern SKUs for this tenant
-    items = Item.query.filter_by(tenant_id=tenant_id).filter(
-        Item.sku.like('ITEM-%')
-    ).all()
+    """Auto-generate SKU for new items - finds highest ITEM-#### number GLOBALLY"""
+    # IMPORTANT: SKU must be unique GLOBALLY (across ALL tenants), not per-tenant
+    # Database has unique constraint on sku column without tenant_id
+    # So we must check ALL tenants, not just current tenant
+    
+    # Get all items with ITEM-#### pattern SKUs (ALL TENANTS)
+    items = Item.query.filter(Item.sku.like('ITEM-%')).all()
     
     # Find the highest number in use
     max_number = 0
@@ -59,8 +61,8 @@ def generate_sku(tenant_id):
     # Format as ITEM-0001, ITEM-0002, etc.
     new_sku = f"ITEM-{new_number:04d}"
     
-    # Double-check it doesn't exist (safety check)
-    while Item.query.filter_by(tenant_id=tenant_id, sku=new_sku).first():
+    # Double-check it doesn't exist GLOBALLY (safety check)
+    while Item.query.filter_by(sku=new_sku).first():
         new_number += 1
         new_sku = f"ITEM-{new_number:04d}"
     
