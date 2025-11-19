@@ -11,7 +11,7 @@
 {% block content %}
     <!-- Add External Agent Card -->
     <div style="background: white; border-radius: 8px; padding: 25px; margin-bottom: 25px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-        <h3 style="margin: 0 0 10px 0; color: #2c3e50;">➕ Add External Commission Agent</h3>
+        <h3 style="margin: 0 0 10px 0; color: #2c3e50; font-size: 20px; font-weight: 700;">➕ Add External Commission Agent</h3>
         <p style="color: #7f8c8d; margin-bottom: 20px; font-size: 14px;">
             External agents like electricians, brokers, or referral partners who earn commission on sales. 
             <strong>Note:</strong> Employee commissions are managed in the <a href="/admin/employees" style="color: #667eea;">Employee section</a>.
@@ -50,9 +50,9 @@
     <!-- External Agents List -->
     <div style="background: white; border-radius: 8px; padding: 25px; margin-bottom: 25px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
         <div class="section-header">
-            <h3 style="margin: 0; color: #2c3e50; white-space: nowrap; font-size: 18px;">👥 External Commission Agents</h3>
+            <h3 style="margin: 0; color: #2c3e50; white-space: nowrap; font-size: 20px; font-weight: 700;">👥 External Commission Agents</h3>
             <!-- View Toggle (Mobile Only) -->
-            <button id="externalViewToggle" class="view-toggle-btn" onclick="toggleExternalView()" style="display: none;">
+            <button id="externalViewToggle" class="view-toggle-btn" onclick="toggleExternalView()" style="display: none; margin-left: auto;">
                 <span id="externalToggleIcon">📊</span> <span id="externalToggleText">Table</span>
             </button>
         </div>
@@ -198,9 +198,9 @@
     <!-- Employee Agents Reference (Read-Only) -->
     <div style="background: linear-gradient(135deg, #f5f7fa 0%, #ffffff 100%); border: 2px solid #e3f2fd; border-radius: 8px; padding: 25px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
         <div class="section-header">
-            <h3 style="margin: 0; color: #2c3e50; white-space: nowrap; font-size: 18px;">👤 Employee Commission Agents</h3>
+            <h3 style="margin: 0; color: #2c3e50; white-space: nowrap; font-size: 20px; font-weight: 700;">👤 Employee Commission Agents</h3>
             <!-- View Toggle (Mobile Only) -->
-            <button id="employeeViewToggle" class="view-toggle-btn" onclick="toggleEmployeeView()" style="display: none;">
+            <button id="employeeViewToggle" class="view-toggle-btn" onclick="toggleEmployeeView()" style="display: none; margin-left: auto;">
                 <span id="employeeToggleIcon">📊</span> <span id="employeeToggleText">Table</span>
             </button>
         </div>
@@ -399,23 +399,23 @@
                 font-size: 13px;
             }
             
-            /* Section header - make heading smaller if needed */
+            /* Section header - keep readable size on mobile */
             .section-header h3 {
-                font-size: 14px !important;
+                font-size: 16px !important;
                 line-height: 1.3;
             }
             
-            /* Stack header on very small screens if text wraps */
+            /* Ensure toggle button stays on right */
+            .section-header {
+                display: flex;
+                flex-wrap: nowrap;
+                align-items: center;
+            }
+            
+            /* Stack header on very small screens if needed */
             @media (max-width: 400px) {
-                .section-header {
-                    flex-direction: column;
-                    align-items: flex-start;
-                    gap: 10px;
-                }
-                
                 .section-header h3 {
-                    font-size: 13px !important;
-                    white-space: normal !important;
+                    font-size: 14px !important;
                 }
             }
             
