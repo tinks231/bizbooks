@@ -49,9 +49,18 @@
 
     <!-- External Agents List -->
     <div style="background: white; border-radius: 8px; padding: 25px; margin-bottom: 25px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-        <h3 style="margin: 0 0 20px 0; color: #2c3e50;">👥 External Commission Agents</h3>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h3 style="margin: 0; color: #2c3e50;">👥 External Commission Agents</h3>
+            <!-- View Toggle (Mobile Only) -->
+            <button id="externalViewToggle" class="view-toggle-btn" onclick="toggleExternalView()" style="display: none;">
+                <span id="externalToggleIcon">📊</span> <span id="externalToggleText">Table</span>
+            </button>
+        </div>
         
         {% if external_agents %}
+        
+        <!-- Desktop Table View -->
+        <div id="externalTableView" class="desktop-table">
         <table style="width: 100%; border-collapse: collapse;">
             <thead>
                 <tr style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
@@ -106,6 +115,77 @@
                 {% endfor %}
             </tbody>
         </table>
+        </div>
+        <!-- End Desktop Table View -->
+        
+        <!-- Mobile Card View -->
+        <div id="externalCardView" class="mobile-cards" style="display: none;">
+            {% for agent in external_agents %}
+            <div class="agent-card" style="background: #f8f9fa; border: 1px solid #e0e0e0; border-radius: 10px; padding: 15px; margin-bottom: 15px;">
+                <!-- Card Header -->
+                <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
+                    <div style="flex: 1;">
+                        <div style="font-size: 16px; font-weight: 700; color: #2c3e50; margin-bottom: 4px;">
+                            {{ agent.name }}
+                        </div>
+                        {% if agent.code %}
+                        <div style="font-size: 12px; color: #7f8c8d;">
+                            Code: {{ agent.code }}
+                        </div>
+                        {% endif %}
+                    </div>
+                    <div>
+                        {% if agent.is_active %}
+                        <span style="background: #d4edda; color: #155724; padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; white-space: nowrap;">● Active</span>
+                        {% else %}
+                        <span style="background: #f8d7da; color: #721c24; padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; white-space: nowrap;">● Inactive</span>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <!-- Card Info Grid -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; padding: 10px; background: white; border-radius: 6px;">
+                    <div>
+                        <div style="font-size: 11px; color: #6c757d;">Phone</div>
+                        <div style="font-size: 13px; font-weight: 600; color: #495057;">
+                            {% if agent.phone %}📞 {{ agent.phone }}{% else %}—{% endif %}
+                        </div>
+                    </div>
+                    <div>
+                        <div style="font-size: 11px; color: #6c757d;">Commission</div>
+                        <div style="font-size: 14px; font-weight: 700; color: #155724;">
+                            💰 {{ agent.default_commission_percentage }}%
+                        </div>
+                    </div>
+                    {% if agent.email %}
+                    <div style="grid-column: span 2;">
+                        <div style="font-size: 11px; color: #6c757d;">Email</div>
+                        <div style="font-size: 12px; font-weight: 600; color: #495057; word-break: break-all;">
+                            ✉️ {{ agent.email }}
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+                
+                <!-- Actions -->
+                {% if agent.is_active %}
+                <div style="display: flex; gap: 8px; justify-content: flex-end;">
+                    <button onclick="editAgent({{ agent.id }}, '{{ agent.name }}', '{{ agent.code or '' }}', '{{ agent.phone or '' }}', '{{ agent.email or '' }}', {{ agent.default_commission_percentage }})" 
+                            style="flex: 1; text-align: center; padding: 10px; background: #667eea; color: white; border: none; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer;">
+                        ✏️ Edit
+                    </button>
+                    <form method="POST" action="/admin/commission-agent/delete/{{ agent.id }}" style="flex: 1;" onsubmit="return confirm('Deactivate this agent?')">
+                        <button type="submit" style="width: 100%; text-align: center; padding: 10px; background: #dc3545; color: white; border: none; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer;">
+                            🗑️ Deactivate
+                        </button>
+                    </form>
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+        <!-- End Mobile Card View -->
+        
         {% else %}
         <div style="text-align: center; padding: 40px; color: #7f8c8d;">
             <div style="font-size: 48px; margin-bottom: 15px;">👥</div>
@@ -117,13 +197,22 @@
 
     <!-- Employee Agents Reference (Read-Only) -->
     <div style="background: linear-gradient(135deg, #f5f7fa 0%, #ffffff 100%); border: 2px solid #e3f2fd; border-radius: 8px; padding: 25px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-        <h3 style="margin: 0 0 10px 0; color: #2c3e50;">👤 Employee Commission Agents (Reference)</h3>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <h3 style="margin: 0; color: #2c3e50;">👤 Employee Commission Agents (Reference)</h3>
+            <!-- View Toggle (Mobile Only) -->
+            <button id="employeeViewToggle" class="view-toggle-btn" onclick="toggleEmployeeView()" style="display: none;">
+                <span id="employeeToggleIcon">📊</span> <span id="employeeToggleText">Table</span>
+            </button>
+        </div>
         <p style="color: #7f8c8d; margin-bottom: 20px; font-size: 14px;">
             These are employees who have commission enabled. To manage employee commissions, go to the 
             <a href="/admin/employees" style="color: #667eea; font-weight: 600;">Employee Management</a> page.
         </p>
         
         {% if employee_agents %}
+        
+        <!-- Desktop Table View -->
+        <div id="employeeTableView" class="desktop-table">
         <table style="width: 100%; border-collapse: collapse;">
             <thead>
                 <tr style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
@@ -154,6 +243,48 @@
                 {% endfor %}
             </tbody>
         </table>
+        </div>
+        <!-- End Desktop Table View -->
+        
+        <!-- Mobile Card View -->
+        <div id="employeeCardView" class="mobile-cards" style="display: none;">
+            {% for agent in employee_agents %}
+            <div class="agent-card" style="background: white; border: 1px solid #e3f2fd; border-radius: 10px; padding: 15px; margin-bottom: 15px;">
+                <!-- Card Header -->
+                <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
+                    <div style="flex: 1;">
+                        <div style="font-size: 16px; font-weight: 700; color: #2c3e50; margin-bottom: 4px;">
+                            {{ agent.name }}
+                        </div>
+                        <div style="font-size: 12px; color: #7f8c8d;">
+                            Code: {{ agent.code }}
+                        </div>
+                    </div>
+                    <div>
+                        <span style="background: #e3f2fd; color: #1565c0; padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 600;">👤 Employee</span>
+                    </div>
+                </div>
+                
+                <!-- Card Info Grid -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 10px; background: #f5f7fa; border-radius: 6px;">
+                    <div>
+                        <div style="font-size: 11px; color: #6c757d;">Phone</div>
+                        <div style="font-size: 13px; font-weight: 600; color: #495057;">
+                            {% if agent.phone %}📞 {{ agent.phone }}{% else %}—{% endif %}
+                        </div>
+                    </div>
+                    <div>
+                        <div style="font-size: 11px; color: #6c757d;">Commission</div>
+                        <div style="font-size: 14px; font-weight: 700; color: #155724;">
+                            💰 {{ agent.default_commission_percentage }}%
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        <!-- End Mobile Card View -->
+        
         {% else %}
         <div style="text-align: center; padding: 30px; color: #7f8c8d;">
             <p style="font-size: 14px; margin: 0;">No employees have commission enabled yet.</p>
@@ -201,7 +332,148 @@
         </div>
     </div>
 
+    <style>
+        /* View toggle button styling */
+        .view-toggle-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 8px 15px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 13px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        /* Desktop: Always show table, hide toggle button */
+        @media (min-width: 769px) {
+            #externalTableView, #employeeTableView {
+                display: block !important;
+            }
+            #externalCardView, #employeeCardView {
+                display: none !important;
+            }
+            #externalViewToggle, #employeeViewToggle {
+                display: none !important;
+            }
+        }
+        
+        /* Mobile: Show toggle button and respect user preference */
+        @media (max-width: 768px) {
+            #externalViewToggle, #employeeViewToggle {
+                display: inline-flex !important;
+            }
+            
+            /* External Agents - Default: Card view */
+            body:not(.show-external-table) #externalTableView {
+                display: none !important;
+            }
+            body:not(.show-external-table) #externalCardView {
+                display: block !important;
+            }
+            body.show-external-table #externalTableView {
+                display: block !important;
+            }
+            body.show-external-table #externalCardView {
+                display: none !important;
+            }
+            
+            /* Employee Agents - Default: Card view */
+            body:not(.show-employee-table) #employeeTableView {
+                display: none !important;
+            }
+            body:not(.show-employee-table) #employeeCardView {
+                display: block !important;
+            }
+            body.show-employee-table #employeeTableView {
+                display: block !important;
+            }
+            body.show-employee-table #employeeCardView {
+                display: none !important;
+            }
+            
+            /* Reduce padding on mobile for better spacing */
+            table th, table td {
+                padding: 8px !important;
+                font-size: 11px !important;
+            }
+        }
+    </style>
+
     <script>
+        // External Agents View Toggle
+        function toggleExternalView() {
+            const body = document.body;
+            const toggleIcon = document.getElementById('externalToggleIcon');
+            const toggleText = document.getElementById('externalToggleText');
+            
+            if (body.classList.contains('show-external-table')) {
+                body.classList.remove('show-external-table');
+                toggleIcon.textContent = '📊';
+                toggleText.textContent = 'Table';
+                localStorage.setItem('externalAgentsView', 'card');
+            } else {
+                body.classList.add('show-external-table');
+                toggleIcon.textContent = '🃏';
+                toggleText.textContent = 'Card';
+                localStorage.setItem('externalAgentsView', 'table');
+            }
+        }
+        
+        // Employee Agents View Toggle
+        function toggleEmployeeView() {
+            const body = document.body;
+            const toggleIcon = document.getElementById('employeeToggleIcon');
+            const toggleText = document.getElementById('employeeToggleText');
+            
+            if (body.classList.contains('show-employee-table')) {
+                body.classList.remove('show-employee-table');
+                toggleIcon.textContent = '📊';
+                toggleText.textContent = 'Table';
+                localStorage.setItem('employeeAgentsView', 'card');
+            } else {
+                body.classList.add('show-employee-table');
+                toggleIcon.textContent = '🃏';
+                toggleText.textContent = 'Card';
+                localStorage.setItem('employeeAgentsView', 'table');
+            }
+        }
+        
+        // Load saved preferences on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            // External Agents preference
+            const externalView = localStorage.getItem('externalAgentsView');
+            const externalToggleIcon = document.getElementById('externalToggleIcon');
+            const externalToggleText = document.getElementById('externalToggleText');
+            
+            if (externalView === 'table') {
+                document.body.classList.add('show-external-table');
+                if (externalToggleIcon) externalToggleIcon.textContent = '🃏';
+                if (externalToggleText) externalToggleText.textContent = 'Card';
+            } else {
+                if (externalToggleIcon) externalToggleIcon.textContent = '📊';
+                if (externalToggleText) externalToggleText.textContent = 'Table';
+            }
+            
+            // Employee Agents preference
+            const employeeView = localStorage.getItem('employeeAgentsView');
+            const employeeToggleIcon = document.getElementById('employeeToggleIcon');
+            const employeeToggleText = document.getElementById('employeeToggleText');
+            
+            if (employeeView === 'table') {
+                document.body.classList.add('show-employee-table');
+                if (employeeToggleIcon) employeeToggleIcon.textContent = '🃏';
+                if (employeeToggleText) employeeToggleText.textContent = 'Card';
+            } else {
+                if (employeeToggleIcon) employeeToggleIcon.textContent = '📊';
+                if (employeeToggleText) employeeToggleText.textContent = 'Table';
+            }
+        });
+        
+        // Edit Agent Modal Functions
         function editAgent(id, name, code, phone, email, commissionPercentage) {
             document.getElementById('editAgentModal').style.display = 'flex';
             document.getElementById('editAgentForm').action = '/admin/commission-agent/edit/' + id;
