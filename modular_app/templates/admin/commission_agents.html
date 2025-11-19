@@ -49,10 +49,10 @@
 
     <!-- External Agents List -->
     <div style="background: white; border-radius: 8px; padding: 25px; margin-bottom: 25px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-        <div class="section-header">
-            <h3 style="margin: 0; color: #2c3e50; white-space: nowrap; font-size: 20px; font-weight: 700;">👥 External Commission Agents</h3>
-            <!-- View Toggle (Mobile Only) -->
-            <button id="externalViewToggle" class="view-toggle-btn" onclick="toggleExternalView()" style="display: none; margin-left: auto;">
+        <h3 style="margin: 0 0 10px 0; color: #2c3e50; font-size: 20px; font-weight: 700;">👥 External Commission Agents</h3>
+        <!-- View Toggle (Mobile Only) -->
+        <div style="display: flex; justify-content: flex-end; margin-bottom: 15px;">
+            <button id="externalViewToggle" class="view-toggle-btn" onclick="toggleExternalView()" style="display: none;">
                 <span id="externalToggleIcon">📊</span> <span id="externalToggleText">Table</span>
             </button>
         </div>
@@ -197,17 +197,17 @@
 
     <!-- Employee Agents Reference (Read-Only) -->
     <div style="background: linear-gradient(135deg, #f5f7fa 0%, #ffffff 100%); border: 2px solid #e3f2fd; border-radius: 8px; padding: 25px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-        <div class="section-header">
-            <h3 style="margin: 0; color: #2c3e50; white-space: nowrap; font-size: 20px; font-weight: 700;">👤 Employee Commission Agents</h3>
-            <!-- View Toggle (Mobile Only) -->
-            <button id="employeeViewToggle" class="view-toggle-btn" onclick="toggleEmployeeView()" style="display: none; margin-left: auto;">
-                <span id="employeeToggleIcon">📊</span> <span id="employeeToggleText">Table</span>
-            </button>
-        </div>
-        <p style="color: #7f8c8d; margin-bottom: 20px; font-size: 14px;">
+        <h3 style="margin: 0 0 10px 0; color: #2c3e50; font-size: 20px; font-weight: 700;">👤 Employee Commission Agents</h3>
+        <p style="color: #7f8c8d; margin: 0 0 10px 0; font-size: 14px;">
             These are employees who have commission enabled. To manage employee commissions, go to the 
             <a href="/admin/employees" style="color: #667eea; font-weight: 600;">Employee Management</a> page.
         </p>
+        <!-- View Toggle (Mobile Only) -->
+        <div style="display: flex; justify-content: flex-end; margin-bottom: 15px;">
+            <button id="employeeViewToggle" class="view-toggle-btn" onclick="toggleEmployeeView()" style="display: none;">
+                <span id="employeeToggleIcon">📊</span> <span id="employeeToggleText">Table</span>
+            </button>
+        </div>
         
         {% if employee_agents %}
         
@@ -344,15 +344,6 @@
             grid-column: span 2;
         }
         
-        /* Section header - heading and toggle button */
-        .section-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-            gap: 10px;
-        }
-        
         /* View toggle button styling */
         .view-toggle-btn {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -399,26 +390,7 @@
                 font-size: 13px;
             }
             
-            /* Section header - keep readable size on mobile */
-            .section-header h3 {
-                font-size: 16px !important;
-                line-height: 1.3;
-            }
-            
-            /* Ensure toggle button stays on right */
-            .section-header {
-                display: flex;
-                flex-wrap: nowrap;
-                align-items: center;
-            }
-            
-            /* Stack header on very small screens if needed */
-            @media (max-width: 400px) {
-                .section-header h3 {
-                    font-size: 14px !important;
-                }
-            }
-            
+            /* Show toggle buttons on mobile */
             #externalViewToggle, #employeeViewToggle {
                 display: inline-flex !important;
             }
