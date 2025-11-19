@@ -5,25 +5,25 @@
 {% block page_title %}Task Management{% endblock %}
 
 {% block header_actions %}
-<div style="display: flex; flex-direction: column; gap: 10px;">
+<div style="display: flex; flex-direction: column; gap: 10px; width: 100%;">
     <!-- Row 1: Cleanup and Delete buttons side by side -->
-    <div style="display: flex; gap: 8px;">
+    <div style="display: flex; gap: 8px; width: 100%;">
         <form method="POST" action="{{ url_for('tasks.cleanup_old_media') }}" style="flex: 1;" 
               onsubmit="return confirm('This will delete all task photos/videos older than 30 days to save storage space. Continue?')">
-            <button type="submit" class="btn" style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); color: white; border: none; width: 100%; padding: 10px 8px; font-size: 12px; white-space: normal; line-height: 1.3;">
+            <button type="submit" class="btn" style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); color: white; border: none; width: 100%; padding: 12px 10px; font-size: 13px; white-space: normal; line-height: 1.4;">
                 Cleanup Old Media
             </button>
         </form>
         <form method="POST" action="{{ url_for('tasks.delete_all_completed') }}" style="flex: 1;" 
               onsubmit="return confirm('⚠️ DELETE ALL COMPLETED TASKS?\n\nThis will permanently delete:\n- All completed tasks\n- All their updates\n- All their materials\n- All their photos/videos\n\nThis is immediate and cannot be undone!\n\nContinue?')">
-            <button type="submit" class="btn" style="background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%); color: white; border: none; width: 100%; padding: 10px 8px; font-size: 12px; white-space: normal; line-height: 1.3;">
+            <button type="submit" class="btn" style="background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%); color: white; border: none; width: 100%; padding: 12px 10px; font-size: 13px; white-space: normal; line-height: 1.4;">
                 Delete All Completed
             </button>
         </form>
     </div>
     
-    <!-- Row 2: Create button on new line, left-aligned -->
-    <a href="{{ url_for('tasks.create') }}" class="btn btn-primary" style="padding: 10px 20px; display: inline-block; align-self: flex-start;">
+    <!-- Row 2: Create button on new line, full width -->
+    <a href="{{ url_for('tasks.create') }}" class="btn btn-primary" style="padding: 12px 20px; display: block; text-align: center; width: 100%;">
         ➕ Create New Task
     </a>
 </div>
