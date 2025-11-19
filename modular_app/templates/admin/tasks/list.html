@@ -5,19 +5,19 @@
 {% block page_title %}Task Management{% endblock %}
 
 {% block header_actions %}
-<a href="{{ url_for('tasks.create') }}" class="btn btn-primary">
+<a href="{{ url_for('tasks.create') }}" class="btn btn-primary" style="min-width: 180px;">
     ➕ Create New Task
 </a>
 <form method="POST" action="{{ url_for('tasks.delete_all_completed') }}" style="display: inline;" 
       onsubmit="return confirm('⚠️ DELETE ALL COMPLETED TASKS?\n\nThis will permanently delete:\n- All completed tasks\n- All their updates\n- All their materials\n- All their photos/videos\n\nThis is immediate and cannot be undone!\n\nContinue?')">
-    <button type="submit" class="btn" style="background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%); color: white; border: none;">
+    <button type="submit" class="btn" style="background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%); color: white; border: none; min-width: 180px; padding: 10px 20px;">
         🗑️ Delete All Completed
     </button>
 </form>
 <form method="POST" action="{{ url_for('tasks.cleanup_old_media') }}" style="display: inline;" 
       onsubmit="return confirm('This will delete all task photos/videos older than 30 days to save storage space. Continue?')">
-    <button type="submit" class="btn" style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); color: white; border: none;">
-        🧹 Cleanup Old Media (30+ days)
+    <button type="submit" class="btn" style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); color: white; border: none; min-width: 180px; padding: 10px 20px;">
+        🧹 Cleanup Old Media
     </button>
 </form>
 {% endblock %}
@@ -113,6 +113,13 @@
     </form>
 </div>
 
+<!-- View Toggle (Mobile Only) -->
+<div style="display: flex; justify-content: flex-end; margin-bottom: 15px;">
+    <button id="tasksViewToggle" class="view-toggle-btn" onclick="toggleTasksView()" style="display: none;">
+        <span id="tasksToggleIcon">📊</span> <span id="tasksToggleText">Table</span>
+    </button>
+</div>
+
 <!-- Tasks List -->
 <div class="card">
     <div class="card-header">
@@ -120,6 +127,9 @@
     </div>
     
     {% if tasks %}
+    
+    <!-- Desktop Table View -->
+    <div id="tasksTableView" class="desktop-table">
     <div style="overflow-x: auto;">
         <table class="table">
             <thead>
@@ -201,6 +211,112 @@
             </tbody>
         </table>
     </div>
+    </div>
+    <!-- End Desktop Table View -->
+    
+    <!-- Mobile Card View -->
+    <div id="tasksCardView" class="mobile-cards" style="display: none;">
+        {% for task in tasks %}
+        <div class="task-card" style="background: white; border: 1px solid #e0e0e0; border-radius: 10px; padding: 15px; margin-bottom: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+            <!-- Card Header -->
+            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
+                <div style="flex: 1;">
+                    <div style="font-size: 12px; color: #7f8c8d; margin-bottom: 4px;">
+                        <strong>{{ task.task_number }}</strong>
+                    </div>
+                    <div style="font-size: 16px; font-weight: 700; color: #2c3e50; margin-bottom: 6px;">
+                        {{ task.title }}
+                    </div>
+                    {% if task.description %}
+                    <div style="font-size: 13px; color: #666; margin-bottom: 8px;">
+                        {{ task.description[:60] }}{% if task.description|length > 60 %}...{% endif %}
+                    </div>
+                    {% endif %}
+                </div>
+                <div>
+                    {% if task.priority == 'high' %}
+                    <span style="background: #e74c3c; color: white; padding: 4px 8px; border-radius: 4px; font-size: 11px; white-space: nowrap;">🔥 HIGH</span>
+                    {% elif task.priority == 'medium' %}
+                    <span style="background: #f39c12; color: white; padding: 4px 8px; border-radius: 4px; font-size: 11px; white-space: nowrap;">⚠️ MED</span>
+                    {% else %}
+                    <span style="background: #95a5a6; color: white; padding: 4px 8px; border-radius: 4px; font-size: 11px; white-space: nowrap;">LOW</span>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Status Badge -->
+            <div style="margin-bottom: 12px;">
+                {% if task.status == 'new' %}
+                <span style="background: #3498db; color: white; padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 600; display: inline-block;">🆕 NEW</span>
+                {% elif task.status == 'in_progress' %}
+                <span style="background: #f39c12; color: white; padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 600; display: inline-block;">🔄 IN PROGRESS</span>
+                {% elif task.status == 'completed' %}
+                <span style="background: #27ae60; color: white; padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 600; display: inline-block;">✅ COMPLETED</span>
+                {% else %}
+                <span style="background: #95a5a6; color: white; padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 600; display: inline-block;">❌ CANCELLED</span>
+                {% endif %}
+            </div>
+            
+            <!-- Progress Bar -->
+            <div style="margin-bottom: 12px;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                    <span style="font-size: 11px; color: #7f8c8d;">Progress</span>
+                    <span style="font-size: 11px; font-weight: 600; color: #2c3e50;">{{ task.get_progress_percentage() }}%</span>
+                </div>
+                <div style="width: 100%; background: #ecf0f1; border-radius: 10px; height: 8px; overflow: hidden;">
+                    <div style="width: {{ task.get_progress_percentage() }}%; background: linear-gradient(90deg, #3498db, #2ecc71); height: 100%;"></div>
+                </div>
+            </div>
+            
+            <!-- Task Info Grid -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; padding: 10px; background: #f8f9fa; border-radius: 6px;">
+                <div>
+                    <div style="font-size: 11px; color: #6c757d;">Assigned To</div>
+                    <div style="font-size: 13px; font-weight: 600; color: #495057;">
+                        {{ task.employee.name }}
+                    </div>
+                </div>
+                <div>
+                    <div style="font-size: 11px; color: #6c757d;">Site</div>
+                    <div style="font-size: 13px; font-weight: 600; color: #495057;">
+                        {{ task.site.name if task.site else '—' }}
+                    </div>
+                </div>
+                <div style="grid-column: span 2;">
+                    <div style="font-size: 11px; color: #6c757d;">Deadline</div>
+                    <div style="font-size: 13px; font-weight: 600; color: #495057;">
+                        {% if task.deadline %}
+                        {{ task.deadline.strftime('%d-%b-%Y') }}
+                        {% if task.is_overdue() %}
+                        <span style="color: #e74c3c; font-size: 11px; margin-left: 5px;">⚠️ OVERDUE</span>
+                        {% endif %}
+                        {% else %}
+                        —
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Actions -->
+            <div style="display: flex; gap: 8px; justify-content: flex-end;">
+                <a href="{{ url_for('tasks.view', task_id=task.id) }}" 
+                   style="flex: 1; text-align: center; padding: 10px; background: #3498db; color: white; text-decoration: none; border-radius: 6px; font-size: 13px; font-weight: 600;">
+                    👁️ View
+                </a>
+                {% if task.status in ['completed', 'cancelled'] %}
+                <form method="POST" action="{{ url_for('tasks.delete_task', task_id=task.id) }}" style="flex: 1;" 
+                      onsubmit="return confirm('⚠️ Delete {{ task.task_number }}?\n\nThis will permanently delete:\n- Task record\n- All updates\n- All materials\n- All photos/videos\n\nThis cannot be undone!')">
+                    <button type="submit" style="width: 100%; text-align: center; padding: 10px; background: #e74c3c; color: white; border: none; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer;">
+                        🗑️ Delete
+                    </button>
+                </form>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    <!-- End Mobile Card View -->
+    
     {% else %}
     <div style="padding: 40px; text-align: center; color: #7f8c8d;">
         <p style="font-size: 18px; margin-bottom: 10px;">📋 No tasks found</p>
@@ -213,12 +329,108 @@
 </div>
 
 <style>
-@media (max-width: 768px) {
-    .stats-grid {
-        grid-template-columns: repeat(2, 1fr) !important;
+    /* View toggle button styling */
+    .view-toggle-btn {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 8px 15px;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-weight: 600;
+        font-size: 13px;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+    }
+    
+    /* Desktop: Always show table, hide toggle button */
+    @media (min-width: 769px) {
+        #tasksTableView {
+            display: block !important;
+        }
+        #tasksCardView {
+            display: none !important;
+        }
+        #tasksViewToggle {
+            display: none !important;
+        }
+    }
+    
+    /* Mobile: Show toggle button and respect user preference */
+    @media (max-width: 768px) {
+        .stats-grid {
+            grid-template-columns: repeat(2, 1fr) !important;
+        }
+        
+        #tasksViewToggle {
+            display: inline-flex !important;
+        }
+        
+        /* Default: Card view */
+        body:not(.show-tasks-table) #tasksTableView {
+            display: none !important;
+        }
+        body:not(.show-tasks-table) #tasksCardView {
+            display: block !important;
+        }
+        
+        /* Table view */
+        body.show-tasks-table #tasksTableView {
+            display: block !important;
+        }
+        body.show-tasks-table #tasksCardView {
+            display: none !important;
+        }
+        
+        /* Reduce table padding on mobile */
+        #tasksTableView table th,
+        #tasksTableView table td {
+            padding: 6px 4px !important;
+            font-size: 11px !important;
+        }
+    }
+</style>
+
+<script>
+// Toggle between table and card view on mobile
+function toggleTasksView() {
+    const body = document.body;
+    const toggleIcon = document.getElementById('tasksToggleIcon');
+    const toggleText = document.getElementById('tasksToggleText');
+    
+    if (body.classList.contains('show-tasks-table')) {
+        // Switch to card view
+        body.classList.remove('show-tasks-table');
+        toggleIcon.textContent = '📊';
+        toggleText.textContent = 'Table';
+        localStorage.setItem('tasksView', 'card');
+    } else {
+        // Switch to table view
+        body.classList.add('show-tasks-table');
+        toggleIcon.textContent = '🃏';
+        toggleText.textContent = 'Card';
+        localStorage.setItem('tasksView', 'table');
     }
 }
-</style>
+
+// Load saved view preference on page load
+document.addEventListener('DOMContentLoaded', function() {
+    const savedView = localStorage.getItem('tasksView');
+    const toggleIcon = document.getElementById('tasksToggleIcon');
+    const toggleText = document.getElementById('tasksToggleText');
+    
+    if (savedView === 'table') {
+        document.body.classList.add('show-tasks-table');
+        if (toggleIcon) toggleIcon.textContent = '🃏';
+        if (toggleText) toggleText.textContent = 'Card';
+    } else {
+        // Default to card view on mobile
+        if (toggleIcon) toggleIcon.textContent = '📊';
+        if (toggleText) toggleText.textContent = 'Table';
+    }
+});
+</script>
 
 {% endblock %}
 
