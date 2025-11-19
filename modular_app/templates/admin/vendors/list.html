@@ -42,6 +42,13 @@
     </form>
 </div>
 
+<!-- View Toggle (Mobile Only) -->
+<div style="display: flex; justify-content: flex-end; margin-bottom: 15px;">
+    <button id="viewToggle" class="btn btn-primary" onclick="toggleView()" style="display: none;">
+        <span id="toggleIcon">📊</span> <span id="toggleText">Table View</span>
+    </button>
+</div>
+
 <!-- Vendors Table -->
 <div class="card">
     <div class="card-header">
@@ -49,6 +56,9 @@
     </div>
     
     {% if vendors %}
+    
+    <!-- Desktop Table View -->
+    <div id="tableView" class="desktop-table">
     <div style="overflow-x: auto;">
         <table class="table">
             <thead>
@@ -132,6 +142,89 @@
             </tbody>
         </table>
     </div>
+    </div>
+    <!-- End Desktop Table View -->
+    
+    <!-- Mobile Card View -->
+    <div id="cardView" class="mobile-cards" style="display: none;">
+        {% for vendor in vendors %}
+        <div class="vendor-card" style="background: white; border: 1px solid #e0e0e0; border-radius: 10px; padding: 15px; margin-bottom: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+            <!-- Card Header -->
+            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
+                <div style="flex: 1;">
+                    <div style="font-size: 16px; font-weight: 700; color: #2c3e50; margin-bottom: 4px;">
+                        {{ vendor.name }}
+                    </div>
+                    {% if vendor.company_name and vendor.company_name != vendor.name %}
+                    <div style="font-size: 12px; color: #7f8c8d;">
+                        {{ vendor.company_name }}
+                    </div>
+                    {% endif %}
+                    <div style="font-size: 11px; color: #95a5a6; margin-top: 4px;">
+                        Code: {{ vendor.vendor_code }}
+                    </div>
+                </div>
+                <div>
+                    {% if vendor.is_active %}
+                    <span class="badge badge-success">Active</span>
+                    {% else %}
+                    <span class="badge badge-secondary">Inactive</span>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Card Info Grid -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; padding: 10px; background: #f8f9fa; border-radius: 6px;">
+                <div>
+                    <div style="font-size: 11px; color: #6c757d;">Contact</div>
+                    <div style="font-size: 13px; font-weight: 600; color: #495057;">
+                        {% if vendor.phone %}📞 {{ vendor.phone }}{% else %}—{% endif %}
+                    </div>
+                </div>
+                <div>
+                    <div style="font-size: 11px; color: #6c757d;">State</div>
+                    <div style="font-size: 13px; font-weight: 600; color: #495057;">
+                        {{ vendor.state or '—' }}
+                    </div>
+                </div>
+                <div>
+                    <div style="font-size: 11px; color: #6c757d;">Purchases</div>
+                    <div style="font-size: 13px; font-weight: 600; color: #495057;">
+                        <span class="badge badge-info">{{ vendor.purchase_count or 0 }}</span>
+                    </div>
+                </div>
+                <div>
+                    <div style="font-size: 11px; color: #6c757d;">GST</div>
+                    <div style="font-size: 11px; font-weight: 600; color: #495057;">
+                        {{ vendor.gstin or '—' }}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Payment Terms -->
+            <div style="padding: 10px; background: #e7f3ff; border-radius: 6px; margin-bottom: 12px;">
+                <div style="font-size: 11px; color: #0056b3; margin-bottom: 4px;">Payment Terms</div>
+                <div style="font-size: 13px; font-weight: 600; color: #004085;">
+                    {{ vendor.payment_terms or '—' }}
+                </div>
+            </div>
+            
+            <!-- Actions -->
+            <div style="display: flex; gap: 8px; justify-content: flex-end;">
+                <a href="{{ url_for('vendors.ledger', vendor_id=vendor.id) }}" 
+                   style="flex: 1; text-align: center; padding: 8px; background: #17a2b8; color: white; text-decoration: none; border-radius: 6px; font-size: 13px; font-weight: 600;">
+                    📄 Ledger
+                </a>
+                <a href="{{ url_for('vendors.edit', vendor_id=vendor.id) }}" 
+                   style="flex: 1; text-align: center; padding: 8px; background: #3498db; color: white; text-decoration: none; border-radius: 6px; font-size: 13px; font-weight: 600;">
+                    ✏️ Edit
+                </a>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    <!-- End Mobile Card View -->
+    
     {% else %}
     <div style="padding: 40px; text-align: center; color: #7f8c8d;">
         <p style="font-size: 48px; margin-bottom: 10px;">🏭</p>
@@ -194,22 +287,96 @@
         background: #f8f9fa;
     }
     
+    /* Desktop: Always show table, hide toggle button */
+    @media (min-width: 769px) {
+        #tableView {
+            display: block !important;
+        }
+        #cardView {
+            display: none !important;
+        }
+        #viewToggle {
+            display: none !important;
+        }
+    }
+    
+    /* Mobile: Show toggle button and respect user preference */
     @media (max-width: 768px) {
+        #viewToggle {
+            display: inline-block !important;
+        }
+        
+        /* Default: Card view (when body doesn't have show-table class) */
+        body:not(.show-table) #tableView {
+            display: none !important;
+        }
+        body:not(.show-table) #cardView {
+            display: block !important;
+        }
+        
+        /* Table view (when body has show-table class) */
+        body.show-table #tableView {
+            display: block !important;
+        }
+        body.show-table #cardView {
+            display: none !important;
+        }
+        
         .table {
-            font-size: 13px;
+            font-size: 11px;
         }
         
         .table th,
         .table td {
-            padding: 8px;
+            padding: 6px;
         }
         
         .btn-sm {
             padding: 4px 8px;
-            font-size: 12px;
+            font-size: 11px;
         }
     }
 </style>
+
+<script>
+// Toggle between table and card view on mobile
+function toggleView() {
+    const body = document.body;
+    const toggleIcon = document.getElementById('toggleIcon');
+    const toggleText = document.getElementById('toggleText');
+    
+    if (body.classList.contains('show-table')) {
+        // Switch to card view
+        body.classList.remove('show-table');
+        toggleIcon.textContent = '📊';
+        toggleText.textContent = 'Table View';
+        localStorage.setItem('vendorsView', 'card');
+    } else {
+        // Switch to table view
+        body.classList.add('show-table');
+        toggleIcon.textContent = '🃏';
+        toggleText.textContent = 'Card View';
+        localStorage.setItem('vendorsView', 'table');
+    }
+}
+
+// Load saved view preference on page load
+document.addEventListener('DOMContentLoaded', function() {
+    const savedView = localStorage.getItem('vendorsView');
+    const toggleIcon = document.getElementById('toggleIcon');
+    const toggleText = document.getElementById('toggleText');
+    
+    if (savedView === 'table') {
+        document.body.classList.add('show-table');
+        if (toggleIcon) toggleIcon.textContent = '🃏';
+        if (toggleText) toggleText.textContent = 'Card View';
+    } else {
+        // Default to card view on mobile
+        if (toggleIcon) toggleIcon.textContent = '📊';
+        if (toggleText) toggleText.textContent = 'Table View';
+    }
+});
+</script>
 
 {% endblock %}
 
