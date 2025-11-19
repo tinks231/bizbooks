@@ -5,21 +5,27 @@
 {% block page_title %}Task Management{% endblock %}
 
 {% block header_actions %}
-<a href="{{ url_for('tasks.create') }}" class="btn btn-primary" style="min-width: 180px;">
-    ➕ Create New Task
-</a>
-<form method="POST" action="{{ url_for('tasks.delete_all_completed') }}" style="display: inline;" 
-      onsubmit="return confirm('⚠️ DELETE ALL COMPLETED TASKS?\n\nThis will permanently delete:\n- All completed tasks\n- All their updates\n- All their materials\n- All their photos/videos\n\nThis is immediate and cannot be undone!\n\nContinue?')">
-    <button type="submit" class="btn" style="background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%); color: white; border: none; min-width: 180px; padding: 10px 20px;">
-        🗑️ Delete All Completed
-    </button>
-</form>
-<form method="POST" action="{{ url_for('tasks.cleanup_old_media') }}" style="display: inline;" 
-      onsubmit="return confirm('This will delete all task photos/videos older than 30 days to save storage space. Continue?')">
-    <button type="submit" class="btn" style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); color: white; border: none; min-width: 180px; padding: 10px 20px;">
-        🧹 Cleanup Old Media
-    </button>
-</form>
+<div style="display: flex; flex-wrap: wrap; gap: 10px;">
+    <!-- Row 1: Cleanup and Delete buttons side by side -->
+    <form method="POST" action="{{ url_for('tasks.cleanup_old_media') }}" style="display: inline;" 
+          onsubmit="return confirm('This will delete all task photos/videos older than 30 days to save storage space. Continue?')">
+        <button type="submit" class="btn" style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); color: white; border: none; min-width: 200px; padding: 10px 20px;">
+            🧹 Cleanup Old Media
+        </button>
+    </form>
+    <form method="POST" action="{{ url_for('tasks.delete_all_completed') }}" style="display: inline;" 
+          onsubmit="return confirm('⚠️ DELETE ALL COMPLETED TASKS?\n\nThis will permanently delete:\n- All completed tasks\n- All their updates\n- All their materials\n- All their photos/videos\n\nThis is immediate and cannot be undone!\n\nContinue?')">
+        <button type="submit" class="btn" style="background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%); color: white; border: none; min-width: 200px; padding: 10px 20px;">
+            🗑️ Delete All Completed
+        </button>
+    </form>
+    
+    <!-- Row 2: Create button on new line -->
+    <div style="width: 100%;"></div>
+    <a href="{{ url_for('tasks.create') }}" class="btn btn-primary" style="min-width: 200px; padding: 10px 20px; display: inline-block; text-align: center;">
+        ➕ Create New Task
+    </a>
+</div>
 {% endblock %}
 
 {% block content %}
