@@ -5,18 +5,29 @@
 {% block page_title %}Task Management{% endblock %}
 
 {% block header_actions %}
-<div style="display: flex; flex-direction: column; gap: 10px; margin: 0 -20px;">
+<style>
+    /* Override parent container's 2-column grid for this page */
+    @media (max-width: 768px) {
+        .header-actions {
+            display: block !important;  /* Break out of parent grid */
+            grid-template-columns: none !important;
+            padding: 0 !important;  /* Remove any padding */
+        }
+    }
+</style>
+
+<div style="display: flex; flex-direction: column; gap: 10px; width: 100vw; position: relative; left: 50%; right: 50%; margin-left: -50vw; margin-right: -50vw;">
     <!-- Row 1: Cleanup and Delete buttons side by side -->
-    <div style="display: flex; gap: 0;">
-        <form method="POST" action="{{ url_for('tasks.cleanup_old_media') }}" style="flex: 1;" 
+    <div style="display: flex; gap: 0; width: 100%;">
+        <form method="POST" action="{{ url_for('tasks.cleanup_old_media') }}" style="flex: 1; margin: 0;" 
               onsubmit="return confirm('This will delete all task photos/videos older than 30 days to save storage space. Continue?')">
-            <button type="submit" class="btn" style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); color: white; border: none; width: 100%; padding: 12px 10px; font-size: 13px; white-space: normal; line-height: 1.4; border-radius: 0;">
+            <button type="submit" class="btn" style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); color: white; border: none; width: 100%; padding: 14px 10px; font-size: 14px; white-space: normal; line-height: 1.4; border-radius: 0;">
                 Cleanup Old Media
             </button>
         </form>
-        <form method="POST" action="{{ url_for('tasks.delete_all_completed') }}" style="flex: 1;" 
+        <form method="POST" action="{{ url_for('tasks.delete_all_completed') }}" style="flex: 1; margin: 0;" 
               onsubmit="return confirm('⚠️ DELETE ALL COMPLETED TASKS?\n\nThis will permanently delete:\n- All completed tasks\n- All their updates\n- All their materials\n- All their photos/videos\n\nThis is immediate and cannot be undone!\n\nContinue?')">
-            <button type="submit" class="btn" style="background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%); color: white; border: none; width: 100%; padding: 12px 10px; font-size: 13px; white-space: normal; line-height: 1.4; border-radius: 0;">
+            <button type="submit" class="btn" style="background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%); color: white; border: none; width: 100%; padding: 14px 10px; font-size: 14px; white-space: normal; line-height: 1.4; border-radius: 0;">
                 Delete All Completed
             </button>
         </form>
@@ -24,7 +35,7 @@
     
     <!-- Row 2: Create button on new line, full width -->
     <div style="padding: 0 20px;">
-        <a href="{{ url_for('tasks.create') }}" class="btn btn-primary" style="padding: 12px 20px; display: block; text-align: center; width: 100%;">
+        <a href="{{ url_for('tasks.create') }}" class="btn btn-primary" style="padding: 14px 20px; display: block; text-align: center; width: 100%;">
             ➕ Create New Task
         </a>
     </div>
