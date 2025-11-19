@@ -71,37 +71,108 @@
 
 <!-- Filters -->
 <div class="card" style="margin-bottom: 20px;">
-    <form method="GET" action="{{ url_for('tasks.index') }}" style="display: flex; gap: 15px; flex-wrap: wrap; align-items: flex-end;">
-        <div class="form-group" style="flex: 1; min-width: 200px; margin-bottom: 0;">
+    <style>
+        /* Mobile: Clean Vyapar-style layout */
+        @media (max-width: 768px) {
+            .filter-form {
+                display: grid !important;
+                grid-template-columns: 1fr;
+                gap: 15px;
+            }
+            
+            /* Full width fields */
+            .filter-form .form-group-full {
+                grid-column: span 1;
+            }
+            
+            /* 50/50 split fields */
+            .filter-form .form-row-split {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 10px;
+            }
+            
+            /* Button row */
+            .filter-form .button-row {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 10px;
+            }
+            
+            .filter-form .form-group {
+                margin-bottom: 0 !important;
+                min-width: 0 !important;
+            }
+        }
+        
+        /* Desktop: Flex layout */
+        @media (min-width: 769px) {
+            .filter-form {
+                display: flex;
+                gap: 15px;
+                flex-wrap: wrap;
+                align-items: flex-end;
+            }
+            
+            .filter-form .form-group {
+                margin-bottom: 0;
+            }
+            
+            .filter-form .form-group-full {
+                flex: 1;
+                min-width: 200px;
+            }
+            
+            .filter-form .form-row-split {
+                display: contents;
+            }
+            
+            .filter-form .form-row-split .form-group {
+                min-width: 150px;
+            }
+            
+            .filter-form .button-row {
+                display: contents;
+            }
+        }
+    </style>
+    
+    <form method="GET" action="{{ url_for('tasks.index') }}" class="filter-form">
+        <!-- Search (Full Width) -->
+        <div class="form-group form-group-full">
             <label for="search">Search</label>
             <input type="text" id="search" name="search" class="form-control" 
                    value="{{ search }}" placeholder="Task number, title...">
         </div>
         
-        <div class="form-group" style="min-width: 150px; margin-bottom: 0;">
-            <label for="status">Status</label>
-            <select id="status" name="status" class="form-control">
-                <option value="all" {% if status_filter == 'all' %}selected{% endif %}>All Status</option>
-                <option value="new" {% if status_filter == 'new' %}selected{% endif %}>New</option>
-                <option value="in_progress" {% if status_filter == 'in_progress' %}selected{% endif %}>In Progress</option>
-                <option value="completed" {% if status_filter == 'completed' %}selected{% endif %}>Completed</option>
-                <option value="cancelled" {% if status_filter == 'cancelled' %}selected{% endif %}>Cancelled</option>
-            </select>
+        <!-- Status + Employee (50/50 on mobile) -->
+        <div class="form-row-split">
+            <div class="form-group">
+                <label for="status">Status</label>
+                <select id="status" name="status" class="form-control">
+                    <option value="all" {% if status_filter == 'all' %}selected{% endif %}>All Status</option>
+                    <option value="new" {% if status_filter == 'new' %}selected{% endif %}>New</option>
+                    <option value="in_progress" {% if status_filter == 'in_progress' %}selected{% endif %}>In Progress</option>
+                    <option value="completed" {% if status_filter == 'completed' %}selected{% endif %}>Completed</option>
+                    <option value="cancelled" {% if status_filter == 'cancelled' %}selected{% endif %}>Cancelled</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="employee">Employee</label>
+                <select id="employee" name="employee" class="form-control">
+                    <option value="all" {% if employee_filter == 'all' %}selected{% endif %}>All Employees</option>
+                    {% for emp in employees %}
+                    <option value="{{ emp.id }}" {% if employee_filter == emp.id|string %}selected{% endif %}>
+                        {{ emp.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
         </div>
         
-        <div class="form-group" style="min-width: 150px; margin-bottom: 0;">
-            <label for="employee">Employee</label>
-            <select id="employee" name="employee" class="form-control">
-                <option value="all" {% if employee_filter == 'all' %}selected{% endif %}>All Employees</option>
-                {% for emp in employees %}
-                <option value="{{ emp.id }}" {% if employee_filter == emp.id|string %}selected{% endif %}>
-                    {{ emp.name }}
-                </option>
-                {% endfor %}
-            </select>
-        </div>
-        
-        <div class="form-group" style="min-width: 150px; margin-bottom: 0;">
+        <!-- Site (Full Width) -->
+        <div class="form-group form-group-full">
             <label for="site">Site</label>
             <select id="site" name="site" class="form-control">
                 <option value="all" {% if site_filter == 'all' %}selected{% endif %}>All Sites</option>
@@ -113,23 +184,29 @@
             </select>
         </div>
         
-        <div class="form-group" style="min-width: 120px; margin-bottom: 0;">
-            <label for="priority">Priority</label>
-            <select id="priority" name="priority" class="form-control">
-                <option value="all" {% if priority_filter == 'all' %}selected{% endif %}>All</option>
-                <option value="low" {% if priority_filter == 'low' %}selected{% endif %}>Low</option>
-                <option value="medium" {% if priority_filter == 'medium' %}selected{% endif %}>Medium</option>
-                <option value="high" {% if priority_filter == 'high' %}selected{% endif %}>High</option>
-            </select>
+        <!-- Priority + Filter Button (50/50 on mobile) -->
+        <div class="button-row">
+            <div class="form-group">
+                <label for="priority">Priority</label>
+                <select id="priority" name="priority" class="form-control">
+                    <option value="all" {% if priority_filter == 'all' %}selected{% endif %}>All</option>
+                    <option value="low" {% if priority_filter == 'low' %}selected{% endif %}>Low</option>
+                    <option value="medium" {% if priority_filter == 'medium' %}selected{% endif %}>Medium</option>
+                    <option value="high" {% if priority_filter == 'high' %}selected{% endif %}>High</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label style="visibility: hidden;">Filter</label>
+                <button type="submit" class="btn btn-primary" style="width: 100%;">
+                    🔍 Filter
+                </button>
+            </div>
         </div>
         
-        <button type="submit" class="btn btn-primary">
-            🔍 Filter
-        </button>
-        
         {% if search or status_filter != 'all' or employee_filter != 'all' or site_filter != 'all' or priority_filter != 'all' %}
-        <a href="{{ url_for('tasks.index') }}" class="btn btn-secondary">
-            Clear
+        <a href="{{ url_for('tasks.index') }}" class="btn btn-secondary" style="grid-column: span 1;">
+            Clear Filters
         </a>
         {% endif %}
     </form>
