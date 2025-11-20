@@ -270,6 +270,332 @@
         <div class="no-data">No inventory materials yet</div>
         {% endif %}
     </div>
+    
+    <!-- NEW BUSINESS MONITORING SECTIONS -->
+    
+    <div class="info-card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; margin-top: 30px;">
+        <h2 style="color: white; border-bottom: 2px solid rgba(255,255,255,0.3);">💼 BUSINESS ACTIVITY MONITORING</h2>
+        <div class="info-grid" style="margin-top: 20px;">
+            <div class="info-item" style="background: rgba(255,255,255,0.2); color: white;">
+                <strong style="color: rgba(255,255,255,0.9);">Total Sales:</strong>
+                <span style="font-size: 1.4em; font-weight: bold;">₹{{ '{:,.2f}'.format(total_sales) }}</span>
+            </div>
+            <div class="info-item" style="background: rgba(255,255,255,0.2); color: white;">
+                <strong style="color: rgba(255,255,255,0.9);">Total Purchases:</strong>
+                <span style="font-size: 1.4em; font-weight: bold;">₹{{ '{:,.2f}'.format(total_purchases) }}</span>
+            </div>
+            <div class="info-item" style="background: rgba(255,255,255,0.2); color: white;">
+                <strong style="color: rgba(255,255,255,0.9);">Total Expenses:</strong>
+                <span style="font-size: 1.4em; font-weight: bold;">₹{{ '{:,.2f}'.format(total_expenses_amount) }}</span>
+            </div>
+            <div class="info-item" style="background: rgba(255,255,255,0.2); color: white;">
+                <strong style="color: rgba(255,255,255,0.9);">Net Profit:</strong>
+                <span style="font-size: 1.4em; font-weight: bold;">₹{{ '{:,.2f}'.format(total_sales - total_purchases - total_expenses_amount) }}</span>
+            </div>
+        </div>
+    </div>
+    
+    <div class="section">
+        <h2>📦 Items/Products ({{ items|length }}, showing last 20)</h2>
+        {% if items %}
+        <table>
+            <thead>
+                <tr>
+                    <th>SKU</th>
+                    <th>Name</th>
+                    <th>Type</th>
+                    <th>Unit</th>
+                    <th>Sale Price</th>
+                    <th>Cost Price</th>
+                    <th>Stock</th>
+                    <th>Created</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in items %}
+                <tr>
+                    <td><strong>{{ item.sku }}</strong></td>
+                    <td>{{ item.name }}</td>
+                    <td>
+                        {% if item.type == 'goods' %}
+                        <span class="badge" style="background: #e3f2fd; color: #1976d2;">Goods</span>
+                        {% else %}
+                        <span class="badge" style="background: #f3e5f5; color: #7b1fa2;">Service</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ item.unit }}</td>
+                    <td>₹{{ '{:,.2f}'.format(item.sale_price) }}</td>
+                    <td>₹{{ '{:,.2f}'.format(item.cost_price or 0) }}</td>
+                    <td>
+                        {% if item.current_stock %}
+                        <strong style="{% if item.current_stock < (item.low_stock_alert or 10) %}color: #dc3545;{% endif %}">{{ item.current_stock }}</strong>
+                        {% else %}
+                        —
+                        {% endif %}
+                    </td>
+                    <td>{{ item.created_at.strftime('%Y-%m-%d') }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="no-data">No items created yet</div>
+        {% endif %}
+    </div>
+    
+    <div class="section">
+        <h2>👥 Customers ({{ customers|length }}, showing last 10)</h2>
+        {% if customers %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Phone</th>
+                    <th>Email</th>
+                    <th>GSTIN</th>
+                    <th>Balance</th>
+                    <th>Created</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for customer in customers %}
+                <tr>
+                    <td><strong>{{ customer.name }}</strong></td>
+                    <td>{{ customer.phone or '—' }}</td>
+                    <td>{{ customer.email or '—' }}</td>
+                    <td>{{ customer.gstin or '—' }}</td>
+                    <td>
+                        {% if customer.outstanding_balance %}
+                        <strong style="{% if customer.outstanding_balance > 0 %}color: #dc3545;{% else %}color: #28a745;{% endif %}">₹{{ '{:,.2f}'.format(customer.outstanding_balance) }}</strong>
+                        {% else %}
+                        ₹0.00
+                        {% endif %}
+                    </td>
+                    <td>{{ customer.created_at.strftime('%Y-%m-%d') }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="no-data">No customers yet</div>
+        {% endif %}
+    </div>
+    
+    <div class="section">
+        <h2>🏭 Vendors ({{ vendors|length }}, showing last 10)</h2>
+        {% if vendors %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Phone</th>
+                    <th>Email</th>
+                    <th>GSTIN</th>
+                    <th>Balance</th>
+                    <th>Created</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for vendor in vendors %}
+                <tr>
+                    <td><strong>{{ vendor.name }}</strong></td>
+                    <td>{{ vendor.phone or '—' }}</td>
+                    <td>{{ vendor.email or '—' }}</td>
+                    <td>{{ vendor.gstin or '—' }}</td>
+                    <td>
+                        {% if vendor.outstanding_balance %}
+                        <strong style="{% if vendor.outstanding_balance > 0 %}color: #dc3545;{% else %}color: #28a745;{% endif %}">₹{{ '{:,.2f}'.format(vendor.outstanding_balance) }}</strong>
+                        {% else %}
+                        ₹0.00
+                        {% endif %}
+                    </td>
+                    <td>{{ vendor.created_at.strftime('%Y-%m-%d') }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="no-data">No vendors yet</div>
+        {% endif %}
+    </div>
+    
+    <div class="section">
+        <h2>📄 Invoices/Sales ({{ invoices|length }}, showing last 20)</h2>
+        {% if invoices %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Invoice#</th>
+                    <th>Customer</th>
+                    <th>Date</th>
+                    <th>Total Amount</th>
+                    <th>Payment Status</th>
+                    <th>Payment Mode</th>
+                    <th>Created</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for invoice in invoices %}
+                <tr>
+                    <td><strong>{{ invoice.invoice_number }}</strong></td>
+                    <td>{{ invoice.customer.name if invoice.customer else '—' }}</td>
+                    <td>{{ invoice.invoice_date.strftime('%Y-%m-%d') }}</td>
+                    <td><strong>₹{{ '{:,.2f}'.format(invoice.total_amount) }}</strong></td>
+                    <td>
+                        {% if invoice.payment_status == 'paid' %}
+                        <span class="badge badge-green">Paid</span>
+                        {% elif invoice.payment_status == 'partial' %}
+                        <span class="badge" style="background: #fff3cd; color: #856404;">Partial</span>
+                        {% else %}
+                        <span class="badge badge-red">Unpaid</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ invoice.payment_mode or '—' }}</td>
+                    <td>{{ invoice.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="no-data">No invoices yet</div>
+        {% endif %}
+    </div>
+    
+    <div class="section">
+        <h2>🧾 Purchase Bills ({{ purchase_bills|length }}, showing last 20)</h2>
+        {% if purchase_bills %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Bill#</th>
+                    <th>Vendor</th>
+                    <th>Date</th>
+                    <th>Total Amount</th>
+                    <th>Payment Status</th>
+                    <th>Payment Mode</th>
+                    <th>Created</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for bill in purchase_bills %}
+                <tr>
+                    <td><strong>{{ bill.bill_number }}</strong></td>
+                    <td>{{ bill.vendor.name if bill.vendor else '—' }}</td>
+                    <td>{{ bill.bill_date.strftime('%Y-%m-%d') }}</td>
+                    <td><strong>₹{{ '{:,.2f}'.format(bill.total_amount) }}</strong></td>
+                    <td>
+                        {% if bill.payment_status == 'paid' %}
+                        <span class="badge badge-green">Paid</span>
+                        {% elif bill.payment_status == 'partial' %}
+                        <span class="badge" style="background: #fff3cd; color: #856404;">Partial</span>
+                        {% else %}
+                        <span class="badge badge-red">Unpaid</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ bill.payment_mode or '—' }}</td>
+                    <td>{{ bill.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="no-data">No purchase bills yet</div>
+        {% endif %}
+    </div>
+    
+    <div class="section">
+        <h2>💰 Expenses ({{ expenses|length }}, showing last 20)</h2>
+        {% if expenses %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Category</th>
+                    <th>Description</th>
+                    <th>Amount</th>
+                    <th>Payment Mode</th>
+                    <th>Paid By</th>
+                    <th>Created</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for expense in expenses %}
+                <tr>
+                    <td>{{ expense.expense_date.strftime('%Y-%m-%d') }}</td>
+                    <td>
+                        {% if expense.category %}
+                        <span class="badge" style="background: #f3e5f5; color: #7b1fa2;">{{ expense.category }}</span>
+                        {% else %}
+                        —
+                        {% endif %}
+                    </td>
+                    <td>{{ expense.description or '—' }}</td>
+                    <td><strong style="color: #dc3545;">₹{{ '{:,.2f}'.format(expense.amount) }}</strong></td>
+                    <td>{{ expense.payment_mode or '—' }}</td>
+                    <td>{{ expense.employee.name if expense.employee else '—' }}</td>
+                    <td>{{ expense.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="no-data">No expenses yet</div>
+        {% endif %}
+    </div>
+    
+    <div class="section">
+        <h2>✅ Tasks ({{ tasks|length }}, showing last 10)</h2>
+        {% if tasks %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Task#</th>
+                    <th>Title</th>
+                    <th>Assigned To</th>
+                    <th>Site</th>
+                    <th>Priority</th>
+                    <th>Status</th>
+                    <th>Deadline</th>
+                    <th>Created</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for task in tasks %}
+                <tr>
+                    <td><strong>{{ task.task_number }}</strong></td>
+                    <td>{{ task.title }}</td>
+                    <td>{{ task.employee.name if task.employee else '—' }}</td>
+                    <td>{{ task.site.name if task.site else '—' }}</td>
+                    <td>
+                        {% if task.priority == 'high' %}
+                        <span class="badge badge-red">🔥 HIGH</span>
+                        {% elif task.priority == 'medium' %}
+                        <span class="badge" style="background: #fff3cd; color: #856404;">⚠️ MEDIUM</span>
+                        {% else %}
+                        <span class="badge" style="background: #e9ecef; color: #6c757d;">LOW</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if task.status == 'completed' %}
+                        <span class="badge badge-green">✅ COMPLETED</span>
+                        {% elif task.status == 'in_progress' %}
+                        <span class="badge" style="background: #fff3cd; color: #856404;">🔄 IN PROGRESS</span>
+                        {% elif task.status == 'new' %}
+                        <span class="badge" style="background: #d1ecf1; color: #0c5460;">🆕 NEW</span>
+                        {% else %}
+                        <span class="badge" style="background: #f8d7da; color: #721c24;">❌ CANCELLED</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ task.deadline.strftime('%Y-%m-%d') if task.deadline else '—' }}</td>
+                    <td>{{ task.created_at.strftime('%Y-%m-%d') }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="no-data">No tasks yet</div>
+        {% endif %}
+    </div>
 </body>
 </html>
 

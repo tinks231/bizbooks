@@ -35,54 +35,74 @@
     </div>
     
     <div class="stats-summary">
-        <div class="stat-card">
+        <div class="stat-card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
             <h3>{{ total_tenants }}</h3>
             <p>Total Accounts</p>
         </div>
-        <div class="stat-card">
+        <div class="stat-card" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white;">
             <h3>{{ tenant_stats|selectattr('employee_count')|map(attribute='employee_count')|sum }}</h3>
             <p>Total Employees</p>
         </div>
-        <div class="stat-card">
-            <h3>{{ tenant_stats|selectattr('attendance_count')|map(attribute='attendance_count')|sum }}</h3>
-            <p>Total Attendance</p>
+        <div class="stat-card" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: white;">
+            <h3>{{ total_stats.items }}</h3>
+            <p>Total Items/Products</p>
         </div>
-        <div class="stat-card">
-            <h3>{{ tenant_stats|selectattr('material_count')|map(attribute='material_count')|sum }}</h3>
-            <p>Total Materials</p>
+        <div class="stat-card" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); color: white;">
+            <h3>{{ total_stats.customers }}</h3>
+            <p>Total Customers</p>
+        </div>
+        <div class="stat-card" style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); color: white;">
+            <h3>{{ total_stats.invoices }}</h3>
+            <p>Total Invoices</p>
+        </div>
+        <div class="stat-card" style="background: linear-gradient(135deg, #30cfd0 0%, #330867 100%); color: white;">
+            <h3>{{ total_stats.purchase_bills }}</h3>
+            <p>Total Purchase Bills</p>
+        </div>
+        <div class="stat-card" style="background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);">
+            <h3>{{ total_stats.expenses }}</h3>
+            <p>Total Expenses</p>
+        </div>
+        <div class="stat-card" style="background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);">
+            <h3>{{ total_stats.tasks }}</h3>
+            <p>Total Tasks</p>
         </div>
     </div>
     
     <div class="tenants-table">
-        <h2>All Registered Accounts</h2>
+        <h2>All Registered Accounts - Activity Monitoring</h2>
         <table>
             <thead>
                 <tr>
                     <th>ID</th>
                     <th>Company Name</th>
                     <th>Subdomain</th>
-                    <th>Admin Email</th>
                     <th>License Status</th>
                     <th>Days Left</th>
-                    <th>Trial Ends</th>
-                    <th>Employees</th>
-                    <th>Attendance</th>
-                    <th>Sites</th>
-                    <th>Registered</th>
+                    <th>Items</th>
+                    <th>Customers</th>
+                    <th>Invoices</th>
+                    <th>Expenses</th>
+                    <th>Tasks</th>
+                    <th>Sales (30d)</th>
+                    <th>Expenses (30d)</th>
+                    <th>Last Activity</th>
                     <th>Actions</th>
                 </tr>
             </thead>
             <tbody>
                 {% for stat in tenant_stats %}
-                <tr>
+                <tr style="{% if not stat.last_activity or (now - stat.last_activity).days > 7 %}background: #fff3cd;{% endif %}">
                     <td>{{ stat.tenant.id }}</td>
-                    <td><strong>{{ stat.tenant.company_name }}</strong></td>
+                    <td>
+                        <strong>{{ stat.tenant.company_name }}</strong>
+                        <br><small style="color: #7f8c8d;">{{ stat.tenant.admin_email }}</small>
+                    </td>
                     <td>
                         <a href="https://{{ stat.tenant.subdomain }}.bizbooks.co.in" target="_blank" class="subdomain-link">
-                            {{ stat.tenant.subdomain }}.bizbooks.co.in
+                            {{ stat.tenant.subdomain }}
                         </a>
                     </td>
-                    <td>{{ stat.tenant.admin_email }}</td>
                     <td>
                         {% if not stat.tenant.trial_ends_at %}
                         <span class="badge" style="background: #ffc107; color: #000;">⚠️ NO LICENSE</span>
@@ -92,7 +112,7 @@
                             {% if stat.tenant.status == 'trial' %}
                             <span class="badge badge-warning">🔄 Trial</span>
                             {% else %}
-                            <span class="badge badge-success">✅ Active (Pro)</span>
+                            <span class="badge badge-success">✅ Pro</span>
                             {% endif %}
                         {% else %}
                         <span class="badge" style="background: #f8d7da; color: #721c24;">⏰ Expired</span>
@@ -100,31 +120,35 @@
                     </td>
                     <td>
                         {% if stat.tenant.trial_ends_at and stat.tenant.is_active %}
-                        <strong>{{ stat.tenant.days_remaining }} days</strong>
+                        <strong style="{% if stat.tenant.days_remaining < 7 %}color: #dc3545;{% endif %}">{{ stat.tenant.days_remaining }}d</strong>
                         {% elif not stat.tenant.trial_ends_at %}
                         —
                         {% else %}
                         <span style="color: #dc3545;">Expired</span>
                         {% endif %}
                     </td>
+                    <td><span class="badge" style="background: #e3f2fd; color: #1976d2;">📦 {{ stat.item_count }}</span></td>
+                    <td><span class="badge" style="background: #e8f5e9; color: #388e3c;">👤 {{ stat.customer_count }}</span></td>
+                    <td><span class="badge" style="background: #fff3e0; color: #f57c00;">📄 {{ stat.invoice_count }}</span></td>
+                    <td><span class="badge" style="background: #fce4ec; color: #c2185b;">💰 {{ stat.expense_count }}</span></td>
+                    <td><span class="badge" style="background: #f3e5f5; color: #7b1fa2;">✅ {{ stat.task_count }}</span></td>
+                    <td><strong style="color: #28a745;">₹{{ '{:,.0f}'.format(stat.recent_sales) }}</strong></td>
+                    <td><strong style="color: #dc3545;">₹{{ '{:,.0f}'.format(stat.recent_expenses) }}</strong></td>
                     <td>
-                        {% if stat.tenant.trial_ends_at %}
-                        {{ stat.tenant.trial_ends_at.strftime('%Y-%m-%d') }}
+                        {% if stat.last_activity %}
+                        {{ stat.last_activity.strftime('%Y-%m-%d') }}
+                        <br><small style="color: #7f8c8d;">{{ stat.last_activity.strftime('%I:%M %p') }}</small>
                         {% else %}
-                        <span style="color: #999;">Not Set</span>
+                        <span style="color: #dc3545;">Never</span>
                         {% endif %}
                     </td>
-                    <td><span class="badge badge-success">{{ stat.employee_count }}</span></td>
-                    <td><span class="badge badge-info">{{ stat.attendance_count }}</span></td>
-                    <td><span class="badge badge-warning">{{ stat.site_count }}</span></td>
-                    <td>{{ stat.tenant.created_at.strftime('%Y-%m-%d') }}</td>
                     <td>
-                        <div style="display: flex; gap: 8px;">
-                            <a href="/superadmin/tenant/{{ stat.tenant.id }}" class="view-btn">👁️ View</a>
-                            <form method="POST" action="/superadmin/tenant/{{ stat.tenant.id }}/delete" style="display: inline; margin: 0;">
+                        <div style="display: flex; gap: 5px; flex-direction: column;">
+                            <a href="/superadmin/tenant/{{ stat.tenant.id }}" class="view-btn" style="text-align: center;">👁️ View Details</a>
+                            <form method="POST" action="/superadmin/tenant/{{ stat.tenant.id }}/delete" style="margin: 0;">
                                 <button type="submit" 
-                                        style="padding: 6px 12px; background: #dc3545; color: white; border: none; border-radius: 5px; font-size: 0.9em; cursor: pointer;"
-                                        onclick="return confirm('⚠️ DELETE {{ stat.tenant.company_name }}?\n\nThis will permanently delete:\n• {{ stat.employee_count }} employees\n• {{ stat.attendance_count }} attendance records\n• {{ stat.site_count }} sites\n• {{ stat.material_count }} materials\n• All photos from Blob storage\n• All documents from Blob storage\n\nStorage space will be reclaimed.\n\nThis action CANNOT be undone!')">
+                                        style="padding: 6px 12px; background: #dc3545; color: white; border: none; border-radius: 5px; font-size: 0.9em; cursor: pointer; width: 100%;"
+                                        onclick="return confirm('⚠️ DELETE {{ stat.tenant.company_name }}?\n\nThis will permanently delete:\n• {{ stat.item_count }} items\n• {{ stat.customer_count }} customers\n• {{ stat.vendor_count }} vendors\n• {{ stat.invoice_count }} invoices\n• {{ stat.purchase_bill_count }} purchase bills\n• {{ stat.expense_count }} expenses\n• {{ stat.task_count }} tasks\n• {{ stat.employee_count }} employees\n• {{ stat.attendance_count }} attendance records\n• All files from storage\n\nThis action CANNOT be undone!')">
                                     🗑️ Delete
                                 </button>
                             </form>

@@ -3,7 +3,9 @@ Super Admin Routes - View all tenants and their data
 """
 from flask import Blueprint, render_template, session, redirect, url_for, request
 from models import db, Tenant, Employee, Attendance, Site, Material, Stock
+from models import Item, Customer, Vendor, Invoice, PurchaseBill, Expense, Task
 from sqlalchemy import func
+from datetime import datetime, timedelta
 
 superadmin_bp = Blueprint('superadmin', __name__, url_prefix='/superadmin')
 
@@ -35,7 +37,7 @@ def logout():
 
 @superadmin_bp.route('/dashboard')
 def dashboard():
-    """Super admin dashboard - view all tenants"""
+    """Super admin dashboard - view all tenants with comprehensive stats"""
     if not is_superadmin():
         return redirect(url_for('superadmin.login'))
     
@@ -43,21 +45,66 @@ def dashboard():
     tenants = Tenant.query.order_by(Tenant.created_at.desc()).all()
     
     tenant_stats = []
+    total_stats = {
+        'items': 0,
+        'customers': 0,
+        'vendors': 0,
+        'invoices': 0,
+        'purchase_bills': 0,
+        'expenses': 0,
+        'tasks': 0
+    }
+    
     for tenant in tenants:
-        # Count employees
+        # Existing counts
         employee_count = Employee.query.filter_by(tenant_id=tenant.id).count()
-        
-        # Count attendance records
         attendance_count = Attendance.query.filter_by(tenant_id=tenant.id).count()
-        
-        # Count sites
         site_count = Site.query.filter_by(tenant_id=tenant.id).count()
-        
-        # Count materials
         material_count = Material.query.filter_by(tenant_id=tenant.id).count()
         
-        # Get last attendance date
+        # NEW counts for business activity
+        item_count = Item.query.filter_by(tenant_id=tenant.id).count()
+        customer_count = Customer.query.filter_by(tenant_id=tenant.id).count()
+        vendor_count = Vendor.query.filter_by(tenant_id=tenant.id).count()
+        invoice_count = Invoice.query.filter_by(tenant_id=tenant.id).count()
+        purchase_bill_count = PurchaseBill.query.filter_by(tenant_id=tenant.id).count()
+        expense_count = Expense.query.filter_by(tenant_id=tenant.id).count()
+        task_count = Task.query.filter_by(tenant_id=tenant.id).count()
+        
+        # Calculate total sales value (last 30 days)
+        thirty_days_ago = datetime.utcnow() - timedelta(days=30)
+        recent_sales = db.session.query(func.sum(Invoice.total_amount)).filter(
+            Invoice.tenant_id == tenant.id,
+            Invoice.invoice_date >= thirty_days_ago
+        ).scalar() or 0
+        
+        # Calculate total expenses (last 30 days)
+        recent_expenses = db.session.query(func.sum(Expense.amount)).filter(
+            Expense.tenant_id == tenant.id,
+            Expense.expense_date >= thirty_days_ago
+        ).scalar() or 0
+        
+        # Get last activity timestamp
         last_attendance = Attendance.query.filter_by(tenant_id=tenant.id).order_by(Attendance.timestamp.desc()).first()
+        last_invoice = Invoice.query.filter_by(tenant_id=tenant.id).order_by(Invoice.created_at.desc()).first()
+        last_expense = Expense.query.filter_by(tenant_id=tenant.id).order_by(Expense.created_at.desc()).first()
+        
+        activity_timestamps = [
+            last_attendance.timestamp if last_attendance else None,
+            last_invoice.created_at if last_invoice else None,
+            last_expense.created_at if last_expense else None
+        ]
+        activity_timestamps = [ts for ts in activity_timestamps if ts]
+        last_activity = max(activity_timestamps) if activity_timestamps else None
+        
+        # Add to totals
+        total_stats['items'] += item_count
+        total_stats['customers'] += customer_count
+        total_stats['vendors'] += vendor_count
+        total_stats['invoices'] += invoice_count
+        total_stats['purchase_bills'] += purchase_bill_count
+        total_stats['expenses'] += expense_count
+        total_stats['tasks'] += task_count
         
         tenant_stats.append({
             'tenant': tenant,
@@ -65,31 +112,75 @@ def dashboard():
             'attendance_count': attendance_count,
             'site_count': site_count,
             'material_count': material_count,
-            'last_activity': last_attendance.timestamp if last_attendance else None
+            'item_count': item_count,
+            'customer_count': customer_count,
+            'vendor_count': vendor_count,
+            'invoice_count': invoice_count,
+            'purchase_bill_count': purchase_bill_count,
+            'expense_count': expense_count,
+            'task_count': task_count,
+            'recent_sales': recent_sales,
+            'recent_expenses': recent_expenses,
+            'last_activity': last_activity
         })
     
-    return render_template('superadmin/dashboard.html', tenant_stats=tenant_stats, total_tenants=len(tenants))
+    return render_template('superadmin/dashboard.html', 
+                         tenant_stats=tenant_stats, 
+                         total_tenants=len(tenants),
+                         total_stats=total_stats)
 
 @superadmin_bp.route('/tenant/<int:tenant_id>')
 def view_tenant(tenant_id):
-    """View detailed data for a specific tenant"""
+    """View detailed data for a specific tenant - comprehensive monitoring"""
     if not is_superadmin():
         return redirect(url_for('superadmin.login'))
     
     tenant = Tenant.query.get_or_404(tenant_id)
     
-    # Get all data for this tenant
+    # Original data
     employees = Employee.query.filter_by(tenant_id=tenant_id).all()
     attendance = Attendance.query.filter_by(tenant_id=tenant_id).order_by(Attendance.timestamp.desc()).limit(50).all()
     sites = Site.query.filter_by(tenant_id=tenant_id).all()
     materials = Material.query.filter_by(tenant_id=tenant_id).all()
+    
+    # NEW: Business activity data
+    items = Item.query.filter_by(tenant_id=tenant_id).order_by(Item.created_at.desc()).limit(20).all()
+    customers = Customer.query.filter_by(tenant_id=tenant_id).order_by(Customer.created_at.desc()).limit(10).all()
+    vendors = Vendor.query.filter_by(tenant_id=tenant_id).order_by(Vendor.created_at.desc()).limit(10).all()
+    invoices = Invoice.query.filter_by(tenant_id=tenant_id).order_by(Invoice.created_at.desc()).limit(20).all()
+    purchase_bills = PurchaseBill.query.filter_by(tenant_id=tenant_id).order_by(PurchaseBill.created_at.desc()).limit(20).all()
+    expenses = Expense.query.filter_by(tenant_id=tenant_id).order_by(Expense.created_at.desc()).limit(20).all()
+    tasks = Task.query.filter_by(tenant_id=tenant_id).order_by(Task.created_at.desc()).limit(10).all()
+    
+    # Calculate summary stats
+    total_sales = db.session.query(func.sum(Invoice.total_amount)).filter(
+        Invoice.tenant_id == tenant_id
+    ).scalar() or 0
+    
+    total_purchases = db.session.query(func.sum(PurchaseBill.total_amount)).filter(
+        PurchaseBill.tenant_id == tenant_id
+    ).scalar() or 0
+    
+    total_expenses_amount = db.session.query(func.sum(Expense.amount)).filter(
+        Expense.tenant_id == tenant_id
+    ).scalar() or 0
     
     return render_template('superadmin/tenant_detail.html', 
                          tenant=tenant,
                          employees=employees,
                          attendance=attendance,
                          sites=sites,
-                         materials=materials)
+                         materials=materials,
+                         items=items,
+                         customers=customers,
+                         vendors=vendors,
+                         invoices=invoices,
+                         purchase_bills=purchase_bills,
+                         expenses=expenses,
+                         tasks=tasks,
+                         total_sales=total_sales,
+                         total_purchases=total_purchases,
+                         total_expenses_amount=total_expenses_amount)
 
 @superadmin_bp.route('/tenant/<int:tenant_id>/delete', methods=['POST'])
 def delete_tenant(tenant_id):
