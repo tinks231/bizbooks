@@ -39,14 +39,6 @@
             <h3>{{ total_tenants }}</h3>
             <p>Total Accounts</p>
         </div>
-        <div class="stat-card" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white;">
-            <h3>{{ tenant_stats|selectattr('employee_count')|map(attribute='employee_count')|sum }}</h3>
-            <p>Total Employees</p>
-        </div>
-        <div class="stat-card" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: white;">
-            <h3>{{ total_stats.items }}</h3>
-            <p>Total Items/Products</p>
-        </div>
         <div class="stat-card" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); color: white;">
             <h3>{{ total_stats.customers }}</h3>
             <p>Total Customers</p>
@@ -55,17 +47,9 @@
             <h3>{{ total_stats.invoices }}</h3>
             <p>Total Invoices</p>
         </div>
-        <div class="stat-card" style="background: linear-gradient(135deg, #30cfd0 0%, #330867 100%); color: white;">
-            <h3>{{ total_stats.purchase_bills }}</h3>
-            <p>Total Purchase Bills</p>
-        </div>
-        <div class="stat-card" style="background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);">
-            <h3>{{ total_stats.expenses }}</h3>
-            <p>Total Expenses</p>
-        </div>
-        <div class="stat-card" style="background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);">
-            <h3>{{ total_stats.tasks }}</h3>
-            <p>Total Tasks</p>
+        <div class="stat-card" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: white;">
+            <h3>{{ total_stats.items }}</h3>
+            <p>Total Items/Products</p>
         </div>
     </div>
     

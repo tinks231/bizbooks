@@ -22,6 +22,7 @@ def login():
     if request.method == 'POST':
         password = request.form.get('password')
         if password == SUPERADMIN_PASSWORD:
+            session.permanent = True  # Make session persistent
             session['is_superadmin'] = True
             return redirect(url_for('superadmin.dashboard'))
         else:
@@ -71,18 +72,18 @@ def dashboard():
         expense_count = Expense.query.filter_by(tenant_id=tenant.id).count()
         task_count = Task.query.filter_by(tenant_id=tenant.id).count()
         
-        # Calculate total sales value (last 30 days)
+        # Calculate total sales value (last 30 days) - convert to float
         thirty_days_ago = datetime.utcnow() - timedelta(days=30)
-        recent_sales = db.session.query(func.sum(Invoice.total_amount)).filter(
+        recent_sales = float(db.session.query(func.sum(Invoice.total_amount)).filter(
             Invoice.tenant_id == tenant.id,
             Invoice.invoice_date >= thirty_days_ago
-        ).scalar() or 0
+        ).scalar() or 0)
         
-        # Calculate total expenses (last 30 days)
-        recent_expenses = db.session.query(func.sum(Expense.amount)).filter(
+        # Calculate total expenses (last 30 days) - convert to float
+        recent_expenses = float(db.session.query(func.sum(Expense.amount)).filter(
             Expense.tenant_id == tenant.id,
             Expense.expense_date >= thirty_days_ago
-        ).scalar() or 0
+        ).scalar() or 0)
         
         # Get last activity timestamp
         last_attendance = Attendance.query.filter_by(tenant_id=tenant.id).order_by(Attendance.timestamp.desc()).first()
@@ -153,18 +154,18 @@ def view_tenant(tenant_id):
     expenses = Expense.query.filter_by(tenant_id=tenant_id).order_by(Expense.created_at.desc()).limit(20).all()
     tasks = Task.query.filter_by(tenant_id=tenant_id).order_by(Task.created_at.desc()).limit(10).all()
     
-    # Calculate summary stats
-    total_sales = db.session.query(func.sum(Invoice.total_amount)).filter(
+    # Calculate summary stats (convert Decimal to float to avoid type errors)
+    total_sales = float(db.session.query(func.sum(Invoice.total_amount)).filter(
         Invoice.tenant_id == tenant_id
-    ).scalar() or 0
+    ).scalar() or 0)
     
-    total_purchases = db.session.query(func.sum(PurchaseBill.total_amount)).filter(
+    total_purchases = float(db.session.query(func.sum(PurchaseBill.total_amount)).filter(
         PurchaseBill.tenant_id == tenant_id
-    ).scalar() or 0
+    ).scalar() or 0)
     
-    total_expenses_amount = db.session.query(func.sum(Expense.amount)).filter(
+    total_expenses_amount = float(db.session.query(func.sum(Expense.amount)).filter(
         Expense.tenant_id == tenant_id
-    ).scalar() or 0
+    ).scalar() or 0)
     
     return render_template('superadmin/tenant_detail.html', 
                          tenant=tenant,
