@@ -127,7 +127,8 @@ def dashboard():
     return render_template('superadmin/dashboard.html', 
                          tenant_stats=tenant_stats, 
                          total_tenants=len(tenants),
-                         total_stats=total_stats)
+                         total_stats=total_stats,
+                         now=datetime.utcnow())
 
 @superadmin_bp.route('/tenant/<int:tenant_id>')
 def view_tenant(tenant_id):
