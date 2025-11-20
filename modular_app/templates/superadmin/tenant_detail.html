@@ -305,7 +305,7 @@
                     <th>Name</th>
                     <th>Type</th>
                     <th>Unit</th>
-                    <th>Sale Price</th>
+                    <th>Selling Price</th>
                     <th>Cost Price</th>
                     <th>Stock</th>
                     <th>Created</th>
@@ -324,11 +324,11 @@
                         {% endif %}
                     </td>
                     <td>{{ item.unit }}</td>
-                    <td>₹{{ '{:,.2f}'.format(item.sale_price) }}</td>
+                    <td>₹{{ '{:,.2f}'.format(item.selling_price or 0) }}</td>
                     <td>₹{{ '{:,.2f}'.format(item.cost_price or 0) }}</td>
                     <td>
-                        {% if item.current_stock %}
-                        <strong style="{% if item.current_stock < (item.low_stock_alert or 10) %}color: #dc3545;{% endif %}">{{ item.current_stock }}</strong>
+                        {% if item.opening_stock %}
+                        <strong>{{ item.opening_stock }}</strong>
                         {% else %}
                         —
                         {% endif %}
@@ -365,7 +365,7 @@
                     <td>{{ customer.email or '—' }}</td>
                     <td>{{ customer.gstin or '—' }}</td>
                     <td>
-                        {% if customer.outstanding_balance %}
+                        {% if customer.outstanding_balance is defined and customer.outstanding_balance %}
                         <strong style="{% if customer.outstanding_balance > 0 %}color: #dc3545;{% else %}color: #28a745;{% endif %}">₹{{ '{:,.2f}'.format(customer.outstanding_balance) }}</strong>
                         {% else %}
                         ₹0.00
@@ -403,7 +403,7 @@
                     <td>{{ vendor.email or '—' }}</td>
                     <td>{{ vendor.gstin or '—' }}</td>
                     <td>
-                        {% if vendor.outstanding_balance %}
+                        {% if vendor.outstanding_balance is defined and vendor.outstanding_balance %}
                         <strong style="{% if vendor.outstanding_balance > 0 %}color: #dc3545;{% else %}color: #28a745;{% endif %}">₹{{ '{:,.2f}'.format(vendor.outstanding_balance) }}</strong>
                         {% else %}
                         ₹0.00
@@ -438,9 +438,9 @@
                 {% for invoice in invoices %}
                 <tr>
                     <td><strong>{{ invoice.invoice_number }}</strong></td>
-                    <td>{{ invoice.customer.name if invoice.customer else '—' }}</td>
-                    <td>{{ invoice.invoice_date.strftime('%Y-%m-%d') }}</td>
-                    <td><strong>₹{{ '{:,.2f}'.format(invoice.total_amount) }}</strong></td>
+                    <td>{{ invoice.customer.name if invoice.customer is defined and invoice.customer else '—' }}</td>
+                    <td>{{ invoice.invoice_date.strftime('%Y-%m-%d') if invoice.invoice_date else '—' }}</td>
+                    <td><strong>₹{{ '{:,.2f}'.format(invoice.total_amount or 0) }}</strong></td>
                     <td>
                         {% if invoice.payment_status == 'paid' %}
                         <span class="badge badge-green">Paid</span>
@@ -451,7 +451,7 @@
                         {% endif %}
                     </td>
                     <td>{{ invoice.payment_mode or '—' }}</td>
-                    <td>{{ invoice.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                    <td>{{ invoice.created_at.strftime('%Y-%m-%d %H:%M') if invoice.created_at else '—' }}</td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -480,9 +480,9 @@
                 {% for bill in purchase_bills %}
                 <tr>
                     <td><strong>{{ bill.bill_number }}</strong></td>
-                    <td>{{ bill.vendor.name if bill.vendor else '—' }}</td>
-                    <td>{{ bill.bill_date.strftime('%Y-%m-%d') }}</td>
-                    <td><strong>₹{{ '{:,.2f}'.format(bill.total_amount) }}</strong></td>
+                    <td>{{ bill.vendor.name if bill.vendor is defined and bill.vendor else '—' }}</td>
+                    <td>{{ bill.bill_date.strftime('%Y-%m-%d') if bill.bill_date else '—' }}</td>
+                    <td><strong>₹{{ '{:,.2f}'.format(bill.total_amount or 0) }}</strong></td>
                     <td>
                         {% if bill.payment_status == 'paid' %}
                         <span class="badge badge-green">Paid</span>
@@ -493,7 +493,7 @@
                         {% endif %}
                     </td>
                     <td>{{ bill.payment_mode or '—' }}</td>
-                    <td>{{ bill.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                    <td>{{ bill.created_at.strftime('%Y-%m-%d %H:%M') if bill.created_at else '—' }}</td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -521,7 +521,7 @@
             <tbody>
                 {% for expense in expenses %}
                 <tr>
-                    <td>{{ expense.expense_date.strftime('%Y-%m-%d') }}</td>
+                    <td>{{ expense.expense_date.strftime('%Y-%m-%d') if expense.expense_date else '—' }}</td>
                     <td>
                         {% if expense.category %}
                         <span class="badge" style="background: #f3e5f5; color: #7b1fa2;">{{ expense.category }}</span>
@@ -530,10 +530,10 @@
                         {% endif %}
                     </td>
                     <td>{{ expense.description or '—' }}</td>
-                    <td><strong style="color: #dc3545;">₹{{ '{:,.2f}'.format(expense.amount) }}</strong></td>
+                    <td><strong style="color: #dc3545;">₹{{ '{:,.2f}'.format(expense.amount or 0) }}</strong></td>
                     <td>{{ expense.payment_mode or '—' }}</td>
-                    <td>{{ expense.employee.name if expense.employee else '—' }}</td>
-                    <td>{{ expense.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                    <td>{{ expense.employee.name if expense.employee is defined and expense.employee else '—' }}</td>
+                    <td>{{ expense.created_at.strftime('%Y-%m-%d %H:%M') if expense.created_at else '—' }}</td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -564,8 +564,8 @@
                 <tr>
                     <td><strong>{{ task.task_number }}</strong></td>
                     <td>{{ task.title }}</td>
-                    <td>{{ task.employee.name if task.employee else '—' }}</td>
-                    <td>{{ task.site.name if task.site else '—' }}</td>
+                    <td>{{ task.employee.name if task.employee is defined and task.employee else '—' }}</td>
+                    <td>{{ task.site.name if task.site is defined and task.site else '—' }}</td>
                     <td>
                         {% if task.priority == 'high' %}
                         <span class="badge badge-red">🔥 HIGH</span>
@@ -587,7 +587,7 @@
                         {% endif %}
                     </td>
                     <td>{{ task.deadline.strftime('%Y-%m-%d') if task.deadline else '—' }}</td>
-                    <td>{{ task.created_at.strftime('%Y-%m-%d') }}</td>
+                    <td>{{ task.created_at.strftime('%Y-%m-%d') if task.created_at else '—' }}</td>
                 </tr>
                 {% endfor %}
             </tbody>
