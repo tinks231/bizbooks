@@ -47,13 +47,13 @@ def dashboard():
     
     tenant_stats = []
     total_stats = {
-        'items': 0,
-        'customers': 0,
-        'vendors': 0,
-        'invoices': 0,
-        'purchase_bills': 0,
-        'expenses': 0,
-        'tasks': 0
+        'total_items': 0,
+        'total_customers': 0,
+        'total_vendors': 0,
+        'total_invoices': 0,
+        'total_purchase_bills': 0,
+        'total_expenses': 0,
+        'total_tasks': 0
     }
     
     for tenant in tenants:
@@ -99,13 +99,13 @@ def dashboard():
         last_activity = max(activity_timestamps) if activity_timestamps else None
         
         # Add to totals
-        total_stats['items'] += item_count
-        total_stats['customers'] += customer_count
-        total_stats['vendors'] += vendor_count
-        total_stats['invoices'] += invoice_count
-        total_stats['purchase_bills'] += purchase_bill_count
-        total_stats['expenses'] += expense_count
-        total_stats['tasks'] += task_count
+        total_stats['total_items'] += item_count
+        total_stats['total_customers'] += customer_count
+        total_stats['total_vendors'] += vendor_count
+        total_stats['total_invoices'] += invoice_count
+        total_stats['total_purchase_bills'] += purchase_bill_count
+        total_stats['total_expenses'] += expense_count
+        total_stats['total_tasks'] += task_count
         
         tenant_stats.append({
             'tenant': tenant,
