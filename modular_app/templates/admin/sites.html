@@ -5,6 +5,9 @@
 {% block page_title %}Manage Sites{% endblock %}
 
 {% block header_actions %}
+<a href="{{ url_for('items.index') }}" class="btn btn-secondary">
+    ← Back to Items
+</a>
 <button onclick="openAddSiteModal()" class="btn btn-primary">
     ➕ Add New Site
 </button>

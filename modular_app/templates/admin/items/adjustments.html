@@ -242,12 +242,13 @@ document.addEventListener('keydown', function(event) {
                 </div>
                 
                 <div style="background: #e8f5e9; padding: 12px; border-radius: 8px; border-left: 4px solid #4caf50;">
-                    <small style="color: #2e7d32;">
-                        💡 <strong>Tip:</strong> This is for quick single-item adjustments. 
-                        <a href="#" onclick="event.preventDefault(); closeAddAdjustmentModal(); document.getElementById('addAdjustmentForm').style.display='block'; window.scrollTo(0,0);" style="color: #1976d2; font-weight: 600; text-decoration: underline;">
-                            Click here for bulk adjustments (multiple items)
-                        </a>
-                    </small>
+                    <div style="color: #2e7d32; font-size: 13px;">
+                        💡 <strong>Tip:</strong> This is for quick single-item adjustments.
+                    </div>
+                    <button type="button" onclick="closeAddAdjustmentModal(); setTimeout(() => { document.getElementById('addAdjustmentForm').style.display='block'; window.scrollTo(0,0); }, 100);" 
+                            style="margin-top: 8px; background: #1976d2; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 13px;">
+                        📦 Open Bulk Form (Multiple Items)
+                    </button>
                 </div>
             </div>
             <div class="modal-footer">
