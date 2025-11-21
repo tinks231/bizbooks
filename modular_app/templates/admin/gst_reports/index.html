@@ -10,6 +10,105 @@
 
 {% block content %}
 
+<style>
+/* GST Report Cards */
+.report-card {
+    color: white;
+    border-radius: 16px;
+    padding: 30px;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+    transition: all 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    min-height: 280px;
+}
+
+.report-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.25);
+}
+
+.report-icon {
+    font-size: 48px;
+    margin-bottom: 15px;
+    line-height: 1;
+}
+
+.report-card h3 {
+    font-size: 24px;
+    font-weight: 700;
+    margin: 0 0 8px 0;
+    color: white;
+}
+
+.report-card > p {
+    font-size: 14px;
+    margin: 0 0 10px 0;
+    opacity: 0.95;
+    font-weight: 500;
+}
+
+.report-desc {
+    font-size: 13px;
+    margin: 0 0 20px 0;
+    opacity: 0.85;
+    flex: 1;
+    line-height: 1.5;
+}
+
+.btn-report {
+    display: inline-block;
+    background: rgba(255, 255, 255, 0.25);
+    color: white;
+    padding: 12px 24px;
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 14px;
+    transition: all 0.3s ease;
+    text-align: center;
+    backdrop-filter: blur(10px);
+    border: 2px solid rgba(255, 255, 255, 0.3);
+}
+
+.btn-report:hover {
+    background: rgba(255, 255, 255, 0.35);
+    border-color: rgba(255, 255, 255, 0.5);
+    transform: translateX(5px);
+}
+
+/* Form Control */
+.form-control {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #dfe6e9;
+    border-radius: 6px;
+    font-size: 14px;
+}
+
+.form-control:focus {
+    outline: none;
+    border-color: #3498db;
+    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+    .report-card {
+        padding: 25px;
+        min-height: auto;
+    }
+    
+    .report-icon {
+        font-size: 36px;
+    }
+    
+    .report-card h3 {
+        font-size: 20px;
+    }
+}
+</style>
+
 <!-- Date Filter Card -->
 <div class="card" style="margin-bottom: 30px;">
     <form method="GET" action="{{ url_for('gst_reports.index') }}" style="display: flex; gap: 15px; align-items: flex-end; flex-wrap: wrap;">

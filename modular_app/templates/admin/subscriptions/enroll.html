@@ -31,8 +31,24 @@
     gap: 25px;
 }
 
-.col-md-8, .col-md-4 {
+.col-md-8 {
     width: 100%;
+    min-width: 0; /* Fix for grid overflow */
+}
+
+.col-md-4 {
+    width: 100%;
+    min-width: 0; /* Fix for grid overflow */
+}
+
+/* Ensure proper text wrapping */
+.col-md-4 li,
+.col-md-4 p,
+.col-md-4 h6,
+.col-md-4 .quick-actions a {
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    white-space: normal;
 }
 
 .card-body {
