@@ -36,11 +36,12 @@
             </div>
             
             <div class="form-group" style="flex: 1;">
-                <label>SKU 
-                    <label style="display: inline-flex; align-items: center; gap: 5px; margin-left: 10px; font-weight: normal; font-size: 13px;">
+                <label style="display: inline-flex; align-items: center; gap: 10px;">
+                    <span>SKU</span>
+                    <span style="display: inline-flex; align-items: center; gap: 5px; font-weight: normal; font-size: 13px;">
                         <input type="checkbox" id="autoSkuCheckbox" checked onchange="toggleSKUMode()">
                         <span>Auto-generate</span>
-                    </label>
+                    </span>
                 </label>
                 <input type="text" id="skuInput" name="sku" placeholder="Auto-generated" disabled style="background: #f5f7fa; color: #7f8c8d;">
                 <small id="skuHint" style="color: #7f8c8d;">SKU will be automatically generated</small>
@@ -50,7 +51,7 @@
         <div class="form-row" style="margin-bottom: 15px;">
             <div class="form-group" style="flex: 1;">
                 <label>Unit *</label>
-                <select name="unit" required>
+                <select name="unit" required style="margin-bottom: 10px;">
                     <option value="nos">Pieces (nos)</option>
                     <option value="kg">Kilogram (kg)</option>
                     <option value="g">Gram (g)</option>
@@ -64,18 +65,12 @@
                     <option value="bundle">Bundle</option>
                     <option value="dozen">Dozen</option>
                 </select>
-            </div>
-
-            <div class="form-group" style="flex: 1; display: flex; align-items: flex-end;">
-                <label style="display: inline-flex; align-items: center; gap: 8px; cursor: pointer; margin: 0; padding-bottom: 12px;">
+                <label style="display: inline-flex; align-items: center; gap: 8px; cursor: pointer; margin: 0;">
                     <input type="checkbox" name="is_returnable" checked>
                     <span>Returnable Item</span>
                 </label>
             </div>
-        </div>
 
-        <!-- Classification -->
-        <div class="form-row" style="margin-bottom: 15px;">
             <div class="form-group" style="flex: 1;">
                 <label>Category</label>
                 <select name="category_id">
@@ -88,7 +83,10 @@
                     Don't see your category? <a href="{{ url_for('items.categories') }}" target="_blank">Add Category</a>
                 </small>
             </div>
+        </div>
 
+        <!-- Item Group (moved to its own row for better mobile layout) -->
+        <div class="form-row" style="margin-bottom: 15px;">
             <div class="form-group" style="flex: 1;">
                 <label>Item Group</label>
                 <select name="item_group_id">
@@ -100,6 +98,9 @@
                 <small style="color: #7f8c8d;">
                     Don't see your group? <a href="{{ url_for('items.groups') }}" target="_blank">Add Group</a>
                 </small>
+            </div>
+            <div class="form-group" style="flex: 1;">
+                <!-- Empty placeholder for alignment -->
             </div>
         </div>
 
