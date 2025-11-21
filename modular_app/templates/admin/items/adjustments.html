@@ -8,14 +8,14 @@
 <a href="{{ url_for('items.index') }}" class="btn btn-secondary">
     ← Back to Items
 </a>
-<button onclick="document.getElementById('addAdjustmentForm').style.display='block'" class="btn btn-success">
+<button onclick="openAddAdjustmentModal()" class="btn btn-success">
     ➕ New Adjustment
 </button>
 {% endblock %}
 
 {% block content %}
 
-    <!-- Add Adjustment Form (Hidden by default) -->
+    <!-- Add Adjustment Form (Hidden - using modal instead) -->
     <div id="addAdjustmentForm" style="display: none; background: white; border-radius: 8px; padding: 25px; margin-bottom: 25px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
         <h3 style="margin: 0 0 20px 0; color: #2c3e50;">Record Inventory Adjustment</h3>
         
@@ -142,6 +142,109 @@ function addAdjustmentLine() {
     
     container.appendChild(newLine);
 }
+
+function openAddAdjustmentModal() {
+    document.getElementById('addAdjustmentModal').classList.add('show');
+}
+
+function closeAddAdjustmentModal() {
+    document.getElementById('addAdjustmentModal').classList.remove('show');
+    document.getElementById('addAdjustmentModalForm').reset();
+}
+
+// Close modal when clicking outside
+const adjustmentModal = document.getElementById('addAdjustmentModal');
+if (adjustmentModal) {
+    adjustmentModal.addEventListener('click', function(event) {
+        if (event.target === adjustmentModal) {
+            closeAddAdjustmentModal();
+        }
+    });
+}
+
+// Close modal on ESC key
+document.addEventListener('keydown', function(event) {
+    if (event.key === 'Escape' && adjustmentModal && adjustmentModal.classList.contains('show')) {
+        closeAddAdjustmentModal();
+    }
+});
 </script>
+
+<!-- Add Adjustment Modal (Simplified Single Item) -->
+<div class="modal" id="addAdjustmentModal">
+    <div class="modal-dialog modal-dialog--large">
+        <div class="modal-header">
+            <h3 class="modal-title">📝 Quick Inventory Adjustment</h3>
+            <button type="button" class="modal-close" onclick="closeAddAdjustmentModal()">&times;</button>
+        </div>
+        <form method="POST" action="{{ url_for('items.add_adjustment') }}" id="addAdjustmentModalForm">
+            <div class="modal-body">
+                <div class="modal-form-row">
+                    <div class="form-group">
+                        <label class="field-label field-label--required">Reason</label>
+                        <select name="reason" required>
+                            <option value="">Select reason...</option>
+                            <option value="damage">Damage/Breakage</option>
+                            <option value="theft">Theft/Loss</option>
+                            <option value="recount">Stock Recount</option>
+                            <option value="expired">Expired/Obsolete</option>
+                            <option value="found">Found Stock</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="field-label">Notes</label>
+                        <input type="text" name="notes" placeholder="Additional details...">
+                    </div>
+                </div>
+                
+                <div class="modal-form-row">
+                    <div class="form-group">
+                        <label class="field-label field-label--required">Item</label>
+                        <select name="item_id[]" required>
+                            <option value="">Select item...</option>
+                            {% for item in items %}
+                            <option value="{{ item.id }}">{{ item.name }} ({{ item.sku }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="field-label field-label--required">Site</label>
+                        <select name="site_id[]" required>
+                            <option value="">Select site...</option>
+                            {% for site in sites %}
+                            <option value="{{ site.id }}">{{ site.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="modal-form-row">
+                    <div class="form-group">
+                        <label class="field-label field-label--required">Quantity</label>
+                        <input type="number" name="quantity[]" min="1" required placeholder="0">
+                    </div>
+                    <div class="form-group">
+                        <label class="field-label field-label--required">Type</label>
+                        <select name="adjustment_type[]" required>
+                            <option value="add">Add (+)</option>
+                            <option value="remove">Remove (-)</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div style="background: #e8f5e9; padding: 12px; border-radius: 8px; border-left: 4px solid #4caf50;">
+                    <small style="color: #2e7d32;">
+                        💡 <strong>Tip:</strong> This is for quick single-item adjustments. For multiple items, use the full form.
+                    </small>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeAddAdjustmentModal()">Cancel</button>
+                <button type="submit" class="btn btn-primary">💾 Record Adjustment</button>
+            </div>
+        </form>
+    </div>
+</div>
 {% endblock %}
 

@@ -8,14 +8,14 @@
 <a href="{{ url_for('items.index') }}" class="btn btn-secondary">
     ← Back to Items
 </a>
-<button onclick="document.getElementById('transferForm').style.display='block'" class="btn btn-success">
+<button onclick="openAddTransferModal()" class="btn btn-success">
     ➕ New Transfer
 </button>
 {% endblock %}
 
 {% block content %}
 
-    <!-- Transfer Form (Hidden by default) -->
+    <!-- Transfer Form (Hidden - using modal instead) -->
     <div id="transferForm" style="display: none; background: white; border-radius: 8px; padding: 25px; margin-bottom: 25px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
         <h3 style="margin: 0 0 20px 0; color: #2c3e50;">Transfer Stock Between Sites</h3>
         
@@ -124,6 +124,101 @@
         <p style="color: #999; margin: 0;">Transfer stock between your sites when needed</p>
     </div>
     {% endif %}
+</div>
+
+<script>
+function openAddTransferModal() {
+    document.getElementById('addTransferModal').classList.add('show');
+}
+
+function closeAddTransferModal() {
+    document.getElementById('addTransferModal').classList.remove('show');
+    document.getElementById('addTransferForm').reset();
+}
+
+// Close modal when clicking outside
+const transferModal = document.getElementById('addTransferModal');
+if (transferModal) {
+    transferModal.addEventListener('click', function(event) {
+        if (event.target === transferModal) {
+            closeAddTransferModal();
+        }
+    });
+}
+
+// Close modal on ESC key
+document.addEventListener('keydown', function(event) {
+    if (event.key === 'Escape' && transferModal && transferModal.classList.contains('show')) {
+        closeAddTransferModal();
+    }
+});
+</script>
+
+<!-- Add Transfer Modal -->
+<div class="modal" id="addTransferModal">
+    <div class="modal-dialog modal-dialog--large">
+        <div class="modal-header">
+            <h3 class="modal-title">🔄 Transfer Stock Between Sites</h3>
+            <button type="button" class="modal-close" onclick="closeAddTransferModal()">&times;</button>
+        </div>
+        <form method="POST" action="{{ url_for('items.add_transfer') }}" id="addTransferForm">
+            <div class="modal-body">
+                <div class="modal-form-row">
+                    <div class="form-group">
+                        <label class="field-label field-label--required">Item</label>
+                        <select name="item_id" required>
+                            <option value="">Select item...</option>
+                            {% for item in items %}
+                            <option value="{{ item.id }}">{{ item.name }} ({{ item.sku }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="field-label field-label--required">Quantity</label>
+                        <input type="number" name="quantity" min="1" required placeholder="Enter quantity...">
+                    </div>
+                </div>
+                
+                <div class="modal-form-row">
+                    <div class="form-group">
+                        <label class="field-label field-label--required">From Site</label>
+                        <select name="from_site" required>
+                            <option value="">Select source site...</option>
+                            {% for site in sites %}
+                            <option value="{{ site.id }}">{{ site.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="field-label field-label--required">To Site</label>
+                        <select name="to_site" required>
+                            <option value="">Select destination site...</option>
+                            {% for site in sites %}
+                            <option value="{{ site.id }}">{{ site.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="modal-form-row modal-form-row--single">
+                    <div class="form-group">
+                        <label class="field-label">Transfer Notes</label>
+                        <textarea name="notes" rows="2" placeholder="Reason for transfer, reference number, etc."></textarea>
+                    </div>
+                </div>
+                
+                <div style="background: #e3f2fd; padding: 12px; border-radius: 8px; border-left: 4px solid #2196f3;">
+                    <small style="color: #1565c0;">
+                        💡 <strong>Note:</strong> This will reduce stock at source site and add to destination site.
+                    </small>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeAddTransferModal()">Cancel</button>
+                <button type="submit" class="btn btn-primary">💾 Transfer Stock</button>
+            </div>
+        </form>
+    </div>
 </div>
 {% endblock %}
 

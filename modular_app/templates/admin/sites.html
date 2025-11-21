@@ -5,39 +5,12 @@
 {% block page_title %}Manage Sites{% endblock %}
 
 {% block header_actions %}
-<!-- Manual Entry and QR Code buttons removed - not relevant for Sites management -->
+<button onclick="openAddSiteModal()" class="btn btn-primary">
+    ➕ Add New Site
+</button>
 {% endblock %}
 
 {% block content %}
-    <div style="background: white; border-radius: 8px; padding: 25px; margin-bottom: 25px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-    <h3 style="margin: 0 0 20px 0; color: #2c3e50;">Add New Site</h3>
-    <form method="POST" action="/admin/site/add" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
-        <div class="form-group">
-            <label class="field-label">Site Name:</label>
-            <input type="text" name="name" required>
-        </div>
-        <div class="form-group">
-            <label class="field-label">Address:</label>
-            <input type="text" name="address">
-        </div>
-        <div class="form-group">
-            <label class="field-label">Latitude:</label>
-            <input type="number" name="latitude" step="0.000001" value="0" placeholder="0.0">
-        </div>
-        <div class="form-group">
-            <label class="field-label">Longitude:</label>
-            <input type="number" name="longitude" step="0.000001" value="0" placeholder="0.0">
-        </div>
-        <div class="form-group">
-            <label class="field-label">Allowed Radius (meters):</label>
-            <input type="number" name="allowed_radius" value="100" placeholder="100">
-        </div>
-        <div style="grid-column: span 2;">
-            <button type="submit" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 12px 30px; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">➕ Add Site</button>
-        </div>
-    </form>
-    </div>
-
     <div style="background: white; border-radius: 8px; padding: 25px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
     <h3 style="margin: 0 0 20px 0; color: #2c3e50;">All Sites</h3>
     <table style="width: 100%; border-collapse: collapse;">
@@ -76,5 +49,80 @@
         </tbody>
     </table>
     </div>
+
+<script>
+function openAddSiteModal() {
+    document.getElementById('addSiteModal').classList.add('show');
+}
+
+function closeAddSiteModal() {
+    document.getElementById('addSiteModal').classList.remove('show');
+    document.getElementById('addSiteForm').reset();
+}
+
+// Close modal when clicking outside
+const siteModal = document.getElementById('addSiteModal');
+if (siteModal) {
+    siteModal.addEventListener('click', function(event) {
+        if (event.target === siteModal) {
+            closeAddSiteModal();
+        }
+    });
+}
+
+// Close modal on ESC key
+document.addEventListener('keydown', function(event) {
+    if (event.key === 'Escape' && siteModal && siteModal.classList.contains('show')) {
+        closeAddSiteModal();
+    }
+});
+</script>
+
+<!-- Add Site Modal -->
+<div class="modal" id="addSiteModal">
+    <div class="modal-dialog">
+        <div class="modal-header">
+            <h3 class="modal-title">➕ Add New Site</h3>
+            <button type="button" class="modal-close" onclick="closeAddSiteModal()">&times;</button>
+        </div>
+        <form method="POST" action="/admin/site/add" id="addSiteForm">
+            <div class="modal-body">
+                <div class="modal-form-row">
+                    <div class="form-group">
+                        <label class="field-label field-label--required">Site Name</label>
+                        <input type="text" name="name" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="field-label">Address</label>
+                        <input type="text" name="address">
+                    </div>
+                </div>
+                
+                <div class="modal-form-row">
+                    <div class="form-group">
+                        <label class="field-label">Latitude</label>
+                        <input type="number" name="latitude" step="0.000001" value="0" placeholder="0.0">
+                    </div>
+                    <div class="form-group">
+                        <label class="field-label">Longitude</label>
+                        <input type="number" name="longitude" step="0.000001" value="0" placeholder="0.0">
+                    </div>
+                </div>
+                
+                <div class="modal-form-row modal-form-row--single">
+                    <div class="form-group">
+                        <label class="field-label">Allowed Radius (meters)</label>
+                        <input type="number" name="allowed_radius" value="100" placeholder="100">
+                        <small class="help-text">Geofence radius for attendance tracking</small>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeAddSiteModal()">Cancel</button>
+                <button type="submit" class="btn btn-primary">💾 Add Site</button>
+            </div>
+        </form>
+    </div>
+</div>
 {% endblock %}
 
