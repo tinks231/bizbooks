@@ -85,15 +85,25 @@ def dashboard():
             Expense.expense_date >= thirty_days_ago
         ).scalar() or 0)
         
-        # Get last activity timestamp
+        # Get last activity timestamp - track ALL business actions
         last_attendance = Attendance.query.filter_by(tenant_id=tenant.id).order_by(Attendance.timestamp.desc()).first()
         last_invoice = Invoice.query.filter_by(tenant_id=tenant.id).order_by(Invoice.created_at.desc()).first()
         last_expense = Expense.query.filter_by(tenant_id=tenant.id).order_by(Expense.created_at.desc()).first()
+        last_item = Item.query.filter_by(tenant_id=tenant.id).order_by(Item.created_at.desc()).first()
+        last_customer = Customer.query.filter_by(tenant_id=tenant.id).order_by(Customer.created_at.desc()).first()
+        last_vendor = Vendor.query.filter_by(tenant_id=tenant.id).order_by(Vendor.created_at.desc()).first()
+        last_purchase = PurchaseBill.query.filter_by(tenant_id=tenant.id).order_by(PurchaseBill.created_at.desc()).first()
+        last_task = Task.query.filter_by(tenant_id=tenant.id).order_by(Task.created_at.desc()).first()
         
         activity_timestamps = [
             last_attendance.timestamp if last_attendance else None,
             last_invoice.created_at if last_invoice else None,
-            last_expense.created_at if last_expense else None
+            last_expense.created_at if last_expense else None,
+            last_item.created_at if last_item else None,
+            last_customer.created_at if last_customer else None,
+            last_vendor.created_at if last_vendor else None,
+            last_purchase.created_at if last_purchase else None,
+            last_task.created_at if last_task else None
         ]
         activity_timestamps = [ts for ts in activity_timestamps if ts]
         last_activity = max(activity_timestamps) if activity_timestamps else None
