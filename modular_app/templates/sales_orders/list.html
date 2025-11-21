@@ -13,103 +13,77 @@
 {% block content %}
 
     <!-- Statistics Cards -->
-    <div class="row mb-4">
-        <div class="col-md-2">
-            <div class="card text-center" style="border-left: 4px solid #6c757d;">
-                <div class="card-body">
-                    <h3 class="mb-0">{{ stats.total }}</h3>
-                    <small class="text-muted">Total Orders</small>
-                </div>
-            </div>
+    <div class="stats-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 15px; margin-bottom: 25px;">
+        <div class="stat-card" style="background: linear-gradient(135deg, #6c757d 0%, #5a6268 100%); color: white; border-radius: 12px; padding: 20px; text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+            <div style="font-size: 32px; font-weight: 700; margin-bottom: 8px;">{{ stats.total }}</div>
+            <div style="font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.95;">Total Orders</div>
         </div>
-        <div class="col-md-2">
-            <div class="card text-center" style="border-left: 4px solid #ffc107;">
-                <div class="card-body">
-                    <h3 class="mb-0">{{ stats.pending }}</h3>
-                    <small class="text-muted">Pending</small>
-                </div>
-            </div>
+        <div class="stat-card" style="background: linear-gradient(135deg, #ffc107 0%, #e0a800 100%); color: #000; border-radius: 12px; padding: 20px; text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+            <div style="font-size: 32px; font-weight: 700; margin-bottom: 8px;">{{ stats.pending }}</div>
+            <div style="font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.95;">Pending</div>
         </div>
-        <div class="col-md-2">
-            <div class="card text-center" style="border-left: 4px solid #17a2b8;">
-                <div class="card-body">
-                    <h3 class="mb-0">{{ stats.confirmed }}</h3>
-                    <small class="text-muted">Confirmed</small>
-                </div>
-            </div>
+        <div class="stat-card" style="background: linear-gradient(135deg, #17a2b8 0%, #138496 100%); color: white; border-radius: 12px; padding: 20px; text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+            <div style="font-size: 32px; font-weight: 700; margin-bottom: 8px;">{{ stats.confirmed }}</div>
+            <div style="font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.95;">Confirmed</div>
         </div>
-        <div class="col-md-2">
-            <div class="card text-center" style="border-left: 4px solid #fd7e14;">
-                <div class="card-body">
-                    <h3 class="mb-0">{{ stats.partially_delivered }}</h3>
-                    <small class="text-muted">Part. Delivered</small>
-                </div>
-            </div>
+        <div class="stat-card" style="background: linear-gradient(135deg, #fd7e14 0%, #dc6502 100%); color: white; border-radius: 12px; padding: 20px; text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+            <div style="font-size: 32px; font-weight: 700; margin-bottom: 8px;">{{ stats.partially_delivered }}</div>
+            <div style="font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.95;">Part. Delivered</div>
         </div>
-        <div class="col-md-2">
-            <div class="card text-center" style="border-left: 4px solid #20c997;">
-                <div class="card-body">
-                    <h3 class="mb-0">{{ stats.delivered }}</h3>
-                    <small class="text-muted">Delivered</small>
-                </div>
-            </div>
+        <div class="stat-card" style="background: linear-gradient(135deg, #20c997 0%, #1ba87e 100%); color: white; border-radius: 12px; padding: 20px; text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+            <div style="font-size: 32px; font-weight: 700; margin-bottom: 8px;">{{ stats.delivered }}</div>
+            <div style="font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.95;">Delivered</div>
         </div>
-        <div class="col-md-2">
-            <div class="card text-center" style="border-left: 4px solid #28a745;">
-                <div class="card-body">
-                    <h3 class="mb-0">₹{{ "{:,.0f}".format(stats.pending_value) }}</h3>
-                    <small class="text-muted">Pending Value</small>
-                </div>
-            </div>
+        <div class="stat-card" style="background: linear-gradient(135deg, #28a745 0%, #218838 100%); color: white; border-radius: 12px; padding: 20px; text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+            <div style="font-size: 32px; font-weight: 700; margin-bottom: 8px;">₹{{ "{:,.0f}".format(stats.pending_value) }}</div>
+            <div style="font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.95;">Pending Value</div>
         </div>
     </div>
 
     <!-- Filters -->
-    <div class="card mb-4">
+    <div class="card" style="margin-bottom: 25px;">
         <div class="card-body">
-            <form method="GET" action="{{ url_for('sales_orders.list_orders') }}" class="row g-3">
-                <div class="col-md-3">
-                    <label class="form-label">Status</label>
-                    <select name="status" class="form-select">
-                        <option value="all" {% if status_filter == 'all' %}selected{% endif %}>All Statuses</option>
-                        <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>Pending</option>
-                        <option value="confirmed" {% if status_filter == 'confirmed' %}selected{% endif %}>Confirmed</option>
-                        <option value="partially_delivered" {% if status_filter == 'partially_delivered' %}selected{% endif %}>Partially Delivered</option>
-                        <option value="delivered" {% if status_filter == 'delivered' %}selected{% endif %}>Delivered</option>
-                        <option value="invoiced" {% if status_filter == 'invoiced' %}selected{% endif %}>Invoiced</option>
-                        <option value="cancelled" {% if status_filter == 'cancelled' %}selected{% endif %}>Cancelled</option>
-                    </select>
+            <form method="GET" action="{{ url_for('sales_orders.list_orders') }}">
+                <div class="form-row" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 15px;">
+                    <div class="form-group">
+                        <label>Status</label>
+                        <select name="status" class="form-input">
+                            <option value="all" {% if status_filter == 'all' %}selected{% endif %}>All Statuses</option>
+                            <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>Pending</option>
+                            <option value="confirmed" {% if status_filter == 'confirmed' %}selected{% endif %}>Confirmed</option>
+                            <option value="partially_delivered" {% if status_filter == 'partially_delivered' %}selected{% endif %}>Partially Delivered</option>
+                            <option value="delivered" {% if status_filter == 'delivered' %}selected{% endif %}>Delivered</option>
+                            <option value="invoiced" {% if status_filter == 'invoiced' %}selected{% endif %}>Invoiced</option>
+                            <option value="cancelled" {% if status_filter == 'cancelled' %}selected{% endif %}>Cancelled</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Customer</label>
+                        <select name="customer_id" class="form-input">
+                            <option value="">All Customers</option>
+                            {% for customer in customers %}
+                            <option value="{{ customer.id }}" {% if customer_id == customer.id|string %}selected{% endif %}>
+                                {{ customer.name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>From Date</label>
+                        <input type="date" name="date_from" class="form-input" value="{{ date_from }}">
+                    </div>
+                    <div class="form-group">
+                        <label>To Date</label>
+                        <input type="date" name="date_to" class="form-input" value="{{ date_to }}">
+                    </div>
+                    <div class="form-group">
+                        <label>Search</label>
+                        <input type="text" name="search" class="form-input" placeholder="Order #, Customer" value="{{ search_query }}">
+                    </div>
                 </div>
-                <div class="col-md-3">
-                    <label class="form-label">Customer</label>
-                    <select name="customer_id" class="form-select">
-                        <option value="">All Customers</option>
-                        {% for customer in customers %}
-                        <option value="{{ customer.id }}" {% if customer_id == customer.id|string %}selected{% endif %}>
-                            {{ customer.name }}
-                        </option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="col-md-2">
-                    <label class="form-label">From Date</label>
-                    <input type="date" name="date_from" class="form-control" value="{{ date_from }}">
-                </div>
-                <div class="col-md-2">
-                    <label class="form-label">To Date</label>
-                    <input type="date" name="date_to" class="form-control" value="{{ date_to }}">
-                </div>
-                <div class="col-md-2">
-                    <label class="form-label">Search</label>
-                    <input type="text" name="search" class="form-control" placeholder="Order #, Customer" value="{{ search_query }}">
-                </div>
-                <div class="col-md-12">
-                    <button type="submit" class="btn btn-primary">
-                        <i class="fas fa-filter"></i> Apply Filters
-                    </button>
-                    <a href="{{ url_for('sales_orders.list_orders') }}" class="btn btn-secondary">
-                        <i class="fas fa-times"></i> Clear
-                    </a>
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">Apply Filters</button>
+                    <a href="{{ url_for('sales_orders.list_orders') }}" class="btn btn-secondary">Clear</a>
                 </div>
             </form>
         </div>
@@ -119,8 +93,8 @@
     <div class="card">
         <div class="card-body">
             {% if orders %}
-            <div class="table-responsive">
-                <table class="table table-hover">
+            <div style="overflow-x: auto;">
+                <table class="table">
                     <thead>
                         <tr>
                             <th>Order #</th>
@@ -161,21 +135,21 @@
                             </td>
                             <td>
                                 {% if order.status == 'pending' %}
-                                <span class="badge bg-warning">Pending</span>
+                                <span class="badge badge-warning">⏳ Pending</span>
                                 {% elif order.status == 'confirmed' %}
-                                <span class="badge bg-info">Confirmed</span>
+                                <span class="badge badge-info">✓ Confirmed</span>
                                 {% elif order.status == 'partially_delivered' %}
-                                <span class="badge bg-warning">Part. Delivered</span>
+                                <span class="badge badge-warning">📦 Part. Delivered</span>
                                 {% elif order.status == 'delivered' %}
-                                <span class="badge bg-success">Delivered</span>
+                                <span class="badge badge-success">✅ Delivered</span>
                                 {% elif order.status == 'partially_invoiced' %}
-                                <span class="badge bg-primary">Part. Invoiced</span>
+                                <span class="badge badge-info">📄 Part. Invoiced</span>
                                 {% elif order.status == 'invoiced' %}
-                                <span class="badge bg-success">Invoiced</span>
+                                <span class="badge badge-success">💰 Invoiced</span>
                                 {% elif order.status == 'cancelled' %}
-                                <span class="badge bg-danger">Cancelled</span>
+                                <span class="badge badge-danger">❌ Cancelled</span>
                                 {% else %}
-                                <span class="badge bg-secondary">{{ order.status|title }}</span>
+                                <span class="badge badge-secondary">{{ order.status|title }}</span>
                                 {% endif %}
                             </td>
                             <td>
@@ -189,74 +163,60 @@
                                 </div>
                             </td>
                             <td>
-                                <div class="btn-group btn-group-sm">
+                                <div style="display: flex; gap: 5px;">
                                     <a href="{{ url_for('sales_orders.view_order', order_id=order.id) }}" 
-                                       class="btn btn-sm btn-primary" title="View">
-                                        <i class="fas fa-eye"></i>
+                                       class="btn btn-primary" style="padding: 6px 10px; font-size: 13px;" title="View">
+                                        👁️ View
                                     </a>
                                     {% if order.status not in ['invoiced', 'cancelled'] %}
                                     <a href="{{ url_for('sales_orders.edit_order', order_id=order.id) }}" 
-                                       class="btn btn-sm btn-warning" title="Edit">
-                                        <i class="fas fa-edit"></i>
+                                       class="btn btn-warning" style="padding: 6px 10px; font-size: 13px; background: #ffc107; color: #000;" title="Edit">
+                                        ✏️ Edit
                                     </a>
                                     {% endif %}
-                                    <div class="btn-group btn-group-sm">
-                                        <button type="button" class="btn btn-sm btn-secondary dropdown-toggle" 
-                                                data-bs-toggle="dropdown">
-                                            <i class="fas fa-ellipsis-v"></i>
+                                    {% if order.status in ['invoiced'] %}
+                                    <span style="font-size: 12px; color: #6c757d; padding: 6px 10px; display: inline-block;">✅ Completed</span>
+                                    {% elif order.status in ['cancelled'] %}
+                                    <span style="font-size: 12px; color: #6c757d; padding: 6px 10px; display: inline-block;">❌ Cancelled</span>
+                                    {% else %}
+                                    <div class="dropdown" style="position: relative; display: inline-block;">
+                                        <button type="button" class="btn btn-secondary" style="padding: 6px 10px; font-size: 13px;" onclick="toggleDropdown(event, this)">
+                                            ⋮ More
                                         </button>
-                                        <ul class="dropdown-menu">
-                                            {% if order.status not in ['invoiced', 'cancelled'] %}
+                                        <div class="dropdown-menu-custom" style="display: none; position: absolute; background: white; border: 1px solid #ddd; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); min-width: 200px; z-index: 1000; right: 0; top: 100%; margin-top: 5px;">
                                             {% if not order.delivery_challans %}
-                                            <li>
-                                                <a class="dropdown-item" href="{{ url_for('delivery_challans.create_challan_form', from_order=order.id) }}">
-                                                    <i class="fas fa-truck"></i> Create Delivery Challan
-                                                </a>
-                                            </li>
+                                            <a href="{{ url_for('delivery_challans.create_challan_form', from_order=order.id) }}" style="display: block; padding: 10px 15px; color: #212529; text-decoration: none; font-size: 13px;">
+                                                🚚 Create Delivery Challan
+                                            </a>
                                             {% endif %}
-                                            <li>
-                                                <a class="dropdown-item" href="{{ url_for('sales_orders.convert_to_invoice', order_id=order.id) }}">
-                                                    <i class="fas fa-file-invoice"></i> Convert to Invoice
-                                                </a>
-                                            </li>
-                                            {% endif %}
+                                            <a href="{{ url_for('sales_orders.convert_to_invoice', order_id=order.id) }}" style="display: block; padding: 10px 15px; color: #212529; text-decoration: none; font-size: 13px;">
+                                                📄 Convert to Invoice
+                                            </a>
                                             {% if order.status in ['draft', 'pending'] %}
-                                            <li>
-                                                <form method="POST" action="{{ url_for('sales_orders.update_status', order_id=order.id) }}" 
-                                                      style="display: inline;">
-                                                    <input type="hidden" name="status" value="confirmed">
-                                                    <button type="submit" class="dropdown-item">
-                                                        <i class="fas fa-check"></i> Mark as Confirmed
-                                                    </button>
-                                                </form>
-                                            </li>
+                                            <form method="POST" action="{{ url_for('sales_orders.update_status', order_id=order.id) }}" style="margin: 0;">
+                                                <input type="hidden" name="status" value="confirmed">
+                                                <button type="submit" style="width: 100%; text-align: left; padding: 10px 15px; background: none; border: none; color: #212529; cursor: pointer; font-size: 13px;">
+                                                    ✅ Mark as Confirmed
+                                                </button>
+                                            </form>
                                             {% endif %}
-                                            {% if order.status not in ['invoiced', 'cancelled'] %}
-                                            <li>
-                                                <form method="POST" action="{{ url_for('sales_orders.update_status', order_id=order.id) }}" 
-                                                      style="display: inline;"
-                                                      onsubmit="return confirm('Are you sure you want to cancel this order?')">
-                                                    <input type="hidden" name="status" value="cancelled">
-                                                    <button type="submit" class="dropdown-item text-danger">
-                                                        <i class="fas fa-times"></i> Cancel Order
-                                                    </button>
-                                                </form>
-                                            </li>
-                                            {% endif %}
+                                            <form method="POST" action="{{ url_for('sales_orders.update_status', order_id=order.id) }}" style="margin: 0;" onsubmit="return confirm('Are you sure you want to cancel this order?')">
+                                                <input type="hidden" name="status" value="cancelled">
+                                                <button type="submit" style="width: 100%; text-align: left; padding: 10px 15px; background: none; border: none; color: #dc3545; cursor: pointer; font-size: 13px;">
+                                                    ❌ Cancel Order
+                                                </button>
+                                            </form>
                                             {% if order.status in ['draft', 'pending', 'cancelled'] %}
-                                            <li><hr class="dropdown-divider"></li>
-                                            <li>
-                                                <form method="POST" action="{{ url_for('sales_orders.delete_order', order_id=order.id) }}" 
-                                                      style="display: inline;"
-                                                      onsubmit="return confirm('Are you sure you want to delete this order? This cannot be undone.')">
-                                                    <button type="submit" class="dropdown-item text-danger">
-                                                        <i class="fas fa-trash"></i> Delete
-                                                    </button>
-                                                </form>
-                                            </li>
+                                            <hr style="margin: 5px 0; border: none; border-top: 1px solid #e9ecef;">
+                                            <form method="POST" action="{{ url_for('sales_orders.delete_order', order_id=order.id) }}" style="margin: 0;" onsubmit="return confirm('Are you sure you want to delete this order? This cannot be undone.')">
+                                                <button type="submit" style="width: 100%; text-align: left; padding: 10px 15px; background: none; border: none; color: #dc3545; cursor: pointer; font-size: 13px;">
+                                                    🗑️ Delete
+                                                </button>
+                                            </form>
                                             {% endif %}
-                                        </ul>
+                                        </div>
                                     </div>
+                                    {% endif %}
                                 </div>
                             </td>
                         </tr>
@@ -277,498 +237,49 @@
         </div>
     </div>
 
+<script>
+// Dropdown toggle functionality
+function toggleDropdown(event, button) {
+    event.stopPropagation();
+    const dropdown = button.nextElementSibling;
+    
+    // Close all other dropdowns
+    document.querySelectorAll('.dropdown-menu-custom').forEach(menu => {
+        if (menu !== dropdown) {
+            menu.style.display = 'none';
+        }
+    });
+    
+    // Toggle current dropdown
+    dropdown.style.display = dropdown.style.display === 'none' ? 'block' : 'none';
+}
+
+// Close dropdown when clicking outside
+document.addEventListener('click', function(event) {
+    if (!event.target.closest('.dropdown')) {
+        document.querySelectorAll('.dropdown-menu-custom').forEach(menu => {
+            menu.style.display = 'none';
+        });
+    }
+});
+
+// Add hover effect to dropdown items
+document.querySelectorAll('.dropdown-menu-custom a, .dropdown-menu-custom button').forEach(item => {
+    item.addEventListener('mouseenter', function() {
+        this.style.background = '#e3f2fd';
+    });
+    item.addEventListener('mouseleave', function() {
+        this.style.background = 'white';
+    });
+});
+</script>
+
 <style>
-/* ========================================
-   CUSTOM GRID SYSTEM (Bootstrap-like)
-   ======================================== */
-.row {
-    display: flex;
-    flex-wrap: wrap;
-    margin: 0 -15px;
-}
-
-/* Mobile: Reduce row margin for 2-card layout */
-@media (max-width: 767px) {
-    .row {
-        margin: 0 -8px;
-    }
-}
-
-.col-md-12, .col-md-6, .col-md-4, .col-md-3, .col-md-2 {
-    padding: 0 15px;
-    box-sizing: border-box;
-}
-
-/* Mobile First - 2 cards per row on small screens */
-.col-md-12 {
-    flex: 0 0 100%;
-    max-width: 100%;
-}
-
-.col-md-6,
-.col-md-4,
-.col-md-3,
-.col-md-2 {
-    flex: 0 0 50%;  /* 2 cards per row on mobile */
-    max-width: 50%;
-}
-
-/* Desktop breakpoint (768px and up) */
-@media (min-width: 768px) {
-    .col-md-12 { flex: 0 0 100%; max-width: 100%; }
-    .col-md-6 { flex: 0 0 50%; max-width: 50%; }
-    .col-md-4 { flex: 0 0 33.333%; max-width: 33.333%; }
-    .col-md-3 { flex: 0 0 25%; max-width: 25%; }
-    .col-md-2 { flex: 0 0 16.666%; max-width: 16.666%; }
-}
-
-.g-3 > * {
-    padding-right: 12px;
-    padding-left: 12px;
-    margin-top: 12px;
-}
-
-/* Mobile: Full-width filter fields */
-@media (max-width: 767px) {
-    .g-3 > * {
-        flex: 0 0 100%;
-        max-width: 100%;
-        padding-left: 0;
-        padding-right: 0;
-    }
-}
-
-.mb-0 { margin-bottom: 0 !important; }
-.mb-3 { margin-bottom: 1rem; }
-.mb-4 { margin-bottom: 1.5rem; }
-.py-5 { padding-top: 3rem; padding-bottom: 3rem; }
-
-/* ========================================
-   CARD STYLING
-   ======================================== */
-.card {
-    border-radius: 12px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-    margin-bottom: 20px;
-    background: white;
-    border: 1px solid #e9ecef;
-    transition: all 0.3s ease;
-}
-
-.card:hover {
-    box-shadow: 0 4px 12px rgba(0,0,0,0.12);
-}
-
-.card-body {
-    padding: 20px;
-}
-
-.card.text-center {
-    text-align: center;
-}
-
-.card.text-center h3 {
-    font-size: 2rem;
-    font-weight: 700;
-    color: #2c3e50;
-    margin-bottom: 8px;
-}
-
-.card.text-center small {
-    font-size: 0.85rem;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    color: #6c757d;
-}
-
-/* Mobile: 2 cards per row styling */
-@media (max-width: 767px) {
-    .col-md-2 {
-        margin-bottom: 12px;
-    }
-    
-    /* Remove bottom margin from last 2 cards in last row */
-    .col-md-2:nth-last-child(-n+2) {
-        margin-bottom: 0;
-    }
-    
-    .card.text-center h3 {
-        font-size: 1.5rem;  /* Smaller to fit 2 cards */
-    }
-    
-    .card.text-center small {
-        font-size: 0.7rem;  /* Smaller label */
-    }
-    
-    .card-body {
-        padding: 12px 8px;  /* Tighter padding */
-    }
-    
-    /* Reduce padding between cards */
-    .col-md-2 {
-        padding: 0 8px;
-    }
-}
-
-/* ========================================
-   FORM CONTROLS
-   ======================================== */
-.form-label {
-    display: block;
-    margin-bottom: 8px;
-    font-weight: 600;
-    color: #495057;
-    font-size: 0.95rem;
-}
-
-.form-control, .form-select {
-    width: 100%;
-    padding: 10px 12px;
-    border: 2px solid #dee2e6;
-    border-radius: 8px;
-    font-size: 0.95rem;
-    transition: all 0.2s ease;
-    background: white;
-    box-sizing: border-box;
-}
-
-.form-control:focus, .form-select:focus {
-    outline: none;
-    border-color: #007bff;
-    box-shadow: 0 0 0 3px rgba(0,123,255,0.1);
-}
-
-.form-select {
-    cursor: pointer;
-    appearance: none;
-    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23343a40' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3e%3c/svg%3e");
-    background-repeat: no-repeat;
-    background-position: right 12px center;
-    background-size: 16px 12px;
-    padding-right: 40px;
-}
-
-input[type="date"] {
-    padding-right: 12px;
-}
-
-/* ========================================
-   BUTTONS
-   ======================================== */
-.btn {
-    display: inline-block;
-    padding: 10px 20px;
-    font-size: 0.95rem;
-    font-weight: 600;
-    text-align: center;
-    border: none;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    text-decoration: none;
-    margin-right: 8px;
-}
-
-.btn-primary {
-    background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
-    color: white;
-}
-
-.btn-primary:hover {
-    background: linear-gradient(135deg, #0056b3 0%, #003d82 100%);
-    transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0,123,255,0.3);
-}
-
-.btn-secondary {
-    background: #6c757d;
-    color: white;
-}
-
-.btn-secondary:hover {
-    background: #5a6268;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(108,117,125,0.3);
-}
-
-.btn-warning {
-    background: #ffc107;
-    color: #000;
-}
-
-.btn-warning:hover {
-    background: #e0a800;
-    transform: translateY(-2px);
-}
-
-.btn-sm {
-    padding: 6px 12px;
-    font-size: 0.85rem;
-}
-
-.btn i {
-    margin-right: 5px;
-}
-
-/* ========================================
-   BUTTON GROUP & DROPDOWN
-   ======================================== */
-.btn-group, .btn-group-sm {
-    display: inline-flex;
-    vertical-align: middle;
-    position: relative; /* For dropdown positioning */
-    z-index: 100; /* Higher than table rows */
-}
-
-.btn-group:hover, .btn-group-sm:hover {
-    z-index: 10000; /* Even higher when dropdown is shown */
-}
-
-.btn-group .btn, .btn-group-sm .btn {
-    margin-right: 0;
-    border-radius: 0;
-}
-
-.btn-group .btn:first-child {
-    border-top-left-radius: 6px;
-    border-bottom-left-radius: 6px;
-}
-
-.btn-group .btn:last-child {
-    border-top-right-radius: 6px;
-    border-bottom-right-radius: 6px;
-}
-
-.btn-group-sm .btn {
-    padding: 6px 10px;
-    font-size: 0.85rem;
-}
-
-.dropdown-toggle::after {
-    display: none;
-}
-
-.dropdown-menu {
-    position: absolute;
-    z-index: 99999 !important; /* Maximum z-index to appear above all elements */
-    display: none;
-    min-width: 220px;
-    padding: 8px 0;
-    margin: 4px 0 0;
-    background: white;
-    border: 1px solid rgba(0,0,0,0.15);
-    border-radius: 8px;
-    box-shadow: 0 6px 16px rgba(0,0,0,0.2);
-    /* RIGHT ALIGN - Prevent overflow */
-    right: 0;
-    left: auto;
-}
-
-.btn-group:hover .dropdown-menu {
-    display: block;
-}
-
-.dropdown-item {
-    display: block !important;
-    width: 100% !important;
-    padding: 8px 14px !important; /* Reduced spacing */
-    clear: both;
-    font-weight: 400 !important;
-    font-size: 0.9rem !important; /* Consistent size */
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
-    color: #212529 !important;
-    text-align: left !important;
-    text-decoration: none !important;
-    white-space: nowrap;
-    background-color: transparent;
-    border: 0 !important;
-    cursor: pointer;
-    transition: background-color 0.2s ease;
-    line-height: 1.4 !important; /* Tighter */
-    margin: 0 !important;
-}
-
-.dropdown-item:hover {
-    background-color: #e3f2fd;
-    color: #212529;
-}
-
-.dropdown-item i {
-    margin-right: 10px;
-    width: 18px;
-    display: inline-block;
-    text-align: center;
-}
-
-.dropdown-item.text-danger {
-    color: #dc3545 !important;
-}
-
-.dropdown-item.text-danger:hover {
-    background-color: #ffebee;
-    color: #dc3545 !important;
-}
-
-.dropdown-divider {
-    height: 0;
-    margin: 4px 0 !important; /* Reduced spacing */
-    overflow: hidden;
-    border-top: 1px solid #e9ecef;
-}
-
-/* Remove extra spacing from list items */
-.dropdown-menu li {
-    margin: 0 !important;
-    padding: 0 !important;
-    list-style: none;
-}
-
-/* Ensure links and buttons have EXACTLY same styling */
-.dropdown-item a,
-.dropdown-item button,
-a.dropdown-item,
-button.dropdown-item {
-    display: block !important;
-    width: 100% !important;
-    text-align: left !important;
-    background: none !important;
-    border: none !important;
-    padding: 8px 14px !important; /* Match parent */
-    color: #212529 !important;
-    font-size: 0.9rem !important; /* Match parent */
-    font-weight: 400 !important;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
-    line-height: 1.4 !important;
-    margin: 0 !important;
-    text-decoration: none !important;
-    cursor: pointer;
-}
-
-/* ========================================
-   TABLE STYLING
-   ======================================== */
-.table-responsive {
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-}
-
-.table {
-    width: 100%;
-    margin-bottom: 1rem;
-    border-collapse: collapse;
-}
-
-.table thead th {
-    vertical-align: bottom;
-    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-    font-weight: 700;
-    text-transform: uppercase;
-    font-size: 0.85rem;
-    letter-spacing: 0.5px;
-    color: #495057;
-    border-bottom: 2px solid #007bff;
-    padding: 14px 12px;
-}
-
-.table tbody td {
-    padding: 14px 12px;
-    vertical-align: middle;
-    border-bottom: 1px solid #e9ecef;
-}
-
-.table-hover tbody tr {
-    transition: all 0.2s ease;
-    position: relative;
-    z-index: 1;
-}
-
-.table-hover tbody tr:hover {
-    background-color: #f1f8ff;
-    transform: scale(1.01);
-    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-    z-index: 10; /* Elevated on hover to show dropdown above other rows */
-}
-
-/* Mobile: Table improvements */
-@media (max-width: 767px) {
-    .table-responsive {
-        overflow-x: auto;
-        -webkit-overflow-scrolling: touch;
-        border: 1px solid #dee2e6;
-        border-radius: 8px;
-    }
-    
-    .table {
-        min-width: 800px; /* Prevent table from being too cramped */
-        font-size: 0.85rem;
-    }
-    
-    .table thead th {
-        font-size: 0.75rem;
-        padding: 10px 8px;
-    }
-    
-    .table tbody td {
-        padding: 10px 8px;
-    }
-    
-    .btn-sm {
-        padding: 8px 12px;
-        font-size: 0.9rem;
-    }
-}
-
-/* ========================================
-   BADGES
-   ======================================== */
-.badge {
-    display: inline-block;
-    padding: 6px 12px;
-    font-size: 0.8rem;
-    font-weight: 600;
-    line-height: 1;
-    color: #fff;
-    text-align: center;
-    white-space: nowrap;
-    vertical-align: baseline;
-    border-radius: 6px;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-}
-
-.bg-warning {
-    background-color: #ffc107 !important;
-    color: #000 !important;
-}
-
-.bg-info {
-    background-color: #17a2b8 !important;
-}
-
-.bg-success {
-    background-color: #28a745 !important;
-}
-
-.bg-primary {
-    background-color: #007bff !important;
-}
-
-.bg-danger {
-    background-color: #dc3545 !important;
-}
-
-.bg-secondary {
-    background-color: #6c757d !important;
-}
-
-/* ========================================
-   PROGRESS BAR
-   ======================================== */
+/* Progress bar styling */
 .progress {
     display: flex;
     height: 6px;
     overflow: hidden;
-    font-size: 0.75rem;
     background-color: #e9ecef;
     border-radius: 4px;
     margin-top: 5px;
@@ -776,49 +287,21 @@ button.dropdown-item {
 
 .progress-bar {
     display: flex;
-    flex-direction: column;
-    justify-content: center;
-    overflow: hidden;
-    color: #fff;
-    text-align: center;
-    white-space: nowrap;
     background-color: #28a745;
     transition: width 0.6s ease;
 }
 
-/* ========================================
-   TEXT UTILITIES
-   ======================================== */
-.text-center {
-    text-align: center;
-}
-
-.text-muted {
-    color: #6c757d !important;
-    font-size: 0.9rem;
-}
-
-.text-danger {
-    color: #dc3545 !important;
-}
-
-/* ========================================
-   EMPTY STATE
-   ======================================== */
-.text-center.py-5 i {
-    color: #dee2e6;
-}
-
-.text-center.py-5 h4 {
-    color: #495057;
-    font-weight: 600;
-    margin-bottom: 12px;
-}
-
-.text-center.py-5 p {
-    color: #6c757d;
-    font-size: 0.95rem;
-    margin-bottom: 20px;
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+    .stats-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
+    }
+    .stat-card div:first-child {
+        font-size: 24px !important;
+    }
+    .stat-card div:last-child {
+        font-size: 11px !important;
+    }
 }
 </style>
 {% endblock %}
