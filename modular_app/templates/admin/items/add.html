@@ -36,13 +36,13 @@
             </div>
             
             <div class="form-group" style="flex: 1;">
-                <label style="display: inline-flex; align-items: center; gap: 10px;">
-                    <span>SKU</span>
-                    <span style="display: inline-flex; align-items: center; gap: 5px; font-weight: normal; font-size: 13px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                    <label style="margin: 0;">SKU</label>
+                    <label style="display: inline-flex; align-items: center; gap: 5px; font-weight: normal; font-size: 13px; margin: 0;">
                         <input type="checkbox" id="autoSkuCheckbox" checked onchange="toggleSKUMode()">
                         <span>Auto-generate</span>
-                    </span>
-                </label>
+                    </label>
+                </div>
                 <input type="text" id="skuInput" name="sku" placeholder="Auto-generated" disabled style="background: #f5f7fa; color: #7f8c8d;">
             </div>
         </div>
@@ -137,9 +137,11 @@
             </div>
         </div>
 
-        <div class="form-group" style="margin-bottom: 15px;">
-            <label>Sales Description</label>
-            <textarea name="sales_description" rows="3" placeholder="Description shown on invoices..."></textarea>
+        <div class="form-row" style="margin-bottom: 15px;">
+            <div class="form-group" style="flex: 1;">
+                <label>Sales Description</label>
+                <textarea name="sales_description" rows="3" placeholder="Description shown on invoices..."></textarea>
+            </div>
         </div>
 
         <!-- Purchase Information -->
@@ -173,9 +175,11 @@
             </div>
         </div>
 
-        <div class="form-group" style="margin-bottom: 15px;">
-            <label>Purchase Description</label>
-            <textarea name="purchase_description" rows="3" placeholder="Description for purchase orders..."></textarea>
+        <div class="form-row" style="margin-bottom: 15px;">
+            <div class="form-group" style="flex: 1;">
+                <label>Purchase Description</label>
+                <textarea name="purchase_description" rows="3" placeholder="Description for purchase orders..."></textarea>
+            </div>
         </div>
 
         <!-- Inventory Tracking -->
