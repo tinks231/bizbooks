@@ -5,12 +5,14 @@
 {% block page_title %}Commission Agents{% endblock %}
 
 {% block header_actions %}
-<!-- Manual Entry and QR Code buttons removed - not relevant for Commission Agents -->
+<button onclick="openAddAgentModal()" class="btn btn-primary">
+    + Add Commission Agent
+</button>
 {% endblock %}
 
 {% block content %}
-    <!-- Add External Agent Card -->
-    <div style="background: white; border-radius: 8px; padding: 25px; margin-bottom: 25px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+    <!-- Add External Agent Card (Hidden - using modal instead) -->
+    <div style="background: white; border-radius: 8px; padding: 25px; margin-bottom: 25px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); display: none;">
         <h3 style="margin: 0 0 10px 0; color: #2c3e50; font-size: 20px; font-weight: 700;">➕ Add External Commission Agent</h3>
         <p style="color: #7f8c8d; margin-bottom: 20px; font-size: 14px;">
             External agents like electricians, brokers, or referral partners who earn commission on sales. 
@@ -424,6 +426,63 @@
                 closeEditAgentModal();
             }
         });
+        
+        // Add Agent Modal Functions
+        function openAddAgentModal() {
+            document.getElementById('addAgentModal').classList.add('show');
+        }
+        
+        function closeAddAgentModal() {
+            document.getElementById('addAgentModal').classList.remove('show');
+            document.getElementById('addAgentForm').reset();
+        }
     </script>
+    
+    <!-- Add Agent Modal -->
+    <div class="modal" id="addAgentModal">
+        <div class="modal-dialog">
+            <div class="modal-header">
+                <h3 class="modal-title">➕ Add Commission Agent</h3>
+                <button type="button" class="modal-close" onclick="closeAddAgentModal()">&times;</button>
+            </div>
+            <form method="POST" action="/admin/commission-agent/add" id="addAgentForm">
+                <div class="modal-body">
+                    <div class="modal-form-row">
+                        <div class="form-group">
+                            <label class="field-label field-label--required">Name</label>
+                            <input type="text" name="name" required placeholder="e.g., Ramesh (Electrician)">
+                        </div>
+                        <div class="form-group">
+                            <label class="field-label">Agent Code</label>
+                            <input type="text" name="code" placeholder="e.g., REF-001">
+                        </div>
+                    </div>
+                    
+                    <div class="modal-form-row">
+                        <div class="form-group">
+                            <label class="field-label">Phone</label>
+                            <input type="tel" name="phone" placeholder="98XXXXXXXX">
+                        </div>
+                        <div class="form-group">
+                            <label class="field-label">Email</label>
+                            <input type="email" name="email" placeholder="agent@example.com">
+                        </div>
+                    </div>
+                    
+                    <div class="modal-form-row modal-form-row--single">
+                        <div class="form-group">
+                            <label class="field-label field-label--required">Commission %</label>
+                            <input type="number" name="commission_percentage" step="0.01" min="0" max="100" value="1.0" required placeholder="1.0">
+                            <small class="help-text">Default commission percentage for this agent</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeAddAgentModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary">💾 Add Agent</button>
+                </div>
+            </form>
+        </div>
+    </div>
 {% endblock %}
 

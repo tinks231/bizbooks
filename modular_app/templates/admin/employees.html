@@ -5,6 +5,9 @@
 {% block page_title %}Manage Employees{% endblock %}
 
 {% block header_actions %}
+<button onclick="openAddEmployeeModal()" class="btn btn-primary">
+    + Add New Employee
+</button>
 <a href="/admin/manual_entry" class="btn btn-secondary">
     ✍️ Manual Entry
 </a>
@@ -14,7 +17,7 @@
 {% endblock %}
 
 {% block content %}
-    <div style="background: white; border-radius: 8px; padding: 25px; margin-bottom: 25px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+    <div style="background: white; border-radius: 8px; padding: 25px; margin-bottom: 25px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); display: none;">
     <h3 style="margin: 0 0 20px 0; color: #2c3e50;">Add New Employee</h3>
     <form method="POST" action="/admin/employee/add" enctype="multipart/form-data" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
         <div class="form-group">
@@ -216,6 +219,96 @@
                 closeEditModal();
             }
         });
+        
+        function openAddEmployeeModal() {
+            document.getElementById('addEmployeeModal').classList.add('show');
+        }
+        
+        function closeAddEmployeeModal() {
+            document.getElementById('addEmployeeModal').classList.remove('show');
+            document.getElementById('addEmployeeForm').reset();
+        }
+        
+        // Toggle commission field
+        function toggleCommission() {
+            const checkbox = document.getElementById('enable_commission');
+            const field = document.getElementById('commission_percentage');
+            field.disabled = !checkbox.checked;
+        }
     </script>
+    
+    <!-- Add Employee Modal -->
+    <div class="modal" id="addEmployeeModal">
+        <div class="modal-dialog">
+            <div class="modal-header">
+                <h3 class="modal-title">➕ Add New Employee</h3>
+                <button type="button" class="modal-close" onclick="closeAddEmployeeModal()">&times;</button>
+            </div>
+            <form method="POST" action="/admin/employee/add" enctype="multipart/form-data" id="addEmployeeForm">
+                <div class="modal-body">
+                    <div class="modal-form-row">
+                        <div class="form-group">
+                            <label class="field-label field-label--required">Name</label>
+                            <input type="text" name="name" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="field-label field-label--required">PIN (4 digits)</label>
+                            <input type="text" name="pin" pattern="[0-9]{4}" maxlength="4" required>
+                        </div>
+                    </div>
+                    
+                    <div class="modal-form-row">
+                        <div class="form-group">
+                            <label class="field-label">Phone</label>
+                            <input type="tel" name="phone">
+                        </div>
+                        <div class="form-group">
+                            <label class="field-label">Email</label>
+                            <input type="email" name="email" placeholder="For purchase notifications">
+                        </div>
+                    </div>
+                    
+                    <div class="modal-form-row modal-form-row--single">
+                        <div class="form-group">
+                            <label class="field-label">Site</label>
+                            <select name="site_id">
+                                <option value="">Select Site</option>
+                                {% for site in sites %}
+                                <option value="{{ site.id }}">{{ site.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="modal-form-row modal-form-row--single">
+                        <div class="form-group">
+                            <label class="field-label">ID Document (Optional)</label>
+                            <input type="file" name="document" accept=".pdf,.jpg,.jpeg,.png">
+                            <small class="help-text">Aadhar, etc. (PDF, JPG, PNG)</small>
+                        </div>
+                    </div>
+                    
+                    <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-top: 10px;">
+                        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+                            <input type="checkbox" name="enable_commission" id="enable_commission" 
+                                   onchange="toggleCommission()" style="width: 18px; height: 18px;">
+                            <label for="enable_commission" style="margin: 0; font-weight: 600;">
+                                💰 Enable Commission
+                            </label>
+                        </div>
+                        <div class="form-group">
+                            <label class="field-label">Commission %</label>
+                            <input type="number" name="commission_percentage" id="commission_percentage" 
+                                   step="0.01" min="0" max="100" value="1.0" disabled>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeAddEmployeeModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary">💾 Add Employee</button>
+                </div>
+            </form>
+        </div>
+    </div>
 {% endblock %}
 
