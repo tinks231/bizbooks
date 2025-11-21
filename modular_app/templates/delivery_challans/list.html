@@ -14,14 +14,14 @@
 <div class="card">
     <div class="card-body">
         <!-- Filters -->
-        <form method="GET" class="mb-4">
-            <div class="row">
-                <div class="col-md-4">
-                    <input type="text" name="search" class="form-control" placeholder="Search DC or Customer..."
+        <form method="GET" style="margin-bottom: 20px;">
+            <div class="form-row" style="display: grid; grid-template-columns: 2fr 1.5fr auto; gap: 15px; align-items: end;">
+                <div class="form-group">
+                    <input type="text" name="search" class="form-input" placeholder="Search DC or Customer..."
                            value="{{ search }}">
                 </div>
-                <div class="col-md-3">
-                    <select name="status" class="form-control">
+                <div class="form-group">
+                    <select name="status" class="form-input">
                         <option value="">All Status</option>
                         <option value="draft" {% if status_filter == 'draft' %}selected{% endif %}>Draft</option>
                         <option value="dispatched" {% if status_filter == 'dispatched' %}selected{% endif %}>Dispatched</option>
@@ -30,7 +30,7 @@
                         <option value="cancelled" {% if status_filter == 'cancelled' %}selected{% endif %}>Cancelled</option>
                     </select>
                 </div>
-                <div class="col-md-2">
+                <div class="form-group" style="display: flex; gap: 10px;">
                     <button type="submit" class="btn btn-primary">Filter</button>
                     <a href="{{ url_for('delivery_challans.list_challans') }}" class="btn btn-secondary">Reset</a>
                 </div>
@@ -46,8 +46,8 @@
 
         <!-- Table View (Desktop default) -->
         <div id="tableView" class="desktop-table">
-        <div class="table-responsive">
-            <table class="table table-hover">
+        <div style="overflow-x: auto;">
+            <table class="table">
                 <thead>
                     <tr>
                         <th>DC Number</th>
@@ -81,22 +81,22 @@
                                 {% endif %}
                             </td>
                             <td>₹{{ "{:,.2f}".format(challan.total_amount) }}</td>
-                            <td>
+                            <td style="font-weight: 500; color: #2c3e50;">
                                 {% if challan.status == 'draft' %}
-                                <span class="badge bg-secondary">Draft</span>
+                                Draft
                                 {% elif challan.status == 'dispatched' %}
-                                <span class="badge bg-info">Dispatched</span>
+                                Dispatched
                                 {% elif challan.status == 'delivered' %}
-                                <span class="badge bg-success">Delivered</span>
+                                Delivered
                                 {% elif challan.status == 'invoiced' %}
-                                <span class="badge bg-primary">Invoiced</span>
+                                Invoiced
                                 {% elif challan.status == 'cancelled' %}
-                                <span class="badge bg-danger">Cancelled</span>
+                                Cancelled
                                 {% endif %}
                             </td>
                             <td>
                                 <a href="{{ url_for('delivery_challans.view_challan', challan_id=challan.id) }}"
-                                   class="btn btn-sm btn-primary">View</a>
+                                   class="btn btn-primary" style="padding: 6px 12px; font-size: 13px;">View</a>
                             </td>
                         </tr>
                         {% endfor %}
