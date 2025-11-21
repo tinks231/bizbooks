@@ -366,47 +366,6 @@
     {% endif %}
 </div>
 
-<style>
-/* ========================================
-   MOBILE VIEW TOGGLE
-   ======================================== */
-/* Desktop: Always show table, hide toggle */
-@media (min-width: 769px) {
-    #tableView {
-        display: block !important;
-    }
-    #cardView {
-        display: none !important;
-    }
-    #viewToggle {
-        display: none !important;
-    }
-}
-
-/* Mobile: Show toggle button and respect user preference */
-@media (max-width: 768px) {
-    /* Show toggle button */
-    #viewToggle {
-        display: inline-block !important;
-    }
-    
-    /* Default: Card view (when body doesn't have show-table class) */
-    body:not(.show-table) #tableView {
-        display: none !important;
-    }
-    body:not(.show-table) #cardView {
-        display: block !important;
-    }
-    
-    /* Table view (when body has show-table class) */
-    body.show-table #tableView {
-        display: block !important;
-    }
-    body.show-table #cardView {
-        display: none !important;
-    }
-}
-</style>
 
 <script>
 // Stock tooltip functions

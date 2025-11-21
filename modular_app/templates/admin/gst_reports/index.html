@@ -14,12 +14,12 @@
 <div class="card" style="margin-bottom: 30px;">
     <form method="GET" action="{{ url_for('gst_reports.index') }}" style="display: flex; gap: 15px; align-items: flex-end; flex-wrap: wrap;">
         <div class="form-group" style="margin-bottom: 0;">
-            <label>Start Date</label>
+            <label class="field-label">Start Date</label>
             <input type="date" name="start_date" value="{{ start_date }}" class="form-control">
         </div>
         
         <div class="form-group" style="margin-bottom: 0;">
-            <label>End Date</label>
+            <label class="field-label">End Date</label>
             <input type="date" name="end_date" value="{{ end_date }}" class="form-control">
         </div>
         
@@ -109,81 +109,6 @@
     </div>
 </div>
 
-<style>
-    .report-card {
-        padding: 30px;
-        border-radius: 12px;
-        color: white;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-        transition: transform 0.3s ease, box-shadow 0.3s ease;
-    }
-    
-    .report-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 8px 20px rgba(0,0,0,0.25);
-    }
-    
-    .report-icon {
-        font-size: 48px;
-        margin-bottom: 15px;
-    }
-    
-    .report-card h3 {
-        margin: 0 0 5px 0;
-        font-size: 24px;
-        font-weight: 700;
-    }
-    
-    .report-card p {
-        margin: 0 0 10px 0;
-        opacity: 0.9;
-        font-size: 14px;
-    }
-    
-    .report-desc {
-        opacity: 0.8;
-        font-size: 13px;
-        margin-bottom: 20px !important;
-        min-height: 40px;
-    }
-    
-    .btn-report {
-        display: inline-block;
-        padding: 10px 20px;
-        background: rgba(255,255,255,0.2);
-        color: white;
-        text-decoration: none;
-        border-radius: 6px;
-        font-weight: 600;
-        transition: background 0.3s;
-        border: 1px solid rgba(255,255,255,0.3);
-    }
-    
-    .btn-report:hover {
-        background: rgba(255,255,255,0.3);
-    }
-    
-    .card {
-        background: white;
-        padding: 25px;
-        border-radius: 12px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-    }
-    
-    @media (max-width: 768px) {
-        .report-card {
-            padding: 20px;
-        }
-        
-        .report-icon {
-            font-size: 36px;
-        }
-        
-        .report-card h3 {
-            font-size: 20px;
-        }
-    }
-</style>
 
 {% endblock %}
 
