@@ -27,14 +27,20 @@
 
 /* Stats Cards Row */
 .row {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    display: flex;
+    flex-wrap: wrap;
     gap: 15px;
     margin-bottom: 30px;
 }
 
 .col-md-2 {
-    width: 100%;
+    flex: 1 1 150px;
+    min-width: 140px;
+}
+
+.col-md-3 {
+    flex: 1 1 200px;
+    min-width: 180px;
 }
 
 .stat-card {

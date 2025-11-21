@@ -128,96 +128,104 @@
     margin-bottom: 30px;
 }
 
-.agent-summary-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 20px;
-}
-
-.agent-card {
-    background: #f8f9fa;
-    padding: 20px;
-    border-radius: 10px;
-    border-left: 4px solid #667eea;
-    transition: all 0.3s ease;
-}
-
-.agent-card:hover {
+/* Agent Summary Table (Better for scalability) */
+.agent-summary-table {
+    width: 100%;
+    border-collapse: collapse;
     background: white;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-    transform: translateX(5px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    border-radius: 8px;
+    overflow: hidden;
 }
 
-.agent-card .name {
-    font-size: 18px;
+.agent-summary-table thead {
+    background: #f8f9fa;
+    border-bottom: 2px solid #dee2e6;
+}
+
+.agent-summary-table th {
+    padding: 12px 16px;
+    text-align: left;
     font-weight: 700;
+    font-size: 13px;
     color: #2c3e50;
-    margin-bottom: 5px;
-}
-
-.agent-card .stats {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 10px;
-    margin-top: 15px;
-}
-
-.agent-card .stat {
-    text-align: center;
-}
-
-.agent-card .stat-value {
-    display: block;
-    font-size: 16px;
-    font-weight: 700;
-    margin-bottom: 3px;
-}
-
-.agent-card .stat-label {
-    display: block;
-    font-size: 11px;
-    color: #7f8c8d;
     text-transform: uppercase;
     letter-spacing: 0.5px;
 }
 
-.agent-card .actions {
-    margin-top: 15px;
-    display: flex;
-    gap: 10px;
+.agent-summary-table tbody tr {
+    border-bottom: 1px solid #f0f0f0;
+    transition: background 0.2s ease;
 }
 
-.agent-card .btn-pay {
-    flex: 1;
-    padding: 8px 16px;
-    background: #28a745;
-    color: white;
-    text-decoration: none;
-    border-radius: 6px;
-    text-align: center;
+.agent-summary-table tbody tr:hover {
+    background: #f8f9fa;
+}
+
+.agent-summary-table td {
+    padding: 15px 16px;
+    font-size: 14px;
+    color: #34495e;
+}
+
+.agent-summary-table td.agent-name {
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+.agent-summary-table td.agent-code {
+    color: #7f8c8d;
     font-size: 13px;
+}
+
+.agent-summary-table td.amount {
+    font-weight: 600;
+    font-family: 'Courier New', monospace;
+}
+
+.agent-summary-table td.amount.total {
+    color: #667eea;
+}
+
+.agent-summary-table td.amount.paid {
+    color: #28a745;
+}
+
+.agent-summary-table td.amount.unpaid {
+    color: #ffc107;
+}
+
+.agent-summary-table .action-buttons {
+    display: flex;
+    gap: 8px;
+}
+
+.agent-summary-table .btn-pay,
+.agent-summary-table .btn-details {
+    padding: 6px 14px;
+    border-radius: 6px;
+    text-decoration: none;
+    font-size: 12px;
     font-weight: 600;
     transition: all 0.3s ease;
+    display: inline-block;
 }
 
-.agent-card .btn-pay:hover {
+.agent-summary-table .btn-pay {
+    background: #28a745;
+    color: white;
+}
+
+.agent-summary-table .btn-pay:hover {
     background: #218838;
 }
 
-.agent-card .btn-details {
-    flex: 1;
-    padding: 8px 16px;
+.agent-summary-table .btn-details {
     background: #667eea;
     color: white;
-    text-decoration: none;
-    border-radius: 6px;
-    text-align: center;
-    font-size: 13px;
-    font-weight: 600;
-    transition: all 0.3s ease;
 }
 
-.agent-card .btn-details:hover {
+.agent-summary-table .btn-details:hover {
     background: #5568d3;
 }
 
@@ -297,17 +305,13 @@ table tbody tr:hover {
         grid-template-columns: 1fr;
     }
     
-    .agent-summary-grid {
-        grid-template-columns: 1fr;
+    .agent-summary-table {
+        font-size: 13px;
     }
     
-    .agent-card .stats {
-        grid-template-columns: 1fr;
-        gap: 8px;
-    }
-    
-    .agent-card .actions {
-        flex-direction: column;
+    .agent-summary-table th,
+    .agent-summary-table td {
+        padding: 10px 8px;
     }
 }
 </style>
@@ -385,30 +389,33 @@ table tbody tr:hover {
         <h3 style="margin: 0 0 5px 0; color: #2c3e50;">👥 Agent-wise Summary</h3>
         <p style="color: #7f8c8d; font-size: 14px; margin-bottom: 20px;">Commission breakdown by each agent</p>
         
-        <div class="agent-summary-grid">
-            {% for agent_id, summary in agent_summary.items() %}
-            <div class="agent-card">
-                <div class="name">{{ summary.agent_name }}</div>
-                <div style="color: #7f8c8d; font-size: 13px;">{{ summary.agent_code }}</div>
-                <div class="stats">
-                    <div class="stat">
-                        <span class="stat-value" style="color: #667eea;">₹{{ "{:,.0f}".format(summary.total) }}</span>
-                        <span class="stat-label">Total</span>
-                    </div>
-                    <div class="stat">
-                        <span class="stat-value" style="color: #28a745;">₹{{ "{:,.0f}".format(summary.paid) }}</span>
-                        <span class="stat-label">Paid</span>
-                    </div>
-                    <div class="stat">
-                        <span class="stat-value" style="color: #e74c3c;">₹{{ "{:,.0f}".format(summary.unpaid) }}</span>
-                        <span class="stat-label">Unpaid</span>
-                    </div>
-                </div>
-                <div style="text-align: center; margin-top: 15px; padding-top: 15px; border-top: 1px solid #e0e0e0;">
-                    <span style="font-size: 13px; color: #7f8c8d;">{{ summary.count }} invoice{{ 's' if summary.count != 1 else '' }}</span>
-                </div>
-            </div>
-            {% endfor %}
+        <div style="overflow-x: auto;">
+            <table class="agent-summary-table">
+                <thead>
+                    <tr>
+                        <th>Agent Name</th>
+                        <th>Agent Code</th>
+                        <th style="text-align: right;">Total</th>
+                        <th style="text-align: right;">Paid</th>
+                        <th style="text-align: right;">Unpaid</th>
+                        <th style="text-align: center;">Invoices</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for agent_id, summary in agent_summary.items() %}
+                    <tr>
+                        <td class="agent-name">{{ summary.agent_name }}</td>
+                        <td class="agent-code">{{ summary.agent_code }}</td>
+                        <td class="amount total" style="text-align: right;">₹{{ "{:,.0f}".format(summary.total) }}</td>
+                        <td class="amount paid" style="text-align: right;">₹{{ "{:,.0f}".format(summary.paid) }}</td>
+                        <td class="amount unpaid" style="text-align: right;">₹{{ "{:,.0f}".format(summary.unpaid) }}</td>
+                        <td style="text-align: center; color: #7f8c8d; font-size: 13px;">
+                            {{ summary.count }} invoice{{ 's' if summary.count != 1 else '' }}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         </div>
     </div>
     {% endif %}

@@ -26,29 +26,19 @@
 }
 
 .row {
-    display: grid;
-    grid-template-columns: 2fr 1fr;
+    display: flex;
     gap: 25px;
+    flex-wrap: wrap;
 }
 
 .col-md-8 {
-    width: 100%;
-    min-width: 0; /* Fix for grid overflow */
+    flex: 2 1 600px;
+    min-width: 0;
 }
 
 .col-md-4 {
-    width: 100%;
-    min-width: 0; /* Fix for grid overflow */
-}
-
-/* Ensure proper text wrapping */
-.col-md-4 li,
-.col-md-4 p,
-.col-md-4 h6,
-.col-md-4 .quick-actions a {
-    word-wrap: break-word;
-    overflow-wrap: break-word;
-    white-space: normal;
+    flex: 1 1 300px;
+    min-width: 280px;
 }
 
 .card-body {
