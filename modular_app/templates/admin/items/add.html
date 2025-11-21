@@ -29,25 +29,24 @@
         </div>
 
         <!-- Basic Information -->
-        <div class="form-row">
+        <div class="form-row" style="margin-bottom: 15px;">
             <div class="form-group" style="flex: 1;">
                 <label>Item Name *</label>
                 <input type="text" name="name" required placeholder="e.g., Wire - 2.5mm Copper Cable">
             </div>
             
             <div class="form-group" style="flex: 1;">
-                <label>SKU
-                    <label style="display: inline-flex; align-items: center; gap: 6px; cursor: pointer; font-weight: normal; font-size: 13px; margin-left: 10px;">
-                        <input type="checkbox" id="autoSkuCheckbox" checked onchange="toggleSKUMode()">
-                        <span>Auto-generate</span>
-                    </label>
-                </label>
-                <input type="text" id="skuInput" name="sku" placeholder="Enter SKU manually" disabled style="background: #f5f7fa; color: #7f8c8d;">
+                <label style="display: block; margin-bottom: 5px;">SKU</label>
+                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 5px;">
+                    <input type="checkbox" id="autoSkuCheckbox" checked onchange="toggleSKUMode()" style="margin: 0;">
+                    <span style="font-size: 13px; color: #7f8c8d; cursor: pointer;" onclick="document.getElementById('autoSkuCheckbox').click()">Auto-generate</span>
+                </div>
+                <input type="text" id="skuInput" name="sku" placeholder="Auto-generated" disabled style="background: #f5f7fa; color: #7f8c8d;">
                 <small id="skuHint" style="color: #7f8c8d;">SKU will be automatically generated</small>
             </div>
         </div>
 
-        <div class="form-row">
+        <div class="form-row" style="margin-bottom: 15px;">
             <div class="form-group" style="flex: 1;">
                 <label>Unit *</label>
                 <select name="unit" required>
@@ -75,7 +74,7 @@
         </div>
 
         <!-- Classification -->
-        <div class="form-row">
+        <div class="form-row" style="margin-bottom: 15px;">
             <div class="form-group" style="flex: 1;">
                 <label>Category</label>
                 <select name="category_id">
@@ -105,11 +104,11 @@
 
 
         <!-- Sales Information -->
-        <h3 style="margin: 30px 0 15px; color: #2c3e50; font-size: 16px; border-top: 2px solid #f5f7fa; padding-top: 20px;">
+        <h3 style="margin: 25px 0 12px; color: #2c3e50; font-size: 16px; border-top: 2px solid #f5f7fa; padding-top: 15px;">
             💰 Sales Information
         </h3>
 
-        <div class="form-row">
+        <div class="form-row" style="margin-bottom: 15px;">
             <div class="form-group" style="flex: 1;">
                 <label>Selling Price (₹) *</label>
                 <input type="number" name="selling_price" step="0.01" min="0" required placeholder="0.00">
@@ -127,7 +126,7 @@
             </div>
         </div>
 
-        <div class="form-row">
+        <div class="form-row" style="margin-bottom: 15px;">
             <div class="form-group" style="flex: 1;">
                 <label>HSN/SAC Code (for GST)</label>
                 <input type="text" name="hsn_code" placeholder="e.g., 8414, 8544" maxlength="20">
@@ -143,17 +142,17 @@
             </div>
         </div>
 
-        <div class="form-group">
+        <div class="form-group" style="margin-bottom: 15px;">
             <label>Sales Description</label>
             <textarea name="sales_description" rows="3" placeholder="Description shown on invoices..."></textarea>
         </div>
 
         <!-- Purchase Information -->
-        <h3 style="margin: 30px 0 15px; color: #2c3e50; font-size: 16px; border-top: 2px solid #f5f7fa; padding-top: 20px;">
+        <h3 style="margin: 25px 0 12px; color: #2c3e50; font-size: 16px; border-top: 2px solid #f5f7fa; padding-top: 15px;">
             🛒 Purchase Information
         </h3>
 
-        <div class="form-row">
+        <div class="form-row" style="margin-bottom: 15px;">
             <div class="form-group" style="flex: 1;">
                 <label>Cost Price (₹) *</label>
                 <input type="number" id="costPrice" name="cost_price" step="0.01" min="0" required placeholder="0.00" onchange="calculateOpeningStockValue()">
@@ -168,24 +167,28 @@
             </div>
         </div>
 
-        <div class="form-row">
+        <div class="form-row" style="margin-bottom: 15px;">
             <div class="form-group" style="flex: 1;">
                 <label>Preferred Vendor</label>
-                <input type="text" name="preferred_vendor" placeholder="Vendor name">
+                <input type="text" name="preferred_vendor" placeholder="Vendor name (optional)">
+                <small style="color: #7f8c8d;">Your default supplier for this item</small>
+            </div>
+            <div class="form-group" style="flex: 1;">
+                <!-- Empty placeholder for alignment -->
             </div>
         </div>
 
-        <div class="form-group">
+        <div class="form-group" style="margin-bottom: 15px;">
             <label>Purchase Description</label>
             <textarea name="purchase_description" rows="3" placeholder="Description for purchase orders..."></textarea>
         </div>
 
         <!-- Inventory Tracking -->
-        <h3 style="margin: 30px 0 15px; color: #2c3e50; font-size: 16px; border-top: 2px solid #f5f7fa; padding-top: 20px;">
+        <h3 style="margin: 25px 0 12px; color: #2c3e50; font-size: 16px; border-top: 2px solid #f5f7fa; padding-top: 15px;">
             📊 Inventory Tracking
         </h3>
 
-        <div class="form-group">
+        <div class="form-group" style="margin-bottom: 15px;">
             <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: 700; font-size: 15px;">
                 <input type="checkbox" name="track_inventory" id="trackInventory" checked onchange="toggleInventoryFields()">
                 <span>✓ Track Inventory for this item</span>
@@ -194,7 +197,7 @@
         </div>
 
         <div id="inventoryFields">
-            <div class="form-row">
+            <div class="form-row" style="margin-bottom: 15px;">
                 <div class="form-group" style="flex: 1;">
                     <label>Opening Stock</label>
                     <input type="number" id="openingStock" name="opening_stock" step="0.01" min="0" placeholder="0.00" onchange="calculateOpeningStockValue()">
@@ -207,17 +210,20 @@
                 </div>
             </div>
 
-            <div class="form-row">
+            <div class="form-row" style="margin-bottom: 15px;">
                 <div class="form-group" style="flex: 1;">
                     <label>Reorder Point</label>
                     <input type="number" name="reorder_point" step="0.01" min="0" placeholder="0.00">
                     <small style="color: #7f8c8d;">Alert when stock falls below this level</small>
                 </div>
+                <div class="form-group" style="flex: 1;">
+                    <!-- Empty placeholder for alignment -->
+                </div>
             </div>
         </div>
 
         <!-- Advanced Options Toggle -->
-        <div style="margin: 30px 0 20px; padding: 20px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #3498db;">
+        <div style="margin: 25px 0 15px; padding: 18px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #3498db;">
             <label style="display: flex; align-items: center; gap: 12px; cursor: pointer; margin: 0; font-size: 15px; font-weight: 600;">
                 <input type="checkbox" id="showAdvancedOptions" onchange="toggleAdvancedOptions()" style="width: 18px; height: 18px; cursor: pointer;">
                 <span>📦 Show Advanced Options (Dimensions & Product Identifiers)</span>
@@ -230,11 +236,11 @@
         <!-- Advanced Options Section (Hidden by default) -->
         <div id="advancedOptionsSection" style="display: none;">
             <!-- Dimensions & Weight -->
-            <h3 style="margin: 20px 0 15px; color: #2c3e50; font-size: 16px; border-top: 2px solid #f5f7fa; padding-top: 20px;">
+            <h3 style="margin: 15px 0 12px; color: #2c3e50; font-size: 16px; border-top: 2px solid #f5f7fa; padding-top: 15px;">
                 📐 Dimensions & Weight
             </h3>
 
-            <div class="form-row">
+            <div class="form-row" style="margin-bottom: 15px;">
                 <div class="form-group" style="flex: 1;">
                     <label>Length</label>
                     <input type="number" name="dimensions_length" step="0.01" min="0" placeholder="0.00">
@@ -258,7 +264,7 @@
                 </div>
             </div>
 
-            <div class="form-row">
+            <div class="form-row" style="margin-bottom: 15px;">
                 <div class="form-group" style="flex: 1;">
                     <label>Weight</label>
                     <input type="number" name="weight" step="0.01" min="0" placeholder="0.00">
@@ -274,11 +280,11 @@
             </div>
 
             <!-- Product Identifiers -->
-            <h3 style="margin: 30px 0 15px; color: #2c3e50; font-size: 16px; border-top: 2px solid #f5f7fa; padding-top: 20px;">
+            <h3 style="margin: 20px 0 12px; color: #2c3e50; font-size: 16px; border-top: 2px solid #f5f7fa; padding-top: 15px;">
                 🏷️ Product Identifiers
             </h3>
 
-            <div class="form-row">
+            <div class="form-row" style="margin-bottom: 15px;">
                 <div class="form-group" style="flex: 1;">
                     <label>Manufacturer</label>
                     <input type="text" name="manufacturer" placeholder="e.g., Anchor">
@@ -289,7 +295,7 @@
                 </div>
             </div>
 
-            <div class="form-row">
+            <div class="form-row" style="margin-bottom: 15px;">
                 <div class="form-group" style="flex: 1;">
                     <label>UPC</label>
                     <input type="text" name="upc" placeholder="Universal Product Code">
@@ -306,7 +312,7 @@
         </div>
 
         <!-- Form Actions -->
-        <div style="margin-top: 40px; margin-bottom: 100px; display: flex; gap: 15px; justify-content: flex-end; border-top: 2px solid #f5f7fa; padding-top: 20px;">
+        <div style="margin-top: 30px; margin-bottom: 80px; display: flex; gap: 15px; justify-content: flex-end; border-top: 2px solid #f5f7fa; padding-top: 20px;">
             <a href="{{ url_for('items.index') }}" class="btn btn-secondary">
                 Cancel
             </a>
