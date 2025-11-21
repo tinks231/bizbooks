@@ -340,8 +340,8 @@ textarea {
 
 /* Table Headers - Bold & Prominent */
 table thead th {
-    font-weight: 600;
-    font-size: 13px;
+    font-weight: 700;  /* Increased from 600 to 700 for bolder headers */
+    font-size: 14px;   /* Increased from 13px to 14px for better visibility */
     color: #2c3e50;
     text-transform: uppercase;
     letter-spacing: 0.5px;
