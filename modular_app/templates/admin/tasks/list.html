@@ -78,21 +78,21 @@
         <form method="POST" action="{{ url_for('tasks.cleanup_old_media') }}" 
               onsubmit="return confirm('This will delete all task photos/videos older than 30 days to save storage space. Continue?')">
             <button type="submit" class="btn" style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); color: white; border: none; border-radius: 6px;">
-                🗑️ Cleanup Old Media
+                Cleanup Old Media
             </button>
         </form>
         
         <form method="POST" action="{{ url_for('tasks.delete_all_completed') }}" 
               onsubmit="return confirm('⚠️ DELETE ALL COMPLETED TASKS?\n\nThis will permanently delete:\n- All completed tasks\n- All their updates\n- All their materials\n- All their photos/videos\n\nThis is immediate and cannot be undone!\n\nContinue?')">
             <button type="submit" class="btn" style="background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%); color: white; border: none; border-radius: 6px;">
-                🗑️ Delete All Completed
+                Delete All Completed
             </button>
         </form>
     </div>
     
     <!-- Create Task button (separate row on mobile, inline on desktop) -->
     <a href="{{ url_for('tasks.create') }}" class="btn btn-primary" style="border-radius: 6px;">
-        ➕ Create New Task
+        + Create New Task
     </a>
 </div>
 {% endblock %}
@@ -284,38 +284,19 @@
     <div id="tasksTableView" class="desktop-table">
     <div style="overflow-x: auto;">
         <style>
-            /* Fix table column widths to prevent wrapping */
+            /* Compact table layout - fit everything without scrolling */
             #tasksTableView table {
-                table-layout: fixed;
+                table-layout: auto;
                 width: 100%;
             }
             
-            #tasksTableView th:nth-child(1) { width: 90px; }   /* Task# */
-            #tasksTableView th:nth-child(2) { width: auto; }   /* Title (flexible) */
-            #tasksTableView th:nth-child(3) { width: 120px; }  /* Assigned To */
-            #tasksTableView th:nth-child(4) { width: 150px; }  /* Site */
-            #tasksTableView th:nth-child(5) { width: 110px; }  /* Priority */
-            #tasksTableView th:nth-child(6) { width: 130px; }  /* Status */
-            #tasksTableView th:nth-child(7) { width: 90px; }   /* Progress */
-            #tasksTableView th:nth-child(8) { width: 110px; }  /* Deadline */
-            #tasksTableView th:nth-child(9) { width: 90px; }   /* Actions */
-            
-            /* Prevent wrapping for specific columns */
-            #tasksTableView td:nth-child(1),
-            #tasksTableView td:nth-child(3),
-            #tasksTableView td:nth-child(5),
-            #tasksTableView td:nth-child(6),
-            #tasksTableView td:nth-child(7),
-            #tasksTableView td:nth-child(8),
-            #tasksTableView td:nth-child(9) {
+            /* Prevent wrapping for badge/button columns */
+            #tasksTableView td:nth-child(5),  /* Priority */
+            #tasksTableView td:nth-child(6),  /* Status */
+            #tasksTableView td:nth-child(7),  /* Progress */
+            #tasksTableView td:nth-child(8),  /* Deadline */
+            #tasksTableView td:nth-child(9) { /* Actions */
                 white-space: nowrap;
-            }
-            
-            /* Allow wrapping only for Title and Site */
-            #tasksTableView td:nth-child(2),
-            #tasksTableView td:nth-child(4) {
-                white-space: normal;
-                word-wrap: break-word;
             }
         </style>
         <table class="table">
@@ -346,22 +327,22 @@
                     <td>{{ task.site.name if task.site else '-' }}</td>
                     <td>
                         {% if task.priority == 'high' %}
-                        <span style="background: #e74c3c; color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px;">🔥 HIGH</span>
+                        <span style="background: #e74c3c; color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 600;">HIGH</span>
                         {% elif task.priority == 'medium' %}
-                        <span style="background: #f39c12; color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px;">⚠️ MEDIUM</span>
+                        <span style="background: #f39c12; color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 600;">MEDIUM</span>
                         {% else %}
-                        <span style="background: #95a5a6; color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px;">LOW</span>
+                        <span style="background: #95a5a6; color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 600;">LOW</span>
                         {% endif %}
                     </td>
                     <td>
                         {% if task.status == 'new' %}
-                        <span style="background: #3498db; color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px;">🆕 NEW</span>
+                        <span style="background: #3498db; color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 600;">NEW</span>
                         {% elif task.status == 'in_progress' %}
-                        <span style="background: #f39c12; color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px;">🔄 IN PROGRESS</span>
+                        <span style="background: #f39c12; color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 600;">IN PROGRESS</span>
                         {% elif task.status == 'completed' %}
-                        <span style="background: #27ae60; color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px;">✅ COMPLETED</span>
+                        <span style="background: #27ae60; color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 600;">COMPLETED</span>
                         {% else %}
-                        <span style="background: #95a5a6; color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px;">❌ CANCELLED</span>
+                        <span style="background: #95a5a6; color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 600;">CANCELLED</span>
                         {% endif %}
                     </td>
                     <td>
