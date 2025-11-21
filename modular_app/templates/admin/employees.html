@@ -235,6 +235,23 @@
             const field = document.getElementById('commission_percentage');
             field.disabled = !checkbox.checked;
         }
+        
+        // Close modal when clicking outside
+        const employeeModal = document.getElementById('addEmployeeModal');
+        if (employeeModal) {
+            employeeModal.addEventListener('click', function(event) {
+                if (event.target === employeeModal) {
+                    closeAddEmployeeModal();
+                }
+            });
+        }
+        
+        // Close modal on ESC key
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape' && employeeModal && employeeModal.classList.contains('show')) {
+                closeAddEmployeeModal();
+            }
+        });
     </script>
     
     <!-- Add Employee Modal -->

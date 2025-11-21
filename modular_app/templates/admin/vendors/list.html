@@ -286,10 +286,19 @@ function closeAddVendorModal() {
     document.getElementById('addVendorForm').reset();
 }
 
-// Close modal when clicking outside
-document.addEventListener('click', function(event) {
-    const modal = document.getElementById('addVendorModal');
-    if (event.target === modal) {
+// Close modal when clicking outside (but not inside dialog)
+const vendorModal = document.getElementById('addVendorModal');
+if (vendorModal) {
+    vendorModal.addEventListener('click', function(event) {
+        if (event.target === vendorModal) {
+            closeAddVendorModal();
+        }
+    });
+}
+
+// Close modal on ESC key
+document.addEventListener('keydown', function(event) {
+    if (event.key === 'Escape' && vendorModal && vendorModal.classList.contains('show')) {
         closeAddVendorModal();
     }
 });

@@ -436,6 +436,23 @@
             document.getElementById('addAgentModal').classList.remove('show');
             document.getElementById('addAgentForm').reset();
         }
+        
+        // Close modal when clicking outside
+        const agentModal = document.getElementById('addAgentModal');
+        if (agentModal) {
+            agentModal.addEventListener('click', function(event) {
+                if (event.target === agentModal) {
+                    closeAddAgentModal();
+                }
+            });
+        }
+        
+        // Close modal on ESC key
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape' && agentModal && agentModal.classList.contains('show')) {
+                closeAddAgentModal();
+            }
+        });
     </script>
     
     <!-- Add Agent Modal -->

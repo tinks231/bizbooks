@@ -312,10 +312,19 @@ function closeAddCustomerModal() {
     document.getElementById('addCustomerForm').reset();
 }
 
-// Close modal when clicking outside
-document.addEventListener('click', function(event) {
-    const modal = document.getElementById('addCustomerModal');
-    if (event.target === modal) {
+// Close modal when clicking outside (but not inside dialog)
+const customerModal = document.getElementById('addCustomerModal');
+if (customerModal) {
+    customerModal.addEventListener('click', function(event) {
+        if (event.target === customerModal) {
+            closeAddCustomerModal();
+        }
+    });
+}
+
+// Close modal on ESC key
+document.addEventListener('keydown', function(event) {
+    if (event.key === 'Escape' && customerModal && customerModal.classList.contains('show')) {
         closeAddCustomerModal();
     }
 });
