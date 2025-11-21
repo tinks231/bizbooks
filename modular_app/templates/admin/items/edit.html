@@ -15,18 +15,18 @@
     <div class="card">
         <div style="background: #f8f9fa; padding: 15px; border-radius: 6px; margin-bottom: 20px;">
             <strong>SKU:</strong> {{ item.sku }}
-            <span style="margin-left: 20px; color: #7f8c8d;">Created: {{ item.created_at.strftime('%d %b %Y') }}</span>
+            <span class="text-muted" style="margin-left: 20px;">Created: {{ item.created_at.strftime('%d %b %Y') }}</span>
         </div>
 
         <!-- Type Selection -->
         <div class="form-group">
-            <label>Type *</label>
-            <div style="display: flex; gap: 20px;">
-                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+            <label class="field-label field-label--required">Type</label>
+            <div class="radio-group">
+                <label>
                     <input type="radio" name="type" value="goods" {% if item.type == 'goods' %}checked{% endif %} required>
                     <span>Goods</span>
                 </label>
-                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                <label>
                     <input type="radio" name="type" value="service" {% if item.type == 'service' %}checked{% endif %} required>
                     <span>Service</span>
                 </label>
@@ -36,12 +36,12 @@
         <!-- Basic Information -->
         <div class="form-row">
             <div class="form-group">
-                <label>Item Name *</label>
+                <label class="field-label field-label--required">Item Name</label>
                 <input type="text" name="name" required value="{{ item.name }}">
             </div>
             
             <div class="form-group">
-                <label>Unit *</label>
+                <label class="field-label field-label--required">Unit</label>
                 <select name="unit" required>
                     <option value="nos" {% if item.unit == 'nos' %}selected{% endif %}>Pieces (nos)</option>
                     <option value="kg" {% if item.unit == 'kg' %}selected{% endif %}>Kilogram (kg)</option>
@@ -61,7 +61,7 @@
 
         <div class="form-row">
             <div class="form-group">
-                <label>Category</label>
+                <label class="field-label">Category</label>
                 <select name="category_id">
                     <option value="">Select Category</option>
                     {% for category in categories %}
@@ -73,7 +73,7 @@
             </div>
 
             <div class="form-group">
-                <label>Item Group</label>
+                <label class="field-label">Item Group</label>
                 <select name="item_group_id">
                     <option value="">Select Group</option>
                     {% for group in groups %}
@@ -87,38 +87,41 @@
 
         <div class="form-row">
             <div class="form-group">
-                <label>HSN/SAC Code (for GST)</label>
+                <label class="field-label">HSN/SAC Code (for GST)</label>
                 <input type="text" name="hsn_code" placeholder="e.g., 8414, 8544" maxlength="20" value="{{ item.hsn_code or '' }}">
-                <small style="color: #7f8c8d;">Optional - Used in GST reports and invoices</small>
+                <small class="help-text">Optional - Used in GST reports and invoices</small>
+            </div>
+            <div class="form-group">
+                <!-- Empty placeholder for alignment -->
             </div>
         </div>
 
         <div class="form-group">
-            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+            <label class="checkbox-group">
                 <input type="checkbox" name="is_returnable" {% if item.is_returnable %}checked{% endif %}>
                 <span>Returnable Item</span>
             </label>
         </div>
 
         <div class="form-group">
-            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+            <label class="checkbox-group">
                 <input type="checkbox" name="is_active" {% if item.is_active %}checked{% endif %}>
                 <span>Active</span>
             </label>
         </div>
 
         <!-- Sales & Purchase Information (Simplified for Edit) -->
-        <h3 style="margin: 30px 0 15px; color: #2c3e50; font-size: 16px; border-top: 2px solid #f5f7fa; padding-top: 20px;">
+        <h3 class="section-title">
             💰 Pricing
         </h3>
 
         <div class="form-row">
             <div class="form-group">
-                <label>Selling Price (₹) *</label>
+                <label class="field-label field-label--required">Selling Price (₹)</label>
                 <input type="number" name="selling_price" step="0.01" min="0" required value="{{ item.selling_price }}">
             </div>
             <div class="form-group">
-                <label>GST Rate *</label>
+                <label class="field-label field-label--required">GST Rate</label>
                 <select name="gst_rate" required>
                     <option value="0" {% if item.gst_rate == 0 %}selected{% endif %}>0% - Exempted</option>
                     <option value="5" {% if item.gst_rate == 5 %}selected{% endif %}>5% GST</option>
@@ -126,34 +129,39 @@
                     <option value="18" {% if item.gst_rate == 18 or item.gst_rate is none %}selected{% endif %}>18% GST (Default)</option>
                     <option value="28" {% if item.gst_rate == 28 %}selected{% endif %}>28% GST</option>
                 </select>
-                <small style="color: #7f8c8d;">Default GST rate for this item</small>
+                <small class="help-text">Default GST rate for this item</small>
             </div>
             <div class="form-group">
-                <label>Cost Price (₹) *</label>
+                <label class="field-label field-label--required">Cost Price (₹)</label>
                 <input type="number" name="cost_price" step="0.01" min="0" required value="{{ item.cost_price }}">
             </div>
         </div>
 
         <!-- Inventory Tracking -->
-        <h3 style="margin: 30px 0 15px; color: #2c3e50; font-size: 16px; border-top: 2px solid #f5f7fa; padding-top: 20px;">
+        <h3 class="section-title">
             📊 Inventory Settings
         </h3>
 
         <div class="form-group">
-            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: 700; font-size: 15px;">
+            <label class="checkbox-group" style="font-weight: 700; font-size: 15px;">
                 <input type="checkbox" name="track_inventory" id="trackInventory" {% if item.track_inventory %}checked{% endif %}>
                 <span>✓ Track Inventory for this item</span>
             </label>
         </div>
 
-        <div class="form-group">
-            <label>Reorder Point</label>
-            <input type="number" name="reorder_point" step="0.01" min="0" value="{{ item.reorder_point }}">
-            <small style="color: #7f8c8d;">Alert when stock falls below this level</small>
+        <div class="form-row">
+            <div class="form-group">
+                <label class="field-label">Reorder Point</label>
+                <input type="number" name="reorder_point" step="0.01" min="0" value="{{ item.reorder_point }}">
+                <small class="help-text">Alert when stock falls below this level</small>
+            </div>
+            <div class="form-group">
+                <!-- Empty placeholder for alignment -->
+            </div>
         </div>
 
         <!-- Form Actions -->
-        <div style="margin-top: 40px; margin-bottom: 100px; display: flex; gap: 15px; justify-content: flex-end; border-top: 2px solid #f5f7fa; padding-top: 20px;">
+        <div class="form-actions" style="margin-bottom: 100px;">
             <a href="{{ url_for('items.index') }}" class="btn btn-secondary">
                 Cancel
             </a>
@@ -164,4 +172,3 @@
     </div>
 </form>
 {% endblock %}
-
