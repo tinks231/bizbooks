@@ -124,7 +124,7 @@
         <h3 style="color: #155724;">✅ Approve Request</h3>
         <form method="POST" action="{{ url_for('admin_purchase.approve_request', request_id=request.id) }}">
             <div class="form-group">
-                <label>Create As</label>
+                <label class="field-label">Create As</label>
                 <select name="action_type" id="action_type" onchange="toggleCategorySelection()" required>
                     <option value="expense" {% if request.request_type == 'expense' %}selected{% endif %}>Expense Record</option>
                     <option value="inventory" {% if request.request_type == 'inventory' %}selected{% endif %}>Inventory Item</option>
@@ -132,7 +132,7 @@
             </div>
             
             <div class="form-group" id="expense_category_div" {% if request.request_type != 'expense' %}style="display: none;"{% endif %}>
-                <label>Expense Category</label>
+                <label class="field-label">Expense Category</label>
                 <select name="category_id" id="expense_category_select">
                     {% for cat in expense_categories %}
                     <option value="{{ cat.id }}" {% if request.category_id == cat.id %}selected{% endif %}>{{ cat.name }}</option>
@@ -141,7 +141,7 @@
             </div>
             
             <div class="form-group" id="inventory_category_div" {% if request.request_type != 'inventory' %}style="display: none;"{% endif %}>
-                <label>Item Category</label>
+                <label class="field-label">Item Category</label>
                 <select name="category_id" id="inventory_category_select">
                     {% for cat in item_categories %}
                     <option value="{{ cat.id }}" {% if request.category_id == cat.id %}selected{% endif %}>{{ cat.name }}</option>
@@ -150,12 +150,12 @@
             </div>
             
             <div class="form-group">
-                <label>Actual Amount (₹)</label>
+                <label class="field-label">Actual Amount (₹)</label>
                 <input type="number" name="actual_amount" step="0.01" value="{{ request.estimated_price }}" required>
             </div>
             
             <div class="form-group" id="payment_method_div" {% if request.request_type != 'expense' %}style="display: none;"{% endif %}>
-                <label>Payment Method</label>
+                <label class="field-label">Payment Method</label>
                 <select name="payment_method">
                     <option value="Pending">Pending</option>
                     <option value="Cash">Cash</option>
@@ -167,7 +167,7 @@
             </div>
             
             <div class="form-group">
-                <label>Admin Notes (Optional)</label>
+                <label class="field-label">Admin Notes (Optional)</label>
                 <textarea name="admin_notes" rows="2" placeholder="Any notes for the employee..."></textarea>
             </div>
             
@@ -182,7 +182,7 @@
         <h3 style="color: #721c24;">❌ Reject Request</h3>
         <form method="POST" action="{{ url_for('admin_purchase.reject_request', request_id=request.id) }}">
             <div class="form-group">
-                <label>Rejection Reason *</label>
+                <label class="field-label">Rejection Reason *</label>
                 <textarea name="rejection_reason" rows="5" placeholder="Explain why this request is rejected..." required></textarea>
             </div>
             

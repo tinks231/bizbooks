@@ -19,23 +19,23 @@
         
         <form method="POST" action="/admin/commission-agent/add" class="agent-form">
             <div class="form-group">
-                <label>Name: <span style="color: #e74c3c;">*</span></label>
+                <label class="field-label">Name: <span style="color: #e74c3c;">*</span></label>
                 <input type="text" name="name" required placeholder="e.g., Ramesh (Electrician)">
             </div>
             <div class="form-group">
-                <label>Agent Code: <span style="color: #999;">(Optional)</span></label>
+                <label class="field-label">Agent Code: <span style="color: #999;">(Optional)</span></label>
                 <input type="text" name="code" placeholder="e.g., REF-001">
             </div>
             <div class="form-group">
-                <label>Phone:</label>
+                <label class="field-label">Phone:</label>
                 <input type="tel" name="phone" placeholder="98XXXXXXXX">
             </div>
             <div class="form-group">
-                <label>Email:</label>
+                <label class="field-label">Email:</label>
                 <input type="email" name="email" placeholder="agent@example.com">
             </div>
             <div class="form-group">
-                <label>Commission %: <span style="color: #e74c3c;">*</span></label>
+                <label class="field-label">Commission %: <span style="color: #e74c3c;">*</span></label>
                 <input type="number" name="commission_percentage" step="0.01" min="0" max="100" value="1.0" required placeholder="1.0">
                 <small style="color: #7f8c8d;">Default commission percentage for this agent</small>
             </div>
@@ -301,23 +301,23 @@
             <h3 style="margin: 0 0 20px 0; color: #2c3e50;">✏️ Edit External Agent</h3>
             <form method="POST" id="editAgentForm" action="" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
                 <div class="form-group">
-                    <label>Name:</label>
+                    <label class="field-label">Name:</label>
                     <input type="text" name="name" id="edit_agent_name" required>
                 </div>
                 <div class="form-group">
-                    <label>Agent Code:</label>
+                    <label class="field-label">Agent Code:</label>
                     <input type="text" name="code" id="edit_agent_code">
                 </div>
                 <div class="form-group">
-                    <label>Phone:</label>
+                    <label class="field-label">Phone:</label>
                     <input type="tel" name="phone" id="edit_agent_phone">
                 </div>
                 <div class="form-group">
-                    <label>Email:</label>
+                    <label class="field-label">Email:</label>
                     <input type="email" name="email" id="edit_agent_email">
                 </div>
                 <div class="form-group">
-                    <label>Commission %:</label>
+                    <label class="field-label">Commission %:</label>
                     <input type="number" name="commission_percentage" id="edit_agent_commission" step="0.01" min="0" max="100" required>
                 </div>
                 <div style="grid-column: span 2; display: flex; gap: 10px; margin-top: 10px;">
@@ -332,120 +332,6 @@
         </div>
     </div>
 
-    <style>
-        /* Agent form - 2 columns layout */
-        .agent-form {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 15px;
-        }
-        
-        .agent-form .form-submit-row {
-            grid-column: span 2;
-        }
-        
-        /* View toggle button styling */
-        .view-toggle-btn {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 8px 15px;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: 600;
-            font-size: 13px;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            flex-shrink: 0;
-        }
-        
-        /* Desktop: Always show table, hide toggle button */
-        @media (min-width: 769px) {
-            #externalTableView, #employeeTableView {
-                display: block !important;
-            }
-            #externalCardView, #employeeCardView {
-                display: none !important;
-            }
-            #externalViewToggle, #employeeViewToggle {
-                display: none !important;
-            }
-        }
-        
-        /* Mobile: Show toggle button and respect user preference */
-        @media (max-width: 768px) {
-            /* Keep form 2 columns on mobile but with tighter spacing */
-            .agent-form {
-                grid-template-columns: 1fr 1fr;
-                gap: 10px;
-            }
-            
-            .agent-form input,
-            .agent-form select {
-                font-size: 14px;
-            }
-            
-            .agent-form label {
-                font-size: 13px;
-            }
-            
-            /* Show toggle buttons on mobile */
-            #externalViewToggle, #employeeViewToggle {
-                display: inline-flex !important;
-            }
-            
-            /* External Agents - Default: Card view */
-            body:not(.show-external-table) #externalTableView {
-                display: none !important;
-            }
-            body:not(.show-external-table) #externalCardView {
-                display: block !important;
-            }
-            body.show-external-table #externalTableView {
-                display: block !important;
-            }
-            body.show-external-table #externalCardView {
-                display: none !important;
-            }
-            
-            /* Employee Agents - Default: Card view */
-            body:not(.show-employee-table) #employeeTableView {
-                display: none !important;
-            }
-            body:not(.show-employee-table) #employeeCardView {
-                display: block !important;
-            }
-            body.show-employee-table #employeeTableView {
-                display: block !important;
-            }
-            body.show-employee-table #employeeCardView {
-                display: none !important;
-            }
-            
-            /* AGGRESSIVELY reduce padding on mobile for better spacing */
-            #externalTableView table th,
-            #externalTableView table td,
-            #employeeTableView table th,
-            #employeeTableView table td {
-                padding: 6px 4px !important;
-                font-size: 11px !important;
-                line-height: 1.3 !important;
-            }
-            
-            /* Make table headers more compact */
-            #externalTableView table thead th,
-            #employeeTableView table thead th {
-                padding: 8px 4px !important;
-                font-size: 11px !important;
-            }
-            
-            /* Reduce form padding too */
-            .form-group {
-                margin-bottom: 12px !important;
-            }
-        }
-    </style>
 
     <script>
         // External Agents View Toggle
