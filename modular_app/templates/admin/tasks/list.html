@@ -283,6 +283,41 @@
     <!-- Desktop Table View -->
     <div id="tasksTableView" class="desktop-table">
     <div style="overflow-x: auto;">
+        <style>
+            /* Fix table column widths to prevent wrapping */
+            #tasksTableView table {
+                table-layout: fixed;
+                width: 100%;
+            }
+            
+            #tasksTableView th:nth-child(1) { width: 90px; }   /* Task# */
+            #tasksTableView th:nth-child(2) { width: auto; }   /* Title (flexible) */
+            #tasksTableView th:nth-child(3) { width: 120px; }  /* Assigned To */
+            #tasksTableView th:nth-child(4) { width: 150px; }  /* Site */
+            #tasksTableView th:nth-child(5) { width: 110px; }  /* Priority */
+            #tasksTableView th:nth-child(6) { width: 130px; }  /* Status */
+            #tasksTableView th:nth-child(7) { width: 90px; }   /* Progress */
+            #tasksTableView th:nth-child(8) { width: 110px; }  /* Deadline */
+            #tasksTableView th:nth-child(9) { width: 90px; }   /* Actions */
+            
+            /* Prevent wrapping for specific columns */
+            #tasksTableView td:nth-child(1),
+            #tasksTableView td:nth-child(3),
+            #tasksTableView td:nth-child(5),
+            #tasksTableView td:nth-child(6),
+            #tasksTableView td:nth-child(7),
+            #tasksTableView td:nth-child(8),
+            #tasksTableView td:nth-child(9) {
+                white-space: nowrap;
+            }
+            
+            /* Allow wrapping only for Title and Site */
+            #tasksTableView td:nth-child(2),
+            #tasksTableView td:nth-child(4) {
+                white-space: normal;
+                word-wrap: break-word;
+            }
+        </style>
         <table class="table">
             <thead>
                 <tr>
