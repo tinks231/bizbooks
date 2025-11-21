@@ -84,10 +84,10 @@
                 {% for customer in customers %}
                 <tr>
                     <td>
-                        <strong>{{ customer.customer_code }}</strong>
+                        {{ customer.customer_code }}
                     </td>
                     <td>
-                        <strong>{{ customer.name }}</strong>
+                        {{ customer.name }}
                     </td>
                     <td>
                         {% if customer.phone %}

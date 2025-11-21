@@ -336,3 +336,37 @@ textarea {
 .w-full { width: 100%; }
 .w-half { width: 50%; }
 
+/* ==================== TABLE STYLING ==================== */
+
+/* Table Headers - Bold & Prominent */
+table thead th {
+    font-weight: 600;
+    font-size: 13px;
+    color: #2c3e50;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 12px 16px;
+    background: #f8f9fa;
+    border-bottom: 2px solid #dee2e6;
+}
+
+/* Table Data - Regular & Readable */
+table tbody td {
+    font-weight: 400;
+    font-size: 14px;
+    color: #2c3e50;
+    padding: 12px 16px;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+/* Table Row Hover */
+table tbody tr:hover {
+    background: #f8f9fa;
+}
+
+/* Override any bold text in table cells (unless specifically needed) */
+table tbody td strong,
+table tbody td b {
+    font-weight: 500; /* Slightly bold, not too heavy */
+}
+

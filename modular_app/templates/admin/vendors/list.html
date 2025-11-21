@@ -79,10 +79,10 @@
                 {% for vendor in vendors %}
                 <tr>
                     <td>
-                        <strong>{{ vendor.vendor_code }}</strong>
+                        {{ vendor.vendor_code }}
                     </td>
                     <td>
-                        <strong>{{ vendor.name }}</strong>
+                        {{ vendor.name }}
                         {% if vendor.company_name and vendor.company_name != vendor.name %}
                             <br><small style="color: #7f8c8d;">{{ vendor.company_name }}</small>
                         {% endif %}
