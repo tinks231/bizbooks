@@ -84,9 +84,10 @@
                 <thead>
                     <tr>
                         <th>Item</th>
-                        <th style="width: 120px;">Quantity</th>
-                        <th style="width: 120px;">Rate</th>
-                        <th style="width: 120px;">Total</th>
+                        <th style="width: 100px;">Quantity</th>
+                        <th style="width: 100px;">Rate</th>
+                        <th style="width: 80px;">GST %</th>
+                        <th style="width: 110px;">Total</th>
                         <th style="width: 60px;">Action</th>
                     </tr>
                 </thead>
@@ -99,6 +100,7 @@
                                 {% for available_item in items %}
                                 <option value="{{ available_item.id }}" 
                                         data-price="{{ available_item.selling_price or 0 }}"
+                                        data-gst="{{ available_item.gst_rate or 0 }}"
                                         {% if available_item.id == item.item_id %}selected{% endif %}>
                                     {{ available_item.name }}
                                 </option>
@@ -112,7 +114,10 @@
                             <input type="number" name="unit_prices[]" class="form-input" value="{{ item.rate }}" min="0" step="0.01" required onchange="calculateRowTotal(this)" style="padding: 6px 10px; font-size: 13px;">
                         </td>
                         <td>
-                            <input type="number" class="form-input row-total" value="{{ item.quantity * item.rate }}" readonly style="background: #f8f9fa; padding: 6px 10px; font-size: 13px;">
+                            <input type="number" name="gst_rates[]" class="form-input" value="{{ item.gst_rate or 0 }}" min="0" step="0.01" onchange="calculateRowTotal(this)" style="padding: 6px 10px; font-size: 13px;">
+                        </td>
+                        <td>
+                            <input type="number" class="form-input row-total" value="{{ (item.quantity * item.rate) * (1 + (item.gst_rate or 0)/100) }}" readonly style="background: #f8f9fa; padding: 6px 10px; font-size: 13px; font-weight: 600;">
                         </td>
                         <td>
                             <button type="button" onclick="removeRow(this)" class="btn btn-danger" style="padding: 6px 10px; font-size: 13px;">🗑️</button>
@@ -126,22 +131,18 @@
         
         <!-- Total Section -->
         <div style="margin-top: 20px; padding-top: 15px; border-top: 2px solid #e9ecef;">
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; max-width: 600px; margin-left: auto;">
+            <div style="display: flex; justify-content: flex-end; align-items: center; gap: 25px;">
                 <div>
-                    <label style="font-size: 13px; color: #6c757d; margin-bottom: 3px; display: block;">Subtotal</label>
-                    <div id="subtotal" style="font-size: 18px; font-weight: 600; color: #2c3e50;">₹0.00</div>
+                    <label style="font-size: 13px; color: #6c757d; margin-bottom: 5px; display: block;">Subtotal</label>
+                    <div id="subtotal" style="font-size: 20px; font-weight: 600; color: #2c3e50;">₹0.00</div>
                 </div>
                 <div>
-                    <label style="font-size: 13px; color: #6c757d; margin-bottom: 3px; display: block;">Tax (%)</label>
-                    <input type="number" name="tax_percentage" id="tax_percentage" class="form-input" value="{{ order.tax_percentage or 0 }}" min="0" step="0.01" style="width: 100%; padding: 6px 10px; font-size: 13px;" onchange="calculateTotal()">
+                    <label style="font-size: 13px; color: #6c757d; margin-bottom: 5px; display: block;">Tax Amount</label>
+                    <div id="tax_amount" style="font-size: 20px; font-weight: 600; color: #2c3e50;">₹0.00</div>
                 </div>
-                <div>
-                    <label style="font-size: 13px; color: #6c757d; margin-bottom: 3px; display: block;">Tax Amount</label>
-                    <div id="tax_amount" style="font-size: 18px; font-weight: 600; color: #2c3e50;">₹0.00</div>
-                </div>
-                <div style="background: linear-gradient(135deg, #007bff 0%, #0056b3 100%); padding: 10px; border-radius: 8px; color: white;">
-                    <label style="font-size: 13px; opacity: 0.9; margin-bottom: 3px; display: block;">Grand Total</label>
-                    <div id="grand_total" style="font-size: 22px; font-weight: 700;">₹0.00</div>
+                <div style="background: linear-gradient(135deg, #007bff 0%, #0056b3 100%); padding: 15px 20px; border-radius: 10px; color: white; min-width: 180px; text-align: center;">
+                    <label style="font-size: 13px; opacity: 0.9; margin-bottom: 5px; display: block;">Grand Total</label>
+                    <div id="grand_total" style="font-size: 26px; font-weight: 700;">₹0.00</div>
                 </div>
             </div>
         </div>
@@ -160,7 +161,8 @@ const itemsData = {
     {% for item in items %}
     "{{ item.id }}": {
         name: "{{ item.name }}",
-        price: {{ item.selling_price or 0 }}
+        price: {{ item.selling_price or 0 }},
+        gst: {{ item.gst_rate or 0 }}
     }{% if not loop.last %},{% endif %}
     {% endfor %}
 };
@@ -174,7 +176,7 @@ function addItemRow() {
             <select name="item_ids[]" class="form-input" required onchange="updateItemPrice(this)" style="padding: 6px 10px; font-size: 13px;">
                 <option value="">Select Item</option>
                 {% for item in items %}
-                <option value="{{ item.id }}" data-price="{{ item.selling_price or 0 }}">{{ item.name }}</option>
+                <option value="{{ item.id }}" data-price="{{ item.selling_price or 0 }}" data-gst="{{ item.gst_rate or 0 }}">{{ item.name }}</option>
                 {% endfor %}
             </select>
         </td>
@@ -185,7 +187,10 @@ function addItemRow() {
             <input type="number" name="unit_prices[]" class="form-input" value="0" min="0" step="0.01" required onchange="calculateRowTotal(this)" style="padding: 6px 10px; font-size: 13px;">
         </td>
         <td>
-            <input type="number" class="form-input row-total" value="0" readonly style="background: #f8f9fa; padding: 6px 10px; font-size: 13px;">
+            <input type="number" name="gst_rates[]" class="form-input" value="0" min="0" step="0.01" onchange="calculateRowTotal(this)" style="padding: 6px 10px; font-size: 13px;">
+        </td>
+        <td>
+            <input type="number" class="form-input row-total" value="0" readonly style="background: #f8f9fa; padding: 6px 10px; font-size: 13px; font-weight: 600;">
         </td>
         <td>
             <button type="button" onclick="removeRow(this)" class="btn btn-danger" style="padding: 6px 10px; font-size: 13px;">🗑️</button>
@@ -205,25 +210,32 @@ function removeRow(button) {
     }
 }
 
-// Update item price when item is selected
+// Update item price and GST when item is selected
 function updateItemPrice(select) {
     const itemId = select.value;
     const row = select.closest('tr');
     const priceInput = row.querySelector('input[name="unit_prices[]"]');
+    const gstInput = row.querySelector('input[name="gst_rates[]"]');
     
     if (itemId && itemsData[itemId]) {
         priceInput.value = itemsData[itemId].price;
+        gstInput.value = itemsData[itemId].gst;
     }
     
     calculateRowTotal(priceInput);
 }
 
-// Calculate row total
+// Calculate row total (including GST)
 function calculateRowTotal(input) {
     const row = input.closest('tr');
     const quantity = parseFloat(row.querySelector('input[name="quantities[]"]').value) || 0;
     const unitPrice = parseFloat(row.querySelector('input[name="unit_prices[]"]').value) || 0;
-    const total = quantity * unitPrice;
+    const gstRate = parseFloat(row.querySelector('input[name="gst_rates[]"]').value) || 0;
+    
+    const subtotal = quantity * unitPrice;
+    const taxAmount = (subtotal * gstRate) / 100;
+    const total = subtotal + taxAmount;
+    
     row.querySelector('.row-total').value = total.toFixed(2);
     calculateTotal();
 }
@@ -231,16 +243,24 @@ function calculateRowTotal(input) {
 // Calculate overall total
 function calculateTotal() {
     let subtotal = 0;
-    document.querySelectorAll('.row-total').forEach(input => {
-        subtotal += parseFloat(input.value) || 0;
+    let totalTax = 0;
+    
+    document.querySelectorAll('#itemsTable tr').forEach(row => {
+        const quantity = parseFloat(row.querySelector('input[name="quantities[]"]')?.value) || 0;
+        const unitPrice = parseFloat(row.querySelector('input[name="unit_prices[]"]')?.value) || 0;
+        const gstRate = parseFloat(row.querySelector('input[name="gst_rates[]"]')?.value) || 0;
+        
+        const rowSubtotal = quantity * unitPrice;
+        const rowTax = (rowSubtotal * gstRate) / 100;
+        
+        subtotal += rowSubtotal;
+        totalTax += rowTax;
     });
     
-    const taxPercentage = parseFloat(document.getElementById('tax_percentage').value) || 0;
-    const taxAmount = (subtotal * taxPercentage) / 100;
-    const grandTotal = subtotal + taxAmount;
+    const grandTotal = subtotal + totalTax;
     
     document.getElementById('subtotal').textContent = '₹' + subtotal.toFixed(2);
-    document.getElementById('tax_amount').textContent = '₹' + taxAmount.toFixed(2);
+    document.getElementById('tax_amount').textContent = '₹' + totalTax.toFixed(2);
     document.getElementById('grand_total').textContent = '₹' + grandTotal.toFixed(2);
 }
 
@@ -254,5 +274,17 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 
+<style>
+/* Fix section title alignment */
+.form-section-title {
+    padding-left: 0 !important;
+    margin-left: 0 !important;
+}
+
+/* Ensure row total is bold */
+.row-total {
+    font-weight: 600 !important;
+}
+</style>
 {% endblock %}
 
