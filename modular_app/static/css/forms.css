@@ -1,0 +1,338 @@
+/**
+ * BizBooks Design System - Form Components
+ * ==========================================
+ * Centralized form styling for consistent UI across the application.
+ * Replace inline styles with these reusable classes.
+ */
+
+/* ==================== LAYOUT HELPERS ==================== */
+
+.form-row {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 16px;
+    align-items: flex-start;
+}
+
+.form-row--three-cols {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-bottom: 16px;
+}
+
+.form-group {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.form-group--full {
+    flex: 1 1 100%;
+}
+
+.form-group--half {
+    flex: 1 1 48%;
+}
+
+.form-group--third {
+    flex: 1 1 30%;
+}
+
+/* ==================== LABELS & TEXT ==================== */
+
+.field-label {
+    display: block;
+    margin-bottom: 4px;
+    font-weight: 500;
+    font-size: 14px;
+    color: #2c3e50;
+}
+
+.field-label--required::after {
+    content: ' *';
+    color: #e74c3c;
+}
+
+.label-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 4px;
+}
+
+.help-text {
+    display: block;
+    margin-top: 4px;
+    font-size: 12px;
+    color: #7f8c8d;
+    line-height: 1.4;
+}
+
+/* ==================== SECTION STYLING ==================== */
+
+.section-title {
+    margin: 24px 0 12px;
+    color: #2c3e50;
+    font-size: 16px;
+    border-top: 2px solid #f5f7fa;
+    padding-top: 16px;
+    font-weight: 600;
+}
+
+.section-title:first-child {
+    margin-top: 0;
+    border-top: none;
+    padding-top: 0;
+}
+
+/* ==================== COLLAPSIBLE SECTIONS ==================== */
+
+.collapsible-section {
+    margin-top: 24px;
+    padding-top: 16px;
+    border-top: 2px solid #f5f7fa;
+}
+
+.collapsible-trigger {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 16px;
+    cursor: pointer;
+    user-select: none;
+}
+
+.collapsible-trigger input[type="checkbox"] {
+    cursor: pointer;
+}
+
+.collapsible-trigger label {
+    font-size: 15px;
+    font-weight: 600;
+    color: #34495e;
+    cursor: pointer;
+    margin: 0;
+}
+
+.collapsible-content {
+    display: none;
+    animation: slideDown 0.3s ease-out;
+}
+
+.collapsible-content--visible {
+    display: block;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* ==================== RADIO/CHECKBOX GROUPS ==================== */
+
+.radio-group,
+.checkbox-group {
+    display: flex;
+    gap: 20px;
+    align-items: center;
+}
+
+.radio-group label,
+.checkbox-group label {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: normal;
+    font-size: 14px;
+    color: #34495e;
+    cursor: pointer;
+    margin: 0;
+}
+
+.radio-group input[type="radio"],
+.checkbox-group input[type="checkbox"] {
+    cursor: pointer;
+}
+
+/* ==================== INLINE CHECKBOX (e.g., Auto-generate SKU) ==================== */
+
+.inline-checkbox {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-weight: normal;
+    font-size: 13px;
+    margin: 0;
+    color: #34495e;
+}
+
+.inline-checkbox input[type="checkbox"] {
+    cursor: pointer;
+}
+
+/* ==================== FORM INPUTS ==================== */
+
+input[type="text"],
+input[type="number"],
+input[type="email"],
+input[type="tel"],
+input[type="date"],
+select,
+textarea {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #dfe6e9;
+    border-radius: 6px;
+    font-size: 14px;
+    color: #2c3e50;
+    background: #ffffff;
+    transition: all 0.2s ease;
+}
+
+input[type="text"]:focus,
+input[type="number"]:focus,
+input[type="email"]:focus,
+input[type="tel"]:focus,
+input[type="date"]:focus,
+select:focus,
+textarea:focus {
+    outline: none;
+    border-color: #3498db;
+    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+}
+
+input:disabled,
+select:disabled,
+textarea:disabled {
+    background: #f5f7fa;
+    color: #7f8c8d;
+    cursor: not-allowed;
+}
+
+textarea {
+    resize: vertical;
+    min-height: 80px;
+    font-family: inherit;
+}
+
+/* ==================== BUTTONS ==================== */
+
+.btn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-decoration: none;
+    display: inline-block;
+    text-align: center;
+}
+
+.btn-primary {
+    background: #3498db;
+    color: white;
+}
+
+.btn-primary:hover {
+    background: #2980b9;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(52, 152, 219, 0.3);
+}
+
+.btn-secondary {
+    background: #95a5a6;
+    color: white;
+}
+
+.btn-secondary:hover {
+    background: #7f8c8d;
+}
+
+.btn-success {
+    background: #27ae60;
+    color: white;
+}
+
+.btn-success:hover {
+    background: #229954;
+}
+
+.btn-danger {
+    background: #e74c3c;
+    color: white;
+}
+
+.btn-danger:hover {
+    background: #c0392b;
+}
+
+/* ==================== FORM ACTIONS ==================== */
+
+.form-actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 32px;
+    padding-top: 24px;
+    border-top: 2px solid #f5f7fa;
+}
+
+/* ==================== MOBILE RESPONSIVE ==================== */
+
+@media (max-width: 768px) {
+    .form-row {
+        flex-direction: column;
+        gap: 12px;
+    }
+    
+    .form-row--three-cols {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+    
+    .form-group--half,
+    .form-group--third {
+        flex: 1 1 100%;
+    }
+    
+    .section-title {
+        font-size: 15px;
+        margin: 20px 0 10px;
+    }
+    
+    .form-actions {
+        flex-direction: column;
+    }
+    
+    .btn {
+        width: 100%;
+    }
+}
+
+/* ==================== UTILITY CLASSES ==================== */
+
+.mb-0 { margin-bottom: 0 !important; }
+.mb-1 { margin-bottom: 8px !important; }
+.mb-2 { margin-bottom: 16px !important; }
+.mb-3 { margin-bottom: 24px !important; }
+
+.mt-0 { margin-top: 0 !important; }
+.mt-1 { margin-top: 8px !important; }
+.mt-2 { margin-top: 16px !important; }
+.mt-3 { margin-top: 24px !important; }
+
+.text-muted { color: #7f8c8d; }
+.text-danger { color: #e74c3c; }
+.text-success { color: #27ae60; }
+
+.w-full { width: 100%; }
+.w-half { width: 50%; }
+

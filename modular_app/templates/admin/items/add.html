@@ -15,13 +15,13 @@
     <div class="card">
         <!-- Type Selection -->
         <div class="form-group">
-            <label>Type *</label>
-            <div style="display: flex; gap: 20px;">
-                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+            <label class="field-label field-label--required">Type</label>
+            <div class="radio-group">
+                <label>
                     <input type="radio" name="type" value="goods" checked required>
                     <span>Goods</span>
                 </label>
-                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                <label>
                     <input type="radio" name="type" value="service" required>
                     <span>Service</span>
                 </label>
@@ -29,31 +29,31 @@
         </div>
 
         <!-- Basic Information -->
-        <div class="form-row" style="margin-bottom: 15px;">
-            <div class="form-group" style="flex: 1;">
-                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 4px;">
-                    <label style="margin: 0;">Item Name *</label>
+        <div class="form-row">
+            <div class="form-group">
+                <div class="label-row">
+                    <label class="field-label field-label--required">Item Name</label>
                 </div>
                 <input type="text" name="name" required placeholder="e.g., Wire - 2.5mm Copper Cable">
             </div>
             
-            <div class="form-group" style="flex: 1;">
-                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 4px;">
-                    <label style="margin: 0;">SKU</label>
-                    <label style="display: inline-flex; align-items: center; gap: 5px; font-weight: normal; font-size: 13px; margin: 0;">
+            <div class="form-group">
+                <div class="label-row">
+                    <label class="field-label">SKU</label>
+                    <label class="inline-checkbox">
                         <input type="checkbox" id="autoSkuCheckbox" checked onchange="toggleSKUMode()">
                         <span>Auto-generate</span>
                     </label>
                 </div>
-                <input type="text" id="skuInput" name="sku" placeholder="Auto-generated" disabled style="background: #f5f7fa; color: #7f8c8d;">
-                <small id="skuHint" style="color: #7f8c8d;">SKU will be automatically generated</small>
+                <input type="text" id="skuInput" name="sku" placeholder="Auto-generated" disabled>
+                <small id="skuHint" class="help-text">SKU will be automatically generated</small>
             </div>
         </div>
 
-        <div class="form-row" style="margin-bottom: 15px;">
-            <div class="form-group" style="flex: 1;">
-                <label>Unit *</label>
-                <select name="unit" required style="margin-bottom: 10px;">
+        <div class="form-row">
+            <div class="form-group">
+                <label class="field-label field-label--required">Unit</label>
+                <select name="unit" required>
                     <option value="nos">Pieces (nos)</option>
                     <option value="kg">Kilogram (kg)</option>
                     <option value="g">Gram (g)</option>
@@ -67,34 +67,34 @@
                     <option value="bundle">Bundle</option>
                     <option value="dozen">Dozen</option>
                 </select>
-                <label style="display: inline-flex; align-items: center; gap: 8px; cursor: pointer; margin: 0;">
+                <label class="inline-checkbox mt-1">
                     <input type="checkbox" name="is_returnable" checked>
                     <span>Returnable Item</span>
                 </label>
             </div>
 
-            <div class="form-group" style="flex: 1;">
-                <label>Category</label>
+            <div class="form-group">
+                <label class="field-label">Category</label>
                 <select name="category_id">
                     <option value="">Select Category</option>
                     {% for category in categories %}
                     <option value="{{ category.id }}">{{ category.name }}</option>
                     {% endfor %}
                 </select>
-                <small style="color: #7f8c8d;">
+                <small class="help-text">
                     Don't see your category? <a href="{{ url_for('items.categories') }}" target="_blank">Add Category</a>
                 </small>
             </div>
 
-            <div class="form-group" style="flex: 1;">
-                <label>Item Group</label>
+            <div class="form-group">
+                <label class="field-label">Item Group</label>
                 <select name="item_group_id">
                     <option value="">Select Group</option>
                     {% for group in groups %}
                     <option value="{{ group.id }}">{{ group.name }}</option>
                     {% endfor %}
                 </select>
-                <small style="color: #7f8c8d;">
+                <small class="help-text">
                     Don't see your group? <a href="{{ url_for('items.groups') }}" target="_blank">Add Group</a>
                 </small>
             </div>
@@ -102,17 +102,17 @@
 
 
         <!-- Sales Information -->
-        <h3 style="margin: 25px 0 12px; color: #2c3e50; font-size: 16px; border-top: 2px solid #f5f7fa; padding-top: 15px;">
+        <h3 class="section-title">
             💰 Sales Information
         </h3>
 
-        <div class="form-row" style="margin-bottom: 15px;">
-            <div class="form-group" style="flex: 1;">
-                <label>Selling Price (₹) *</label>
+        <div class="form-row">
+            <div class="form-group">
+                <label class="field-label field-label--required">Selling Price (₹)</label>
                 <input type="number" name="selling_price" step="0.01" min="0" required placeholder="0.00">
             </div>
-            <div class="form-group" style="flex: 1;">
-                <label>GST Rate *</label>
+            <div class="form-group">
+                <label class="field-label field-label--required">GST Rate</label>
                 <select name="gst_rate" required>
                     <option value="0">0% - Exempted</option>
                     <option value="5">5% GST</option>
@@ -120,18 +120,18 @@
                     <option value="18" selected>18% GST (Default)</option>
                     <option value="28">28% GST</option>
                 </select>
-                <small style="color: #7f8c8d;">Default GST rate for this item</small>
+                <small class="help-text">Default GST rate for this item</small>
             </div>
         </div>
 
-        <div class="form-row" style="margin-bottom: 15px;">
-            <div class="form-group" style="flex: 1;">
-                <label>HSN/SAC Code (for GST)</label>
+        <div class="form-row">
+            <div class="form-group">
+                <label class="field-label">HSN/SAC Code (for GST)</label>
                 <input type="text" name="hsn_code" placeholder="e.g., 8414, 8544" maxlength="20">
-                <small style="color: #7f8c8d;">Optional - Used in GST reports and invoices</small>
+                <small class="help-text">Optional - Used in GST reports and invoices</small>
             </div>
-            <div class="form-group" style="flex: 1;">
-                <label>Account</label>
+            <div class="form-group">
+                <label class="field-label">Account</label>
                 <select name="sales_account">
                     <option value="Sales">Sales</option>
                     <option value="Revenue">Revenue</option>
@@ -140,25 +140,25 @@
             </div>
         </div>
 
-        <div class="form-row" style="margin-bottom: 15px;">
-            <div class="form-group" style="flex: 1;">
-                <label>Sales Description</label>
+        <div class="form-row">
+            <div class="form-group form-group--full">
+                <label class="field-label">Sales Description</label>
                 <textarea name="sales_description" rows="3" placeholder="Description shown on invoices..."></textarea>
             </div>
         </div>
 
         <!-- Purchase Information -->
-        <h3 style="margin: 25px 0 12px; color: #2c3e50; font-size: 16px; border-top: 2px solid #f5f7fa; padding-top: 15px;">
+        <h3 class="section-title">
             🛒 Purchase Information
         </h3>
 
-        <div class="form-row" style="margin-bottom: 15px;">
-            <div class="form-group" style="flex: 1;">
-                <label>Cost Price (₹) *</label>
+        <div class="form-row">
+            <div class="form-group">
+                <label class="field-label field-label--required">Cost Price (₹)</label>
                 <input type="number" id="costPrice" name="cost_price" step="0.01" min="0" required placeholder="0.00" onchange="calculateOpeningStockValue()">
             </div>
-            <div class="form-group" style="flex: 1;">
-                <label>Account</label>
+            <div class="form-group">
+                <label class="field-label">Account</label>
                 <select name="purchase_account">
                     <option value="Cost of Goods Sold">Cost of Goods Sold</option>
                     <option value="Purchases">Purchases</option>
@@ -167,96 +167,96 @@
             </div>
         </div>
 
-        <div class="form-row" style="margin-bottom: 15px;">
-            <div class="form-group" style="flex: 1;">
-                <label>Preferred Vendor</label>
+        <div class="form-row">
+            <div class="form-group">
+                <label class="field-label">Preferred Vendor</label>
                 <input type="text" name="preferred_vendor" placeholder="Vendor name (optional)">
-                <small style="color: #7f8c8d;">Your default supplier for this item</small>
+                <small class="help-text">Your default supplier for this item</small>
             </div>
-            <div class="form-group" style="flex: 1;">
+            <div class="form-group">
                 <!-- Empty placeholder for alignment -->
             </div>
         </div>
 
-        <div class="form-row" style="margin-bottom: 15px;">
-            <div class="form-group" style="flex: 1;">
-                <label>Purchase Description</label>
+        <div class="form-row">
+            <div class="form-group form-group--full">
+                <label class="field-label">Purchase Description</label>
                 <textarea name="purchase_description" rows="3" placeholder="Description for purchase orders..."></textarea>
             </div>
         </div>
 
         <!-- Inventory Tracking -->
-        <h3 style="margin: 25px 0 12px; color: #2c3e50; font-size: 16px; border-top: 2px solid #f5f7fa; padding-top: 15px;">
+        <h3 class="section-title">
             📊 Inventory Tracking
         </h3>
 
-        <div class="form-group" style="margin-bottom: 15px;">
-            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: 700; font-size: 15px;">
+        <div class="form-group">
+            <label class="checkbox-group" style="font-weight: 700; font-size: 15px; cursor: pointer;">
                 <input type="checkbox" name="track_inventory" id="trackInventory" checked onchange="toggleInventoryFields()">
                 <span>✓ Track Inventory for this item</span>
             </label>
-            <small style="color: #7f8c8d;">Enable this to track stock levels across sites</small>
+            <small class="help-text">Enable this to track stock levels across sites</small>
         </div>
 
         <div id="inventoryFields">
-            <div class="form-row" style="margin-bottom: 15px;">
-                <div class="form-group" style="flex: 1;">
-                    <label>Opening Stock</label>
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="field-label">Opening Stock</label>
                     <input type="number" id="openingStock" name="opening_stock" step="0.01" min="0" placeholder="0.00" onchange="calculateOpeningStockValue()">
-                    <small style="color: #7f8c8d;">Initial stock quantity (how much you already have)</small>
+                    <small class="help-text">Initial stock quantity (how much you already have)</small>
                 </div>
-                <div class="form-group" style="flex: 1;">
-                    <label>Opening Stock Value (₹) <span style="color: #27ae60; font-weight: normal; font-size: 12px;">⚡ Auto-calculated</span></label>
-                    <input type="number" id="openingStockValue" name="opening_stock_value" step="0.01" min="0" placeholder="0.00" readonly style="background: #f8f9fa; cursor: not-allowed;">
-                    <small style="color: #7f8c8d;">= Opening Stock × Cost Price (auto-calculated)</small>
+                <div class="form-group">
+                    <label class="field-label">Opening Stock Value (₹) <span style="color: #27ae60; font-weight: normal; font-size: 12px;">⚡ Auto-calculated</span></label>
+                    <input type="number" id="openingStockValue" name="opening_stock_value" step="0.01" min="0" placeholder="0.00" readonly>
+                    <small class="help-text">= Opening Stock × Cost Price (auto-calculated)</small>
                 </div>
             </div>
 
-            <div class="form-row" style="margin-bottom: 15px;">
-                <div class="form-group" style="flex: 1;">
-                    <label>Reorder Point</label>
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="field-label">Reorder Point</label>
                     <input type="number" name="reorder_point" step="0.01" min="0" placeholder="0.00">
-                    <small style="color: #7f8c8d;">Alert when stock falls below this level</small>
+                    <small class="help-text">Alert when stock falls below this level</small>
                 </div>
-                <div class="form-group" style="flex: 1;">
+                <div class="form-group">
                     <!-- Empty placeholder for alignment -->
                 </div>
             </div>
         </div>
 
         <!-- Advanced Options Toggle -->
-        <div style="margin: 25px 0 15px; padding: 18px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #3498db;">
-            <label style="display: flex; align-items: center; gap: 12px; cursor: pointer; margin: 0; font-size: 15px; font-weight: 600;">
-                <input type="checkbox" id="showAdvancedOptions" onchange="toggleAdvancedOptions()" style="width: 18px; height: 18px; cursor: pointer;">
+        <div class="collapsible-section" style="padding: 18px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #3498db;">
+            <label class="collapsible-trigger">
+                <input type="checkbox" id="showAdvancedOptions" onchange="toggleAdvancedOptions()" style="width: 18px; height: 18px;">
                 <span>📦 Show Advanced Options (Dimensions & Product Identifiers)</span>
             </label>
-            <small style="color: #7f8c8d; margin-left: 30px; display: block; margin-top: 5px;">
+            <small class="help-text" style="margin-left: 30px;">
                 Add physical dimensions, weight, and international product codes (UPC, EAN, MPN, etc.)
             </small>
         </div>
 
         <!-- Advanced Options Section (Hidden by default) -->
-        <div id="advancedOptionsSection" style="display: none;">
+        <div id="advancedOptionsSection" class="collapsible-content">
             <!-- Dimensions & Weight -->
-            <h3 style="margin: 15px 0 12px; color: #2c3e50; font-size: 16px; border-top: 2px solid #f5f7fa; padding-top: 15px;">
+            <h3 class="section-title">
                 📐 Dimensions & Weight
             </h3>
 
-            <div class="form-row" style="margin-bottom: 15px;">
-                <div class="form-group" style="flex: 1;">
-                    <label>Length</label>
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="field-label">Length</label>
                     <input type="number" name="dimensions_length" step="0.01" min="0" placeholder="0.00">
                 </div>
-                <div class="form-group" style="flex: 1;">
-                    <label>Width</label>
+                <div class="form-group">
+                    <label class="field-label">Width</label>
                     <input type="number" name="dimensions_width" step="0.01" min="0" placeholder="0.00">
                 </div>
-                <div class="form-group" style="flex: 1;">
-                    <label>Height</label>
+                <div class="form-group">
+                    <label class="field-label">Height</label>
                     <input type="number" name="dimensions_height" step="0.01" min="0" placeholder="0.00">
                 </div>
-                <div class="form-group" style="flex: 1;">
-                    <label>Unit</label>
+                <div class="form-group">
+                    <label class="field-label">Unit</label>
                     <select name="dimensions_unit">
                         <option value="cm">Centimeter (cm)</option>
                         <option value="m">Meter (m)</option>
@@ -266,13 +266,13 @@
                 </div>
             </div>
 
-            <div class="form-row" style="margin-bottom: 15px;">
-                <div class="form-group" style="flex: 1;">
-                    <label>Weight</label>
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="field-label">Weight</label>
                     <input type="number" name="weight" step="0.01" min="0" placeholder="0.00">
                 </div>
-                <div class="form-group" style="flex: 1;">
-                    <label>Weight Unit</label>
+                <div class="form-group">
+                    <label class="field-label">Weight Unit</label>
                     <select name="weight_unit">
                         <option value="kg">Kilogram (kg)</option>
                         <option value="g">Gram (g)</option>
@@ -282,39 +282,39 @@
             </div>
 
             <!-- Product Identifiers -->
-            <h3 style="margin: 20px 0 12px; color: #2c3e50; font-size: 16px; border-top: 2px solid #f5f7fa; padding-top: 15px;">
+            <h3 class="section-title">
                 🏷️ Product Identifiers
             </h3>
 
-            <div class="form-row" style="margin-bottom: 15px;">
-                <div class="form-group" style="flex: 1;">
-                    <label>Manufacturer</label>
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="field-label">Manufacturer</label>
                     <input type="text" name="manufacturer" placeholder="e.g., Anchor">
                 </div>
-                <div class="form-group" style="flex: 1;">
-                    <label>Brand</label>
+                <div class="form-group">
+                    <label class="field-label">Brand</label>
                     <input type="text" name="brand" placeholder="e.g., Anchor">
                 </div>
             </div>
 
-            <div class="form-row" style="margin-bottom: 15px;">
-                <div class="form-group" style="flex: 1;">
-                    <label>UPC</label>
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="field-label">UPC</label>
                     <input type="text" name="upc" placeholder="Universal Product Code">
                 </div>
-                <div class="form-group" style="flex: 1;">
-                    <label>EAN</label>
+                <div class="form-group">
+                    <label class="field-label">EAN</label>
                     <input type="text" name="ean" placeholder="European Article Number">
                 </div>
-                <div class="form-group" style="flex: 1;">
-                    <label>MPN</label>
+                <div class="form-group">
+                    <label class="field-label">MPN</label>
                     <input type="text" name="mpn" placeholder="Manufacturer Part Number">
                 </div>
             </div>
         </div>
 
         <!-- Form Actions -->
-        <div style="margin-top: 30px; margin-bottom: 80px; display: flex; gap: 15px; justify-content: flex-end; border-top: 2px solid #f5f7fa; padding-top: 20px;">
+        <div class="form-actions">
             <a href="{{ url_for('items.index') }}" class="btn btn-secondary">
                 Cancel
             </a>
@@ -336,15 +336,11 @@
             skuInput.disabled = true;
             skuInput.value = '';
             skuInput.placeholder = 'Auto-generated';
-            skuInput.style.background = '#f5f7fa';
-            skuInput.style.color = '#7f8c8d';
             skuHint.textContent = 'SKU will be automatically generated';
         } else {
             // Manual mode
             skuInput.disabled = false;
             skuInput.placeholder = 'Enter SKU (e.g., PE-FS-W-40)';
-            skuInput.style.background = 'white';
-            skuInput.style.color = '#2c3e50';
             skuInput.focus();
             skuHint.textContent = 'Enter your custom SKU code';
         }
@@ -400,4 +396,3 @@
     toggleInventoryFields();
 </script>
 {% endblock %}
-
