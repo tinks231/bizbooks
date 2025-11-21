@@ -81,19 +81,19 @@
                 <div class="row">
                     <div class="col-md-2">
                         <div class="form-group">
-                            <label><strong>Start Date</strong></label>
+                            <label class="field-label"><strong>Start Date</strong></label>
                             <input type="date" name="start_date" class="form-control" value="{{ start_date }}">
                         </div>
                     </div>
                     <div class="col-md-2">
                         <div class="form-group">
-                            <label><strong>End Date</strong></label>
+                            <label class="field-label"><strong>End Date</strong></label>
                             <input type="date" name="end_date" class="form-control" value="{{ end_date }}">
                         </div>
                     </div>
                     <div class="col-md-3">
                         <div class="form-group">
-                            <label><strong>Plan</strong></label>
+                            <label class="field-label"><strong>Plan</strong></label>
                             <select name="plan" class="form-control">
                                 <option value="">All Plans</option>
                                 {% for plan in active_plans %}
@@ -106,7 +106,7 @@
                     </div>
                     <div class="col-md-3">
                         <div class="form-group">
-                            <label><strong>Status</strong></label>
+                            <label class="field-label"><strong>Status</strong></label>
                             <select name="status" class="form-control">
                                 <option value="all" {% if status_filter == 'all' %}selected{% endif %}>All Status</option>
                                 <option value="active" {% if status_filter == 'active' %}selected{% endif %}>Active</option>
@@ -237,72 +237,6 @@
     </div>
 </div>
 
-<style>
-.stat-card {
-    padding: 12px 15px;
-    border-radius: 12px;
-    border-left: 4px solid #0066cc;
-    display: flex;
-    align-items: center;
-    margin-bottom: 15px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    min-height: 80px;
-}
-
-.stat-active {
-    background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
-    border-left-color: #4caf50;
-}
-
-.stat-due-soon {
-    background: linear-gradient(135deg, #fff9e6 0%, #ffe599 100%);
-    border-left-color: #ffc107;
-}
-
-.stat-overdue {
-    background: linear-gradient(135deg, #ffebee 0%, #ffcdd2 100%);
-    border-left-color: #f44336;
-}
-
-.stat-icon {
-    font-size: 24px;
-    margin-right: 10px;
-    flex-shrink: 0;
-}
-
-.stat-details {
-    flex: 1;
-    min-width: 0;
-    overflow: hidden;
-}
-
-.stat-details h3 {
-    margin: 0;
-    font-size: 18px;
-    font-weight: bold;
-    color: #333;
-    word-wrap: break-word;
-    line-height: 1.2;
-}
-
-.stat-details p {
-    margin: 3px 0 0 0;
-    font-size: 12px;
-    color: #666;
-    white-space: nowrap;
-}
-
-.table th {
-    font-weight: 600;
-    color: #333;
-    border-bottom: 2px solid #dee2e6;
-}
-
-.badge {
-    padding: 5px 10px;
-    font-size: 11px;
-}
-</style>
 
 <script>
 function exportToExcel() {

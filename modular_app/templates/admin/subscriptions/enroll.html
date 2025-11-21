@@ -25,7 +25,7 @@
                         <div class="form-section">
                             <h4>1️⃣ Select Customer</h4>
                             <div class="form-group">
-                                <label><strong>Customer *</strong></label>
+                                <label class="field-label"><strong>Customer *</strong></label>
                                 <select name="customer_id" id="customer_id" class="form-control" required onchange="showCustomerDetails()">
                                     <option value="">-- Select Customer --</option>
                                     {% for customer in customers %}
@@ -79,7 +79,7 @@
                         <div class="form-section">
                             <h4>3️⃣ Start Date</h4>
                             <div class="form-group">
-                                <label><strong>Subscription Start Date *</strong></label>
+                                <label class="field-label"><strong>Subscription Start Date *</strong></label>
                                 <input type="date" name="start_date" id="start_date" class="form-control" required onchange="calculatePeriodEnd()">
                                 <small class="form-text text-muted">Usually today's date</small>
                             </div>
@@ -109,14 +109,14 @@
                                 <div class="row" style="margin-top: 20px;">
                                     <div class="col-md-6">
                                         <div class="form-group">
-                                            <label><strong>Amount (₹) *</strong></label>
+                                            <label class="field-label"><strong>Amount (₹) *</strong></label>
                                             <input type="number" name="payment_amount" id="payment_amount" class="form-control" step="0.01" min="0">
                                             <small class="form-text text-muted">Auto-filled from plan price</small>
                                         </div>
                                     </div>
                                     <div class="col-md-6">
                                         <div class="form-group">
-                                            <label><strong>Payment Mode *</strong></label>
+                                            <label class="field-label"><strong>Payment Mode *</strong></label>
                                             <select name="payment_mode" class="form-control">
                                                 <option value="Cash">Cash</option>
                                                 <option value="UPI">UPI</option>
@@ -204,91 +204,6 @@
     </div>
 </div>
 
-<style>
-.form-section {
-    margin-bottom: 40px;
-    padding-bottom: 30px;
-    border-bottom: 1px solid #e0e0e0;
-}
-
-.form-section:last-child {
-    border-bottom: none;
-}
-
-.form-section h4 {
-    margin-bottom: 20px;
-    color: #333;
-}
-
-#plans_grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-    gap: 20px;
-}
-
-.plan-card {
-    border: 2px solid #e0e0e0;
-    border-radius: 12px;
-    padding: 20px;
-    cursor: pointer;
-    transition: all 0.3s;
-    background: white;
-}
-
-.plan-card:hover {
-    border-color: #0066cc;
-    box-shadow: 0 4px 12px rgba(0, 102, 204, 0.2);
-    transform: translateY(-2px);
-}
-
-.plan-card.selected {
-    border-color: #0066cc;
-    background: #e7f3ff;
-    box-shadow: 0 4px 12px rgba(0, 102, 204, 0.3);
-}
-
-.plan-header {
-    border-bottom: 1px solid #e0e0e0;
-    padding-bottom: 15px;
-    margin-bottom: 15px;
-}
-
-.plan-header h5 {
-    margin: 0 0 10px 0;
-    font-size: 18px;
-    font-weight: 600;
-}
-
-.plan-price {
-    font-size: 28px;
-    font-weight: 700;
-    color: #0066cc;
-}
-
-.plan-duration {
-    font-size: 16px;
-    color: #666;
-    margin-bottom: 10px;
-}
-
-.plan-description {
-    font-size: 14px;
-    color: #888;
-}
-
-.card {
-    border-radius: 10px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    border: 1px solid #e0e0e0;
-    margin-bottom: 20px;
-}
-
-.card-header {
-    background: #f8f9fa;
-    border-bottom: 2px solid #e0e0e0;
-    padding: 20px;
-}
-</style>
 
 <script>
 // Set today as default start date

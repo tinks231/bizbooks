@@ -3,231 +3,6 @@
 {% block page_title %}📥 Bulk Import{% endblock %}
 
 {% block content %}
-<style>
-    .bulk-import-container {
-        max-width: 1200px;
-        margin: 0 auto;
-        padding: 20px;
-    }
-    
-    .hero-section {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        padding: 40px;
-        border-radius: 15px;
-        text-align: center;
-        margin-bottom: 40px;
-        box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
-    }
-    
-    .hero-section h1 {
-        font-size: 36px;
-        margin-bottom: 15px;
-        font-weight: 700;
-    }
-    
-    .hero-section p {
-        font-size: 18px;
-        opacity: 0.9;
-        max-width: 800px;
-        margin: 0 auto;
-    }
-    
-    .import-cards {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-        gap: 30px;
-        margin-bottom: 40px;
-    }
-    
-    .import-card {
-        background: white;
-        border-radius: 15px;
-        padding: 30px;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.08);
-        transition: all 0.3s ease;
-        border: 2px solid #f0f0f0;
-    }
-    
-    .import-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 8px 25px rgba(0,0,0,0.12);
-        border-color: #667eea;
-    }
-    
-    .import-card.employees {
-        border-top: 4px solid #4472C4;
-    }
-    
-    .import-card.inventory {
-        border-top: 4px solid #70AD47;
-    }
-    
-    .import-card.customers {
-        border-top: 4px solid #FFC000;
-    }
-    
-    .card-icon {
-        font-size: 48px;
-        margin-bottom: 20px;
-        display: block;
-    }
-    
-    .card-title {
-        font-size: 24px;
-        font-weight: 700;
-        margin-bottom: 10px;
-        color: #2c3e50;
-    }
-    
-    .card-description {
-        color: #7f8c8d;
-        margin-bottom: 20px;
-        line-height: 1.6;
-    }
-    
-    .current-count {
-        background: #f8f9fa;
-        padding: 10px;
-        border-radius: 8px;
-        margin-bottom: 20px;
-        font-weight: 600;
-        color: #495057;
-    }
-    
-    .current-count span {
-        color: #667eea;
-        font-size: 20px;
-    }
-    
-    .btn-download {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        border: none;
-        padding: 12px 24px;
-        border-radius: 8px;
-        cursor: pointer;
-        font-size: 16px;
-        font-weight: 600;
-        width: 100%;
-        margin-bottom: 10px;
-        transition: all 0.3s ease;
-        text-decoration: none;
-        display: inline-block;
-        text-align: center;
-    }
-    
-    .btn-download:hover {
-        transform: scale(1.02);
-        box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
-        color: white;
-        text-decoration: none;
-    }
-    
-    .btn-upload {
-        background: white;
-        color: #667eea;
-        border: 2px solid #667eea;
-        padding: 12px 24px;
-        border-radius: 8px;
-        cursor: pointer;
-        font-size: 16px;
-        font-weight: 600;
-        width: 100%;
-        transition: all 0.3s ease;
-    }
-    
-    .btn-upload:hover {
-        background: #667eea;
-        color: white;
-    }
-    
-    .upload-form {
-        margin-top: 15px;
-    }
-    
-    .file-input-wrapper {
-        position: relative;
-        overflow: hidden;
-        display: inline-block;
-        width: 100%;
-        margin-bottom: 10px;
-    }
-    
-    .file-input-wrapper input[type=file] {
-        position: absolute;
-        left: -9999px;
-    }
-    
-    .file-input-label {
-        display: block;
-        padding: 12px 24px;
-        background: #ecf0f1;
-        color: #34495e;
-        border-radius: 8px;
-        cursor: pointer;
-        text-align: center;
-        font-weight: 600;
-        transition: all 0.3s ease;
-    }
-    
-    .file-input-label:hover {
-        background: #d5dbdb;
-    }
-    
-    .file-input-label.has-file {
-        background: #d4edda;
-        color: #155724;
-        border: 2px solid #28a745;
-    }
-    
-    .instructions-section {
-        background: #fff9e6;
-        border-left: 4px solid #FFC000;
-        padding: 20px;
-        border-radius: 8px;
-        margin-top: 40px;
-    }
-    
-    .instructions-section h3 {
-        color: #e67e22;
-        margin-bottom: 15px;
-    }
-    
-    .instructions-section ol {
-        padding-left: 20px;
-    }
-    
-    .instructions-section li {
-        margin-bottom: 10px;
-        line-height: 1.6;
-    }
-    
-    .feature-badge {
-        display: inline-block;
-        background: #667eea;
-        color: white;
-        padding: 4px 12px;
-        border-radius: 20px;
-        font-size: 12px;
-        font-weight: 600;
-        margin-bottom: 10px;
-    }
-    
-    @media (max-width: 768px) {
-        .import-cards {
-            grid-template-columns: 1fr;
-        }
-        
-        .hero-section h1 {
-            font-size: 28px;
-        }
-        
-        .hero-section p {
-            font-size: 16px;
-        }
-    }
-</style>
 
 <div class="bulk-import-container">
     <!-- Hero Section -->
@@ -258,7 +33,7 @@
             <form action="{{ url_for('admin.upload_import', import_type='employees') }}" method="POST" enctype="multipart/form-data" class="upload-form">
                 <div class="file-input-wrapper">
                     <input type="file" id="employee-file" name="file" accept=".xlsx,.xls" required onchange="updateFileName(this, 'employee')">
-                    <label for="employee-file" class="file-input-label" id="employee-label">
+                    <label class="field-label" for="employee-file" class="file-input-label" id="employee-label">
                         📄 Choose Excel File
                     </label>
                 </div>
@@ -286,7 +61,7 @@
             <form action="{{ url_for('admin.upload_import', import_type='inventory') }}" method="POST" enctype="multipart/form-data" class="upload-form">
                 <div class="file-input-wrapper">
                     <input type="file" id="inventory-file" name="file" accept=".xlsx,.xls" required onchange="updateFileName(this, 'inventory')">
-                    <label for="inventory-file" class="file-input-label" id="inventory-label">
+                    <label class="field-label" for="inventory-file" class="file-input-label" id="inventory-label">
                         📄 Choose Excel File
                     </label>
                 </div>
@@ -314,7 +89,7 @@
             <form action="{{ url_for('admin.upload_import', import_type='customers') }}" method="POST" enctype="multipart/form-data" class="upload-form">
                 <div class="file-input-wrapper">
                     <input type="file" id="customer-file" name="file" accept=".xlsx,.xls" required onchange="updateFileName(this, 'customer')">
-                    <label for="customer-file" class="file-input-label" id="customer-label">
+                    <label class="field-label" for="customer-file" class="file-input-label" id="customer-label">
                         📄 Choose Excel File
                     </label>
                 </div>

@@ -41,7 +41,7 @@
             <!-- Restore Form -->
             <form method="POST" action="{{ url_for('backup.restore_backup') }}" enctype="multipart/form-data" onsubmit="return confirmRestore()">
                 <div class="form-group">
-                    <label><strong>Select Backup File (.json):</strong></label>
+                    <label class="field-label"><strong>Select Backup File (.json):</strong></label>
                     <input type="file" name="backup_file" accept=".json" required class="form-control" style="max-width: 500px;">
                     <small class="form-text text-muted">
                         Choose the backup file you downloaded earlier (e.g., mahaveerelectricals_backup_2025-11-11_1048.json)
@@ -109,40 +109,6 @@
     </div>
 </div>
 
-<style>
-.card {
-    border-radius: 10px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    border: 1px solid #e0e0e0;
-    margin-bottom: 30px;
-}
-
-.card-header {
-    background: #f8f9fa;
-    border-bottom: 2px solid #e0e0e0;
-    padding: 20px;
-}
-
-.card-body {
-    padding: 25px;
-}
-
-.btn-lg {
-    padding: 12px 30px;
-    font-size: 18px;
-    border-radius: 8px;
-}
-
-.alert {
-    border-radius: 8px;
-}
-
-@media (max-width: 768px) {
-    .col-md-6 {
-        margin-bottom: 20px;
-    }
-}
-</style>
 
 <script>
 function confirmRestore() {

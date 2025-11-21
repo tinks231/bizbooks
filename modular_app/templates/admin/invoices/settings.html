@@ -25,7 +25,7 @@
         
         <div class="form-row">
             <div class="form-group">
-                <label for="gstin">GSTIN (GST Number) *</label>
+                <label class="field-label" for="gstin">GSTIN (GST Number) *</label>
                 <input type="text" id="gstin" name="gstin" class="form-control" 
                        value="{{ settings.get('gstin', '') }}" 
                        placeholder="27XXXXX1234X1Z5" 
@@ -34,7 +34,7 @@
             </div>
             
             <div class="form-group">
-                <label for="pan">PAN Card Number</label>
+                <label class="field-label" for="pan">PAN Card Number</label>
                 <input type="text" id="pan" name="pan" class="form-control" 
                        value="{{ settings.get('pan', '') }}" 
                        placeholder="ABCDE1234F" 
@@ -44,20 +44,20 @@
         </div>
         
         <div class="form-group">
-            <label for="address">Business Address *</label>
+            <label class="field-label" for="address">Business Address *</label>
             <textarea id="address" name="address" class="form-control" rows="2" required>{{ settings.get('address', '') }}</textarea>
             <small style="color: #666; margin-top: 5px;">Full address including building/shop number</small>
         </div>
         
         <div class="form-row">
             <div class="form-group">
-                <label for="city">City *</label>
+                <label class="field-label" for="city">City *</label>
                 <input type="text" id="city" name="city" class="form-control" 
                        value="{{ settings.get('city', '') }}" required>
             </div>
             
             <div class="form-group">
-                <label for="state">State *</label>
+                <label class="field-label" for="state">State *</label>
                 <select id="state" name="state" class="form-control" required>
                     <option value="">Select State</option>
                     {% set states = [
@@ -80,7 +80,7 @@
         
         <div class="form-row">
             <div class="form-group">
-                <label for="pincode">Pincode *</label>
+                <label class="field-label" for="pincode">Pincode *</label>
                 <input type="text" id="pincode" name="pincode" class="form-control" 
                        value="{{ settings.get('pincode', '') }}" 
                        placeholder="411001" 
@@ -88,7 +88,7 @@
             </div>
             
             <div class="form-group">
-                <label for="phone">Contact Phone *</label>
+                <label class="field-label" for="phone">Contact Phone *</label>
                 <input type="tel" id="phone" name="phone" class="form-control" 
                        value="{{ settings.get('phone', tenant.admin_phone) }}" 
                        placeholder="9876543210" 
@@ -98,14 +98,14 @@
         
         <div class="form-row">
             <div class="form-group">
-                <label for="email">Contact Email *</label>
+                <label class="field-label" for="email">Contact Email *</label>
                 <input type="email" id="email" name="email" class="form-control" 
                        value="{{ settings.get('email', tenant.admin_email) }}" 
                        placeholder="contact@yourbusiness.com" required>
             </div>
             
             <div class="form-group">
-                <label for="website">Website</label>
+                <label class="field-label" for="website">Website</label>
                 <input type="url" id="website" name="website" class="form-control" 
                        value="{{ settings.get('website', '') }}" 
                        placeholder="www.yourbusiness.com">
@@ -124,7 +124,7 @@
         
         <!-- Logo Upload Section -->
         <div class="form-group" style="border: 2px dashed #ddd; padding: 20px; border-radius: 8px; background: #f8f9fa;">
-            <label for="logo" style="font-size: 16px; display: flex; align-items: center; gap: 8px;">
+            <label class="field-label" for="logo" style="font-size: 16px; display: flex; align-items: center; gap: 8px;">
                 🖼️ Company Logo
             </label>
             
@@ -166,13 +166,13 @@
         </div>
         
         <div class="form-group">
-            <label for="invoice_terms">Terms & Conditions</label>
+            <label class="field-label" for="invoice_terms">Terms & Conditions</label>
             <textarea id="invoice_terms" name="invoice_terms" class="form-control" rows="3">{{ settings.get('invoice_terms', 'Payment due within 30 days.\nGoods once sold will not be taken back.\nSubject to Pune jurisdiction only.') }}</textarea>
             <small style="color: #666; margin-top: 5px;">Default terms that appear on all invoices (can be edited per invoice)</small>
         </div>
         
         <div class="form-group">
-            <label for="invoice_footer">Invoice Footer Text</label>
+            <label class="field-label" for="invoice_footer">Invoice Footer Text</label>
             <input type="text" id="invoice_footer" name="invoice_footer" class="form-control" 
                    value="{{ settings.get('invoice_footer', 'Thank you for your business!') }}" 
                    placeholder="Thank you for your business!">
@@ -221,56 +221,6 @@
     </div>
 </div>
 
-<style>
-    .form-row {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 20px;
-        margin-bottom: 20px;
-    }
-    
-    .form-group {
-        display: flex;
-        flex-direction: column;
-    }
-    
-    .form-group label {
-        font-weight: 600;
-        margin-bottom: 8px;
-        color: #2c3e50;
-    }
-    
-    .form-control {
-        padding: 10px;
-        border: 1px solid #ddd;
-        border-radius: 5px;
-        font-size: 14px;
-    }
-    
-    .form-control:focus {
-        outline: none;
-        border-color: #3498db;
-    }
-    
-    small {
-        font-size: 12px;
-        display: block;
-    }
-    
-    code {
-        background: #e8f4fd;
-        padding: 2px 6px;
-        border-radius: 3px;
-        font-family: 'Courier New', monospace;
-        color: #2c3e50;
-    }
-    
-    @media (max-width: 768px) {
-        .form-row {
-            grid-template-columns: 1fr;
-        }
-    }
-</style>
 
 <script>
     function previewLogo(input) {

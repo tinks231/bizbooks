@@ -69,7 +69,7 @@
                 <div class="row">
                     <div class="col-md-3">
                         <div class="form-group">
-                            <label><strong>Status Filter</strong></label>
+                            <label class="field-label"><strong>Status Filter</strong></label>
                             <select name="status" class="form-control" onchange="this.form.submit()">
                                 <option value="active" {% if status_filter == 'active' %}selected{% endif %}>Active</option>
                                 <option value="pending_payment" {% if status_filter == 'pending_payment' %}selected{% endif %}>⏳ Pending Payment</option>
@@ -83,7 +83,7 @@
                     </div>
                     <div class="col-md-3">
                         <div class="form-group">
-                            <label><strong>Plan Filter</strong></label>
+                            <label class="field-label"><strong>Plan Filter</strong></label>
                             <select name="plan" class="form-control" onchange="this.form.submit()">
                                 <option value="">All Plans</option>
                                 {% for plan in active_plans %}
@@ -96,13 +96,13 @@
                     </div>
                     <div class="col-md-4">
                         <div class="form-group">
-                            <label><strong>Search Customer</strong></label>
+                            <label class="field-label"><strong>Search Customer</strong></label>
                             <input type="text" name="search" class="form-control" placeholder="Name or phone..." value="{{ search_query }}">
                         </div>
                     </div>
                     <div class="col-md-2">
                         <div class="form-group">
-                            <label>&nbsp;</label>
+                            <label class="field-label">&nbsp;</label>
                             <button type="submit" class="btn btn-primary btn-block">
                                 <i class="fas fa-search"></i> Filter
                             </button>
@@ -240,92 +240,6 @@
     </div>
 </div>
 
-<style>
-.stat-card {
-    background: white;
-    border-radius: 10px;
-    padding: 20px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    display: flex;
-    align-items: center;
-    gap: 15px;
-    border-left: 4px solid #ccc;
-}
-
-.stat-card.stat-active {
-    border-left-color: #28a745;
-}
-
-.stat-card.stat-due-soon {
-    border-left-color: #ffc107;
-}
-
-.stat-card.stat-overdue {
-    border-left-color: #dc3545;
-}
-
-.stat-card.stat-expired {
-    border-left-color: #6c757d;
-}
-
-.stat-icon {
-    font-size: 40px;
-}
-
-.stat-details h3 {
-    margin: 0;
-    font-size: 32px;
-    font-weight: 700;
-}
-
-.stat-details p {
-    margin: 0;
-    color: #666;
-}
-
-.card {
-    border-radius: 10px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    border: 1px solid #e0e0e0;
-}
-
-.card-header {
-    background: #f8f9fa;
-    border-bottom: 2px solid #e0e0e0;
-    padding: 20px;
-}
-
-.table {
-    margin-bottom: 0;
-}
-
-.table th {
-    background: #f8f9fa;
-    font-weight: 600;
-}
-
-.btn-sm {
-    padding: 4px 10px;
-    margin-right: 5px;
-}
-
-.filter-form .form-group {
-    margin-bottom: 0;
-}
-
-.pagination {
-    margin: 0;
-}
-
-.page-link {
-    color: #0066cc;
-}
-
-.page-item.active .page-link {
-    background-color: #0066cc;
-    border-color: #0066cc;
-}
-</style>
 
 <script>
 function confirmDelete(customerName) {
