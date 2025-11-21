@@ -8,362 +8,15 @@
 
 {% block content %}
 
-<style>
-/* Subscription Page Specific Styles */
-.container-fluid {
-    max-width: 100%;
-    margin: 0;
-    padding: 0;
-}
-
-.page-header {
-    margin-bottom: 30px;
-}
-
-.page-header h1 {
-    font-size: 28px;
-    color: #2c3e50;
-    margin-bottom: 5px;
-}
-
-.row {
-    display: flex;
-    gap: 25px;
-    flex-wrap: wrap;
-}
-
-.col-md-8 {
-    flex: 2 1 600px;
-    min-width: 0;
-}
-
-.col-md-4 {
-    flex: 1 1 300px;
-    min-width: 280px;
-}
-
-.card-body {
-    padding: 25px;
-}
-
-.form-section {
-    margin-bottom: 25px;
-    padding-bottom: 15px;
-    border-bottom: 1px solid #f0f0f0;
-}
-
-.form-section:last-child {
-    border-bottom: none;
-    padding-bottom: 0;
-    margin-bottom: 0;
-}
-
-.form-section h4 {
-    font-size: 16px;
-    color: #2c3e50;
-    margin-bottom: 15px;
-    font-weight: 600;
-}
-
-.form-control {
-    width: 100%;
-    padding: 10px 12px;
-    border: 1px solid #dfe6e9;
-    border-radius: 6px;
-    font-size: 14px;
-}
-
-.form-control:focus {
-    outline: none;
-    border-color: #3498db;
-    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
-}
-
-.form-text {
-    font-size: 12px;
-    margin-top: 5px;
-    display: block;
-}
-
-/* Plan Cards Grid */
-#plans_grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: 15px;
-    margin-top: 15px;
-}
-
-.plan-card {
-    background: white;
-    border: 2px solid #e1e8ed;
-    border-radius: 12px;
-    padding: 20px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    position: relative;
-}
-
-.plan-card:hover {
-    border-color: #3498db;
-    transform: translateY(-3px);
-    box-shadow: 0 6px 20px rgba(52, 152, 219, 0.2);
-}
-
-.plan-card.selected {
-    border-color: #3498db;
-    background: linear-gradient(135deg, rgba(52, 152, 219, 0.05) 0%, rgba(102, 126, 234, 0.05) 100%);
-    box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3);
-}
-
-.plan-card.selected::before {
-    content: '✓';
-    position: absolute;
-    top: 10px;
-    right: 10px;
-    background: #3498db;
-    color: white;
-    width: 24px;
-    height: 24px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: bold;
-    font-size: 14px;
-}
-
-.plan-header {
-    margin-bottom: 12px;
-}
-
-.plan-header h5 {
-    font-size: 16px;
-    color: #2c3e50;
-    margin: 0 0 8px 0;
-    font-weight: 700;
-}
-
-.plan-price {
-    font-size: 24px;
-    font-weight: 700;
-    color: #27ae60;
-    margin-bottom: 8px;
-}
-
-.plan-duration {
-    font-size: 13px;
-    color: #7f8c8d;
-    font-weight: 500;
-    margin-bottom: 8px;
-}
-
-.plan-description {
-    font-size: 12px;
-    color: #95a5a6;
-    line-height: 1.4;
-}
-
-/* Custom Checkbox */
-.custom-control {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-bottom: 15px;
-}
-
-.custom-control-input {
-    cursor: pointer;
-}
-
-.custom-control-label {
-    font-weight: 500;
-    cursor: pointer;
-    margin: 0;
-}
-
-/* Payment Fields */
-#payment_fields {
-    margin-top: 15px;
-    padding: 20px;
-    background: #f8f9fa;
-    border-radius: 8px;
-    border-left: 4px solid #27ae60;
-}
-
-.payment-mode-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
-    gap: 10px;
-    margin-top: 10px;
-}
-
-.payment-mode-option {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.payment-mode-option input {
-    cursor: pointer;
-}
-
-.payment-mode-option label {
-    cursor: pointer;
-    margin: 0;
-    font-size: 14px;
-}
-
-/* Alert Boxes */
-.alert {
-    padding: 15px 20px;
-    border-radius: 8px;
-    margin-bottom: 20px;
-    font-size: 14px;
-}
-
-.alert-warning {
-    background: #fff3cd;
-    color: #856404;
-    border-left: 4px solid #ffc107;
-}
-
-.alert-success {
-    background: #d4edda;
-    color: #155724;
-    border-left: 4px solid #28a745;
-}
-
-/* Buttons */
-.btn-block {
-    width: 100%;
-    padding: 14px;
-    border: none;
-    border-radius: 8px;
-    font-size: 16px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    text-decoration: none;
-    display: inline-block;
-    text-align: center;
-}
-
-.btn-secondary {
-    background: #95a5a6;
-    color: white;
-}
-
-.btn-secondary:hover {
-    background: #7f8c8d;
-}
-
-.btn-primary {
-    background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
-    color: white;
-}
-
-.btn-primary:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(52, 152, 219, 0.4);
-}
-
-.btn-block.btn-success {
-    background: linear-gradient(135deg, #27ae60 0%, #229954 100%);
-    color: white;
-}
-
-.btn-block.btn-success:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(39, 174, 96, 0.4);
-}
-
-/* Button Container Row */
-.form-section .row {
-    display: flex;
-    gap: 15px;
-    flex-wrap: nowrap;
-    margin-top: 20px;
-}
-
-.form-section .col-md-6 {
-    flex: 1 1 50%;
-    min-width: 0;
-}
-
-/* Info Panels */
-.info-panel {
-    background: white;
-    border-radius: 12px;
-    padding: 20px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-}
-
-.info-panel h4 {
-    font-size: 16px;
-    color: #2c3e50;
-    margin-bottom: 15px;
-    font-weight: 600;
-}
-
-.info-panel ul {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-}
-
-.info-panel li {
-    padding: 8px 0;
-    font-size: 14px;
-    color: #34495e;
-    line-height: 1.6;
-}
-
-.quick-actions {
-    margin-top: 20px;
-}
-
-.quick-actions a {
-    display: block;
-    padding: 12px 16px;
-    background: #f8f9fa;
-    color: #3498db;
-    text-decoration: none;
-    border-radius: 8px;
-    margin-bottom: 10px;
-    font-weight: 500;
-    transition: all 0.3s ease;
-}
-
-.quick-actions a:hover {
-    background: #3498db;
-    color: white;
-    transform: translateX(5px);
-}
-
-/* Mobile Responsive */
-@media (max-width: 768px) {
-    .row {
-        grid-template-columns: 1fr;
-    }
-    
-    #plans_grid {
-        grid-template-columns: 1fr;
-    }
-    
-    .payment-mode-grid {
-        grid-template-columns: 1fr;
-    }
-}
-</style>
 
 <div class="container-fluid">
-    <div class="page-header">
+    <div class="subscription-header">
         <h1>➕ Enroll New Member</h1>
-        <p class="text-muted">Subscribe a customer to a membership plan</p>
+        <p>Subscribe a customer to a membership plan</p>
     </div>
 
-    <div class="row">
-        <div class="col-md-8">
+    <div class="enroll-form-layout">
+        <div class="enroll-form-main">
             <div class="card">
                 <div class="card-header">
                     <h3 style="margin: 0;">Enrollment Form</h3>
@@ -371,7 +24,7 @@
                 <div class="card-body">
                     <form method="POST" action="{{ url_for('subscriptions.enroll_member') }}" onsubmit="return validateForm()">
                         <!-- Step 1: Select Customer -->
-                        <div class="form-section">
+                        <div class="enroll-form-section">
                             <h4>1️⃣ Select Customer</h4>
                             <div class="form-group">
                                 <label class="field-label"><strong>Customer *</strong></label>
@@ -394,10 +47,10 @@
                         </div>
 
                         <!-- Step 2: Choose Plan -->
-                        <div class="form-section">
+                        <div class="enroll-form-section">
                             <h4>2️⃣ Choose Subscription Plan</h4>
                             <div class="form-group">
-                                <div id="plans_grid">
+                                <div class="plan-cards-grid">
                                     {% if not plans %}
                                     <div class="alert alert-warning">
                                         <strong>⚠️ No active plans found!</strong><br>
@@ -425,7 +78,7 @@
                         </div>
 
                         <!-- Step 3: Start Date -->
-                        <div class="form-section">
+                        <div class="enroll-form-section">
                             <h4>3️⃣ Start Date</h4>
                             <div class="form-group">
                                 <label class="field-label"><strong>Subscription Start Date *</strong></label>
@@ -439,7 +92,7 @@
                         </div>
 
                         <!-- Step 4: Payment Status -->
-                        <div class="form-section">
+                        <div class="enroll-form-section">
                             <h4>4️⃣ Payment Status</h4>
                             
                             <!-- Payment Collection Status -->
@@ -455,25 +108,21 @@
                             
                             <!-- Payment Details (only visible if payment collected) -->
                             <div id="payment-details-section">
-                                <div class="row" style="margin-top: 20px;">
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label class="field-label"><strong>Amount (₹) *</strong></label>
-                                            <input type="number" name="payment_amount" id="payment_amount" class="form-control" step="0.01" min="0">
-                                            <small class="form-text text-muted">Auto-filled from plan price</small>
-                                        </div>
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label class="field-label"><strong>Amount (₹) *</strong></label>
+                                        <input type="number" name="payment_amount" id="payment_amount" class="form-control" step="0.01" min="0">
+                                        <small class="form-text text-muted">Auto-filled from plan price</small>
                                     </div>
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label class="field-label"><strong>Payment Mode *</strong></label>
-                                            <select name="payment_mode" class="form-control">
-                                                <option value="Cash">Cash</option>
-                                                <option value="UPI">UPI</option>
-                                                <option value="Card">Card</option>
-                                                <option value="Bank Transfer">Bank Transfer</option>
-                                                <option value="Cheque">Cheque</option>
-                                            </select>
-                                        </div>
+                                    <div class="form-group">
+                                        <label class="field-label"><strong>Payment Mode *</strong></label>
+                                        <select name="payment_mode" class="form-control">
+                                            <option value="Cash">Cash</option>
+                                            <option value="UPI">UPI</option>
+                                            <option value="Card">Card</option>
+                                            <option value="Bank Transfer">Bank Transfer</option>
+                                            <option value="Cheque">Cheque</option>
+                                        </select>
                                     </div>
                                 </div>
                                 
@@ -490,19 +139,13 @@
                         </div>
 
                         <!-- Submit -->
-                        <div class="form-section" style="margin-top: 20px; border-bottom: none; padding-bottom: 0;">
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <a href="{{ url_for('subscriptions.members') }}" class="btn btn-secondary btn-block">
-                                        <i class="fas fa-times"></i> Cancel
-                                    </a>
-                                </div>
-                                <div class="col-md-6">
-                                    <button type="submit" class="btn btn-primary btn-block btn-lg">
-                                        <i class="fas fa-check"></i> Enroll Member
-                                    </button>
-                                </div>
-                            </div>
+                        <div class="enroll-form-actions">
+                            <a href="{{ url_for('subscriptions.members') }}" class="btn btn-secondary">
+                                <i class="fas fa-times"></i> Cancel
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-check"></i> Enroll Member
+                            </button>
                         </div>
                     </form>
                 </div>
@@ -510,7 +153,7 @@
         </div>
 
         <!-- Right sidebar with tips -->
-        <div class="col-md-4">
+        <div class="enroll-form-sidebar">
             <div class="card">
                 <div class="card-header" style="background: #e7f3ff;">
                     <h5 style="margin: 0; color: #0066cc;">💡 Enrollment Tips</h5>
