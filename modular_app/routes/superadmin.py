@@ -396,3 +396,56 @@ def fix_licenses():
     flash(f'✅ Fixed {fixed_count} accounts - gave them 30-day trial from today', 'success')
     return redirect(url_for('superadmin.dashboard'))
 
+@superadmin_bp.route('/fix-last-logins')
+def fix_last_logins():
+    """One-time fix: Set last_login_at for tenants who have activity but no login timestamp"""
+    if not is_superadmin():
+        return redirect(url_for('superadmin.login'))
+    
+    from datetime import datetime
+    
+    # Find tenants without last_login_at
+    tenants_without_login = Tenant.query.filter(Tenant.last_login_at == None).all()
+    
+    fixed_count = 0
+    for tenant in tenants_without_login:
+        # Check if they have any activity (created items, invoices, etc.)
+        has_items = Item.query.filter_by(tenant_id=tenant.id).first()
+        has_invoices = Invoice.query.filter_by(tenant_id=tenant.id).first()
+        has_expenses = Expense.query.filter_by(tenant_id=tenant.id).first()
+        has_customers = Customer.query.filter_by(tenant_id=tenant.id).first()
+        has_vendors = Vendor.query.filter_by(tenant_id=tenant.id).first()
+        has_tasks = Task.query.filter_by(tenant_id=tenant.id).first()
+        has_attendance = Attendance.query.filter_by(tenant_id=tenant.id).first()
+        
+        # If they have any activity, they must have logged in
+        if any([has_items, has_invoices, has_expenses, has_customers, has_vendors, has_tasks, has_attendance]):
+            # Find their earliest activity as proxy for first login
+            earliest_timestamps = []
+            
+            if has_items:
+                earliest_timestamps.append(has_items.created_at)
+            if has_invoices:
+                earliest_timestamps.append(has_invoices.created_at)
+            if has_expenses:
+                earliest_timestamps.append(has_expenses.created_at)
+            if has_customers:
+                earliest_timestamps.append(has_customers.created_at)
+            if has_vendors:
+                earliest_timestamps.append(has_vendors.created_at)
+            if has_tasks:
+                earliest_timestamps.append(has_tasks.created_at)
+            if has_attendance:
+                earliest_timestamps.append(has_attendance.timestamp)
+            
+            if earliest_timestamps:
+                # Set last_login_at to their earliest activity
+                tenant.last_login_at = min(earliest_timestamps)
+                fixed_count += 1
+    
+    db.session.commit()
+    
+    from flask import flash
+    flash(f'✅ Fixed {fixed_count} accounts - set last_login_at based on their activity', 'success')
+    return redirect(url_for('superadmin.dashboard'))
+
