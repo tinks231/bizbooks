@@ -11,8 +11,9 @@
 <style>
 /* Subscription Plans Page Styles */
 .container-fluid {
-    max-width: 1200px;
-    margin: 0 auto;
+    max-width: 100%;
+    margin: 0;
+    padding: 0;
 }
 
 .page-header {
@@ -27,25 +28,27 @@
 
 /* Stats Cards Row */
 .row {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    display: flex;
+    flex-wrap: wrap;
     gap: 20px;
     margin-bottom: 30px;
 }
 
 .col-md-4 {
-    width: 100%;
+    flex: 1 1 300px;
+    min-width: 280px;
 }
 
 .stat-card {
     background: white;
     border-radius: 12px;
-    padding: 25px;
+    padding: 30px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
     display: flex;
     align-items: center;
-    gap: 20px;
+    gap: 25px;
     transition: all 0.3s ease;
+    min-height: 120px;
 }
 
 .stat-card:hover {
@@ -54,15 +57,23 @@
 }
 
 .stat-icon {
-    font-size: 40px;
+    font-size: 48px;
     line-height: 1;
+    flex-shrink: 0;
+}
+
+.stat-details {
+    flex: 1;
+    min-width: 0;
 }
 
 .stat-details h3 {
-    font-size: 32px;
+    font-size: 36px;
     color: #2c3e50;
-    margin: 0 0 5px 0;
+    margin: 0 0 8px 0;
     font-weight: 700;
+    line-height: 1.2;
+    word-break: break-word;
 }
 
 .stat-details p {
@@ -70,6 +81,7 @@
     color: #7f8c8d;
     margin: 0;
     font-weight: 500;
+    white-space: nowrap;
 }
 
 /* Table Styling */
