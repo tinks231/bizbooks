@@ -6,39 +6,92 @@
 
 {% block header_actions %}
 <style>
-    /* Override parent container's 2-column grid for this page */
+    /* Desktop: Single row, normal button sizes */
+    @media (min-width: 769px) {
+        .task-buttons-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+        }
+        
+        .task-buttons-row {
+            display: contents; /* Makes children behave as direct children of parent */
+        }
+        
+        .task-buttons-container form {
+            margin: 0;
+        }
+        
+        .task-buttons-container button,
+        .task-buttons-container a {
+            white-space: nowrap;
+            padding: 10px 20px !important;
+            font-size: 14px !important;
+            width: auto !important;
+        }
+    }
+    
+    /* Mobile: Stacked layout, full-width buttons */
     @media (max-width: 768px) {
         .header-actions {
-            display: block !important;  /* Break out of parent grid */
+            display: block !important;
             grid-template-columns: none !important;
         }
         
-        /* Ensure sticky header doesn't cause overlap */
         .top-header {
-            position: relative !important;  /* Remove sticky positioning */
+            position: relative !important;
+        }
+        
+        .task-buttons-container {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            width: 100%;
+        }
+        
+        .task-buttons-row {
+            display: flex;
+            gap: 3px;
+            width: 100%;
+        }
+        
+        .task-buttons-row form {
+            flex: 1;
+            margin: 0;
+        }
+        
+        .task-buttons-container button,
+        .task-buttons-container a {
+            width: 100% !important;
+            padding: 14px 10px !important;
+            font-size: 14px !important;
+            white-space: normal !important;
+            line-height: 1.4 !important;
         }
     }
 </style>
 
-<div style="display: flex; flex-direction: column; gap: 10px; width: 100%; margin: 0;">
-    <!-- Row 1: Cleanup and Delete buttons side by side -->
-    <div style="display: flex; gap: 3px; width: 100%;">
-        <form method="POST" action="{{ url_for('tasks.cleanup_old_media') }}" style="flex: 1; margin: 0;" 
+<div class="task-buttons-container">
+    <!-- Mobile: Row with Cleanup and Delete side by side -->
+    <div class="task-buttons-row">
+        <form method="POST" action="{{ url_for('tasks.cleanup_old_media') }}" 
               onsubmit="return confirm('This will delete all task photos/videos older than 30 days to save storage space. Continue?')">
-            <button type="submit" class="btn" style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); color: white; border: none; width: 100%; padding: 14px 10px; font-size: 14px; white-space: normal; line-height: 1.4; border-radius: 6px;">
-                Cleanup Old Media
+            <button type="submit" class="btn" style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); color: white; border: none; border-radius: 6px;">
+                🗑️ Cleanup Old Media
             </button>
         </form>
-        <form method="POST" action="{{ url_for('tasks.delete_all_completed') }}" style="flex: 1; margin: 0;" 
+        
+        <form method="POST" action="{{ url_for('tasks.delete_all_completed') }}" 
               onsubmit="return confirm('⚠️ DELETE ALL COMPLETED TASKS?\n\nThis will permanently delete:\n- All completed tasks\n- All their updates\n- All their materials\n- All their photos/videos\n\nThis is immediate and cannot be undone!\n\nContinue?')">
-            <button type="submit" class="btn" style="background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%); color: white; border: none; width: 100%; padding: 14px 10px; font-size: 14px; white-space: normal; line-height: 1.4; border-radius: 6px;">
-                Delete All Completed
+            <button type="submit" class="btn" style="background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%); color: white; border: none; border-radius: 6px;">
+                🗑️ Delete All Completed
             </button>
         </form>
     </div>
     
-    <!-- Row 2: Create button on new line, full width -->
-    <a href="{{ url_for('tasks.create') }}" class="btn btn-primary" style="padding: 14px 20px; display: block; text-align: center; width: 100%; border-radius: 6px;">
+    <!-- Create Task button (separate row on mobile, inline on desktop) -->
+    <a href="{{ url_for('tasks.create') }}" class="btn btn-primary" style="border-radius: 6px;">
         ➕ Create New Task
     </a>
 </div>
