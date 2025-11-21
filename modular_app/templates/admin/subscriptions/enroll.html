@@ -7,6 +7,311 @@
 {% endblock %}
 
 {% block content %}
+
+<style>
+/* Subscription Page Specific Styles */
+.container-fluid {
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.page-header {
+    margin-bottom: 30px;
+}
+
+.page-header h1 {
+    font-size: 28px;
+    color: #2c3e50;
+    margin-bottom: 5px;
+}
+
+.row {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 25px;
+}
+
+.col-md-8, .col-md-4 {
+    width: 100%;
+}
+
+.card-body {
+    padding: 25px;
+}
+
+.form-section {
+    margin-bottom: 35px;
+    padding-bottom: 25px;
+    border-bottom: 2px solid #f0f0f0;
+}
+
+.form-section:last-child {
+    border-bottom: none;
+}
+
+.form-section h4 {
+    font-size: 18px;
+    color: #2c3e50;
+    margin-bottom: 20px;
+    font-weight: 600;
+}
+
+.form-control {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #dfe6e9;
+    border-radius: 6px;
+    font-size: 14px;
+}
+
+.form-control:focus {
+    outline: none;
+    border-color: #3498db;
+    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+}
+
+.form-text {
+    font-size: 12px;
+    margin-top: 5px;
+    display: block;
+}
+
+/* Plan Cards Grid */
+#plans_grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 15px;
+    margin-top: 15px;
+}
+
+.plan-card {
+    background: white;
+    border: 2px solid #e1e8ed;
+    border-radius: 12px;
+    padding: 20px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+.plan-card:hover {
+    border-color: #3498db;
+    transform: translateY(-3px);
+    box-shadow: 0 6px 20px rgba(52, 152, 219, 0.2);
+}
+
+.plan-card.selected {
+    border-color: #3498db;
+    background: linear-gradient(135deg, rgba(52, 152, 219, 0.05) 0%, rgba(102, 126, 234, 0.05) 100%);
+    box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3);
+}
+
+.plan-card.selected::before {
+    content: '✓';
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: #3498db;
+    color: white;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 14px;
+}
+
+.plan-header {
+    margin-bottom: 12px;
+}
+
+.plan-header h5 {
+    font-size: 16px;
+    color: #2c3e50;
+    margin: 0 0 8px 0;
+    font-weight: 700;
+}
+
+.plan-price {
+    font-size: 24px;
+    font-weight: 700;
+    color: #27ae60;
+    margin-bottom: 8px;
+}
+
+.plan-duration {
+    font-size: 13px;
+    color: #7f8c8d;
+    font-weight: 500;
+    margin-bottom: 8px;
+}
+
+.plan-description {
+    font-size: 12px;
+    color: #95a5a6;
+    line-height: 1.4;
+}
+
+/* Custom Checkbox */
+.custom-control {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+.custom-control-input {
+    cursor: pointer;
+}
+
+.custom-control-label {
+    font-weight: 500;
+    cursor: pointer;
+    margin: 0;
+}
+
+/* Payment Fields */
+#payment_fields {
+    margin-top: 15px;
+    padding: 20px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border-left: 4px solid #27ae60;
+}
+
+.payment-mode-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.payment-mode-option {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.payment-mode-option input {
+    cursor: pointer;
+}
+
+.payment-mode-option label {
+    cursor: pointer;
+    margin: 0;
+    font-size: 14px;
+}
+
+/* Alert Boxes */
+.alert {
+    padding: 15px 20px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    font-size: 14px;
+}
+
+.alert-warning {
+    background: #fff3cd;
+    color: #856404;
+    border-left: 4px solid #ffc107;
+}
+
+.alert-success {
+    background: #d4edda;
+    color: #155724;
+    border-left: 4px solid #28a745;
+}
+
+/* Buttons */
+.btn-block {
+    width: 100%;
+    padding: 14px;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btn-block.btn-success {
+    background: linear-gradient(135deg, #27ae60 0%, #229954 100%);
+    color: white;
+}
+
+.btn-block.btn-success:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(39, 174, 96, 0.4);
+}
+
+/* Info Panels */
+.info-panel {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.info-panel h4 {
+    font-size: 16px;
+    color: #2c3e50;
+    margin-bottom: 15px;
+    font-weight: 600;
+}
+
+.info-panel ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.info-panel li {
+    padding: 8px 0;
+    font-size: 14px;
+    color: #34495e;
+    line-height: 1.6;
+}
+
+.quick-actions {
+    margin-top: 20px;
+}
+
+.quick-actions a {
+    display: block;
+    padding: 12px 16px;
+    background: #f8f9fa;
+    color: #3498db;
+    text-decoration: none;
+    border-radius: 8px;
+    margin-bottom: 10px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.quick-actions a:hover {
+    background: #3498db;
+    color: white;
+    transform: translateX(5px);
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+    .row {
+        grid-template-columns: 1fr;
+    }
+    
+    #plans_grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .payment-mode-grid {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
+
 <div class="container-fluid">
     <div class="page-header">
         <h1>➕ Enroll New Member</h1>
