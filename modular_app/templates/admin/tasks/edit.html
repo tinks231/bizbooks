@@ -2,7 +2,7 @@
 
 {% block title %}Edit Task - {{ tenant.company_name }}{% endblock %}
 
-{% block page_title %}Edit Task{{ task.task_number }}{% endblock %}
+{% block page_title %}Edit Task #{{ task.task_number }}{% endblock %}
 
 {% block header_actions %}
 <a href="{{ url_for('tasks.view', task_id=task.id) }}" class="btn btn-secondary">
@@ -20,21 +20,24 @@
             <h3 class="card-title">Task Details</h3>
         </div>
         
-        <div class="form-group">
-            <label for="title">Task Title *</label>
-            <input type="text" id="title" name="title" class="form-control" 
-                   value="{{ task.title }}" required>
+        <div class="form-row">
+            <div class="form-group form-group--full">
+                <label class="field-label field-label--required" for="title">Task Title</label>
+                <input type="text" id="title" name="title" value="{{ task.title }}" required>
+            </div>
         </div>
         
-        <div class="form-group">
-            <label for="description">Description</label>
-            <textarea id="description" name="description" class="form-control" rows="4">{{ task.description or '' }}</textarea>
+        <div class="form-row">
+            <div class="form-group form-group--full">
+                <label class="field-label" for="description">Description</label>
+                <textarea id="description" name="description" rows="4">{{ task.description or '' }}</textarea>
+            </div>
         </div>
         
         <div class="form-row">
             <div class="form-group">
-                <label for="priority">Priority *</label>
-                <select id="priority" name="priority" class="form-control" required>
+                <label class="field-label field-label--required" for="priority">Priority</label>
+                <select id="priority" name="priority" required>
                     <option value="low" {% if task.priority == 'low' %}selected{% endif %}>Low Priority</option>
                     <option value="medium" {% if task.priority == 'medium' %}selected{% endif %}>Medium Priority</option>
                     <option value="high" {% if task.priority == 'high' %}selected{% endif %}>🔥 High Priority</option>
@@ -42,8 +45,8 @@
             </div>
             
             <div class="form-group">
-                <label for="assigned_to">Assign To *</label>
-                <select id="assigned_to" name="assigned_to" class="form-control" required>
+                <label class="field-label field-label--required" for="assigned_to">Assign To</label>
+                <select id="assigned_to" name="assigned_to" required>
                     {% for employee in employees %}
                     <option value="{{ employee.id }}" {% if employee.id == task.assigned_to %}selected{% endif %}>
                         {{ employee.name }} - {{ employee.phone }}
@@ -62,8 +65,8 @@
         
         <div class="form-row">
             <div class="form-group">
-                <label for="site_id">Site/Location</label>
-                <select id="site_id" name="site_id" class="form-control">
+                <label class="field-label" for="site_id">Site/Location</label>
+                <select id="site_id" name="site_id">
                     <option value="">No specific site</option>
                     {% for site in sites %}
                     <option value="{{ site.id }}" {% if task.site_id == site.id %}selected{% endif %}>
@@ -74,21 +77,26 @@
             </div>
             
             <div class="form-group">
-                <label for="start_date">Start Date</label>
-                <input type="date" id="start_date" name="start_date" class="form-control" 
+                <label class="field-label" for="start_date">Start Date</label>
+                <input type="date" id="start_date" name="start_date" 
                        value="{{ task.start_date.strftime('%Y-%m-%d') if task.start_date else '' }}">
             </div>
         </div>
         
-        <div class="form-group">
-            <label for="deadline">Deadline</label>
-            <input type="date" id="deadline" name="deadline" class="form-control" 
-                   value="{{ task.deadline.strftime('%Y-%m-%d') if task.deadline else '' }}">
+        <div class="form-row">
+            <div class="form-group">
+                <label class="field-label" for="deadline">Deadline</label>
+                <input type="date" id="deadline" name="deadline" 
+                       value="{{ task.deadline.strftime('%Y-%m-%d') if task.deadline else '' }}">
+            </div>
+            <div class="form-group">
+                <!-- Empty placeholder for alignment -->
+            </div>
         </div>
     </div>
     
     <!-- Submit Button -->
-    <div style="display: flex; gap: 15px; margin-bottom: 30px;">
+    <div class="form-actions" style="margin-bottom: 30px;">
         <button type="submit" class="btn btn-primary" style="flex: 1;">
             💾 Save Changes
         </button>
@@ -99,43 +107,4 @@
     
 </form>
 
-<style>
-.form-row {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 20px;
-    margin-bottom: 20px;
-}
-
-.form-group {
-    display: flex;
-    flex-direction: column;
-}
-
-.form-group label {
-    font-weight: 600;
-    margin-bottom: 8px;
-    color: #2c3e50;
-}
-
-.form-control {
-    padding: 10px;
-    border: 1px solid #ddd;
-    border-radius: 5px;
-    font-size: 14px;
-}
-
-.form-control:focus {
-    outline: none;
-    border-color: #3498db;
-}
-
-@media (max-width: 768px) {
-    .form-row {
-        grid-template-columns: 1fr;
-    }
-}
-</style>
-
 {% endblock %}
-

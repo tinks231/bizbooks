@@ -20,24 +20,28 @@
             <h3 class="card-title">Task Details</h3>
         </div>
         
-        <div class="form-group">
-            <label for="title">Task Title *</label>
-            <input type="text" id="title" name="title" class="form-control" 
-                   placeholder="e.g., Install electrical wiring in Room 101" required>
-            <small style="color: #666;">Clear, descriptive title</small>
+        <div class="form-row">
+            <div class="form-group form-group--full">
+                <label class="field-label field-label--required" for="title">Task Title</label>
+                <input type="text" id="title" name="title" 
+                       placeholder="e.g., Install electrical wiring in Room 101" required>
+                <small class="help-text">Clear, descriptive title</small>
+            </div>
         </div>
         
-        <div class="form-group">
-            <label for="description">Description</label>
-            <textarea id="description" name="description" class="form-control" rows="4" 
-                      placeholder="Detailed task description, requirements, specifications..."></textarea>
-            <small style="color: #666;">Add any important details or instructions</small>
+        <div class="form-row">
+            <div class="form-group form-group--full">
+                <label class="field-label" for="description">Description</label>
+                <textarea id="description" name="description" rows="4" 
+                          placeholder="Detailed task description, requirements, specifications..."></textarea>
+                <small class="help-text">Add any important details or instructions</small>
+            </div>
         </div>
         
         <div class="form-row">
             <div class="form-group">
-                <label for="priority">Priority *</label>
-                <select id="priority" name="priority" class="form-control" required>
+                <label class="field-label field-label--required" for="priority">Priority</label>
+                <select id="priority" name="priority" required>
                     <option value="low">Low Priority</option>
                     <option value="medium" selected>Medium Priority</option>
                     <option value="high">🔥 High Priority</option>
@@ -45,14 +49,14 @@
             </div>
             
             <div class="form-group">
-                <label for="assigned_to">Assign To *</label>
-                <select id="assigned_to" name="assigned_to" class="form-control" required>
+                <label class="field-label field-label--required" for="assigned_to">Assign To</label>
+                <select id="assigned_to" name="assigned_to" required>
                     <option value="">Select Employee</option>
                     {% for employee in employees %}
                     <option value="{{ employee.id }}">{{ employee.name }} - {{ employee.phone }}</option>
                     {% endfor %}
                 </select>
-                <small style="color: #666;">Employee will receive email notification</small>
+                <small class="help-text">Employee will receive email notification</small>
             </div>
         </div>
     </div>
@@ -65,8 +69,8 @@
         
         <div class="form-row">
             <div class="form-group">
-                <label for="site_id">Site/Location</label>
-                <select id="site_id" name="site_id" class="form-control">
+                <label class="field-label" for="site_id">Site/Location</label>
+                <select id="site_id" name="site_id">
                     <option value="">No specific site</option>
                     {% for site in sites %}
                     <option value="{{ site.id }}">{{ site.name }}</option>
@@ -75,20 +79,25 @@
             </div>
             
             <div class="form-group">
-                <label for="start_date">Start Date</label>
-                <input type="date" id="start_date" name="start_date" class="form-control" value="{{ today }}">
+                <label class="field-label" for="start_date">Start Date</label>
+                <input type="date" id="start_date" name="start_date" value="{{ today }}">
             </div>
         </div>
         
-        <div class="form-group">
-            <label for="deadline">Deadline</label>
-            <input type="date" id="deadline" name="deadline" class="form-control">
-            <small style="color: #666;">Optional - Set a deadline for this task</small>
+        <div class="form-row">
+            <div class="form-group">
+                <label class="field-label" for="deadline">Deadline</label>
+                <input type="date" id="deadline" name="deadline">
+                <small class="help-text">Optional - Set a deadline for this task</small>
+            </div>
+            <div class="form-group">
+                <!-- Empty placeholder for alignment -->
+            </div>
         </div>
     </div>
     
     <!-- Submit Button -->
-    <div style="display: flex; gap: 15px; margin-bottom: 30px;">
+    <div class="form-actions" style="margin-bottom: 30px;">
         <button type="submit" class="btn btn-primary" style="flex: 1;">
             ✅ Create & Assign Task
         </button>
@@ -132,49 +141,4 @@
     </div>
 </div>
 
-<style>
-.form-row {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 20px;
-    margin-bottom: 20px;
-}
-
-.form-group {
-    display: flex;
-    flex-direction: column;
-}
-
-.form-group label {
-    font-weight: 600;
-    margin-bottom: 8px;
-    color: #2c3e50;
-}
-
-.form-control {
-    padding: 10px;
-    border: 1px solid #ddd;
-    border-radius: 5px;
-    font-size: 14px;
-}
-
-.form-control:focus {
-    outline: none;
-    border-color: #3498db;
-}
-
-small {
-    font-size: 12px;
-    margin-top: 5px;
-    display: block;
-}
-
-@media (max-width: 768px) {
-    .form-row {
-        grid-template-columns: 1fr;
-    }
-}
-</style>
-
 {% endblock %}
-

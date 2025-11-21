@@ -11,322 +11,6 @@
 {% endblock %}
 
 {% block content %}
-<!-- CSS v5.0 - USER-SUGGESTED FIXES APPLIED -->
-<style>
-    /* Custom Grid System - v5.0 USER-SUGGESTED FIX */
-    .row {
-        display: flex;
-        flex-wrap: wrap;
-        margin: 0 -15px;
-    }
-    
-    .col-md-12, .col-md-6, .col-md-4 {
-        padding: 0 15px;
-        box-sizing: border-box; /* Essential for proper sizing */
-    }
-    
-    .col-md-12 {
-        flex: 0 0 100%;
-        max-width: 100%;
-    }
-    
-    .col-md-6 {
-        flex: 0 0 50%;
-        max-width: 50%;
-        flex-basis: 50%; /* Explicit flex-basis */
-    }
-    
-    .col-md-4 {
-        flex: 0 0 33.333%;
-        max-width: 33.333%;
-        flex-basis: 33.333%; /* Explicit flex-basis */
-    }
-    
-    /* Ensure textareas don't overflow their columns */
-    .col-md-6 textarea.form-control,
-    .col-md-12 textarea.form-control {
-        width: 100%;
-        max-width: 100%;
-        box-sizing: border-box;
-    }
-    
-    .mb-3 {
-        margin-bottom: 1rem;
-    }
-    
-    .mb-4 {
-        margin-bottom: 1.5rem;
-    }
-    
-    .mt-3 {
-        margin-top: 1rem;
-    }
-    
-    .mt-4 {
-        margin-top: 1.5rem;
-    }
-    
-    .card {
-        border-radius: 8px;
-        box-shadow: 0 0 10px rgba(0,0,0,0.05);
-        background: white;
-        border: 1px solid #ddd;
-    }
-    
-    .card-header {
-        background-color: #f8f9fa;
-        border-bottom: 2px solid #dee2e6;
-        padding: 1rem 1.5rem;
-    }
-    
-    .card-body {
-        padding: 1.5rem;
-    }
-    
-    .form-label {
-        font-weight: 500;
-        margin-bottom: 0.5rem;
-        display: block;
-    }
-    
-    .form-control, .form-select {
-        width: 100%;
-        padding: 0.5rem;
-        border: 1px solid #ced4da;
-        border-radius: 4px;
-        font-size: 1rem;
-    }
-    
-    .text-end {
-        text-align: right;
-    }
-    
-    .text-center {
-        text-align: center;
-    }
-    
-    .table {
-        width: 100%;
-        border-collapse: collapse;
-    }
-    
-    .table th, .table td {
-        padding: 0.75rem;
-        border: 1px solid #dee2e6;
-        text-align: left;
-    }
-    
-    .table-light {
-        background-color: #f8f9fa;
-    }
-    
-    .table-responsive {
-        overflow-x: auto;
-    }
-    
-    .table-bordered {
-        border: 1px solid #dee2e6;
-    }
-    
-    .table-sm td, .table-sm th {
-        padding: 0.5rem;
-    }
-    
-    .table-active {
-        background-color: #f8f9fa;
-        font-weight: 600;
-    }
-    
-    .btn {
-        display: inline-block;
-        padding: 0.5rem 1rem;
-        border: none;
-        border-radius: 4px;
-        cursor: pointer;
-        text-decoration: none;
-        font-size: 1rem;
-    }
-    
-    .btn-primary { background: #007bff; color: white; }
-    .btn-secondary { background: #6c757d; color: white; }
-    .btn-success { background: #28a745; color: white; }
-    .btn-danger { background: #dc3545; color: white; }
-    
-    .btn-sm {
-        padding: 0.25rem 0.5rem;
-        font-size: 0.875rem;
-    }
-    
-    .btn-lg {
-        padding: 0.75rem 1.5rem;
-        font-size: 1.125rem;
-    }
-    
-    .d-flex {
-        display: flex;
-    }
-    
-    .justify-content-between {
-        justify-content: space-between;
-    }
-    
-    .align-items-center {
-        align-items: center;
-    }
-    
-    .me-2 {
-        margin-right: 0.5rem;
-    }
-    
-    .text-danger {
-        color: #dc3545;
-    }
-    
-    .autocomplete-dropdown {
-        position: absolute;
-        left: 0; /* Ensure dropdown stays within cell */
-        z-index: 9999;
-        background: white;
-        border: 2px solid #007bff;
-        max-height: 220px; /* Reduced for better usability */
-        overflow-y: auto;
-        width: auto;
-        min-width: 250px;
-        max-width: 350px;
-        display: none;
-        box-shadow: 0 8px 16px rgba(0,0,0,0.2);
-        margin-top: 2px;
-        border-radius: 8px;
-    }
-    
-    /* Ensure table cells don't clip the dropdown */
-    #items_table td {
-        position: relative;
-        overflow: visible !important;
-    }
-    
-    .table-responsive {
-        overflow: visible; /* Remove nested scrollbars */
-    }
-    
-    .autocomplete-item {
-        padding: 10px 12px;
-        cursor: pointer;
-        border-bottom: 1px solid #e9ecef;
-        transition: all 0.2s ease;
-        font-size: 0.95rem;
-    }
-    
-    .autocomplete-item:hover {
-        background-color: #e3f2fd;
-        border-left: 3px solid #007bff;
-    }
-    
-    /* Force totals to right side of page */
-    .totals-container {
-        display: flex;
-        justify-content: flex-end;
-        width: 100%;
-        margin-top: 1.5rem;
-    }
-    
-    /* Optional fixed width (so it doesn't stretch across) */
-    .totals-container table {
-        width: 350px;
-    }
-    
-    /* Align label left and value right */
-    .totals-container td:first-child {
-        text-align: left;
-        padding-right: 1rem;
-        white-space: nowrap;
-    }
-    
-    .totals-container td:last-child {
-        text-align: right;
-        width: 100px;
-    }
-    
-    /* Make Total Amount stand out */
-    .totals-container .table-active td {
-        background-color: #f8f9fa;
-        font-weight: 600;
-    }
-    
-    /* Ensure all cards and containers are visible */
-    .card {
-        width: 100%;
-        max-width: 100%;
-        overflow: visible;
-        box-sizing: border-box;
-    }
-    
-    .card-body {
-        overflow: visible; /* Allow content to breathe */
-    }
-    
-    /* Textareas resize properly */
-    textarea.form-control {
-        resize: vertical;
-        max-width: 100%;
-    }
-    
-    /* Ensure form doesn't cause horizontal scroll */
-    #purchase_bill_form {
-        width: 100%;
-        max-width: 100%;
-        overflow-x: visible;
-        box-sizing: border-box;
-    }
-
-    /* Fix for Additional Details section layout */
-    .card.mb-4:last-of-type {
-        overflow: visible;
-    }
-
-    .card-body .row {
-        flex-wrap: wrap;
-        margin: 0 -15px;
-    }
-
-    .card-body .col-md-6 {
-        flex: 0 0 50%;
-        max-width: 50%;
-        box-sizing: border-box;
-        min-width: 0;
-    }
-
-    .card-body .form-label {
-        z-index: 1;
-        background: #f8f9fa;
-        position: relative;
-        padding-left: 2px;
-    }
-
-    .card-body textarea.form-control {
-        width: 100%;
-        max-width: 100%;
-        min-height: 80px;
-        resize: vertical;
-        box-sizing: border-box;
-    }
-
-    /* Prevent textarea from overflowing and ensure headline is visible */
-    .card-body {
-        overflow: visible;
-    }
-
-    /* Fix for headline visibility */
-    .card-header h5 {
-        margin-bottom: 0.5rem;
-        font-size: 1.1rem;
-        font-weight: 600;
-        color: #333;
-        background: transparent;
-        z-index: 2;
-        position: relative;
-    }
-</style>
 
 <form method="POST" enctype="multipart/form-data" id="purchase_bill_form" onsubmit="return validatePurchaseBillForm()">
     <!-- Vendor Information Card -->
@@ -338,7 +22,7 @@
             <!-- Vendor Search -->
             <div class="row mb-3">
                 <div class="col-md-12">
-                    <label class="form-label">Search Existing Vendor</label>
+                    <label class="field-label">Search Existing Vendor</label>
                     <div style="position: relative;">
                         <input type="text" id="vendor_search" class="form-control"
                                placeholder="Type vendor name or code..."
@@ -354,12 +38,12 @@
             <!-- Vendor Details - 2 Column Layout -->
             <div class="row">
                 <div class="col-md-6 mb-3">
-                    <label class="form-label">Vendor Name <span class="text-danger">*</span></label>
+                    <label class="field-label">Vendor Name <span class="text-danger">*</span></label>
                     <input type="text" id="vendor_name" name="vendor_name" 
                            class="form-control" required placeholder="Vendor Name" value="{{ bill.vendor_name }}">
                 </div>
                 <div class="col-md-6 mb-3">
-                    <label class="form-label">Phone</label>
+                    <label class="field-label">Phone</label>
                     <input type="tel" id="vendor_phone" name="vendor_phone" 
                            class="form-control" placeholder="Phone Number" value="{{ bill.vendor_phone or '' }}">
                 </div>
@@ -367,12 +51,12 @@
             
             <div class="row">
                 <div class="col-md-6 mb-3">
-                    <label class="form-label">Email</label>
+                    <label class="field-label">Email</label>
                     <input type="email" id="vendor_email" name="vendor_email" 
                            class="form-control" placeholder="Email Address" value="{{ bill.vendor_email or '' }}">
                 </div>
                 <div class="col-md-6 mb-3">
-                    <label class="form-label">GSTIN</label>
+                    <label class="field-label">GSTIN</label>
                     <input type="text" id="vendor_gstin" name="vendor_gstin" 
                            class="form-control" placeholder="27XXXXX1234X1Z5" maxlength="15" value="{{ bill.vendor_gstin or '' }}">
                 </div>
@@ -381,11 +65,11 @@
             <!-- Address and State - 2 Column Layout -->
             <div class="row">
                 <div class="col-md-6 mb-3">
-                    <label class="form-label">State</label>
+                    <label class="field-label">State</label>
                     <input type="text" id="vendor_state" name="vendor_state" class="form-control" placeholder="State" value="{{ bill.vendor_state or 'Maharashtra' }}">
                 </div>
                 <div class="col-md-6 mb-3">
-                    <label class="form-label">Address</label>
+                    <label class="field-label">Address</label>
                     <textarea id="vendor_address" name="vendor_address" class="form-control" rows="2" placeholder="Enter vendor address">{{ bill.vendor_address or '' }}</textarea>
                 </div>
             </div>
@@ -400,21 +84,21 @@
         <div class="card-body">
                 <div class="row">
                     <div class="col-md-4 mb-3">
-                        <label class="form-label">Bill Date <span class="text-danger">*</span></label>
+                        <label class="field-label">Bill Date <span class="text-danger">*</span></label>
                         <input type="date" name="bill_date" class="form-control" value="{{ bill.bill_date.strftime('%Y-%m-%d') }}" required>
                     </div>
                     <div class="col-md-4 mb-3">
-                        <label class="form-label">Due Date</label>
+                        <label class="field-label">Due Date</label>
                         <input type="date" name="due_date" class="form-control" value="{{ bill.due_date.strftime('%Y-%m-%d') if bill.due_date else '' }}" class="form-control">
                     </div>
                     <div class="col-md-4 mb-3">
-                        <label class="form-label">Vendor Invoice #</label>
+                        <label class="field-label">Vendor Invoice #</label>
                         <input type="text" name="reference_number" class="form-control" placeholder="Vendor's bill number" value="{{ bill.reference_number or '' }}">
                     </div>
                 </div>
                 <div class="row">
                     <div class="col-md-12 mb-3">
-                        <label class="form-label">Payment Terms</label>
+                        <label class="field-label">Payment Terms</label>
                         <input type="text" name="payment_terms" class="form-control" placeholder="e.g., Net 30 days" value="{{ bill.payment_terms or '' }}">
                     </div>
                 </div>
@@ -422,7 +106,7 @@
                 <!-- Bill Document Upload -->
                 <div class="row">
                     <div class="col-md-12 mb-3">
-                        <label class="form-label">📎 Upload Bill Document <span style="color: #666; font-size: 13px;">(Optional - Image or PDF)</span></label>
+                        <label class="field-label">📎 Upload Bill Document <span style="color: #666; font-size: 13px;">(Optional - Image or PDF)</span></label>
                         <input type="file" 
                                name="bill_document" 
                                id="bill_document" 
@@ -566,11 +250,11 @@
         <div class="card-body">
             <div class="row">
                 <div class="col-md-6 mb-3">
-                    <label class="form-label">Notes</label>
+                    <label class="field-label">Notes</label>
                     <textarea name="notes" class="form-control" rows="3" placeholder="Internal notes...">{{ bill.notes or '' }}</textarea>
                 </div>
                 <div class="col-md-6 mb-3">
-                    <label class="form-label">Terms & Conditions</label>
+                    <label class="field-label">Terms & Conditions</label>
                     <textarea name="terms_conditions" class="form-control" rows="3" placeholder="Payment terms, delivery terms...">{{ bill.terms_conditions or '' }}</textarea>
                 </div>
             </div>
