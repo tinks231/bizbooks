@@ -30,15 +30,14 @@
 
         <!-- Basic Information -->
         <div class="form-row">
-            <div class="form-group">
+            <div class="form-group" style="flex: 1;">
                 <label>Item Name *</label>
                 <input type="text" name="name" required placeholder="e.g., Wire - 2.5mm Copper Cable">
             </div>
             
-            <div class="form-group">
-                <label style="display: flex; align-items: center; gap: 10px;">
-                    SKU
-                    <label style="display: inline-flex; align-items: center; gap: 6px; cursor: pointer; font-weight: normal; font-size: 13px;">
+            <div class="form-group" style="flex: 1;">
+                <label>SKU
+                    <label style="display: inline-flex; align-items: center; gap: 6px; cursor: pointer; font-weight: normal; font-size: 13px; margin-left: 10px;">
                         <input type="checkbox" id="autoSkuCheckbox" checked onchange="toggleSKUMode()">
                         <span>Auto-generate</span>
                     </label>
@@ -49,7 +48,7 @@
         </div>
 
         <div class="form-row">
-            <div class="form-group">
+            <div class="form-group" style="flex: 1;">
                 <label>Unit *</label>
                 <select name="unit" required>
                     <option value="nos">Pieces (nos)</option>
@@ -67,8 +66,8 @@
                 </select>
             </div>
 
-            <div class="form-group" style="display: flex; align-items: center; justify-content: flex-start; padding-top: 28px;">
-                <label style="display: inline-flex; align-items: center; gap: 8px; cursor: pointer; margin: 0;">
+            <div class="form-group" style="flex: 1; display: flex; align-items: flex-end;">
+                <label style="display: inline-flex; align-items: center; gap: 8px; cursor: pointer; margin: 0; padding-bottom: 12px;">
                     <input type="checkbox" name="is_returnable" checked>
                     <span>Returnable Item</span>
                 </label>
@@ -77,7 +76,7 @@
 
         <!-- Classification -->
         <div class="form-row">
-            <div class="form-group">
+            <div class="form-group" style="flex: 1;">
                 <label>Category</label>
                 <select name="category_id">
                     <option value="">Select Category</option>
@@ -90,7 +89,7 @@
                 </small>
             </div>
 
-            <div class="form-group">
+            <div class="form-group" style="flex: 1;">
                 <label>Item Group</label>
                 <select name="item_group_id">
                     <option value="">Select Group</option>
@@ -104,88 +103,6 @@
             </div>
         </div>
 
-        <!-- Dimensions & Weight -->
-        <h3 style="margin: 30px 0 15px; color: #2c3e50; font-size: 16px; border-top: 2px solid #f5f7fa; padding-top: 20px;">
-            📐 Dimensions & Weight (Optional)
-        </h3>
-
-        <div class="form-row">
-            <div class="form-group">
-                <label>Length</label>
-                <input type="number" name="dimensions_length" step="0.01" min="0" placeholder="0.00">
-            </div>
-            <div class="form-group">
-                <label>Width</label>
-                <input type="number" name="dimensions_width" step="0.01" min="0" placeholder="0.00">
-            </div>
-            <div class="form-group">
-                <label>Height</label>
-                <input type="number" name="dimensions_height" step="0.01" min="0" placeholder="0.00">
-            </div>
-            <div class="form-group">
-                <label>Unit</label>
-                <select name="dimensions_unit">
-                    <option value="cm">Centimeter (cm)</option>
-                    <option value="m">Meter (m)</option>
-                    <option value="inch">Inch</option>
-                    <option value="ft">Feet</option>
-                </select>
-            </div>
-        </div>
-
-        <div class="form-row">
-            <div class="form-group">
-                <label>Weight</label>
-                <input type="number" name="weight" step="0.01" min="0" placeholder="0.00">
-            </div>
-            <div class="form-group">
-                <label>Weight Unit</label>
-                <select name="weight_unit">
-                    <option value="kg">Kilogram (kg)</option>
-                    <option value="g">Gram (g)</option>
-                    <option value="lb">Pound (lb)</option>
-                </select>
-            </div>
-        </div>
-
-        <!-- Product Identifiers -->
-        <h3 style="margin: 30px 0 15px; color: #2c3e50; font-size: 16px; border-top: 2px solid #f5f7fa; padding-top: 20px;">
-            🏷️ Product Identifiers (Optional)
-        </h3>
-
-        <div class="form-row">
-            <div class="form-group">
-                <label>Manufacturer</label>
-                <input type="text" name="manufacturer" placeholder="e.g., Anchor">
-            </div>
-            <div class="form-group">
-                <label>Brand</label>
-                <input type="text" name="brand" placeholder="e.g., Anchor">
-            </div>
-        </div>
-
-        <div class="form-row">
-            <div class="form-group">
-                <label>UPC</label>
-                <input type="text" name="upc" placeholder="Universal Product Code">
-            </div>
-            <div class="form-group">
-                <label>EAN</label>
-                <input type="text" name="ean" placeholder="European Article Number">
-            </div>
-            <div class="form-group">
-                <label>MPN</label>
-                <input type="text" name="mpn" placeholder="Manufacturer Part Number">
-            </div>
-        </div>
-
-        <div class="form-row">
-            <div class="form-group">
-                <label>HSN/SAC Code (for GST)</label>
-                <input type="text" name="hsn_code" placeholder="e.g., 8414, 8544" maxlength="20">
-                <small style="color: #7f8c8d;">Optional - Used in GST reports and invoices</small>
-            </div>
-        </div>
 
         <!-- Sales Information -->
         <h3 style="margin: 30px 0 15px; color: #2c3e50; font-size: 16px; border-top: 2px solid #f5f7fa; padding-top: 20px;">
@@ -193,11 +110,11 @@
         </h3>
 
         <div class="form-row">
-            <div class="form-group">
+            <div class="form-group" style="flex: 1;">
                 <label>Selling Price (₹) *</label>
                 <input type="number" name="selling_price" step="0.01" min="0" required placeholder="0.00">
             </div>
-            <div class="form-group">
+            <div class="form-group" style="flex: 1;">
                 <label>GST Rate *</label>
                 <select name="gst_rate" required>
                     <option value="0">0% - Exempted</option>
@@ -208,7 +125,15 @@
                 </select>
                 <small style="color: #7f8c8d;">Default GST rate for this item</small>
             </div>
-            <div class="form-group">
+        </div>
+
+        <div class="form-row">
+            <div class="form-group" style="flex: 1;">
+                <label>HSN/SAC Code (for GST)</label>
+                <input type="text" name="hsn_code" placeholder="e.g., 8414, 8544" maxlength="20">
+                <small style="color: #7f8c8d;">Optional - Used in GST reports and invoices</small>
+            </div>
+            <div class="form-group" style="flex: 1;">
                 <label>Account</label>
                 <select name="sales_account">
                     <option value="Sales">Sales</option>
@@ -229,11 +154,11 @@
         </h3>
 
         <div class="form-row">
-            <div class="form-group">
+            <div class="form-group" style="flex: 1;">
                 <label>Cost Price (₹) *</label>
                 <input type="number" id="costPrice" name="cost_price" step="0.01" min="0" required placeholder="0.00" onchange="calculateOpeningStockValue()">
             </div>
-            <div class="form-group">
+            <div class="form-group" style="flex: 1;">
                 <label>Account</label>
                 <select name="purchase_account">
                     <option value="Cost of Goods Sold">Cost of Goods Sold</option>
@@ -244,7 +169,7 @@
         </div>
 
         <div class="form-row">
-            <div class="form-group">
+            <div class="form-group" style="flex: 1;">
                 <label>Preferred Vendor</label>
                 <input type="text" name="preferred_vendor" placeholder="Vendor name">
             </div>
@@ -270,12 +195,12 @@
 
         <div id="inventoryFields">
             <div class="form-row">
-                <div class="form-group">
+                <div class="form-group" style="flex: 1;">
                     <label>Opening Stock</label>
                     <input type="number" id="openingStock" name="opening_stock" step="0.01" min="0" placeholder="0.00" onchange="calculateOpeningStockValue()">
                     <small style="color: #7f8c8d;">Initial stock quantity (how much you already have)</small>
                 </div>
-                <div class="form-group">
+                <div class="form-group" style="flex: 1;">
                     <label>Opening Stock Value (₹) <span style="color: #27ae60; font-weight: normal; font-size: 12px;">⚡ Auto-calculated</span></label>
                     <input type="number" id="openingStockValue" name="opening_stock_value" step="0.01" min="0" placeholder="0.00" readonly style="background: #f8f9fa; cursor: not-allowed;">
                     <small style="color: #7f8c8d;">= Opening Stock × Cost Price (auto-calculated)</small>
@@ -283,10 +208,99 @@
             </div>
 
             <div class="form-row">
-                <div class="form-group">
+                <div class="form-group" style="flex: 1;">
                     <label>Reorder Point</label>
                     <input type="number" name="reorder_point" step="0.01" min="0" placeholder="0.00">
                     <small style="color: #7f8c8d;">Alert when stock falls below this level</small>
+                </div>
+            </div>
+        </div>
+
+        <!-- Advanced Options Toggle -->
+        <div style="margin: 30px 0 20px; padding: 20px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #3498db;">
+            <label style="display: flex; align-items: center; gap: 12px; cursor: pointer; margin: 0; font-size: 15px; font-weight: 600;">
+                <input type="checkbox" id="showAdvancedOptions" onchange="toggleAdvancedOptions()" style="width: 18px; height: 18px; cursor: pointer;">
+                <span>📦 Show Advanced Options (Dimensions & Product Identifiers)</span>
+            </label>
+            <small style="color: #7f8c8d; margin-left: 30px; display: block; margin-top: 5px;">
+                Add physical dimensions, weight, and international product codes (UPC, EAN, MPN, etc.)
+            </small>
+        </div>
+
+        <!-- Advanced Options Section (Hidden by default) -->
+        <div id="advancedOptionsSection" style="display: none;">
+            <!-- Dimensions & Weight -->
+            <h3 style="margin: 20px 0 15px; color: #2c3e50; font-size: 16px; border-top: 2px solid #f5f7fa; padding-top: 20px;">
+                📐 Dimensions & Weight
+            </h3>
+
+            <div class="form-row">
+                <div class="form-group" style="flex: 1;">
+                    <label>Length</label>
+                    <input type="number" name="dimensions_length" step="0.01" min="0" placeholder="0.00">
+                </div>
+                <div class="form-group" style="flex: 1;">
+                    <label>Width</label>
+                    <input type="number" name="dimensions_width" step="0.01" min="0" placeholder="0.00">
+                </div>
+                <div class="form-group" style="flex: 1;">
+                    <label>Height</label>
+                    <input type="number" name="dimensions_height" step="0.01" min="0" placeholder="0.00">
+                </div>
+                <div class="form-group" style="flex: 1;">
+                    <label>Unit</label>
+                    <select name="dimensions_unit">
+                        <option value="cm">Centimeter (cm)</option>
+                        <option value="m">Meter (m)</option>
+                        <option value="inch">Inch</option>
+                        <option value="ft">Feet</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group" style="flex: 1;">
+                    <label>Weight</label>
+                    <input type="number" name="weight" step="0.01" min="0" placeholder="0.00">
+                </div>
+                <div class="form-group" style="flex: 1;">
+                    <label>Weight Unit</label>
+                    <select name="weight_unit">
+                        <option value="kg">Kilogram (kg)</option>
+                        <option value="g">Gram (g)</option>
+                        <option value="lb">Pound (lb)</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Product Identifiers -->
+            <h3 style="margin: 30px 0 15px; color: #2c3e50; font-size: 16px; border-top: 2px solid #f5f7fa; padding-top: 20px;">
+                🏷️ Product Identifiers
+            </h3>
+
+            <div class="form-row">
+                <div class="form-group" style="flex: 1;">
+                    <label>Manufacturer</label>
+                    <input type="text" name="manufacturer" placeholder="e.g., Anchor">
+                </div>
+                <div class="form-group" style="flex: 1;">
+                    <label>Brand</label>
+                    <input type="text" name="brand" placeholder="e.g., Anchor">
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group" style="flex: 1;">
+                    <label>UPC</label>
+                    <input type="text" name="upc" placeholder="Universal Product Code">
+                </div>
+                <div class="form-group" style="flex: 1;">
+                    <label>EAN</label>
+                    <input type="text" name="ean" placeholder="European Article Number">
+                </div>
+                <div class="form-group" style="flex: 1;">
+                    <label>MPN</label>
+                    <input type="text" name="mpn" placeholder="Manufacturer Part Number">
                 </div>
             </div>
         </div>
@@ -358,6 +372,20 @@
             valueField.style.background = '#f8f9fa';
             valueField.style.borderColor = '#dfe6e9';
         }, 500);
+    }
+    
+    // Toggle Advanced Options Section
+    function toggleAdvancedOptions() {
+        const checkbox = document.getElementById('showAdvancedOptions');
+        const section = document.getElementById('advancedOptionsSection');
+        
+        if (checkbox.checked) {
+            section.style.display = 'block';
+            // Smooth scroll to the section
+            section.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        } else {
+            section.style.display = 'none';
+        }
     }
     
     // Initialize on page load
