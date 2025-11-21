@@ -370,3 +370,54 @@ table tbody td b {
     font-weight: 500; /* Slightly bold, not too heavy */
 }
 
+/* ==================== CARD COMPONENTS ==================== */
+
+.card {
+    background: white;
+    border-radius: 8px;
+    padding: 25px;
+    margin-bottom: 25px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.card-header {
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 2px solid #f0f0f0;
+}
+
+.card-title {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 700;
+    color: #2c3e50;
+}
+
+.card-subtitle {
+    margin: 5px 0 0 0;
+    font-size: 14px;
+    color: #7f8c8d;
+}
+
+/* Card with no padding (for tables, etc.) */
+.card--flush {
+    padding: 0;
+}
+
+.card--flush > table {
+    margin: 0;
+}
+
+/* Mobile card adjustments */
+@media (max-width: 768px) {
+    .card {
+        padding: 20px;
+        margin-bottom: 20px;
+        border-radius: 6px;
+    }
+    
+    .card-title {
+        font-size: 16px;
+    }
+}
+
