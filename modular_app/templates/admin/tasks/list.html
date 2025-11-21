@@ -33,6 +33,74 @@
 
 {% block content %}
 
+<style>
+/* Task Buttons Container - Desktop: Horizontal, Mobile: Vertical */
+.task-buttons-container {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.task-buttons-row {
+    display: flex;
+    gap: 10px;
+    flex: 1;
+}
+
+.task-buttons-row form {
+    flex: 1;
+    margin: 0;
+}
+
+.task-buttons-row button {
+    width: 100%;
+    padding: 10px 20px;
+    font-weight: 600;
+    font-size: 14px;
+    white-space: nowrap;
+}
+
+.task-buttons-container > .btn {
+    padding: 10px 20px;
+    font-weight: 600;
+    font-size: 14px;
+    white-space: nowrap;
+}
+
+/* Desktop: All buttons same row */
+@media (min-width: 769px) {
+    .task-buttons-container {
+        flex-wrap: nowrap;
+    }
+    
+    .task-buttons-row {
+        flex: initial;
+    }
+    
+    .task-buttons-row form,
+    .task-buttons-row button,
+    .task-buttons-container > .btn {
+        min-width: 180px;
+    }
+}
+
+/* Mobile: Stack appropriately */
+@media (max-width: 768px) {
+    .task-buttons-container {
+        width: 100%;
+    }
+    
+    .task-buttons-row {
+        width: 100%;
+    }
+    
+    .task-buttons-container > .btn {
+        width: 100%;
+    }
+}
+</style>
+
 <!-- Stats Cards -->
 <div class="stats-grid" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-bottom: 30px;">
     <div class="card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none;">
