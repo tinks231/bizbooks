@@ -36,11 +36,12 @@
             </div>
             
             <div class="form-group" style="flex: 1;">
-                <label style="display: block; margin-bottom: 5px;">SKU</label>
-                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 5px;">
-                    <input type="checkbox" id="autoSkuCheckbox" checked onchange="toggleSKUMode()" style="margin: 0;">
-                    <span style="font-size: 13px; color: #7f8c8d; cursor: pointer;" onclick="document.getElementById('autoSkuCheckbox').click()">Auto-generate</span>
-                </div>
+                <label>SKU 
+                    <label style="display: inline-flex; align-items: center; gap: 5px; margin-left: 10px; font-weight: normal; font-size: 13px;">
+                        <input type="checkbox" id="autoSkuCheckbox" checked onchange="toggleSKUMode()">
+                        <span>Auto-generate</span>
+                    </label>
+                </label>
                 <input type="text" id="skuInput" name="sku" placeholder="Auto-generated" disabled style="background: #f5f7fa; color: #7f8c8d;">
                 <small id="skuHint" style="color: #7f8c8d;">SKU will be automatically generated</small>
             </div>
