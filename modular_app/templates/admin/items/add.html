@@ -35,14 +35,15 @@
                 <input type="text" name="name" required placeholder="e.g., Wire - 2.5mm Copper Cable">
             </div>
             
-            <div class="form-group" style="flex: 1;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-                    <label style="margin: 0;">SKU</label>
-                    <label style="display: inline-flex; align-items: center; gap: 5px; font-weight: normal; font-size: 13px; margin: 0;">
-                        <input type="checkbox" id="autoSkuCheckbox" checked onchange="toggleSKUMode()">
-                        <span>Auto-generate</span>
-                    </label>
-                </div>
+            <div class="form-group" style="flex: 1; position: relative;">
+                <!-- main label, identical behavior to Item Name -->
+                <label style="display: block;">SKU</label>
+                <!-- auto-generate toggle, floated to the right and NOT affecting height -->
+                <label style="position: absolute; right: 0; top: 0; display: inline-flex; align-items: center; gap: 5px; font-weight: normal; font-size: 13px; margin: 0;">
+                    <input type="checkbox" id="autoSkuCheckbox" checked onchange="toggleSKUMode()">
+                    <span>Auto-generate</span>
+                </label>
+                <!-- input will now line up perfectly with Item Name input -->
                 <input type="text" id="skuInput" name="sku" placeholder="Auto-generated" disabled style="background: #f5f7fa; color: #7f8c8d;">
             </div>
         </div>
