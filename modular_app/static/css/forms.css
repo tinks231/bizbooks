@@ -469,10 +469,17 @@ table tbody td b {
 
 /* Section Headers - Tight spacing */
 .subscription-section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
     margin: 20px 0 15px 0;
+}
+
+.subscription-section-header h2 {
     font-size: 20px;
     font-weight: 700;
     color: #2c3e50;
+    margin: 0;
 }
 
 /* Filter Section - Compact */
@@ -556,6 +563,35 @@ table tbody td b {
 
 .card--flush > table {
     margin: 0;
+}
+
+/* Empty State (for "no data" displays) */
+.empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: #95a5a6;
+}
+
+.empty-state-icon {
+    font-size: 64px;
+    margin-bottom: 20px;
+    opacity: 0.5;
+}
+
+.empty-state h3 {
+    color: #7f8c8d;
+    margin-bottom: 10px;
+    font-size: 20px;
+}
+
+.empty-state p {
+    font-size: 16px;
+    margin-bottom: 20px;
+    color: #95a5a6;
+}
+
+.empty-state .btn {
+    margin-top: 20px;
 }
 
 /* Mobile card adjustments */
