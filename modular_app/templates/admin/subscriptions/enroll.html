@@ -47,19 +47,21 @@
 }
 
 .form-section {
-    margin-bottom: 35px;
-    padding-bottom: 25px;
-    border-bottom: 2px solid #f0f0f0;
+    margin-bottom: 25px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #f0f0f0;
 }
 
 .form-section:last-child {
     border-bottom: none;
+    padding-bottom: 0;
+    margin-bottom: 0;
 }
 
 .form-section h4 {
-    font-size: 18px;
+    font-size: 16px;
     color: #2c3e50;
-    margin-bottom: 20px;
+    margin-bottom: 15px;
     font-weight: 600;
 }
 
@@ -241,6 +243,28 @@
     font-weight: 600;
     cursor: pointer;
     transition: all 0.3s ease;
+    text-decoration: none;
+    display: inline-block;
+    text-align: center;
+}
+
+.btn-secondary {
+    background: #95a5a6;
+    color: white;
+}
+
+.btn-secondary:hover {
+    background: #7f8c8d;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+    color: white;
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(52, 152, 219, 0.4);
 }
 
 .btn-block.btn-success {
@@ -251,6 +275,19 @@
 .btn-block.btn-success:hover {
     transform: translateY(-2px);
     box-shadow: 0 6px 20px rgba(39, 174, 96, 0.4);
+}
+
+/* Button Container Row */
+.form-section .row {
+    display: flex;
+    gap: 15px;
+    flex-wrap: nowrap;
+    margin-top: 20px;
+}
+
+.form-section .col-md-6 {
+    flex: 1 1 50%;
+    min-width: 0;
 }
 
 /* Info Panels */
@@ -453,7 +490,7 @@
                         </div>
 
                         <!-- Submit -->
-                        <div class="form-section" style="border-top: 2px solid #e0e0e0; padding-top: 20px;">
+                        <div class="form-section" style="margin-top: 20px; border-bottom: none; padding-bottom: 0;">
                             <div class="row">
                                 <div class="col-md-6">
                                     <a href="{{ url_for('subscriptions.members') }}" class="btn btn-secondary btn-block">
