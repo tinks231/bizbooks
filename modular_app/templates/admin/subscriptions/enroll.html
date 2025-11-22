@@ -58,14 +58,24 @@
                                     </div>
                                     {% else %}
                                     {% for plan in plans %}
-                                    <div class="plan-card" onclick="selectPlan({{ plan.id }}, {{ plan.price }}, {{ plan.duration_days }})">
+                                    <div class="plan-card" onclick="selectPlan({{ plan.id }}, '{{ plan.plan_type }}', {{ plan.price or 0 }}, {{ plan.duration_days }}, {{ plan.unit_rate or 0 }}, '{{ plan.unit_name or '' }}')">
                                         <input type="radio" name="plan_id" id="plan_{{ plan.id }}" value="{{ plan.id }}" required style="display: none;">
                                         <div class="plan-header">
                                             <h5>{{ plan.name }}</h5>
-                                            <div class="plan-price">₹{{ '{:,.2f}'.format(plan.price) }}</div>
+                                            {% if plan.plan_type == 'metered' %}
+                                            <span class="badge badge-info">📊 Metered</span>
+                                            {% else %}
+                                            <span class="badge badge-primary">📦 Fixed</span>
+                                            {% endif %}
                                         </div>
                                         <div class="plan-details">
+                                            {% if plan.plan_type == 'metered' %}
+                                            <div class="plan-price">₹{{ '{:,.2f}'.format(plan.unit_rate) }}/{{ plan.unit_name }}</div>
+                                            <small class="text-muted">Billed monthly based on consumption</small>
+                                            {% else %}
+                                            <div class="plan-price">₹{{ '{:,.2f}'.format(plan.price) }}</div>
                                             <div class="plan-duration">{{ plan.duration_display }}</div>
+                                            {% endif %}
                                             {% if plan.description %}
                                             <div class="plan-description">{{ plan.description }}</div>
                                             {% endif %}
@@ -74,6 +84,27 @@
                                     {% endfor %}
                                     {% endif %}
                                 </div>
+                            </div>
+                        </div>
+
+                        <!-- Step 2.5: Metered Plan Default Quantity (only for metered plans) -->
+                        <div class="enroll-form-section" id="metered_quantity_section" style="display: none;">
+                            <h4>📊 Default Daily Quantity</h4>
+                            <div class="form-group">
+                                <label class="field-label"><strong>Default Quantity per Day *</strong></label>
+                                <div class="input-group">
+                                    <input type="number" name="default_quantity" id="default_quantity" class="form-control" step="0.01" min="0" placeholder="2">
+                                    <div class="input-group-append">
+                                        <span class="input-group-text" id="quantity_unit">liters</span>
+                                    </div>
+                                </div>
+                                <small class="form-text text-muted">
+                                    This is the standard daily quantity. You can adjust it anytime or pause deliveries when needed.
+                                </small>
+                            </div>
+                            <div class="alert alert-info" style="margin-top: 10px;">
+                                <strong>💡 How it works:</strong><br>
+                                System will auto-generate daily deliveries with this quantity. You only need to update when there's a change (pause, increase, or decrease).
                             </div>
                         </div>
 
@@ -215,8 +246,9 @@ function showCustomerDetails() {
 }
 
 let selectedPlanDuration = 0;
+let selectedPlanType = 'fixed';
 
-function selectPlan(planId, price, duration) {
+function selectPlan(planId, planType, price, duration, unitRate, unitName) {
     // Remove selected class from all plans
     document.querySelectorAll('.plan-card').forEach(card => {
         card.classList.remove('selected');
@@ -228,11 +260,40 @@ function selectPlan(planId, price, duration) {
     // Check the radio button
     document.getElementById('plan_' + planId).checked = true;
     
-    // Auto-fill payment amount
-    document.getElementById('payment_amount').value = price;
-    
-    // Store duration for calculation
+    // Store plan details
     selectedPlanDuration = duration;
+    selectedPlanType = planType;
+    
+    // Handle FIXED vs METERED plans
+    if (planType === 'metered') {
+        // Show metered quantity section
+        document.getElementById('metered_quantity_section').style.display = 'block';
+        document.getElementById('quantity_unit').textContent = unitName + 's';
+        
+        // Make default_quantity required
+        document.getElementById('default_quantity').required = true;
+        
+        // For metered, payment is collected AFTER consumption (monthly)
+        // So hide/disable immediate payment collection
+        document.getElementById('payment_collected').checked = false;
+        togglePaymentFields();
+        
+        // Update tips
+        document.getElementById('payment_amount').placeholder = 'Monthly billing based on consumption';
+        document.getElementById('payment_amount').value = '';
+        
+    } else {
+        // Hide metered quantity section
+        document.getElementById('metered_quantity_section').style.display = 'none';
+        document.getElementById('default_quantity').required = false;
+        
+        // Auto-fill payment amount for fixed plans
+        document.getElementById('payment_amount').value = price;
+        
+        // Enable payment collection
+        document.getElementById('payment_collected').checked = true;
+        togglePaymentFields();
+    }
     
     // Calculate period end if start date is set
     calculatePeriodEnd();
@@ -248,11 +309,23 @@ function calculatePeriodEnd() {
         
         // Format dates
         const options = { year: 'numeric', month: 'short', day: 'numeric' };
-        const periodDisplay = start.toLocaleDateString('en-IN', options) + ' to ' + end.toLocaleDateString('en-IN', options);
-        const nextDueDisplay = end.toLocaleDateString('en-IN', options);
         
-        document.getElementById('period_display').textContent = periodDisplay;
-        document.getElementById('next_due_display').textContent = nextDueDisplay;
+        if (selectedPlanType === 'metered') {
+            // For metered plans, show billing cycle
+            const periodDisplay = start.toLocaleDateString('en-IN', options) + ' to ' + end.toLocaleDateString('en-IN', options);
+            const nextDueDisplay = end.toLocaleDateString('en-IN', options);
+            
+            document.getElementById('period_display').textContent = periodDisplay + ' (First billing cycle)';
+            document.getElementById('next_due_display').textContent = nextDueDisplay + ' - Invoice based on actual consumption';
+        } else {
+            // For fixed plans, show standard period
+            const periodDisplay = start.toLocaleDateString('en-IN', options) + ' to ' + end.toLocaleDateString('en-IN', options);
+            const nextDueDisplay = end.toLocaleDateString('en-IN', options);
+            
+            document.getElementById('period_display').textContent = periodDisplay;
+            document.getElementById('next_due_display').textContent = nextDueDisplay;
+        }
+        
         document.getElementById('period_summary').style.display = 'block';
     }
 }
@@ -276,6 +349,7 @@ function validateForm() {
     const startDate = document.getElementById('start_date').value;
     const paymentCollected = document.getElementById('payment_collected').checked;
     const paymentAmount = document.getElementById('payment_amount').value;
+    const defaultQuantity = document.getElementById('default_quantity').value;
     
     if (!customerId) {
         alert('⚠️ Please select a customer');
@@ -292,7 +366,16 @@ function validateForm() {
         return false;
     }
     
-    // Only validate payment if payment is collected
+    // Validate default quantity for metered plans
+    if (selectedPlanType === 'metered') {
+        if (!defaultQuantity || parseFloat(defaultQuantity) <= 0) {
+            alert('⚠️ Please enter a valid default daily quantity');
+            return false;
+        }
+        return confirm('Confirm enrollment? Customer will be subscribed and daily deliveries will be auto-generated. First invoice will be generated at the end of the billing cycle.');
+    }
+    
+    // Only validate payment if payment is collected (for fixed plans)
     if (paymentCollected) {
         if (!paymentAmount || parseFloat(paymentAmount) <= 0) {
             alert('⚠️ Please enter a valid payment amount');

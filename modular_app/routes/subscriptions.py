@@ -333,25 +333,61 @@ def enroll_member():
         period_end = start_date + timedelta(days=plan.duration_days)
         
         # Determine subscription status
-        subscription_status = 'active' if payment_collected else 'pending_payment'
+        # For metered plans, always active (payment collected after consumption)
+        # For fixed plans, depends on payment_collected
+        if plan.plan_type == 'metered':
+            subscription_status = 'active'
+        else:
+            subscription_status = 'active' if payment_collected else 'pending_payment'
         
         # Create subscription
-        subscription = CustomerSubscription(
-            tenant_id=tenant_id,
-            customer_id=customer_id,
-            plan_id=plan_id,
-            start_date=start_date,
-            current_period_start=start_date,
-            current_period_end=period_end,
-            status=subscription_status,
-            auto_renew=True
-        )
+        subscription_data = {
+            'tenant_id': tenant_id,
+            'customer_id': customer_id,
+            'plan_id': plan_id,
+            'start_date': start_date,
+            'current_period_start': start_date,
+            'current_period_end': period_end,
+            'status': subscription_status,
+            'auto_renew': True
+        }
+        
+        # For metered plans, get default quantity
+        if plan.plan_type == 'metered':
+            default_quantity = Decimal(request.form.get('default_quantity', 0))
+            subscription_data['default_quantity'] = default_quantity
+        
+        subscription = CustomerSubscription(**subscription_data)
         
         db.session.add(subscription)
         db.session.flush()  # Get subscription ID
         
-        # Record payment and invoice only if payment collected
-        if payment_collected:
+        # AUTO-GENERATE DAILY DELIVERIES for metered plans
+        if plan.plan_type == 'metered':
+            current_date = start_date
+            deliveries_created = 0
+            
+            while current_date < period_end:
+                delivery = SubscriptionDelivery(
+                    tenant_id=tenant_id,
+                    subscription_id=subscription.id,
+                    delivery_date=current_date,
+                    quantity=subscription.default_quantity,
+                    rate=plan.unit_rate,
+                    amount=subscription.default_quantity * plan.unit_rate,
+                    status='delivered',  # Will be updated only if exception occurs
+                    is_modified=False
+                )
+                db.session.add(delivery)
+                deliveries_created += 1
+                
+                current_date += timedelta(days=1)
+            
+            flash(f'📊 Auto-generated {deliveries_created} daily deliveries for the first billing cycle!', 'info')
+        
+        # Record payment and invoice only if payment collected (FIXED plans only)
+        # Metered plans: Payment collected at end of billing cycle based on consumption
+        if payment_collected and plan.plan_type == 'fixed':
             payment_amount = Decimal(request.form['payment_amount'])
             payment_mode = request.form['payment_mode']
             generate_invoice = request.form.get('generate_invoice') == 'on'
@@ -417,7 +453,10 @@ def enroll_member():
         
         db.session.commit()
         
-        if payment_collected:
+        # Success messages
+        if plan.plan_type == 'metered':
+            flash(f'✅ Customer enrolled in "{plan.name}" with {subscription.default_quantity} {plan.unit_name}/day! Daily deliveries auto-generated.', 'success')
+        elif payment_collected:
             flash(f'✅ Customer enrolled successfully in "{plan.name}" and payment recorded!', 'success')
         else:
             flash(f'✅ Customer enrolled in "{plan.name}". Payment is PENDING - collect it later.', 'warning')
