@@ -8,163 +8,170 @@
 <a href="{{ url_for('delivery_challans.list_challans') }}" class="btn btn-secondary">
     ← Back
 </a>
-<a href="{{ url_for('delivery_challans.print_challan', challan_id=challan.id) }}" class="btn btn-success" style="margin-right: 10px;" target="_blank">
+<a href="{{ url_for('delivery_challans.print_challan', challan_id=challan.id) }}" class="btn btn-success" target="_blank">
     🖨️ Print
 </a>
 {% if challan.status == 'draft' %}
-<a href="{{ url_for('delivery_challans.edit_challan', challan_id=challan.id) }}" class="btn btn-warning" style="margin-right: 10px; background: #ffc107; color: #212529;">
+<a href="{{ url_for('delivery_challans.edit_challan', challan_id=challan.id) }}" class="btn btn-warning" style="background: #ffc107; color: #000;">
     ✏️ Edit
 </a>
 {% endif %}
 {% if challan.status not in ['invoiced', 'cancelled'] %}
-<div class="btn-group">
-    <button type="button" class="btn btn-primary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
-        Actions
+<div class="dropdown" style="display: inline-block; position: relative;">
+    <button type="button" class="btn btn-primary" onclick="toggleActionsMenu(event, this)">
+        Actions ▼
     </button>
-    <ul class="dropdown-menu dropdown-menu-end">
+    <div class="dropdown-menu-custom" style="display: none; position: absolute; background: white; border: 1px solid #ddd; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); min-width: 200px; z-index: 1000; right: 0; top: 100%; margin-top: 5px;">
         {% if challan.status == 'draft' %}
-        <li>
-            <form method="POST" action="{{ url_for('delivery_challans.update_status', challan_id=challan.id) }}" style="margin: 0;">
-                <input type="hidden" name="status" value="dispatched">
-                <button type="submit" class="dropdown-item">📤 Mark as Dispatched</button>
-            </form>
-        </li>
+        <form method="POST" action="{{ url_for('delivery_challans.update_status', challan_id=challan.id) }}" style="margin: 0;">
+            <input type="hidden" name="status" value="dispatched">
+            <button type="submit" style="width: 100%; text-align: left; padding: 10px 15px; background: none; border: none; color: #212529; cursor: pointer; font-size: 13px;">
+                📤 Mark as Dispatched
+            </button>
+        </form>
         {% endif %}
         {% if challan.status in ['draft', 'dispatched'] %}
-        <li>
-            <form method="POST" action="{{ url_for('delivery_challans.update_status', challan_id=challan.id) }}" style="margin: 0;">
-                <input type="hidden" name="status" value="delivered">
-                <button type="submit" class="dropdown-item">✅ Mark as Delivered</button>
-            </form>
-        </li>
+        <form method="POST" action="{{ url_for('delivery_challans.update_status', challan_id=challan.id) }}" style="margin: 0;">
+            <input type="hidden" name="status" value="delivered">
+            <button type="submit" style="width: 100%; text-align: left; padding: 10px 15px; background: none; border: none; color: #212529; cursor: pointer; font-size: 13px;">
+                ✅ Mark as Delivered
+            </button>
+        </form>
         {% endif %}
         {% if challan.status in ['delivered', 'partially_invoiced'] %}
-        <li>
-            <a class="dropdown-item" href="{{ url_for('delivery_challans.convert_to_invoice', challan_id=challan.id) }}">
-                💰 Convert to Invoice
-            </a>
-        </li>
+        <a href="{{ url_for('delivery_challans.convert_to_invoice', challan_id=challan.id) }}" style="display: block; padding: 10px 15px; color: #212529; text-decoration: none; font-size: 13px;">
+            💰 Convert to Invoice
+        </a>
         {% endif %}
-        <li><hr class="dropdown-divider"></li>
-        <li>
-            <form method="POST" action="{{ url_for('delivery_challans.update_status', challan_id=challan.id) }}" 
-                  onsubmit="return confirm('Cancel this delivery challan?')" style="margin: 0;">
-                <input type="hidden" name="status" value="cancelled">
-                <button type="submit" class="dropdown-item text-danger">❌ Cancel DC</button>
-            </form>
-        </li>
+        <hr style="margin: 5px 0; border: none; border-top: 1px solid #e9ecef;">
+        <form method="POST" action="{{ url_for('delivery_challans.update_status', challan_id=challan.id) }}" style="margin: 0;" onsubmit="return confirm('Cancel this delivery challan?')">
+            <input type="hidden" name="status" value="cancelled">
+            <button type="submit" style="width: 100%; text-align: left; padding: 10px 15px; background: none; border: none; color: #dc3545; cursor: pointer; font-size: 13px;">
+                ❌ Cancel DC
+            </button>
+        </form>
         {% if challan.status in ['draft', 'cancelled'] %}
-        <li>
-            <form method="POST" action="{{ url_for('delivery_challans.delete_challan', challan_id=challan.id) }}" 
-                  onsubmit="return confirm('Delete this delivery challan permanently?')" style="margin: 0;">
-                <button type="submit" class="dropdown-item text-danger">🗑️ Delete DC</button>
-            </form>
-        </li>
+        <form method="POST" action="{{ url_for('delivery_challans.delete_challan', challan_id=challan.id) }}" style="margin: 0;" onsubmit="return confirm('Delete this delivery challan permanently?')">
+            <button type="submit" style="width: 100%; text-align: left; padding: 10px 15px; background: none; border: none; color: #dc3545; cursor: pointer; font-size: 13px;">
+                🗑️ Delete DC
+            </button>
+        </form>
         {% endif %}
-    </ul>
+    </div>
 </div>
 {% endif %}
 {% endblock %}
 
 {% block content %}
-<div class="row">
+<div style="display: grid; grid-template-columns: 2fr 1fr; gap: 25px;">
     <!-- Main Content -->
-    <div class="col-md-8">
-        <!-- Status Card -->
-        <div class="card mb-4">
-            <div class="card-body">
-                <div class="row text-center">
-                    <div class="col-md-4">
-                        <h6 class="text-muted mb-2">Status</h6>
-                        {% if challan.status == 'draft' %}
-                        <span class="badge bg-secondary fs-6">Draft</span>
-                        {% elif challan.status == 'dispatched' %}
-                        <span class="badge bg-info fs-6">Dispatched</span>
-                        {% elif challan.status == 'delivered' %}
-                        <span class="badge bg-success fs-6">Delivered</span>
-                        {% elif challan.status == 'partially_invoiced' %}
-                        <span class="badge bg-warning fs-6">Partially Invoiced</span>
-                        {% elif challan.status == 'invoiced' %}
-                        <span class="badge bg-primary fs-6">Invoiced</span>
-                        {% elif challan.status == 'cancelled' %}
-                        <span class="badge bg-danger fs-6">Cancelled</span>
+    <div>
+        <!-- Status Summary -->
+        <div class="form-section" style="margin-bottom: 20px;">
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px;">
+                <div style="text-align: center; padding: 15px; background: #f8f9fa; border-radius: 8px;">
+                    <div style="font-size: 11px; color: #6c757d; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.5px;">Status</div>
+                    <div style="font-size: 18px; font-weight: 600; color: #2c3e50;">
+                        {% if challan.status == 'draft' %}Draft
+                        {% elif challan.status == 'dispatched' %}Dispatched
+                        {% elif challan.status == 'delivered' %}Delivered
+                        {% elif challan.status == 'partially_invoiced' %}Partially Invoiced
+                        {% elif challan.status == 'invoiced' %}Invoiced
+                        {% elif challan.status == 'cancelled' %}Cancelled
                         {% endif %}
                     </div>
-                    <div class="col-md-4">
-                        <h6 class="text-muted mb-2">Total Amount</h6>
-                        <h4>₹{{ "{:,.2f}".format(challan.total_amount) }}</h4>
-                    </div>
-                    <div class="col-md-4">
-                        <h6 class="text-muted mb-2">Items</h6>
-                        <h4>{{ challan.items|length }}</h4>
-                    </div>
+                </div>
+                <div style="text-align: center; padding: 15px; background: #e3f2fd; border-radius: 8px;">
+                    <div style="font-size: 11px; color: #1976d2; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.5px;">Total Amount</div>
+                    <div style="font-size: 20px; font-weight: 700; color: #0d47a1;">₹{{ "{:,.2f}".format(challan.total_amount) }}</div>
+                </div>
+                <div style="text-align: center; padding: 15px; background: #f3e5f5; border-radius: 8px;">
+                    <div style="font-size: 11px; color: #7b1fa2; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.5px;">Items</div>
+                    <div style="font-size: 20px; font-weight: 700; color: #4a148c;">{{ challan.items|length }}</div>
                 </div>
             </div>
         </div>
 
         <!-- Customer Details -->
-        <div class="card mb-4">
-            <div class="card-header">
-                <h5 class="mb-0">Customer Details</h5>
-            </div>
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-6">
-                        <p><strong>Name:</strong> {{ challan.customer_name }}</p>
-                        <p><strong>Phone:</strong> {{ challan.customer_phone or '-' }}</p>
-                        <p><strong>Email:</strong> {{ challan.customer_email or '-' }}</p>
-                    </div>
-                    <div class="col-md-6">
-                        <p><strong>GSTIN:</strong> {{ challan.customer_gstin or '-' }}</p>
-                        <p><strong>State:</strong> {{ challan.customer_state }}</p>
-                    </div>
+        <div class="form-section">
+            <div class="form-section-title">Customer Details</div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Name</label>
+                    <div class="form-value">{{ challan.customer_name }}</div>
                 </div>
-                <div class="row">
-                    <div class="col-md-6">
-                        <p><strong>Billing Address:</strong><br>{{ challan.customer_billing_address or '-' }}</p>
-                    </div>
-                    <div class="col-md-6">
-                        <p><strong>Shipping Address:</strong><br>{{ challan.customer_shipping_address or '-' }}</p>
-                    </div>
+                <div class="form-group">
+                    <label>Phone</label>
+                    <div class="form-value">{{ challan.customer_phone or '-' }}</div>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Email</label>
+                    <div class="form-value">{{ challan.customer_email or '-' }}</div>
+                </div>
+                <div class="form-group">
+                    <label>GSTIN</label>
+                    <div class="form-value">{{ challan.customer_gstin or '-' }}</div>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>State</label>
+                    <div class="form-value">{{ challan.customer_state }}</div>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Billing Address</label>
+                    <div class="form-value">{{ challan.customer_billing_address or '-' }}</div>
+                </div>
+                <div class="form-group">
+                    <label>Shipping Address</label>
+                    <div class="form-value">{{ challan.customer_shipping_address or '-' }}</div>
                 </div>
             </div>
         </div>
 
         <!-- Delivery Details -->
-        <div class="card mb-4">
-            <div class="card-header">
-                <h5 class="mb-0">Delivery Information</h5>
+        <div class="form-section">
+            <div class="form-section-title">Delivery Information</div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Vehicle Number</label>
+                    <div class="form-value">{{ challan.vehicle_number or '-' }}</div>
+                </div>
+                <div class="form-group">
+                    <label>LR Number</label>
+                    <div class="form-value">{{ challan.lr_number or '-' }}</div>
+                </div>
             </div>
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-6">
-                        <p><strong>Vehicle Number:</strong> {{ challan.vehicle_number or '-' }}</p>
-                        <p><strong>LR Number:</strong> {{ challan.lr_number or '-' }}</p>
-                    </div>
-                    <div class="col-md-6">
-                        <p><strong>Transporter:</strong> {{ challan.transporter_name or '-' }}</p>
-                        <p><strong>Delivery Note:</strong> {{ challan.delivery_note or '-' }}</p>
-                    </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Transporter</label>
+                    <div class="form-value">{{ challan.transporter_name or '-' }}</div>
+                </div>
+                <div class="form-group">
+                    <label>Delivery Note</label>
+                    <div class="form-value">{{ challan.delivery_note or '-' }}</div>
                 </div>
             </div>
         </div>
 
         <!-- Items -->
-        <div class="card mb-4">
-            <div class="card-header">
-                <h5 class="mb-0">Items</h5>
-            </div>
-            <div class="card-body">
+        <div class="form-section">
+            <div class="form-section-title">Items</div>
+            <div style="overflow-x: auto;">
                 <table class="table">
                     <thead>
                         <tr>
-                            <th>#</th>
+                            <th style="width: 40px;">#</th>
                             <th>Item Name</th>
-                            <th>HSN</th>
-                            <th>Qty</th>
-                            <th>Rate</th>
-                            <th>GST</th>
-                            <th class="text-end">Amount</th>
+                            <th style="width: 100px;">HSN</th>
+                            <th style="width: 100px;">Qty</th>
+                            <th style="width: 100px;">Rate</th>
+                            <th style="width: 80px;">GST</th>
+                            <th style="width: 120px; text-align: right;">Amount</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -176,34 +183,34 @@
                             <td>{{ item.quantity }} {{ item.unit }}</td>
                             <td>₹{{ "{:,.2f}".format(item.rate) }}</td>
                             <td>{{ item.gst_rate }}%</td>
-                            <td class="text-end">₹{{ "{:,.2f}".format(item.total_amount) }}</td>
+                            <td style="text-align: right; font-weight: 600;">₹{{ "{:,.2f}".format(item.total_amount) }}</td>
                         </tr>
                         {% endfor %}
                     </tbody>
-                    <tfoot>
+                    <tfoot style="background: #f8f9fa;">
                         <tr>
-                            <th colspan="6" class="text-end">Subtotal:</th>
-                            <th class="text-end">₹{{ "{:,.2f}".format(challan.subtotal) }}</th>
+                            <th colspan="6" style="text-align: right; padding: 12px;">Subtotal:</th>
+                            <th style="text-align: right; padding: 12px;">₹{{ "{:,.2f}".format(challan.subtotal) }}</th>
                         </tr>
                         {% if challan.cgst_amount > 0 %}
                         <tr>
-                            <td colspan="6" class="text-end">CGST:</td>
-                            <td class="text-end">₹{{ "{:,.2f}".format(challan.cgst_amount) }}</td>
+                            <td colspan="6" style="text-align: right; padding: 8px 12px; font-weight: 500;">CGST:</td>
+                            <td style="text-align: right; padding: 8px 12px;">₹{{ "{:,.2f}".format(challan.cgst_amount) }}</td>
                         </tr>
                         <tr>
-                            <td colspan="6" class="text-end">SGST:</td>
-                            <td class="text-end">₹{{ "{:,.2f}".format(challan.sgst_amount) }}</td>
+                            <td colspan="6" style="text-align: right; padding: 8px 12px; font-weight: 500;">SGST:</td>
+                            <td style="text-align: right; padding: 8px 12px;">₹{{ "{:,.2f}".format(challan.sgst_amount) }}</td>
                         </tr>
                         {% endif %}
                         {% if challan.igst_amount > 0 %}
                         <tr>
-                            <td colspan="6" class="text-end">IGST:</td>
-                            <td class="text-end">₹{{ "{:,.2f}".format(challan.igst_amount) }}</td>
+                            <td colspan="6" style="text-align: right; padding: 8px 12px; font-weight: 500;">IGST:</td>
+                            <td style="text-align: right; padding: 8px 12px;">₹{{ "{:,.2f}".format(challan.igst_amount) }}</td>
                         </tr>
                         {% endif %}
-                        <tr>
-                            <th colspan="6" class="text-end">Total:</th>
-                            <th class="text-end">₹{{ "{:,.2f}".format(challan.total_amount) }}</th>
+                        <tr style="border-top: 2px solid #dee2e6;">
+                            <th colspan="6" style="text-align: right; padding: 12px; font-size: 15px;">Total:</th>
+                            <th style="text-align: right; padding: 12px; font-size: 16px; color: #007bff;">₹{{ "{:,.2f}".format(challan.total_amount) }}</th>
                         </tr>
                     </tfoot>
                 </table>
@@ -212,401 +219,127 @@
     </div>
 
     <!-- Sidebar -->
-    <div class="col-md-4">
+    <div>
         <!-- Reference Info -->
-        <div class="card mb-4">
-            <div class="card-header">
-                <h5 class="mb-0">Reference</h5>
+        <div class="form-section">
+            <div class="form-section-title">Reference</div>
+            <div class="form-group">
+                <label>DC Number</label>
+                <div class="form-value">{{ challan.challan_number }}</div>
             </div>
-            <div class="card-body">
-                <p><strong>DC Number:</strong><br>{{ challan.challan_number }}</p>
-                <p><strong>DC Date:</strong><br>{{ challan.challan_date.strftime('%d %b %Y') }}</p>
-                {% if sales_order %}
-                <p><strong>Sales Order:</strong><br>
-                    <a href="{{ url_for('sales_orders.view_order', order_id=sales_order.id) }}">
+            <div class="form-group">
+                <label>DC Date</label>
+                <div class="form-value">{{ challan.challan_date.strftime('%d %b %Y') }}</div>
+            </div>
+            {% if sales_order %}
+            <div class="form-group">
+                <label>Sales Order</label>
+                <div class="form-value">
+                    <a href="{{ url_for('sales_orders.view_order', order_id=sales_order.id) }}" style="color: #007bff; text-decoration: none; font-weight: 600;">
                         {{ sales_order.order_number }}
                     </a>
-                </p>
-                {% endif %}
+                </div>
             </div>
+            {% endif %}
         </div>
 
         <!-- Linked Invoices -->
         {% if invoices %}
-        <div class="card mb-4">
-            <div class="card-header">
-                <h5 class="mb-0">Linked Invoices</h5>
+        <div class="form-section">
+            <div class="form-section-title">Linked Invoices</div>
+            {% for invoice in invoices %}
+            <div class="form-group">
+                <a href="{{ url_for('invoices.view', invoice_id=invoice.id) }}" style="color: #007bff; text-decoration: none; font-weight: 600; display: block; margin-bottom: 5px;">
+                    {{ invoice.invoice_number }}
+                </a>
+                <small style="color: #6c757d;">{{ invoice.invoice_date.strftime('%d %b %Y') }}</small>
             </div>
-            <div class="card-body">
-                {% for invoice in invoices %}
-                <p>
-                    <a href="{{ url_for('invoices.view', invoice_id=invoice.id) }}">
-                        {{ invoice.invoice_number }}
-                    </a>
-                    <br>
-                    <small class="text-muted">{{ invoice.invoice_date.strftime('%d %b %Y') }}</small>
-                </p>
-                {% endfor %}
-            </div>
+            {% endfor %}
         </div>
         {% endif %}
 
         <!-- Timeline -->
-        <div class="card">
-            <div class="card-header">
-                <h5 class="mb-0">Timeline</h5>
+        <div class="form-section">
+            <div class="form-section-title">Timeline</div>
+            <div class="form-group">
+                <label>Created</label>
+                <div class="form-value">{{ challan.created_at.strftime('%d %b %Y %I:%M %p') }}</div>
             </div>
-            <div class="card-body">
-                <div class="timeline">
-                    <div class="timeline-item">
-                        <i class="fas fa-file text-secondary"></i>
-                        <div>
-                            <strong>Created</strong><br>
-                            <small class="text-muted">{{ challan.created_at.strftime('%d %b %Y %I:%M %p') }}</small>
-                        </div>
-                    </div>
-                    {% if challan.dispatched_at %}
-                    <div class="timeline-item">
-                        <i class="fas fa-truck text-info"></i>
-                        <div>
-                            <strong>Dispatched</strong><br>
-                            <small class="text-muted">{{ challan.dispatched_at.strftime('%d %b %Y %I:%M %p') }}</small>
-                        </div>
-                    </div>
-                    {% endif %}
-                    {% if challan.delivered_at %}
-                    <div class="timeline-item">
-                        <i class="fas fa-box text-success"></i>
-                        <div>
-                            <strong>Delivered</strong><br>
-                            <small class="text-muted">{{ challan.delivered_at.strftime('%d %b %Y %I:%M %p') }}</small>
-                        </div>
-                    </div>
-                    {% endif %}
-                    {% if challan.invoiced_at %}
-                    <div class="timeline-item">
-                        <i class="fas fa-file-invoice text-primary"></i>
-                        <div>
-                            <strong>Invoiced</strong><br>
-                            <small class="text-muted">{{ challan.invoiced_at.strftime('%d %b %Y %I:%M %p') }}</small>
-                        </div>
-                    </div>
-                    {% endif %}
-                </div>
+            {% if challan.dispatched_at %}
+            <div class="form-group">
+                <label>Dispatched</label>
+                <div class="form-value">{{ challan.dispatched_at.strftime('%d %b %Y %I:%M %p') }}</div>
             </div>
+            {% endif %}
+            {% if challan.delivered_at %}
+            <div class="form-group">
+                <label>Delivered</label>
+                <div class="form-value">{{ challan.delivered_at.strftime('%d %b %Y %I:%M %p') }}</div>
+            </div>
+            {% endif %}
+            {% if challan.invoiced_at %}
+            <div class="form-group">
+                <label>Invoiced</label>
+                <div class="form-value">{{ challan.invoiced_at.strftime('%d %b %Y %I:%M %p') }}</div>
+            </div>
+            {% endif %}
         </div>
     </div>
 </div>
 
-<style>
-/* Custom Grid System (Since Bootstrap isn't fully loaded) */
-.row {
-    display: flex;
-    flex-wrap: wrap;
-    margin: 0 -15px;
-}
-.col-md-12, .col-md-8, .col-md-6, .col-md-4 {
-    padding: 0 15px;
-    box-sizing: border-box;
-}
-.col-md-12 { flex: 0 0 100%; max-width: 100%; }
-.col-md-8 { flex: 0 0 66.666%; max-width: 66.666%; }
-.col-md-6 { flex: 0 0 50%; max-width: 50%; }
-.col-md-4 { flex: 0 0 33.333%; max-width: 33.333%; }
-
-/* Responsive: Stack on smaller screens */
-@media (max-width: 768px) {
-    .col-md-8, .col-md-6, .col-md-4 {
-        flex: 0 0 100%;
-        max-width: 100%;
-    }
-}
-
-/* Card Styling */
-.card {
-    border-radius: 12px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-    margin-bottom: 20px;
-    background: white;
-    border: 1px solid #e9ecef;
-}
-
-.card-header {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    padding: 15px 20px;
-    border-radius: 12px 12px 0 0;
-    border-bottom: none;
-}
-
-.card-header h5 {
-    margin: 0;
-    font-size: 1.1rem;
-    font-weight: 600;
-}
-
-.card-body {
-    padding: 20px;
-}
-
-/* Status Section - Consistent Sizing */
-.text-center h6 {
-    font-size: 0.85rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    margin-bottom: 8px;
-}
-.text-center h4 {
-    font-size: 1.8rem;
-    font-weight: 700;
-    margin-bottom: 4px;
-}
-.text-center small {
-    font-size: 0.8rem;
-    color: #6c757d;
-}
-/* Badge sizing consistency */
-.badge.fs-6 {
-    font-size: 1rem !important;
-    padding: 8px 16px;
-}
-
-/* Table Styling */
-.table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-bottom: 0;
-}
-
-.table thead {
-    background: #f8f9fa;
-}
-
-.table thead th {
-    padding: 12px;
-    text-align: left;
-    font-weight: 600;
-    color: #495057;
-    border-bottom: 2px solid #dee2e6;
-    font-size: 0.9rem;
-}
-
-.table tbody td, .table tfoot td, .table tfoot th {
-    padding: 10px 12px;
-    border-bottom: 1px solid #e9ecef;
-    vertical-align: middle;
-}
-
-.table tbody tr:last-child td {
-    border-bottom: none;
-}
-
-.text-end {
-    text-align: right;
-}
-
-.table tfoot {
-    background: #f8f9fa;
-}
-
-/* Typography */
-p {
-    margin-bottom: 0.75rem;
-    line-height: 1.6;
-}
-
-strong {
-    font-weight: 600;
-    color: #495057;
-}
-
-/* Badges */
-.badge {
-    display: inline-block;
-    padding: 6px 12px;
-    border-radius: 6px;
-    font-weight: 600;
-    font-size: 0.875rem;
-}
-
-.bg-secondary { background-color: #6c757d !important; color: white; }
-.bg-info { background-color: #17a2b8 !important; color: white; }
-.bg-success { background-color: #28a745 !important; color: white; }
-.bg-warning { background-color: #ffc107 !important; color: #212529; }
-.bg-primary { background-color: #007bff !important; color: white; }
-.bg-danger { background-color: #dc3545 !important; color: white; }
-
-/* Spacing Utilities */
-.mb-0 { margin-bottom: 0; }
-.mb-2 { margin-bottom: 0.5rem; }
-.mb-4 { margin-bottom: 1.5rem; }
-
-.text-muted { color: #6c757d !important; }
-
-/* Timeline Styling */
-.timeline {
-    position: relative;
-    padding-left: 30px;
-}
-
-.timeline-item {
-    position: relative;
-    padding-bottom: 20px;
-}
-
-.timeline-item:last-child {
-    padding-bottom: 0;
-}
-
-.timeline-item i {
-    position: absolute;
-    left: -30px;
-    font-size: 1.2em;
-}
-
-.timeline-item:before {
-    content: '';
-    position: absolute;
-    left: -24px;
-    top: 25px;
-    bottom: -20px;
-    width: 2px;
-    background: #dee2e6;
-}
-
-.timeline-item:last-child:before {
-    display: none;
-}
-
-/* Actions Dropdown - Consistent Styling */
-.dropdown-menu {
-    position: absolute;
-    z-index: 1000;
-    display: none; /* Hidden by default */
-    min-width: 220px;
-    padding: 8px 0;
-    margin: 4px 0 0;
-    background: white;
-    border: 1px solid rgba(0,0,0,0.15);
-    border-radius: 8px;
-    box-shadow: 0 6px 16px rgba(0,0,0,0.2);
-}
-.dropdown-menu-end {
-    right: 0 !important;
-    left: auto !important;
-}
-/* Show dropdown on toggle */
-.dropdown-menu.show {
-    display: block !important;
-}
-.dropdown-item {
-    display: block !important;
-    width: 100% !important;
-    padding: 8px 14px !important;
-    font-weight: 400 !important;
-    font-size: 0.9rem !important;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
-    line-height: 1.4 !important;
-    margin: 0 !important;
-    text-align: left !important;
-    color: #212529 !important;
-    text-decoration: none !important;
-    background-color: transparent;
-    border: 0 !important;
-    cursor: pointer;
-}
-.dropdown-item:hover {
-    background-color: #f8f9fa;
-}
-.dropdown-item.text-danger {
-    color: #dc3545 !important;
-}
-.dropdown-divider {
-    margin: 4px 0 !important;
-    border-top: 1px solid #e9ecef;
-}
-
-/* Forms inside dropdown items - remove extra spacing */
-.dropdown-menu li {
-    list-style: none;
-}
-.dropdown-menu li form {
-    margin: 0 !important;
-    padding: 0 !important;
-}
-
-/* Header Actions Wrapper */
-.btn-group {
-    position: relative;
-    display: inline-block;
-}
-.btn {
-    white-space: nowrap;
-    padding: 10px 20px;
-    font-size: 0.95rem;
-    font-weight: 600;
-    text-align: center;
-    border: none;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    text-decoration: none;
-}
-.btn-secondary {
-    background: #6c757d;
-    color: white;
-}
-.btn-secondary:hover {
-    background: #5a6268;
-}
-.btn-primary {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-}
-.btn-primary:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(102,126,234,0.4);
-}
-.dropdown-toggle::after {
-    margin-left: 8px;
-}
-</style>
-
 <script>
-// Simple dropdown toggle functionality
-document.addEventListener('DOMContentLoaded', function() {
-    const dropdownToggles = document.querySelectorAll('.dropdown-toggle');
+// Dropdown toggle functionality
+function toggleActionsMenu(event, button) {
+    event.stopPropagation();
+    const dropdown = button.nextElementSibling;
     
-    dropdownToggles.forEach(toggle => {
-        toggle.addEventListener('click', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            
-            // Close all other dropdowns first
-            document.querySelectorAll('.dropdown-menu').forEach(menu => {
-                if (menu !== this.nextElementSibling) {
-                    menu.classList.remove('show');
-                }
-            });
-            
-            // Toggle this dropdown
-            const menu = this.nextElementSibling;
-            if (menu && menu.classList.contains('dropdown-menu')) {
-                menu.classList.toggle('show');
-            }
-        });
+    // Close all other dropdowns
+    document.querySelectorAll('.dropdown-menu-custom').forEach(menu => {
+        if (menu !== dropdown) {
+            menu.style.display = 'none';
+        }
     });
     
-    // Close dropdown when clicking outside
-    document.addEventListener('click', function(e) {
-        if (!e.target.closest('.btn-group')) {
-            document.querySelectorAll('.dropdown-menu').forEach(menu => {
-                menu.classList.remove('show');
-            });
-        }
+    // Toggle current dropdown
+    dropdown.style.display = dropdown.style.display === 'none' ? 'block' : 'none';
+}
+
+// Close dropdown when clicking outside
+document.addEventListener('click', function(event) {
+    if (!event.target.closest('.dropdown')) {
+        document.querySelectorAll('.dropdown-menu-custom').forEach(menu => {
+            menu.style.display = 'none';
+        });
+    }
+});
+
+// Add hover effect to dropdown items
+document.querySelectorAll('.dropdown-menu-custom a, .dropdown-menu-custom button').forEach(item => {
+    item.addEventListener('mouseenter', function() {
+        this.style.background = '#e3f2fd';
+    });
+    item.addEventListener('mouseleave', function() {
+        this.style.background = 'white';
     });
 });
 </script>
-{% endblock %}
 
+<style>
+/* Form value styling */
+.form-value {
+    padding: 8px 12px;
+    background: #f8f9fa;
+    border-radius: 6px;
+    font-size: 14px;
+    color: #2c3e50;
+    min-height: 20px;
+}
+
+/* Mobile responsiveness */
+@media (max-width: 968px) {
+    #content > div {
+        grid-template-columns: 1fr !important;
+    }
+}
+</style>
+{% endblock %}
