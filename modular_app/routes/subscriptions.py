@@ -18,6 +18,26 @@ subscriptions_bp = Blueprint('subscriptions', __name__, url_prefix='/admin/subsc
 
 
 # ============================================================
+# DECORATORS
+# ============================================================
+def login_required(f):
+    """Require login to access route"""
+    from functools import wraps
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        from flask import session
+        if 'tenant_admin_id' not in session:
+            flash('⚠️ Please login first', 'warning')
+            return redirect(url_for('admin.login'))
+        # Verify session tenant matches current tenant
+        if session.get('tenant_admin_id') != get_current_tenant_id():
+            flash('⚠️ Session expired. Please login again.', 'warning')
+            return redirect(url_for('admin.login'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+
+# ============================================================
 # TEST ROUTE (for debugging)
 # ============================================================
 @subscriptions_bp.route('/test', methods=['GET'])
@@ -171,26 +191,6 @@ def resume_delivery(delivery_id):
         flash(f'❌ Error resuming delivery: {str(e)}', 'error')
     
     return redirect(url_for('subscriptions.deliveries'))
-
-
-# ============================================================
-# DECORATORS
-# ============================================================
-def login_required(f):
-    """Require login to access route"""
-    from functools import wraps
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        from flask import session
-        if 'tenant_admin_id' not in session:
-            flash('⚠️ Please login first', 'warning')
-            return redirect(url_for('admin.login'))
-        # Verify session tenant matches current tenant
-        if session.get('tenant_admin_id') != get_current_tenant_id():
-            flash('⚠️ Session expired. Please login again.', 'warning')
-            return redirect(url_for('admin.login'))
-        return f(*args, **kwargs)
-    return decorated_function
 
 
 # ============================================================
