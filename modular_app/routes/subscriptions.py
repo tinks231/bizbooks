@@ -27,6 +27,153 @@ def test_route():
 
 
 # ============================================================
+# DAILY DELIVERIES (METERED SUBSCRIPTIONS)
+# ============================================================
+@subscriptions_bp.route('/deliveries', methods=['GET'], strict_slashes=False)
+@require_tenant
+@login_required
+def deliveries():
+    """Daily Deliveries page - Shows exceptions and allows modifications"""
+    tenant_id = get_current_tenant_id()
+    
+    # Get only exceptions (modified/paused deliveries)
+    today = datetime.now().date()
+    exceptions = SubscriptionDelivery.get_exceptions(
+        tenant_id=tenant_id,
+        date_from=today - timedelta(days=7),  # Past week
+        date_to=today + timedelta(days=30)     # Next month
+    )
+    
+    # Get all active metered subscriptions for dropdowns
+    active_subscriptions = CustomerSubscription.query.join(
+        CustomerSubscription.plan
+    ).filter(
+        CustomerSubscription.tenant_id == tenant_id,
+        CustomerSubscription.status == 'active',
+        SubscriptionPlan.plan_type == 'metered'
+    ).options(
+        joinedload(CustomerSubscription.customer),
+        joinedload(CustomerSubscription.plan)
+    ).all()
+    
+    return render_template('admin/subscriptions/deliveries.html',
+                         exceptions=exceptions,
+                         active_subscriptions=active_subscriptions)
+
+
+@subscriptions_bp.route('/deliveries/pause', methods=['POST'], strict_slashes=False)
+@require_tenant
+@login_required
+def pause_deliveries():
+    """Pause deliveries for a date range"""
+    tenant_id = get_current_tenant_id()
+    
+    try:
+        subscription_id = int(request.form['subscription_id'])
+        date_from = datetime.strptime(request.form['date_from'], '%Y-%m-%d').date()
+        date_to = datetime.strptime(request.form['date_to'], '%Y-%m-%d').date()
+        reason = request.form.get('reason', 'Paused by customer')
+        
+        # Verify subscription belongs to tenant
+        subscription = CustomerSubscription.query.filter_by(
+            id=subscription_id,
+            tenant_id=tenant_id
+        ).first_or_404()
+        
+        # Pause deliveries using bulk_pause method
+        updated_count = SubscriptionDelivery.bulk_pause(
+            subscription_id=subscription_id,
+            date_from=date_from,
+            date_to=date_to,
+            reason=reason
+        )
+        
+        flash(f'✅ Paused {updated_count} deliveries for {subscription.customer.name} ({date_from.strftime("%b %d")} to {date_to.strftime("%b %d")})', 'success')
+        
+    except Exception as e:
+        db.session.rollback()
+        flash(f'❌ Error pausing deliveries: {str(e)}', 'error')
+    
+    return redirect(url_for('subscriptions.deliveries'))
+
+
+@subscriptions_bp.route('/deliveries/edit/<int:delivery_id>', methods=['POST'], strict_slashes=False)
+@require_tenant
+@login_required
+def edit_delivery(delivery_id):
+    """Edit a single delivery"""
+    tenant_id = get_current_tenant_id()
+    
+    delivery = SubscriptionDelivery.query.filter_by(
+        id=delivery_id,
+        tenant_id=tenant_id
+    ).first_or_404()
+    
+    try:
+        new_quantity = Decimal(request.form['quantity'])
+        reason = request.form.get('reason', 'Modified by owner')
+        
+        # Get original default quantity
+        original_quantity = delivery.subscription.default_quantity
+        
+        # Update delivery
+        delivery.quantity = new_quantity
+        delivery.amount = new_quantity * delivery.rate
+        delivery.is_modified = (new_quantity != original_quantity)
+        delivery.modification_reason = reason if delivery.is_modified else None
+        
+        # Update status
+        if new_quantity == 0:
+            delivery.status = 'paused'
+        else:
+            delivery.status = 'delivered'
+        
+        delivery.updated_at = datetime.utcnow()
+        
+        db.session.commit()
+        
+        flash(f'✅ Updated delivery for {delivery.delivery_date.strftime("%b %d")}', 'success')
+        
+    except Exception as e:
+        db.session.rollback()
+        flash(f'❌ Error updating delivery: {str(e)}', 'error')
+    
+    return redirect(url_for('subscriptions.deliveries'))
+
+
+@subscriptions_bp.route('/deliveries/resume/<int:delivery_id>', methods=['POST'], strict_slashes=False)
+@require_tenant
+@login_required
+def resume_delivery(delivery_id):
+    """Resume a paused delivery"""
+    tenant_id = get_current_tenant_id()
+    
+    delivery = SubscriptionDelivery.query.filter_by(
+        id=delivery_id,
+        tenant_id=tenant_id
+    ).first_or_404()
+    
+    try:
+        # Restore to default quantity
+        delivery.quantity = delivery.subscription.default_quantity
+        delivery.amount = delivery.quantity * delivery.rate
+        delivery.status = 'delivered'
+        delivery.is_modified = False
+        delivery.modification_reason = None
+        delivery.updated_at = datetime.utcnow()
+        
+        db.session.commit()
+        
+        flash(f'✅ Resumed delivery for {delivery.delivery_date.strftime("%b %d")}', 'success')
+        
+    except Exception as e:
+        db.session.rollback()
+        flash(f'❌ Error resuming delivery: {str(e)}', 'error')
+    
+    return redirect(url_for('subscriptions.deliveries'))
+
+
+# ============================================================
 # DECORATORS
 # ============================================================
 def login_required(f):
