@@ -11,23 +11,33 @@ from .database import db
 
 class SubscriptionPlan(db.Model):
     """
-    Subscription Plans (e.g., Monthly Gym, Quarterly Dance Class)
+    Subscription Plans (e.g., Monthly Gym, Quarterly Dance Class, Daily Milk Delivery)
     
     Examples:
-    - Monthly Gym (₹2,000 for 30 days)
-    - Quarterly Coaching (₹5,400 for 90 days)
-    - Annual Music Class (₹19,200 for 365 days)
+    - FIXED: Monthly Gym (₹2,000 for 30 days)
+    - FIXED: Quarterly Coaching (₹5,400 for 90 days)
+    - METERED: Daily Milk (₹60/liter, billed monthly based on actual consumption)
+    - METERED: Daily Newspaper (₹8/piece, billed monthly)
     """
     __tablename__ = 'subscription_plans'
     
     id = db.Column(db.Integer, primary_key=True)
     tenant_id = db.Column(db.Integer, db.ForeignKey('tenants.id'), nullable=False)
     
+    # Plan Type (NEW for metered subscriptions)
+    plan_type = db.Column(db.String(20), default='fixed', nullable=False)  # 'fixed' or 'metered'
+    
     # Plan details
-    name = db.Column(db.String(100), nullable=False)  # "Monthly Gym Membership"
-    description = db.Column(db.Text)  # "Includes all equipment access"
-    price = db.Column(db.Numeric(10, 2), nullable=False)  # ₹2,000
-    duration_days = db.Column(db.Integer, nullable=False)  # 30 days
+    name = db.Column(db.String(100), nullable=False)  # "Monthly Gym Membership" or "Daily Milk Delivery"
+    description = db.Column(db.Text)  # "Includes all equipment access" or "Fresh A2 milk daily"
+    
+    # FIXED plan pricing
+    price = db.Column(db.Numeric(10, 2))  # ₹2,000 (NULL for metered plans)
+    duration_days = db.Column(db.Integer)  # 30 days (NULL or used as billing cycle for metered)
+    
+    # METERED plan pricing (NEW)
+    unit_rate = db.Column(db.Numeric(10, 2))  # ₹60 per liter (NULL for fixed plans)
+    unit_name = db.Column(db.String(20))  # 'liter', 'kg', 'piece', 'hour' (NULL for fixed)
     
     # Status
     is_active = db.Column(db.Boolean, default=True, nullable=False)
@@ -79,6 +89,9 @@ class CustomerSubscription(db.Model):
     customer_id = db.Column(db.Integer, db.ForeignKey('customers.id'), nullable=False)
     plan_id = db.Column(db.Integer, db.ForeignKey('subscription_plans.id'), nullable=False)
     
+    # METERED subscriptions only (NEW)
+    default_quantity = db.Column(db.Numeric(10, 2))  # e.g., 2 liters/day (NULL for fixed plans)
+    
     # Billing dates
     start_date = db.Column(db.Date, nullable=False)  # When subscription started
     current_period_start = db.Column(db.Date, nullable=False)  # Current billing period start
@@ -99,6 +112,7 @@ class CustomerSubscription(db.Model):
     # Relationships
     customer = db.relationship('Customer', backref='subscriptions')
     payments = db.relationship('SubscriptionPayment', backref='subscription', lazy=True, order_by='SubscriptionPayment.payment_date.desc()')
+    deliveries = db.relationship('SubscriptionDelivery', backref='subscription', lazy=True, order_by='SubscriptionDelivery.delivery_date.desc()')
     
     def __repr__(self):
         return f'<CustomerSubscription {self.customer.name} - {self.plan.name}>'
@@ -223,4 +237,126 @@ class SubscriptionPayment(db.Model):
             return self.period_start.strftime('%b %Y')
         else:
             return f"{self.period_start.strftime('%b')}-{self.period_end.strftime('%b %Y')}"
+
+
+class SubscriptionDelivery(db.Model):
+    """
+    Daily Delivery Records (for METERED subscriptions only)
+    
+    Tracks actual daily deliveries for consumption-based billing.
+    Auto-generated on enrollment, updated only for exceptions.
+    
+    Examples:
+    - Dec 1: 2L delivered (default) ✅
+    - Dec 10: 0L (paused - vacation) ⏸️
+    - Dec 20: 3L delivered (party - one-time increase) 🎉
+    - Dec 25: 1L delivered (permanent reduction) 📉
+    """
+    __tablename__ = 'subscription_deliveries'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    tenant_id = db.Column(db.Integer, db.ForeignKey('tenants.id'), nullable=False)
+    
+    # Links
+    subscription_id = db.Column(db.Integer, db.ForeignKey('customer_subscriptions.id'), nullable=False)
+    
+    # Delivery details
+    delivery_date = db.Column(db.Date, nullable=False, index=True)  # Dec 1, 2025
+    quantity = db.Column(db.Numeric(10, 2), nullable=False)  # 2.0 liters
+    rate = db.Column(db.Numeric(10, 2), nullable=False)  # ₹60/liter (frozen at time of delivery)
+    amount = db.Column(db.Numeric(10, 2), nullable=False)  # ₹120 (quantity × rate)
+    
+    # Status
+    status = db.Column(db.String(20), default='delivered', nullable=False)  # delivered, paused, skipped, pending
+    
+    # Change tracking
+    is_modified = db.Column(db.Boolean, default=False)  # True if manually changed from default
+    modification_reason = db.Column(db.String(200))  # "Party", "Vacation", "Reduced quantity", etc.
+    
+    # Notes
+    notes = db.Column(db.Text)  # Additional delivery notes
+    
+    # Timestamps
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Unique constraint: one delivery per subscription per date
+    __table_args__ = (
+        db.UniqueConstraint('subscription_id', 'delivery_date', name='uq_subscription_delivery_date'),
+    )
+    
+    def __repr__(self):
+        return f'<SubscriptionDelivery {self.delivery_date} - {self.quantity} {self.subscription.plan.unit_name}>'
+    
+    @property
+    def status_display(self):
+        """User-friendly status with emoji"""
+        if self.status == 'delivered':
+            if self.quantity == 0:
+                return '⏸️ Paused'
+            elif self.is_modified:
+                return f'✅ {self.quantity} (modified)'
+            return f'✅ {self.quantity}'
+        elif self.status == 'paused':
+            return '⏸️ Paused'
+        elif self.status == 'skipped':
+            return '⏭️ Skipped'
+        elif self.status == 'pending':
+            return '⏳ Pending'
+        return self.status
+    
+    @classmethod
+    def get_exceptions(cls, tenant_id, date_from=None, date_to=None):
+        """
+        Get only modified/paused deliveries (exceptions to default)
+        Used for the "Exceptions Dashboard" view
+        """
+        query = cls.query.filter_by(tenant_id=tenant_id)
+        
+        if date_from:
+            query = query.filter(cls.delivery_date >= date_from)
+        if date_to:
+            query = query.filter(cls.delivery_date <= date_to)
+        
+        # Only show exceptions (paused or modified)
+        query = query.filter(
+            db.or_(
+                cls.is_modified == True,
+                cls.status == 'paused',
+                cls.quantity == 0
+            )
+        )
+        
+        return query.order_by(cls.delivery_date.asc()).all()
+    
+    @classmethod
+    def bulk_pause(cls, subscription_id, date_from, date_to, reason="Paused by customer"):
+        """
+        Pause deliveries for a date range
+        Updates all deliveries in range to quantity=0, status=paused
+        """
+        from datetime import timedelta
+        
+        current_date = date_from
+        updated_count = 0
+        
+        while current_date <= date_to:
+            delivery = cls.query.filter_by(
+                subscription_id=subscription_id,
+                delivery_date=current_date
+            ).first()
+            
+            if delivery:
+                delivery.quantity = 0
+                delivery.amount = 0
+                delivery.status = 'paused'
+                delivery.is_modified = True
+                delivery.modification_reason = reason
+                delivery.updated_at = datetime.utcnow()
+                updated_count += 1
+            
+            current_date += timedelta(days=1)
+        
+        db.session.commit()
+        return updated_count
 

@@ -136,10 +136,11 @@
                     <thead>
                         <tr>
                             <th>Plan Name</th>
+                            <th>Type</th>
                             <th>Description</th>
-                            <th>Price</th>
+                            <th>Pricing</th>
                             <th>Duration</th>
-                            <th>Active Members</th>
+                            <th>Members</th>
                             <th>Status</th>
                             <th>Actions</th>
                         </tr>
@@ -148,8 +149,21 @@
                         {% for plan in plans %}
                         <tr>
                             <td><strong>{{ plan.name }}</strong></td>
+                            <td>
+                                {% if plan.plan_type == 'metered' %}
+                                <span class="badge badge-info">📊 Metered</span>
+                                {% else %}
+                                <span class="badge badge-primary">📦 Fixed</span>
+                                {% endif %}
+                            </td>
                             <td>{{ plan.description or '-' }}</td>
-                            <td><strong>₹{{ '{:,.2f}'.format(plan.price) }}</strong></td>
+                            <td>
+                                {% if plan.plan_type == 'metered' %}
+                                <strong>₹{{ '{:,.2f}'.format(plan.unit_rate) }}</strong>/{{ plan.unit_name }}
+                                {% else %}
+                                <strong>₹{{ '{:,.2f}'.format(plan.price) }}</strong>
+                                {% endif %}
+                            </td>
                             <td>{{ plan.duration_display }}</td>
                             <td>
                                 <span class="badge badge-info">{{ plan.active_members_count }}</span>
@@ -201,29 +215,69 @@
             </div>
             <form method="POST" action="{{ url_for('subscriptions.add_plan') }}">
                 <div class="modal-body">
+                    <!-- Plan Type Selector -->
+                    <div class="form-group">
+                        <label class="field-label"><strong>Plan Type *</strong></label>
+                        <select name="plan_type" id="add_plan_type" class="form-control" required onchange="toggleAddPlanFields()">
+                            <option value="fixed">Fixed Price (Gym, Classes)</option>
+                            <option value="metered">Metered/Consumption (Milk, Newspaper)</option>
+                        </select>
+                        <small class="form-text text-muted">
+                            Fixed: Customer pays the same amount every period.<br>
+                            Metered: Customer pays based on actual consumption.
+                        </small>
+                    </div>
+
                     <div class="form-group">
                         <label class="field-label"><strong>Plan Name *</strong></label>
-                        <input type="text" name="name" class="form-control" placeholder="e.g., Monthly Gym Membership" required>
+                        <input type="text" name="name" class="form-control" placeholder="e.g., Monthly Gym Membership or Daily Milk Delivery" required>
                     </div>
                     <div class="form-group">
                         <label class="field-label"><strong>Description</strong></label>
-                        <textarea name="description" class="form-control" rows="2" placeholder="e.g., Includes all equipment access"></textarea>
+                        <textarea name="description" class="form-control" rows="2" placeholder="e.g., Includes all equipment access or Fresh A2 milk delivered daily"></textarea>
                     </div>
-                    <div class="form-group">
-                        <label class="field-label"><strong>Price (₹) *</strong></label>
-                        <input type="number" name="price" class="form-control" step="0.01" min="0" placeholder="2000" required>
-                    </div>
-                    <div class="form-group">
-                        <label class="field-label"><strong>Duration *</strong></label>
-                        <div class="input-group">
-                            <input type="number" name="duration_days" class="form-control" min="1" placeholder="30" required>
-                            <div class="input-group-append">
-                                <span class="input-group-text">days</span>
-                            </div>
+
+                    <!-- FIXED PLAN FIELDS -->
+                    <div id="add_fixed_fields">
+                        <div class="form-group">
+                            <label class="field-label"><strong>Price (₹) *</strong></label>
+                            <input type="number" name="price" id="add_price" class="form-control" step="0.01" min="0" placeholder="2000">
                         </div>
-                        <small class="form-text text-muted">
-                            Common: 30 days (1 month), 90 days (3 months), 365 days (1 year)
-                        </small>
+                        <div class="form-group">
+                            <label class="field-label"><strong>Duration *</strong></label>
+                            <div class="input-group">
+                                <input type="number" name="duration_days" id="add_duration_days" class="form-control" min="1" placeholder="30">
+                                <div class="input-group-append">
+                                    <span class="input-group-text">days</span>
+                                </div>
+                            </div>
+                            <small class="form-text text-muted">
+                                Common: 30 days (1 month), 90 days (3 months), 365 days (1 year)
+                            </small>
+                        </div>
+                    </div>
+
+                    <!-- METERED PLAN FIELDS -->
+                    <div id="add_metered_fields" style="display: none;">
+                        <div class="form-group">
+                            <label class="field-label"><strong>Rate per Unit (₹) *</strong></label>
+                            <input type="number" name="unit_rate" id="add_unit_rate" class="form-control" step="0.01" min="0" placeholder="60">
+                            <small class="form-text text-muted">Amount charged per unit (e.g., ₹60 per liter)</small>
+                        </div>
+                        <div class="form-group">
+                            <label class="field-label"><strong>Unit Name *</strong></label>
+                            <select name="unit_name" id="add_unit_name" class="form-control">
+                                <option value="liter">Liter (Milk, Juice)</option>
+                                <option value="kg">Kilogram (Vegetables, Fruits)</option>
+                                <option value="piece">Piece (Newspaper, Bread)</option>
+                                <option value="hour">Hour (Services)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="field-label"><strong>Billing Cycle (days)</strong></label>
+                            <input type="number" name="billing_cycle_days" id="add_billing_cycle" class="form-control" min="1" placeholder="30" value="30">
+                            <small class="form-text text-muted">How often to generate invoices (default: 30 days = monthly)</small>
+                        </div>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -286,6 +340,37 @@
 <script>
 function openAddPlanModal() {
     $('#addPlanModal').modal('show');
+    toggleAddPlanFields(); // Ensure correct fields are shown
+}
+
+function toggleAddPlanFields() {
+    const planType = document.getElementById('add_plan_type').value;
+    const fixedFields = document.getElementById('add_fixed_fields');
+    const meteredFields = document.getElementById('add_metered_fields');
+    
+    if (planType === 'fixed') {
+        fixedFields.style.display = 'block';
+        meteredFields.style.display = 'none';
+        
+        // Make fixed fields required
+        document.getElementById('add_price').required = true;
+        document.getElementById('add_duration_days').required = true;
+        
+        // Make metered fields optional
+        document.getElementById('add_unit_rate').required = false;
+        document.getElementById('add_unit_name').required = false;
+    } else {
+        fixedFields.style.display = 'none';
+        meteredFields.style.display = 'block';
+        
+        // Make metered fields required
+        document.getElementById('add_unit_rate').required = true;
+        document.getElementById('add_unit_name').required = true;
+        
+        // Make fixed fields optional
+        document.getElementById('add_price').required = false;
+        document.getElementById('add_duration_days').required = false;
+    }
 }
 
 function openEditPlanModal(id, name, description, price, duration, is_active) {

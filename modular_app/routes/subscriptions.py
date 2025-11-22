@@ -6,7 +6,7 @@ payment collection, and recurring billing.
 """
 
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
-from models import db, SubscriptionPlan, CustomerSubscription, SubscriptionPayment, Customer, Invoice, InvoiceItem
+from models import db, SubscriptionPlan, CustomerSubscription, SubscriptionPayment, SubscriptionDelivery, Customer, Invoice, InvoiceItem
 from utils.tenant_middleware import require_tenant, get_current_tenant, get_current_tenant_id
 from utils.license_check import check_license
 from datetime import datetime, timedelta
@@ -81,23 +81,40 @@ def plans():
 @require_tenant
 @login_required
 def add_plan():
-    """Add new subscription plan"""
+    """Add new subscription plan (fixed or metered)"""
     tenant_id = get_current_tenant_id()
     
     try:
-        plan = SubscriptionPlan(
-            tenant_id=tenant_id,
-            name=request.form['name'],
-            description=request.form.get('description', ''),
-            price=Decimal(request.form['price']),
-            duration_days=int(request.form['duration_days']),
-            is_active=True
-        )
+        plan_type = request.form.get('plan_type', 'fixed')
+        
+        # Common fields
+        plan_data = {
+            'tenant_id': tenant_id,
+            'name': request.form['name'],
+            'description': request.form.get('description', ''),
+            'plan_type': plan_type,
+            'is_active': True
+        }
+        
+        # FIXED plan - use price and duration_days
+        if plan_type == 'fixed':
+            plan_data['price'] = Decimal(request.form['price'])
+            plan_data['duration_days'] = int(request.form['duration_days'])
+        
+        # METERED plan - use unit_rate and unit_name
+        else:
+            plan_data['unit_rate'] = Decimal(request.form['unit_rate'])
+            plan_data['unit_name'] = request.form['unit_name']
+            # Billing cycle for metered plans (defaults to 30 days if not provided)
+            plan_data['duration_days'] = int(request.form.get('billing_cycle_days', 30))
+        
+        plan = SubscriptionPlan(**plan_data)
         
         db.session.add(plan)
         db.session.commit()
         
-        flash(f'✅ Plan "{plan.name}" created successfully!', 'success')
+        plan_type_label = '📦 Fixed' if plan_type == 'fixed' else '📊 Metered'
+        flash(f'✅ {plan_type_label} Plan "{plan.name}" created successfully!', 'success')
         
     except Exception as e:
         db.session.rollback()
