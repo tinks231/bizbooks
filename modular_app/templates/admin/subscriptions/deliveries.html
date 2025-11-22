@@ -15,6 +15,33 @@
         <p>Manage metered subscription deliveries (milk, newspapers, etc.)</p>
     </div>
 
+    <!-- Billing Ready Section (Month-End) -->
+    {% set today = now().date() %}
+    {% set ready_for_billing = [] %}
+    {% for sub in active_subscriptions %}
+        {% if sub.plan.plan_type == 'metered' and sub.current_period_end <= today + timedelta(days=3) %}
+            {% set _ = ready_for_billing.append(sub) %}
+        {% endif %}
+    {% endfor %}
+    
+    {% if ready_for_billing %}
+    <div class="alert alert-success" style="margin-bottom: 20px;">
+        <h4 style="margin: 0 0 10px 0;">💰 Ready for Monthly Billing</h4>
+        <p style="margin: 0 0 10px 0;">These subscriptions are ending soon. Generate invoices to bill customers:</p>
+        {% for sub in ready_for_billing %}
+        <div style="padding: 10px; background: white; border-radius: 6px; margin-top: 8px; display: flex; justify-content: space-between; align-items: center;">
+            <div>
+                <strong>{{ sub.customer.name }}</strong> - {{ sub.plan.name }}<br>
+                <small style="color: #666;">Period: {{ sub.current_period_start.strftime('%b %d') }} - {{ sub.current_period_end.strftime('%b %d, %Y') }} ({{ (sub.current_period_end - sub.current_period_start).days + 1 }} days)</small>
+            </div>
+            <a href="{{ url_for('subscriptions.generate_invoice_metered', subscription_id=sub.id) }}" class="btn btn-success">
+                💰 Generate Invoice
+            </a>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
     <!-- View Toggle -->
     <div class="subscription-section-header">
         <div>

@@ -1,0 +1,142 @@
+{% extends "base_sidebar.html" %}
+
+{% block title %}Invoice Preview - {{ subscription.customer.name }}{% endblock %}
+
+{% block header_actions %}
+<!-- No Manual Entry or QR buttons for subscription pages -->
+{% endblock %}
+
+{% block content %}
+
+<div class="container-fluid">
+    <!-- Page Header -->
+    <div class="subscription-header">
+        <h1>💰 Invoice Preview</h1>
+        <p>Review delivery summary before generating invoice</p>
+    </div>
+
+    <!-- Customer & Plan Info -->
+    <div class="form-section">
+        <h3 class="section-title">Customer Information</h3>
+        <div class="form-row">
+            <div class="form-group">
+                <label class="field-label"><strong>Customer</strong></label>
+                <div class="form-value">{{ subscription.customer.name }}</div>
+            </div>
+            <div class="form-group">
+                <label class="field-label"><strong>Phone</strong></label>
+                <div class="form-value">{{ subscription.customer.phone }}</div>
+            </div>
+            <div class="form-group">
+                <label class="field-label"><strong>Plan</strong></label>
+                <div class="form-value">{{ subscription.plan.name }}</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Billing Period Summary -->
+    <div class="form-section">
+        <h3 class="section-title">Billing Period</h3>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+            <div>
+                <label class="field-label"><strong>Period</strong></label>
+                <div class="form-value">{{ summary.billing_start.strftime('%b %d') }} - {{ summary.billing_end.strftime('%b %d, %Y') }}</div>
+            </div>
+            <div>
+                <label class="field-label"><strong>Total Days</strong></label>
+                <div class="form-value">{{ summary.total_days }} days</div>
+            </div>
+            <div>
+                <label class="field-label"><strong>Modified Days</strong></label>
+                <div class="form-value">{{ summary.modified_days }} days</div>
+            </div>
+            <div>
+                <label class="field-label"><strong>Default Quantity</strong></label>
+                <div class="form-value">{{ subscription.default_quantity }} {{ subscription.plan.unit_name }}/day</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delivery Breakdown -->
+    <div class="form-section">
+        <h3 class="section-title">📦 Delivery Breakdown</h3>
+        <div class="table-responsive">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Quantity</th>
+                        <th>Rate</th>
+                        <th>Amount</th>
+                        <th>Status</th>
+                        <th>Notes</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for delivery in summary.deliveries %}
+                    <tr {% if delivery.is_modified %}style="background: #fff9e6;"{% endif %}>
+                        <td>{{ delivery.delivery_date.strftime('%b %d') }}</td>
+                        <td>
+                            {% if delivery.quantity == 0 %}
+                            <span style="color: #999;">0 {{ subscription.plan.unit_name }}</span>
+                            {% else %}
+                            <strong>{{ delivery.quantity }} {{ subscription.plan.unit_name }}</strong>
+                            {% endif %}
+                        </td>
+                        <td>₹{{ '{:,.2f}'.format(delivery.rate) }}</td>
+                        <td><strong>₹{{ '{:,.2f}'.format(delivery.amount) }}</strong></td>
+                        <td>
+                            {% if delivery.status == 'paused' or delivery.quantity == 0 %}
+                            <span class="badge badge-secondary">Paused</span>
+                            {% elif delivery.is_modified %}
+                            <span class="badge badge-info">Modified</span>
+                            {% else %}
+                            <span class="badge badge-success">Delivered</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ delivery.modification_reason or '-' }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot>
+                    <tr style="background: #f0f8ff; font-weight: bold;">
+                        <td>TOTAL</td>
+                        <td><strong>{{ summary.total_quantity }} {{ subscription.plan.unit_name }}</strong></td>
+                        <td>-</td>
+                        <td><strong style="color: #0066cc; font-size: 18px;">₹{{ '{:,.2f}'.format(summary.total_amount) }}</strong></td>
+                        <td colspan="2"></td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+
+    <!-- Invoice Summary (Blue Card) -->
+    <div style="background: linear-gradient(135deg, #0066cc 0%, #004d99 100%); color: white; padding: 25px; border-radius: 8px; margin-bottom: 20px;">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+                <h3 style="margin: 0 0 10px 0; font-size: 24px;">Invoice Amount</h3>
+                <p style="margin: 0; opacity: 0.9;">{{ summary.total_quantity }} {{ subscription.plan.unit_name }} × ₹{{ '{:,.2f}'.format(subscription.plan.unit_rate) }}/{{ subscription.plan.unit_name }}</p>
+            </div>
+            <div style="text-align: right;">
+                <div style="font-size: 36px; font-weight: bold;">₹{{ '{:,.2f}'.format(summary.total_amount) }}</div>
+                <small style="opacity: 0.9;">{{ summary.billing_start.strftime('%b %d') }} - {{ summary.billing_end.strftime('%b %d, %Y') }}</small>
+            </div>
+        </div>
+    </div>
+
+    <!-- Actions -->
+    <div style="display: flex; gap: 10px; justify-content: flex-end;">
+        <a href="{{ url_for('subscriptions.deliveries') }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Back
+        </a>
+        <form method="POST" style="display: inline;" onsubmit="return confirm('Generate invoice for ₹{{ \"{:,.2f}\".format(summary.total_amount) }}? This will create an invoice and mark subscription as pending payment.')">
+            <button type="submit" class="btn btn-success btn-lg">
+                <i class="fas fa-file-invoice"></i> Generate Invoice
+            </button>
+        </form>
+    </div>
+</div>
+
+{% endblock %}
+

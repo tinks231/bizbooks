@@ -78,7 +78,9 @@ def deliveries():
     
     return render_template('admin/subscriptions/deliveries.html',
                          exceptions=exceptions,
-                         active_subscriptions=active_subscriptions)
+                         active_subscriptions=active_subscriptions,
+                         now=datetime.now,
+                         timedelta=timedelta)
 
 
 @subscriptions_bp.route('/deliveries/modify', methods=['POST'], strict_slashes=False)
@@ -538,8 +540,35 @@ def enroll_member():
         # Get plan
         plan = SubscriptionPlan.query.filter_by(id=plan_id, tenant_id=tenant_id).first_or_404()
         
-        # Calculate period end
-        period_end = start_date + timedelta(days=plan.duration_days)
+        # Calculate period end based on plan type
+        if plan.plan_type == 'metered':
+            # METERED: Use calendar month
+            # If enrolled on 1st of month → bill till end of month
+            # If enrolled mid-month → bill till same day next month
+            if start_date.day == 1:
+                # First of month → End of month
+                if start_date.month == 12:
+                    period_end = datetime(start_date.year + 1, 1, 1).date() - timedelta(days=1)
+                else:
+                    period_end = datetime(start_date.year, start_date.month + 1, 1).date() - timedelta(days=1)
+            else:
+                # Mid-month → Same day next month (or end of month if day doesn't exist)
+                if start_date.month == 12:
+                    next_year = start_date.year + 1
+                    next_month = 1
+                else:
+                    next_year = start_date.year
+                    next_month = start_date.month + 1
+                
+                try:
+                    period_end = datetime(next_year, next_month, start_date.day).date() - timedelta(days=1)
+                except ValueError:
+                    # Day doesn't exist in next month (e.g., Jan 31 → Feb 31 doesn't exist)
+                    # Use last day of next month
+                    period_end = datetime(next_year, next_month + 1 if next_month < 12 else 1, 1).date() - timedelta(days=1)
+        else:
+            # FIXED: Use duration_days as before
+            period_end = start_date + timedelta(days=plan.duration_days)
         
         # Determine subscription status
         # For metered plans, always active (payment collected after consumption)
@@ -1046,4 +1075,147 @@ def reports():
                          end_date=end_date_str,
                          plan_filter=plan_filter,
                          status_filter=status_filter)
+
+
+# ============================================================
+# MONTHLY BILLING (METERED SUBSCRIPTIONS)
+# ============================================================
+@subscriptions_bp.route('/deliveries/generate-invoice/<int:subscription_id>', methods=['GET', 'POST'], strict_slashes=False)
+@require_tenant
+@login_required
+def generate_invoice_metered(subscription_id):
+    """Generate invoice for metered subscription based on actual deliveries"""
+    tenant_id = get_current_tenant_id()
+    
+    subscription = CustomerSubscription.query.filter_by(
+        id=subscription_id,
+        tenant_id=tenant_id
+    ).first_or_404()
+    
+    # Verify it's a metered plan
+    if subscription.plan.plan_type != 'metered':
+        flash('❌ This feature is only for metered subscriptions', 'error')
+        return redirect(url_for('subscriptions.deliveries'))
+    
+    if request.method == 'GET':
+        # Show invoice preview with delivery summary
+        billing_start = subscription.current_period_start
+        billing_end = subscription.current_period_end
+        
+        # Get all deliveries for this period
+        deliveries = SubscriptionDelivery.query.filter_by(
+            subscription_id=subscription_id,
+            tenant_id=tenant_id
+        ).filter(
+            SubscriptionDelivery.delivery_date >= billing_start,
+            SubscriptionDelivery.delivery_date <= billing_end
+        ).order_by(SubscriptionDelivery.delivery_date.asc()).all()
+        
+        # Calculate totals
+        total_quantity = sum(d.quantity for d in deliveries)
+        total_amount = sum(d.amount for d in deliveries)
+        total_days = len(deliveries)
+        modified_days = sum(1 for d in deliveries if d.is_modified)
+        
+        summary = {
+            'billing_start': billing_start,
+            'billing_end': billing_end,
+            'total_days': total_days,
+            'modified_days': modified_days,
+            'total_quantity': total_quantity,
+            'total_amount': total_amount,
+            'deliveries': deliveries
+        }
+        
+        return render_template('admin/subscriptions/invoice_preview.html',
+                             subscription=subscription,
+                             summary=summary)
+    
+    # POST - Generate invoice
+    try:
+        billing_start = subscription.current_period_start
+        billing_end = subscription.current_period_end
+        
+        # Get all deliveries for this period
+        deliveries = SubscriptionDelivery.query.filter_by(
+            subscription_id=subscription_id,
+            tenant_id=tenant_id
+        ).filter(
+            SubscriptionDelivery.delivery_date >= billing_start,
+            SubscriptionDelivery.delivery_date <= billing_end
+        ).all()
+        
+        # Calculate total
+        total_quantity = sum(d.quantity for d in deliveries)
+        total_amount = float(sum(d.amount for d in deliveries))
+        
+        # Create invoice
+        customer = subscription.customer
+        invoice_number = f"SUB-{datetime.now().strftime('%Y%m%d%H%M%S')}"
+        
+        invoice = Invoice(
+            tenant_id=tenant_id,
+            customer_id=customer.id,
+            customer_name=customer.name,
+            customer_phone=customer.phone or '',
+            customer_email=customer.email or '',
+            invoice_date=datetime.now().date(),
+            invoice_number=invoice_number,
+            total_amount=total_amount,
+            payment_status='unpaid',
+            paid_amount=0,
+            status='pending'
+        )
+        
+        db.session.add(invoice)
+        db.session.flush()
+        
+        # Add invoice item with delivery summary
+        billing_period_label = f"{billing_start.strftime('%b %d')} - {billing_end.strftime('%b %d, %Y')}"
+        item_description = f"{subscription.plan.name}\n{billing_period_label}\nTotal: {total_quantity} {subscription.plan.unit_name}"
+        
+        item = InvoiceItem(
+            invoice_id=invoice.id,
+            item_name=f"Subscription - {subscription.plan.name}",
+            description=item_description,
+            quantity=float(total_quantity),
+            unit=subscription.plan.unit_name,
+            rate=float(subscription.plan.unit_rate),
+            taxable_value=total_amount,
+            gst_rate=0,  # No GST on subscriptions (adjust if needed)
+            cgst_amount=0,
+            sgst_amount=0,
+            igst_amount=0,
+            total_amount=total_amount
+        )
+        
+        db.session.add(item)
+        
+        # Create payment record (mark as pending)
+        payment = SubscriptionPayment(
+            tenant_id=tenant_id,
+            subscription_id=subscription.id,
+            invoice_id=invoice.id,
+            payment_date=datetime.now().date(),
+            amount=Decimal(str(total_amount)),
+            payment_mode='Pending',
+            period_start=billing_start,
+            period_end=billing_end,
+            billing_period_label=billing_period_label
+        )
+        
+        db.session.add(payment)
+        
+        # Update subscription status
+        subscription.status = 'pending_payment'
+        
+        db.session.commit()
+        
+        flash(f'✅ Invoice {invoice_number} generated successfully! Amount: ₹{total_amount:,.2f} ({total_quantity} {subscription.plan.unit_name})', 'success')
+        return redirect(url_for('admin.view_invoice', invoice_id=invoice.id))
+        
+    except Exception as e:
+        db.session.rollback()
+        flash(f'❌ Error generating invoice: {str(e)}', 'error')
+        return redirect(url_for('subscriptions.deliveries'))
 
