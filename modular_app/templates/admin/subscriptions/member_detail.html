@@ -45,7 +45,14 @@
                                 </tr>
                                 <tr>
                                     <th>Price:</th>
-                                    <td><strong>₹{{ '{:,.2f}'.format(subscription.plan.price) }}</strong> / {{ subscription.plan.duration_display }}</td>
+                                    <td>
+                                        {% if subscription.plan.plan_type == 'metered' %}
+                                        <strong>₹{{ '{:,.2f}'.format(subscription.plan.unit_rate) }}</strong> / {{ subscription.plan.unit_name }}<br>
+                                        <small>Default: {{ subscription.default_quantity }} {{ subscription.plan.unit_name }}/day</small>
+                                        {% else %}
+                                        <strong>₹{{ '{:,.2f}'.format(subscription.plan.price) }}</strong> / {{ subscription.plan.duration_display }}
+                                        {% endif %}
+                                    </td>
                                 </tr>
                             </table>
                         </div>

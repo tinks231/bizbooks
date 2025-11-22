@@ -48,7 +48,11 @@
                             <h4>Next Billing Period</h4>
                             <div id="next_period_info" class="next-period-box">
                                 <strong>📅 Period:</strong> {{ next_period_start.strftime('%d %b %Y') }} - {{ next_period_end.strftime('%d %b %Y') }}<br>
+                                {% if subscription.plan.plan_type == 'metered' %}
+                                <strong>💰 Amount Due:</strong> Calculated based on consumption
+                                {% else %}
                                 <strong>💰 Amount Due:</strong> ₹{{ '{:,.2f}'.format(subscription.plan.price) }}
+                                {% endif %}
                             </div>
                         </div>
 
@@ -94,7 +98,12 @@
                         <div class="summary-box">
                             <h5><strong>💡 What Happens Next:</strong></h5>
                             <ul>
+                                {% if subscription.plan.plan_type == 'metered' %}
+                                <li>Payment amount will be calculated based on actual consumption</li>
+                                <li>Invoice will include daily delivery breakdown</li>
+                                {% else %}
                                 <li>Payment of <strong>₹{{ '{:,.2f}'.format(subscription.plan.price) }}</strong> will be recorded</li>
+                                {% endif %}
                                 <li>Subscription will be renewed for <strong>{{ subscription.plan.duration_display }}</strong></li>
                                 <li>New billing period: <strong>{{ next_period_start.strftime('%d %b') }} - {{ next_period_end.strftime('%d %b %Y') }}</strong></li>
                                 <li>Next payment due: <strong>{{ next_period_end.strftime('%d %b %Y') }}</strong></li>

@@ -120,7 +120,11 @@
                             </td>
                             <td>
                                 <strong>{{ subscription.plan.name }}</strong><br>
+                                {% if subscription.plan.plan_type == 'metered' %}
+                                <small style="color: #666;">₹{{ '{:,.2f}'.format(subscription.plan.unit_rate) }}/{{ subscription.plan.unit_name }} · {{ subscription.default_quantity }} {{ subscription.plan.unit_name }}/day</small>
+                                {% else %}
                                 <small style="color: #666;">₹{{ '{:,.2f}'.format(subscription.plan.price) }}/{{ subscription.plan.duration_display }}</small>
+                                {% endif %}
                             </td>
                             <td>{{ subscription.start_date.strftime('%d %b %Y') }}</td>
                             <td>
