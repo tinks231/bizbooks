@@ -25,7 +25,10 @@
             <button class="btn btn-outline-secondary" onclick="toggleView()" id="toggle_btn">
                 📋 View Full Log
             </button>
-            <button class="btn btn-primary" onclick="openPauseModal()">
+            <button class="btn btn-success" onclick="openModifyModal()">
+                ✏️ Modify Delivery
+            </button>
+            <button class="btn btn-warning" onclick="openPauseModal()">
                 ⏸️ Pause Deliveries
             </button>
         </div>
@@ -141,12 +144,69 @@
     </div>
 </div>
 
+<!-- Modify Delivery Modal -->
+<div class="modal fade" id="modifyModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">✏️ Modify Delivery</h5>
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+            </div>
+            <form method="POST" action="{{ url_for('subscriptions.modify_delivery') }}">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label class="field-label"><strong>Customer *</strong></label>
+                        <select name="subscription_id" id="modify_subscription" class="form-control" required onchange="updateModifyUnit()">
+                            <option value="">-- Select Customer --</option>
+                            {% for sub in active_subscriptions %}
+                            <option value="{{ sub.id }}" data-unit="{{ sub.plan.unit_name }}" data-default="{{ sub.default_quantity }}">
+                                {{ sub.customer.name }} - {{ sub.plan.name }} ({{ sub.default_quantity }} {{ sub.plan.unit_name }}/day)
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="field-label"><strong>Date *</strong></label>
+                        <input type="date" name="delivery_date" class="form-control" required>
+                        <small class="form-text text-muted">Select the date you want to modify</small>
+                    </div>
+                    <div class="form-group">
+                        <label class="field-label"><strong>New Quantity *</strong></label>
+                        <div class="input-group">
+                            <input type="number" name="quantity" id="modify_quantity" class="form-control" step="0.01" min="0" required>
+                            <div class="input-group-append">
+                                <span class="input-group-text" id="modify_unit">liters</span>
+                            </div>
+                        </div>
+                        <small class="form-text text-muted">Enter 0 to skip this delivery, or enter new quantity (e.g., 3 for party, 1 for reduced)</small>
+                    </div>
+                    <div class="form-group">
+                        <label class="field-label"><strong>Reason *</strong></label>
+                        <input type="text" name="reason" class="form-control" placeholder="e.g., Party, Guests, Diet change" required>
+                    </div>
+                    <div class="alert alert-info">
+                        <strong>💡 Quick Options:</strong>
+                        <button type="button" class="btn btn-sm btn-outline-primary" onclick="setModifyQuantity(0)">Skip (0)</button>
+                        <button type="button" class="btn btn-sm btn-outline-primary" onclick="setModifyQuantity(1)">Reduce (1)</button>
+                        <button type="button" class="btn btn-sm btn-outline-primary" onclick="setModifyQuantity(3)">Increase (3)</button>
+                        <button type="button" class="btn btn-sm btn-outline-primary" onclick="setModifyQuantity(5)">Party (5)</button>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success">✏️ Modify</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <!-- Pause Deliveries Modal -->
 <div class="modal fade" id="pauseModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">⏸️ Pause Deliveries</h5>
+                <h5 class="modal-title">⏸️ Pause Deliveries (Date Range)</h5>
                 <button type="button" class="close" data-dismiss="modal">&times;</button>
             </div>
             <form method="POST" action="{{ url_for('subscriptions.pause_deliveries') }}">
@@ -171,6 +231,9 @@
                     <div class="form-group">
                         <label class="field-label"><strong>Reason</strong></label>
                         <input type="text" name="reason" class="form-control" placeholder="e.g., Vacation, Out of town">
+                    </div>
+                    <div class="alert alert-warning">
+                        <strong>⚠️ Note:</strong> This will set quantity to 0 for all days in the selected range.
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -260,8 +323,28 @@ function loadFullLog() {
     `;
 }
 
+function openModifyModal() {
+    $('#modifyModal').modal('show');
+}
+
 function openPauseModal() {
     $('#pauseModal').modal('show');
+}
+
+function updateModifyUnit() {
+    const select = document.getElementById('modify_subscription');
+    const selected = select.options[select.selectedIndex];
+    
+    if (selected.value) {
+        const unit = selected.getAttribute('data-unit');
+        const defaultQty = selected.getAttribute('data-default');
+        document.getElementById('modify_unit').textContent = unit;
+        document.getElementById('modify_quantity').placeholder = 'Default: ' + defaultQty;
+    }
+}
+
+function setModifyQuantity(qty) {
+    document.getElementById('modify_quantity').value = qty;
 }
 
 function openEditDeliveryModal(id, date, subscriptionId, quantity, unit) {

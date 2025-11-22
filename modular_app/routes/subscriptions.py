@@ -81,6 +81,68 @@ def deliveries():
                          active_subscriptions=active_subscriptions)
 
 
+@subscriptions_bp.route('/deliveries/modify', methods=['POST'], strict_slashes=False)
+@require_tenant
+@login_required
+def modify_delivery():
+    """Modify a single delivery quantity (create if doesn't exist)"""
+    tenant_id = get_current_tenant_id()
+    
+    try:
+        subscription_id = int(request.form['subscription_id'])
+        delivery_date = datetime.strptime(request.form['delivery_date'], '%Y-%m-%d').date()
+        new_quantity = Decimal(request.form['quantity'])
+        reason = request.form.get('reason', 'Modified by owner')
+        
+        # Verify subscription belongs to tenant
+        subscription = CustomerSubscription.query.filter_by(
+            id=subscription_id,
+            tenant_id=tenant_id
+        ).first_or_404()
+        
+        # Check if delivery already exists
+        delivery = SubscriptionDelivery.query.filter_by(
+            subscription_id=subscription_id,
+            delivery_date=delivery_date
+        ).first()
+        
+        if delivery:
+            # Update existing delivery
+            delivery.quantity = new_quantity
+            delivery.amount = new_quantity * delivery.rate
+            delivery.is_modified = (new_quantity != subscription.default_quantity)
+            delivery.modification_reason = reason if delivery.is_modified else None
+            delivery.status = 'paused' if new_quantity == 0 else 'delivered'
+            delivery.updated_at = datetime.utcnow()
+        else:
+            # Create new delivery (for dates not yet auto-generated)
+            delivery = SubscriptionDelivery(
+                tenant_id=tenant_id,
+                subscription_id=subscription_id,
+                delivery_date=delivery_date,
+                quantity=new_quantity,
+                rate=subscription.plan.unit_rate,
+                amount=new_quantity * subscription.plan.unit_rate,
+                status='paused' if new_quantity == 0 else 'delivered',
+                is_modified=(new_quantity != subscription.default_quantity),
+                modification_reason=reason
+            )
+            db.session.add(delivery)
+        
+        db.session.commit()
+        
+        if new_quantity == 0:
+            flash(f'✅ Delivery skipped for {subscription.customer.name} on {delivery_date.strftime("%b %d")}', 'success')
+        else:
+            flash(f'✅ Delivery updated for {subscription.customer.name} on {delivery_date.strftime("%b %d")}: {new_quantity} {subscription.plan.unit_name}', 'success')
+        
+    except Exception as e:
+        db.session.rollback()
+        flash(f'❌ Error modifying delivery: {str(e)}', 'error')
+    
+    return redirect(url_for('subscriptions.deliveries'))
+
+
 @subscriptions_bp.route('/deliveries/pause', methods=['POST'], strict_slashes=False)
 @require_tenant
 @login_required
