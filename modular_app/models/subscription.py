@@ -175,8 +175,28 @@ class CustomerSubscription(db.Model):
         Renew subscription for next billing period.
         Updates current_period_start and current_period_end.
         """
+        # Start of next period is day after current period ends
         self.current_period_start = self.current_period_end + timedelta(days=1)
-        self.current_period_end = self.current_period_start + timedelta(days=self.plan.duration_days)
+        
+        # Calculate end based on plan type
+        if self.plan.plan_type == 'metered':
+            # METERED: Full calendar month
+            # Examples:
+            #   Dec 1 → Dec 31
+            #   Jan 1 → Jan 31
+            #   Feb 1 → Feb 28/29
+            
+            start = self.current_period_start
+            if start.month == 12:
+                # December → End on Dec 31
+                self.current_period_end = datetime(start.year, 12, 31).date()
+            else:
+                # Last day of current month
+                self.current_period_end = datetime(start.year, start.month + 1, 1).date() - timedelta(days=1)
+        else:
+            # FIXED: Use duration_days
+            self.current_period_end = self.current_period_start + timedelta(days=self.plan.duration_days)
+        
         self.status = 'active'
         self.updated_at = datetime.utcnow()
     

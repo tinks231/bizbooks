@@ -542,30 +542,20 @@ def enroll_member():
         
         # Calculate period end based on plan type
         if plan.plan_type == 'metered':
-            # METERED: Use calendar month
-            # If enrolled on 1st of month → bill till end of month
-            # If enrolled mid-month → bill till same day next month
-            if start_date.day == 1:
-                # First of month → End of month
-                if start_date.month == 12:
-                    period_end = datetime(start_date.year + 1, 1, 1).date() - timedelta(days=1)
-                else:
-                    period_end = datetime(start_date.year, start_date.month + 1, 1).date() - timedelta(days=1)
+            # METERED: Always bill till end of CURRENT month
+            # Examples:
+            #   Nov 1 → Nov 30 (30 days)
+            #   Nov 22 → Nov 30 (9 days) 
+            #   Dec 1 → Dec 31 (31 days)
+            #   Feb 15 → Feb 28 (13-14 days)
+            
+            # Calculate last day of current month
+            if start_date.month == 12:
+                # December → Last day is Dec 31
+                period_end = datetime(start_date.year, 12, 31).date()
             else:
-                # Mid-month → Same day next month (or end of month if day doesn't exist)
-                if start_date.month == 12:
-                    next_year = start_date.year + 1
-                    next_month = 1
-                else:
-                    next_year = start_date.year
-                    next_month = start_date.month + 1
-                
-                try:
-                    period_end = datetime(next_year, next_month, start_date.day).date() - timedelta(days=1)
-                except ValueError:
-                    # Day doesn't exist in next month (e.g., Jan 31 → Feb 31 doesn't exist)
-                    # Use last day of next month
-                    period_end = datetime(next_year, next_month + 1 if next_month < 12 else 1, 1).date() - timedelta(days=1)
+                # First day of next month - 1 day = Last day of current month
+                period_end = datetime(start_date.year, start_date.month + 1, 1).date() - timedelta(days=1)
         else:
             # FIXED: Use duration_days as before
             period_end = start_date + timedelta(days=plan.duration_days)
@@ -605,7 +595,8 @@ def enroll_member():
             current_date = start_date
             deliveries_created = 0
             
-            while current_date < period_end:
+            # Include period_end (e.g., Nov 22-30 should include Nov 30)
+            while current_date <= period_end:
                 delivery = SubscriptionDelivery(
                     tenant_id=tenant_id,
                     subscription_id=subscription.id,
