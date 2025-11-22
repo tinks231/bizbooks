@@ -94,7 +94,7 @@
 
         <!-- Customer Details -->
         <div class="form-section">
-            <div class="form-section-title">Customer Details</div>
+            <h3 class="section-title">Customer Details</h3>
             <div class="form-row">
                 <div class="form-group">
                     <label>Name</label>
@@ -135,7 +135,7 @@
 
         <!-- Delivery Details -->
         <div class="form-section">
-            <div class="form-section-title">Delivery Information</div>
+            <h3 class="section-title">Delivery Information</h3>
             <div class="form-row">
                 <div class="form-group">
                     <label>Vehicle Number</label>
@@ -160,7 +160,7 @@
 
         <!-- Items -->
         <div class="form-section">
-            <div class="form-section-title">Items</div>
+            <h3 class="section-title">Items</h3>
             <div style="overflow-x: auto;">
                 <table class="table">
                     <thead>
@@ -222,7 +222,7 @@
     <div>
         <!-- Reference Info -->
         <div class="form-section">
-            <div class="form-section-title">Reference</div>
+            <h3 class="section-title">Reference</h3>
             <div class="form-group">
                 <label>DC Number</label>
                 <div class="form-value">{{ challan.challan_number }}</div>
@@ -246,7 +246,7 @@
         <!-- Linked Invoices -->
         {% if invoices %}
         <div class="form-section">
-            <div class="form-section-title">Linked Invoices</div>
+            <h3 class="section-title">Linked Invoices</h3>
             {% for invoice in invoices %}
             <div class="form-group">
                 <a href="{{ url_for('invoices.view', invoice_id=invoice.id) }}" style="color: #007bff; text-decoration: none; font-weight: 600; display: block; margin-bottom: 5px;">
@@ -260,7 +260,7 @@
 
         <!-- Timeline -->
         <div class="form-section">
-            <div class="form-section-title">Timeline</div>
+            <h3 class="section-title">Timeline</h3>
             <div class="form-group">
                 <label>Created</label>
                 <div class="form-value">{{ challan.created_at.strftime('%d %b %Y %I:%M %p') }}</div>
