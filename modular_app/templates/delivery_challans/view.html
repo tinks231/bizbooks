@@ -67,11 +67,11 @@
     <!-- Main Content -->
     <div>
         <!-- Status Summary -->
-        <div class="form-section" style="margin-bottom: 20px;">
+        <div style="margin-bottom: 20px;">
             <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px;">
-                <div style="text-align: center; padding: 15px; background: #f8f9fa; border-radius: 8px;">
-                    <div style="font-size: 11px; color: #6c757d; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.5px;">Status</div>
-                    <div style="font-size: 18px; font-weight: 600; color: #2c3e50;">
+                <div style="text-align: center; padding: 20px; background: #f8f9fa; border-radius: 8px; border: 1px solid #e9ecef;">
+                    <div style="font-size: 11px; color: #6c757d; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px;">STATUS</div>
+                    <div style="font-size: 20px; font-weight: 600; color: #2c3e50;">
                         {% if challan.status == 'draft' %}Draft
                         {% elif challan.status == 'dispatched' %}Dispatched
                         {% elif challan.status == 'delivered' %}Delivered
@@ -81,13 +81,13 @@
                         {% endif %}
                     </div>
                 </div>
-                <div style="text-align: center; padding: 15px; background: #e3f2fd; border-radius: 8px;">
-                    <div style="font-size: 11px; color: #1976d2; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.5px;">Total Amount</div>
-                    <div style="font-size: 20px; font-weight: 700; color: #0d47a1;">₹{{ "{:,.2f}".format(challan.total_amount) }}</div>
+                <div style="text-align: center; padding: 20px; background: #e3f2fd; border-radius: 8px; border: 1px solid #90caf9;">
+                    <div style="font-size: 11px; color: #1976d2; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px;">TOTAL AMOUNT</div>
+                    <div style="font-size: 22px; font-weight: 700; color: #0d47a1;">₹{{ "{:,.2f}".format(challan.total_amount) }}</div>
                 </div>
-                <div style="text-align: center; padding: 15px; background: #f3e5f5; border-radius: 8px;">
-                    <div style="font-size: 11px; color: #7b1fa2; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.5px;">Items</div>
-                    <div style="font-size: 20px; font-weight: 700; color: #4a148c;">{{ challan.items|length }}</div>
+                <div style="text-align: center; padding: 20px; background: #f3e5f5; border-radius: 8px; border: 1px solid #ce93d8;">
+                    <div style="font-size: 11px; color: #7b1fa2; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px;">ITEMS</div>
+                    <div style="font-size: 22px; font-weight: 700; color: #4a148c;">{{ challan.items|length }}</div>
                 </div>
             </div>
         </div>
@@ -325,14 +325,28 @@ document.querySelectorAll('.dropdown-menu-custom a, .dropdown-menu-custom button
 </script>
 
 <style>
+/* Fix section title alignment */
+.form-section-title {
+    padding-left: 0 !important;
+    margin-left: 0 !important;
+    margin-bottom: 15px !important;
+}
+
 /* Form value styling */
 .form-value {
-    padding: 8px 12px;
+    padding: 10px 12px;
     background: #f8f9fa;
     border-radius: 6px;
     font-size: 14px;
     color: #2c3e50;
     min-height: 20px;
+    border: 1px solid #e9ecef;
+}
+
+/* Ensure labels align properly */
+.form-group label {
+    margin-bottom: 6px;
+    display: block;
 }
 
 /* Mobile responsiveness */
