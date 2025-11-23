@@ -10,6 +10,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash,
 from functools import wraps
 from models import db, Customer, CustomerSubscription, SubscriptionDelivery, Invoice, SubscriptionPlan, Item, ItemCategory, CustomerOrder, CustomerOrderItem
 from utils.tenant_middleware import require_tenant, get_current_tenant
+from utils.email_utils import send_customer_order_notification
 from datetime import datetime, timedelta
 from sqlalchemy import and_, or_
 
@@ -640,6 +641,17 @@ def place_order():
         
         db.session.add(order)
         db.session.commit()
+        
+        # Send email notification to admin
+        if g.tenant.admin_email:
+            send_customer_order_notification(
+                admin_email=g.tenant.admin_email,
+                customer_name=customer.name,
+                order_number=order.order_number,
+                total_amount=float(order.total_amount),
+                items_count=len(order.items),
+                tenant_name=g.tenant.subdomain
+            )
         
         # Clear cart
         session['cart'] = {}

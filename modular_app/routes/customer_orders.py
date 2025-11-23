@@ -138,3 +138,21 @@ def delete_order(order_id):
     
     return redirect(url_for('customer_orders.index'))
 
+
+@customer_orders_bp.route('/count')
+@require_tenant
+def get_pending_count():
+    """API endpoint to get pending orders count for badge"""
+    try:
+        if not g.tenant:
+            return jsonify({'count': 0})
+        
+        count = CustomerOrder.query.filter_by(
+            tenant_id=g.tenant.id,
+            status='pending'
+        ).count()
+        
+        return jsonify({'count': count})
+    except:
+        return jsonify({'count': 0})
+

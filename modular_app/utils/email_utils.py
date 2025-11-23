@@ -302,3 +302,64 @@ This is an automated message from BizBooks.
     
     return send_email(to_email, subject, body_html, body_text)
 
+
+def send_customer_order_notification(admin_email, customer_name, order_number, total_amount, items_count, tenant_name):
+    """Send notification to admin when customer places an order"""
+    
+    subject = f"🛒 New Customer Order: {order_number}"
+    
+    body_html = f"""
+    <html>
+    <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+        <div style="max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 8px;">
+            <h2 style="color: #FF6B6B; margin-bottom: 20px;">🛒 New Customer Order Received!</h2>
+            
+            <div style="background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; border-radius: 5px; margin-bottom: 20px;">
+                <p style="margin: 5px 0; font-size: 18px;"><strong>Order #{order_number}</strong></p>
+            </div>
+            
+            <div style="background: #f8f9fa; padding: 15px; border-radius: 5px; margin-bottom: 20px;">
+                <p style="margin: 5px 0;"><strong>👤 Customer:</strong> {customer_name}</p>
+                <p style="margin: 5px 0;"><strong>📦 Items:</strong> {items_count} item(s)</p>
+                <p style="margin: 5px 0;"><strong>💰 Total Amount:</strong> <span style="color: #28a745; font-size: 20px; font-weight: bold;">₹{total_amount:,.2f}</span></p>
+            </div>
+            
+            <p style="margin: 20px 0;">A customer has placed a new order through your customer portal. Please review and fulfill it promptly.</p>
+            
+            <a href="https://{tenant_name}.bizbooks.co.in/admin/customer-orders" 
+               style="display: inline-block; padding: 12px 24px; background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%); color: white; text-decoration: none; border-radius: 5px; margin-top: 15px; font-weight: 600;">
+                📦 View Order Details
+            </a>
+            
+            <div style="background: #e7f3ff; border-left: 4px solid #2196F3; padding: 15px; border-radius: 5px; margin-top: 20px;">
+                <p style="margin: 0;"><strong>💡 Quick Actions:</strong></p>
+                <p style="margin: 5px 0 0 0; font-size: 14px;">• Mark as Confirmed<br>• Prepare items for delivery<br>• Mark as Fulfilled when ready</p>
+            </div>
+            
+            <p style="color: #666; font-size: 12px; margin-top: 30px; border-top: 1px solid #ddd; padding-top: 15px;">
+                This is an automated notification from {tenant_name}'s BizBooks account.<br>
+                Orders are placed by customers through the Customer Portal.
+            </p>
+        </div>
+    </body>
+    </html>
+    """
+    
+    body_text = f"""
+🛒 New Customer Order Received!
+
+Order Number: {order_number}
+Customer: {customer_name}
+Items: {items_count} item(s)
+Total Amount: ₹{total_amount:,.2f}
+
+A customer has placed a new order. Please review and fulfill it promptly.
+
+View order details: https://{tenant_name}.bizbooks.co.in/admin/customer-orders
+
+---
+This is an automated notification from {tenant_name}'s BizBooks account.
+    """
+    
+    return send_email(admin_email, subject, body_html, body_text)
+
