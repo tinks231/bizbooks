@@ -40,17 +40,21 @@
         }
         
         .cart-badge {
-            background: #4CAF50;
+            background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
             color: white;
-            padding: 8px 16px;
-            border-radius: 20px;
+            padding: 10px 20px;
+            border-radius: 25px;
             text-decoration: none;
-            font-weight: 500;
+            font-weight: 600;
             white-space: nowrap;
+            box-shadow: 0 4px 15px rgba(76,175,80,0.3);
+            transition: all 0.3s ease;
+            font-size: 15px;
         }
         
         .cart-badge:hover {
-            background: #45a049;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(76,175,80,0.4);
         }
         
         .products-grid {
@@ -171,7 +175,7 @@
     <!-- Main Content -->
     <div class="customer-container">
         <div class="products-header">
-            <h1>🛍️ Order Products</h1>
+            <h1 style="color: #333; font-size: 28px; font-weight: 700;">Order Products</h1>
             {% set cart_count = session.get('cart', {}) | length %}
             <a href="{{ url_for('customer_portal.view_cart') }}" class="cart-badge">
                 🛒 Cart ({{ cart_count }})
@@ -204,18 +208,21 @@
                 {% for item in items %}
                     <div class="product-card">
                         <div class="product-name">{{ item.name }}</div>
-                        <div class="product-code">Code: {{ item.item_code }}</div>
+                        <div class="product-code">SKU: {{ item.sku }}</div>
                         
                         {% if item.category %}
                             <span class="product-category">{{ item.category.name }}</span>
                         {% endif %}
                         
-                        {% if item.description %}
-                            <div class="product-description">{{ item.description }}</div>
+                        {% if item.sales_description %}
+                            <div class="product-description">{{ item.sales_description }}</div>
                         {% endif %}
                         
                         {% if item.selling_price and item.selling_price > 0 %}
-                            <div class="product-price">₹{{ '{:,.2f}'.format(item.selling_price) }}</div>
+                            <div class="product-price">
+                                ₹{{ '{:,.2f}'.format(item.selling_price) }}
+                                <span style="font-size: 14px; color: #666; font-weight: 400;">/ {{ item.unit or 'pc' }}</span>
+                            </div>
                             
                             <form method="POST" action="{{ url_for('customer_portal.add_to_cart', item_id=item.id) }}">
                                 <div class="product-actions">
@@ -225,6 +232,7 @@
                                            value="1" 
                                            min="0.01" 
                                            step="0.01" 
+                                           placeholder="{{ item.unit or 'qty' }}"
                                            required>
                                     <button type="submit" class="add-btn">+ Add to Cart</button>
                                 </div>
