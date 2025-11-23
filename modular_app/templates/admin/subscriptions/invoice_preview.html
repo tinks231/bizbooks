@@ -130,7 +130,7 @@
         <a href="{{ url_for('subscriptions.deliveries') }}" class="btn btn-secondary">
             <i class="fas fa-arrow-left"></i> Back
         </a>
-        <form method="POST" style="display: inline;" onsubmit="return confirm('Generate invoice for ₹{{ \"{:,.2f}\".format(summary.total_amount) }}? This will create an invoice and mark subscription as pending payment.')">
+        <form method="POST" style="display: inline;" onsubmit="return confirm('Generate invoice for ₹{{ '{:,.2f}'.format(summary.total_amount) }}? This will create an invoice and mark subscription as pending payment.')">
             <button type="submit" class="btn btn-success btn-lg">
                 <i class="fas fa-file-invoice"></i> Generate Invoice
             </button>

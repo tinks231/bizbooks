@@ -1203,7 +1203,7 @@ def generate_invoice_metered(subscription_id):
         db.session.commit()
         
         flash(f'✅ Invoice {invoice_number} generated successfully! Amount: ₹{total_amount:,.2f} ({total_quantity} {subscription.plan.unit_name})', 'success')
-        return redirect(url_for('admin.view_invoice', invoice_id=invoice.id))
+        return redirect(url_for('invoices.view', invoice_id=invoice.id))
         
     except Exception as e:
         db.session.rollback()
@@ -1337,7 +1337,7 @@ def generate_all_invoices():
         if error_count > 0:
             flash(f'⚠️ Failed to generate {error_count} invoice(s). Please check individual subscriptions.', 'warning')
         
-        return redirect(url_for('admin.invoices'))
+        return redirect(url_for('invoices.index'))
         
     except Exception as e:
         db.session.rollback()
