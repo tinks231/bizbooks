@@ -59,7 +59,7 @@ h1, h2, h3, h4 {
 
 .invoice-header {
     display: grid;
-    grid-template-columns: auto 1fr auto;  /* logo | center | contact */
+    grid-template-columns: 1fr auto 1fr;  /* symmetric left/right */
     align-items: flex-start;
     column-gap: 16px;
     padding-bottom: 10px;
@@ -69,6 +69,7 @@ h1, h2, h3, h4 {
 .header-left {
     display: flex;
     align-items: center;
+    justify-content: flex-start;
 }
 
 .invoice-logo {
@@ -259,7 +260,7 @@ h1, h2, h3, h4 {
     .container-fluid,
     main {
         margin: 0 !important;
-        padding: 15mm !important;
+        padding: 0 !important;
         width: 100% !important;
         max-width: 100% !important;
     }
@@ -268,8 +269,17 @@ h1, h2, h3, h4 {
         max-width: 100% !important;
         width: 100% !important;
         box-shadow: none !important;
-        padding: 0 !important;
-        margin: 0 auto !important;
+        padding: 15mm 15mm !important;
+        margin: 0 !important;
+    }
+    
+    /* Ensure all sections are full width */
+    .invoice-header,
+    .section,
+    .table,
+    .invoice-meta-table {
+        width: 100% !important;
+        max-width: 100% !important;
     }
     
     /* Larger fonts for print */
@@ -311,8 +321,14 @@ h1, h2, h3, h4 {
     
     /* Print-specific page setup */
     @page {
-        margin: 15mm;
+        margin: 12mm 10mm;
         size: A4;
+    }
+    
+    /* Override any conflicting styles */
+    * {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
     }
 }
 </style>
