@@ -371,6 +371,19 @@ h1, h2, h3, h4 {
         text-align: right !important;
     }
     
+    /* Ensure items table spans full width and aligns with sections above */
+    .table {
+        width: 100% !important;
+        table-layout: fixed !important;  /* Consistent column widths */
+    }
+    
+    /* Right-align AMOUNT column to match Invoice Details above */
+    .table th:last-child,
+    .table td:last-child {
+        text-align: right !important;
+        padding-right: 0 !important;
+    }
+    
     /* Print-specific page setup */
     @page {
         margin: 12mm 10mm;
