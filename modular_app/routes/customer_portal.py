@@ -17,6 +17,15 @@ from sqlalchemy import and_, or_
 customer_portal_bp = Blueprint('customer_portal', __name__, url_prefix='/customer')
 
 
+@customer_portal_bp.before_request
+def log_session_state():
+    """Debug: Log session state at the START of every customer portal request"""
+    print(f"\n🔵 BEFORE_REQUEST - {request.path}")
+    print(f"   Session cookie present: {'session' in request.cookies}")
+    print(f"   Session data: {dict(session)}")
+    print(f"   Session keys: {list(session.keys())}")
+
+
 def customer_login_required(f):
     """Decorator to require customer login (matches admin.py pattern)"""
     @wraps(f)
@@ -142,6 +151,8 @@ def dashboard():
 @customer_login_required
 def subscriptions():
     """View all subscriptions (active + expired)"""
+    print(f"\n📦 SUBSCRIPTIONS ROUTE:")
+    print(f"   Session after decorator: {dict(session)}")
     customer = Customer.query.get(session['customer_id'])
     
     subscriptions = CustomerSubscription.query.filter_by(
