@@ -372,16 +372,28 @@ h1, h2, h3, h4 {
     }
     
     /* Ensure items table spans full width and aligns with sections above */
-    .table {
+    .invoice .table {
         width: 100% !important;
         table-layout: fixed !important;  /* Consistent column widths */
+        max-width: 100% !important;
     }
     
     /* Right-align AMOUNT column to match Invoice Details above */
-    .table th:last-child,
-    .table td:last-child {
+    .invoice .table thead th:last-child,
+    .invoice .table tbody td:last-child,
+    .invoice .table tfoot td:last-child {
         text-align: right !important;
         padding-right: 0 !important;
+    }
+    
+    /* Also align Subtotal and TOTAL rows */
+    .invoice .table tfoot tr td {
+        text-align: right !important;
+    }
+    
+    .invoice .table tfoot tr td:first-child {
+        text-align: right !important;
+        font-weight: 600 !important;
     }
     
     /* Print-specific page setup */
