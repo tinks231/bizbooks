@@ -19,24 +19,40 @@
     {% set today = now().date() %}
     {% set ready_for_billing = [] %}
     {% for sub in active_subscriptions %}
-        {% if sub.plan.plan_type == 'metered' and sub.current_period_end <= today + timedelta(days=3) %}
+        {% if sub.plan.plan_type == 'metered' and sub.current_period_end <= today + timedelta(days=30) %}
             {% set _ = ready_for_billing.append(sub) %}
         {% endif %}
     {% endfor %}
     
     {% if ready_for_billing %}
     <div class="alert alert-success" style="margin-bottom: 20px;">
-        <h4 style="margin: 0 0 10px 0;">💰 Ready for Monthly Billing</h4>
-        <p style="margin: 0 0 10px 0;">These subscriptions are ending soon. Generate invoices to bill customers:</p>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+            <div>
+                <h4 style="margin: 0 0 5px 0;">💰 Ready for Monthly Billing</h4>
+                <p style="margin: 0;">{{ ready_for_billing|length }} subscription(s) ending soon. Generate invoices to bill customers:</p>
+            </div>
+            <form method="POST" action="{{ url_for('subscriptions.generate_all_invoices') }}" style="display: inline;" onsubmit="return confirm('Generate invoices for all {{ ready_for_billing|length }} customer(s)? This cannot be undone.')">
+                <button type="submit" class="btn btn-primary btn-lg">
+                    💰 Generate All Invoices ({{ ready_for_billing|length }})
+                </button>
+            </form>
+        </div>
         {% for sub in ready_for_billing %}
         <div style="padding: 10px; background: white; border-radius: 6px; margin-top: 8px; display: flex; justify-content: space-between; align-items: center;">
             <div>
                 <strong>{{ sub.customer.name }}</strong> - {{ sub.plan.name }}<br>
                 <small style="color: #666;">Period: {{ sub.current_period_start.strftime('%b %d') }} - {{ sub.current_period_end.strftime('%b %d, %Y') }} ({{ (sub.current_period_end - sub.current_period_start).days + 1 }} days)</small>
             </div>
-            <a href="{{ url_for('subscriptions.generate_invoice_metered', subscription_id=sub.id) }}" class="btn btn-success">
-                💰 Generate Invoice
-            </a>
+            <div style="display: flex; gap: 8px;">
+                <a href="{{ url_for('subscriptions.generate_invoice_metered', subscription_id=sub.id) }}" class="btn btn-outline-success btn-sm">
+                    👁️ Preview
+                </a>
+                <form method="POST" action="{{ url_for('subscriptions.generate_invoice_metered', subscription_id=sub.id) }}" style="display: inline;">
+                    <button type="submit" class="btn btn-success btn-sm">
+                        💰 Generate
+                    </button>
+                </form>
+            </div>
         </div>
         {% endfor %}
     </div>

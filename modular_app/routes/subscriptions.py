@@ -1210,3 +1210,137 @@ def generate_invoice_metered(subscription_id):
         flash(f'❌ Error generating invoice: {str(e)}', 'error')
         return redirect(url_for('subscriptions.deliveries'))
 
+
+@subscriptions_bp.route('/deliveries/generate-all-invoices', methods=['POST'], strict_slashes=False)
+@require_tenant
+@login_required
+def generate_all_invoices():
+    """Generate invoices for all metered subscriptions ending soon (bulk processing)"""
+    tenant_id = get_current_tenant_id()
+    
+    try:
+        # Get all metered subscriptions ending in next 3 days
+        today = datetime.now().date()
+        three_days = today + timedelta(days=3)
+        
+        ready_subscriptions = CustomerSubscription.query.join(
+            CustomerSubscription.plan
+        ).filter(
+            CustomerSubscription.tenant_id == tenant_id,
+            CustomerSubscription.status == 'active',
+            SubscriptionPlan.plan_type == 'metered',
+            CustomerSubscription.current_period_end <= three_days
+        ).options(
+            joinedload(CustomerSubscription.customer),
+            joinedload(CustomerSubscription.plan)
+        ).all()
+        
+        if not ready_subscriptions:
+            flash('⚠️ No subscriptions ready for billing', 'warning')
+            return redirect(url_for('subscriptions.deliveries'))
+        
+        success_count = 0
+        error_count = 0
+        total_amount = 0
+        
+        for subscription in ready_subscriptions:
+            try:
+                billing_start = subscription.current_period_start
+                billing_end = subscription.current_period_end
+                
+                # Get all deliveries for this period
+                deliveries = SubscriptionDelivery.query.filter_by(
+                    subscription_id=subscription.id,
+                    tenant_id=tenant_id
+                ).filter(
+                    SubscriptionDelivery.delivery_date >= billing_start,
+                    SubscriptionDelivery.delivery_date <= billing_end
+                ).all()
+                
+                # Calculate total
+                total_quantity = sum(d.quantity for d in deliveries)
+                invoice_amount = float(sum(d.amount for d in deliveries))
+                
+                # Create invoice
+                customer = subscription.customer
+                invoice_number = f"SUB-{datetime.now().strftime('%Y%m%d%H%M%S')}-{subscription.id}"
+                
+                invoice = Invoice(
+                    tenant_id=tenant_id,
+                    customer_id=customer.id,
+                    customer_name=customer.name,
+                    customer_phone=customer.phone or '',
+                    customer_email=customer.email or '',
+                    invoice_date=datetime.now().date(),
+                    invoice_number=invoice_number,
+                    total_amount=invoice_amount,
+                    payment_status='unpaid',
+                    paid_amount=0,
+                    status='pending'
+                )
+                
+                db.session.add(invoice)
+                db.session.flush()
+                
+                # Add invoice item
+                billing_period_label = f"{billing_start.strftime('%b %d')} - {billing_end.strftime('%b %d, %Y')}"
+                item_description = f"{subscription.plan.name}\n{billing_period_label}\nTotal: {total_quantity} {subscription.plan.unit_name}"
+                
+                item = InvoiceItem(
+                    invoice_id=invoice.id,
+                    item_name=f"Subscription - {subscription.plan.name}",
+                    description=item_description,
+                    quantity=float(total_quantity),
+                    unit=subscription.plan.unit_name,
+                    rate=float(subscription.plan.unit_rate),
+                    taxable_value=invoice_amount,
+                    gst_rate=0,
+                    cgst_amount=0,
+                    sgst_amount=0,
+                    igst_amount=0,
+                    total_amount=invoice_amount
+                )
+                
+                db.session.add(item)
+                
+                # Create payment record
+                payment = SubscriptionPayment(
+                    tenant_id=tenant_id,
+                    subscription_id=subscription.id,
+                    invoice_id=invoice.id,
+                    payment_date=datetime.now().date(),
+                    amount=Decimal(str(invoice_amount)),
+                    payment_mode='Pending',
+                    period_start=billing_start,
+                    period_end=billing_end,
+                    billing_period_label=billing_period_label
+                )
+                
+                db.session.add(payment)
+                
+                # Update subscription status
+                subscription.status = 'pending_payment'
+                
+                success_count += 1
+                total_amount += invoice_amount
+                
+            except Exception as e:
+                error_count += 1
+                # Continue to next subscription even if one fails
+                continue
+        
+        db.session.commit()
+        
+        if success_count > 0:
+            flash(f'✅ Successfully generated {success_count} invoice(s)! Total: ₹{total_amount:,.2f}', 'success')
+        
+        if error_count > 0:
+            flash(f'⚠️ Failed to generate {error_count} invoice(s). Please check individual subscriptions.', 'warning')
+        
+        return redirect(url_for('admin.invoices'))
+        
+    except Exception as e:
+        db.session.rollback()
+        flash(f'❌ Error generating invoices: {str(e)}', 'error')
+        return redirect(url_for('subscriptions.deliveries'))
+
