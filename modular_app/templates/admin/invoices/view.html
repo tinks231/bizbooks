@@ -319,38 +319,10 @@ h1, h2, h3, h4 {
         page-break-inside: avoid;
     }
     
-    /* Print-specific alignment for Bill To / Invoice Details */
-    /* Make them match the header layout for perfect alignment */
+    /* Let print use the same layout as screen - it already works! */
     .section {
         width: 100% !important;
         max-width: 100% !important;
-    }
-    
-    .invoice-info-row {
-        display: flex !important;
-        justify-content: space-between !important;
-        gap: 0 !important;
-        margin-bottom: 16px !important;
-        width: 100% !important;
-    }
-    
-    .invoice-info-row .bill-to {
-        width: 50% !important;
-        padding-right: 15px !important;
-    }
-    
-    .invoice-info-row .invoice-details {
-        width: 50% !important;
-        padding-left: 15px !important;
-    }
-    
-    .invoice-info-row .invoice-details table {
-        width: 100% !important;
-    }
-    
-    /* Ensure Invoice Details table stretches and aligns right */
-    .invoice-meta-table td:last-child {
-        text-align: right !important;
     }
     
     /* Print-specific page setup */
