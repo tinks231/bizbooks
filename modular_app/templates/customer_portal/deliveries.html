@@ -1,166 +1,76 @@
-{% extends "customer_portal/dashboard.html" %}
-
-{% block extra_css %}
-<style>
-    /* Calendar styles */
-    .calendar-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 20px;
-    }
-    
-    .month-nav {
-        display: flex;
-        gap: 10px;
-        align-items: center;
-    }
-    
-    .btn-nav {
-        padding: 8px 15px;
-        background: #f0f0f0;
-        border: none;
-        border-radius: 6px;
-        cursor: pointer;
-        text-decoration: none;
-        color: #333;
-    }
-    
-    .btn-nav:hover {
-        background: #e0e0e0;
-    }
-    
-    .current-month {
-        font-size: 20px;
-        font-weight: 600;
-    }
-    
-    .calendar-grid {
-        display: grid;
-        grid-template-columns: repeat(7, 1fr);
-        gap: 10px;
-        margin-top: 20px;
-    }
-    
-    .day-header {
-        text-align: center;
-        font-weight: 600;
-        padding: 10px;
-        color: #666;
-        font-size: 13px;
-    }
-    
-    .day-cell {
-        aspect-ratio: 1;
-        border: 2px solid #e0e0e0;
-        border-radius: 8px;
-        padding: 10px;
-        font-size: 13px;
-        position: relative;
-    }
-    
-    .day-cell.delivered {
-        background: #d4edda;
-        border-color: #4CAF50;
-    }
-    
-    .day-cell.paused {
-        background: #f8d7da;
-        border-color: #dc3545;
-    }
-    
-    .day-cell.modified {
-        background: #fff3cd;
-        border-color: #ffc107;
-    }
-    
-    .day-number {
-        font-weight: 600;
-        margin-bottom: 5px;
-    }
-    
-    .day-quantity {
-        font-size: 11px;
-        color: #666;
-    }
-    
-    /* Action buttons */
-    .action-buttons {
-        display: flex;
-        gap: 10px;
-        flex-wrap: wrap;
-        margin-top: 20px;
-    }
-    
-    /* Modal styles */
-    .modal {
-        display: none;
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0,0,0,0.5);
-        z-index: 1000;
-        align-items: center;
-        justify-content: center;
-    }
-    
-    .modal.active {
-        display: flex;
-    }
-    
-    .modal-content {
-        background: white;
-        padding: 30px;
-        border-radius: 12px;
-        max-width: 500px;
-        width: 90%;
-    }
-    
-    .modal-header {
-        font-size: 22px;
-        font-weight: 600;
-        margin-bottom: 20px;
-    }
-    
-    .form-group {
-        margin-bottom: 15px;
-    }
-    
-    .form-group label {
-        display: block;
-        margin-bottom: 8px;
-        font-weight: 500;
-        color: #333;
-    }
-    
-    .form-group input {
-        width: 100%;
-        padding: 10px;
-        border: 2px solid #e0e0e0;
-        border-radius: 8px;
-        font-size: 14px;
-    }
-    
-    .modal-actions {
-        display: flex;
-        gap: 10px;
-        margin-top: 20px;
-    }
-</style>
-{% endblock %}
-
-{% block content %}
-<div class="main-content">
-    <div class="section">
-        <div class="section-header">
-            <h3 class="section-title">📅 Delivery Log - {{ subscription.plan.name }}</h3>
-            <a href="{{ url_for('customer_portal.dashboard') }}" class="btn-view-all">← Back to Dashboard</a>
-        </div>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Delivery Log - Customer Portal</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/forms.css') }}">
+    <style>
+        body { font-family: 'Inter', sans-serif; background: #f5f7fa; margin: 0; padding: 0; }
+        .portal-header { background: linear-gradient(135deg, #4CAF50 0%, #388E3C 100%); color: white; padding: 20px; }
+        .header-content { max-width: 1200px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; }
+        .btn-logout { background: rgba(255,255,255,0.2); color: white; padding: 10px 20px; border-radius: 8px; text-decoration: none; }
+        .main-content { max-width: 1200px; margin: 30px auto; padding: 0 20px; }
+        .section { background: white; padding: 25px; border-radius: 12px; margin-bottom: 25px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+        .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 2px solid #f0f0f0; }
+        .section-title { font-size: 20px; font-weight: 600; }
+        .btn-view-all { color: #4CAF50; text-decoration: none; font-size: 14px; font-weight: 500; }
         
+        /* Stats Cards */
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 25px; }
+        .stat-card { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); border-left: 4px solid #4CAF50; }
+        .stat-card .icon { font-size: 24px; margin-bottom: 8px; }
+        .stat-card .value { font-size: 28px; font-weight: 700; color: #333; margin-bottom: 5px; }
+        .stat-card .label { color: #666; font-size: 13px; }
+        
+        /* Delivery Cards */
+        .delivery-card { padding: 15px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .delivery-card.delivered { background: #d4edda; border-left: 4px solid #4CAF50; }
+        .delivery-card.paused { background: #f8d7da; border-left: 4px solid #dc3545; }
+        .delivery-card.modified { background: #fff3cd; border-left: 4px solid #ffc107; }
+        .delivery-date { font-weight: 600; font-size: 15px; color: #333; }
+        .delivery-status { margin-left: 10px; font-size: 13px; }
+        .delivery-right { text-align: right; }
+        .delivery-quantity { font-size: 18px; font-weight: 700; color: #4CAF50; }
+        .delivery-amount { font-size: 14px; color: #666; margin-top: 3px; }
+        
+        /* Action Buttons */
+        .action-buttons { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 20px; }
+        .btn { padding: 12px 20px; border-radius: 8px; border: none; cursor: pointer; font-size: 14px; font-weight: 600; transition: all 0.3s; text-decoration: none; display: inline-block; }
+        .btn-primary { background: #4CAF50; color: white; }
+        .btn-primary:hover { background: #388E3C; }
+        .btn-secondary { background: #f0f0f0; color: #333; }
+        .btn-secondary:hover { background: #e0e0e0; }
+        
+        /* Modal */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; }
+        .modal.active { display: flex; }
+        .modal-content { background: white; padding: 30px; border-radius: 12px; max-width: 500px; width: 90%; }
+        .modal-header { font-size: 22px; font-weight: 600; margin-bottom: 20px; }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 8px; font-weight: 500; color: #333; }
+        .form-group input { width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 14px; }
+        .modal-actions { display: flex; gap: 10px; margin-top: 20px; }
+        
+        .no-data { text-align: center; padding: 40px; color: #999; }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="portal-header">
+        <div class="header-content">
+            <h1>📅 Delivery Log - {{ subscription.plan.name }}</h1>
+            <div>
+                <a href="{{ url_for('customer_portal.dashboard') }}" class="btn-logout">← Back to Dashboard</a>
+                <a href="{{ url_for('customer_portal.logout') }}" class="btn-logout">🚪 Logout</a>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Main Content -->
+    <div class="main-content">
         <!-- Summary Cards -->
-        <div class="stats-grid" style="margin-bottom: 25px;">
+        <div class="stats-grid">
             <div class="stat-card">
                 <div class="icon">📦</div>
                 <div class="value">{{ total_quantity }}</div>
@@ -183,136 +93,126 @@
             </div>
         </div>
         
-        <!-- Month Navigation -->
-        <div class="calendar-header">
-            <div class="month-nav">
-                <a href="?year={{ view_date.year }}&month={{ (view_date.month - 2) % 12 + 1 }}" class="btn-nav">← Prev</a>
-                <span class="current-month">{{ view_date.strftime('%B %Y') }}</span>
-                <a href="?year={{ view_date.year }}&month={{ view_date.month % 12 + 1 }}" class="btn-nav">Next →</a>
+        <!-- Deliveries Section -->
+        <div class="section">
+            <div class="section-header">
+                <h3 class="section-title">{{ view_date.strftime('%B %Y') }} Deliveries</h3>
             </div>
-        </div>
-        
-        <!-- Deliveries List (Simple) -->
-        <div style="display: grid; gap: 10px; margin-top: 20px;">
+            
             {% if deliveries %}
                 {% for date, delivery in deliveries.items() | sort %}
-                    <div style="padding: 15px; background: {% if delivery.status == 'paused' %}#f8d7da{% elif delivery.is_modified %}#fff3cd{% else %}#d4edda{% endif %}; border-radius: 8px; display: flex; justify-content: space-between; align-items: center;">
-                        <div>
-                            <strong>{{ date.strftime('%a, %d %B %Y') }}</strong>
-                            {% if delivery.status == 'paused' %}
-                                <span style="color: #dc3545; margin-left: 10px;">⏸️ PAUSED</span>
-                            {% elif delivery.is_modified %}
-                                <span style="color: #ffc107; margin-left: 10px;">✏️ Modified</span>
-                            {% endif %}
-                        </div>
-                        <div style="text-align: right;">
-                            {% if delivery.status != 'paused' %}
-                                <div style="font-size: 18px; font-weight: 700; color: #4CAF50;">
-                                    {{ delivery.quantity }} {{ subscription.plan.unit_name }}
-                                </div>
-                                <div style="font-size: 14px; color: #666;">
-                                    ₹{{ '{:,.2f}'.format(delivery.amount) }}
-                                </div>
-                            {% endif %}
-                        </div>
+                <div class="delivery-card {% if delivery.status == 'paused' %}paused{% elif delivery.is_modified %}modified{% else %}delivered{% endif %}">
+                    <div>
+                        <span class="delivery-date">{{ date.strftime('%a, %d %B %Y') }}</span>
+                        {% if delivery.status == 'paused' %}
+                            <span class="delivery-status" style="color: #dc3545;">⏸️ PAUSED</span>
+                        {% elif delivery.is_modified %}
+                            <span class="delivery-status" style="color: #ffc107;">✏️ Modified</span>
+                        {% endif %}
                     </div>
+                    <div class="delivery-right">
+                        {% if delivery.status != 'paused' %}
+                            <div class="delivery-quantity">{{ delivery.quantity }} {{ subscription.plan.unit_name }}</div>
+                            <div class="delivery-amount">₹{{ '{:,.2f}'.format(delivery.amount) }}</div>
+                        {% endif %}
+                    </div>
+                </div>
                 {% endfor %}
             {% else %}
-                <div style="text-align: center; padding: 40px; color: #999;">
+                <div class="no-data">
                     <p>No deliveries found for this month.</p>
                 </div>
             {% endif %}
+            
+            <!-- Action Buttons -->
+            <div class="action-buttons">
+                <button class="btn btn-secondary" onclick="openModal('pauseModal')">⏸️ Pause Deliveries</button>
+                <button class="btn btn-secondary" onclick="openModal('resumeModal')">▶️ Resume Deliveries</button>
+                <button class="btn btn-secondary" onclick="openModal('modifyModal')">✏️ Modify Quantity</button>
+            </div>
         </div>
-        
-        <!-- Action Buttons -->
-        <div class="action-buttons">
-            <button class="btn btn-secondary" onclick="openModal('pauseModal')">⏸️ Pause Deliveries</button>
-            <button class="btn btn-secondary" onclick="openModal('resumeModal')">▶️ Resume Deliveries</button>
-            <button class="btn btn-secondary" onclick="openModal('modifyModal')">✏️ Modify Quantity</button>
+    </div>
+    
+    <!-- Pause Modal -->
+    <div id="pauseModal" class="modal">
+        <div class="modal-content">
+            <h3 class="modal-header">⏸️ Pause Deliveries</h3>
+            <form method="POST" action="{{ url_for('customer_portal.pause_deliveries', subscription_id=subscription.id) }}">
+                <div class="form-group">
+                    <label>Start Date</label>
+                    <input type="date" name="start_date" required>
+                </div>
+                <div class="form-group">
+                    <label>End Date</label>
+                    <input type="date" name="end_date" required>
+                </div>
+                <div class="modal-actions">
+                    <button type="submit" class="btn btn-primary">Pause</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('pauseModal')">Cancel</button>
+                </div>
+            </form>
         </div>
     </div>
-</div>
-
-<!-- Pause Modal -->
-<div id="pauseModal" class="modal">
-    <div class="modal-content">
-        <h3 class="modal-header">⏸️ Pause Deliveries</h3>
-        <form method="POST" action="{{ url_for('customer_portal.pause_deliveries', subscription_id=subscription.id) }}">
-            <div class="form-group">
-                <label>Start Date</label>
-                <input type="date" name="start_date" required>
-            </div>
-            <div class="form-group">
-                <label>End Date</label>
-                <input type="date" name="end_date" required>
-            </div>
-            <div class="modal-actions">
-                <button type="submit" class="btn btn-primary">Pause</button>
-                <button type="button" class="btn btn-secondary" onclick="closeModal('pauseModal')">Cancel</button>
-            </div>
-        </form>
+    
+    <!-- Resume Modal -->
+    <div id="resumeModal" class="modal">
+        <div class="modal-content">
+            <h3 class="modal-header">▶️ Resume Deliveries</h3>
+            <form method="POST" action="{{ url_for('customer_portal.resume_deliveries', subscription_id=subscription.id) }}">
+                <div class="form-group">
+                    <label>Start Date</label>
+                    <input type="date" name="start_date" required>
+                </div>
+                <div class="form-group">
+                    <label>End Date</label>
+                    <input type="date" name="end_date" required>
+                </div>
+                <div class="modal-actions">
+                    <button type="submit" class="btn btn-primary">Resume</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('resumeModal')">Cancel</button>
+                </div>
+            </form>
+        </div>
     </div>
-</div>
-
-<!-- Resume Modal -->
-<div id="resumeModal" class="modal">
-    <div class="modal-content">
-        <h3 class="modal-header">▶️ Resume Deliveries</h3>
-        <form method="POST" action="{{ url_for('customer_portal.resume_deliveries', subscription_id=subscription.id) }}">
-            <div class="form-group">
-                <label>Start Date</label>
-                <input type="date" name="start_date" required>
-            </div>
-            <div class="form-group">
-                <label>End Date</label>
-                <input type="date" name="end_date" required>
-            </div>
-            <div class="modal-actions">
-                <button type="submit" class="btn btn-primary">Resume</button>
-                <button type="button" class="btn btn-secondary" onclick="closeModal('resumeModal')">Cancel</button>
-            </div>
-        </form>
+    
+    <!-- Modify Modal -->
+    <div id="modifyModal" class="modal">
+        <div class="modal-content">
+            <h3 class="modal-header">✏️ Modify Quantity</h3>
+            <form method="POST" action="{{ url_for('customer_portal.modify_delivery', subscription_id=subscription.id) }}">
+                <div class="form-group">
+                    <label>Delivery Date</label>
+                    <input type="date" name="delivery_date" required>
+                </div>
+                <div class="form-group">
+                    <label>New Quantity ({{ subscription.plan.unit_name }})</label>
+                    <input type="number" name="new_quantity" step="0.1" min="0.1" required>
+                </div>
+                <div class="modal-actions">
+                    <button type="submit" class="btn btn-primary">Modify</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('modifyModal')">Cancel</button>
+                </div>
+            </form>
+        </div>
     </div>
-</div>
-
-<!-- Modify Modal -->
-<div id="modifyModal" class="modal">
-    <div class="modal-content">
-        <h3 class="modal-header">✏️ Modify Quantity</h3>
-        <form method="POST" action="{{ url_for('customer_portal.modify_delivery', subscription_id=subscription.id) }}">
-            <div class="form-group">
-                <label>Delivery Date</label>
-                <input type="date" name="delivery_date" required>
-            </div>
-            <div class="form-group">
-                <label>New Quantity ({{ subscription.plan.unit_name }})</label>
-                <input type="number" name="new_quantity" step="0.1" min="0.1" required>
-            </div>
-            <div class="modal-actions">
-                <button type="submit" class="btn btn-primary">Modify</button>
-                <button type="button" class="btn btn-secondary" onclick="closeModal('modifyModal')">Cancel</button>
-            </div>
-        </form>
-    </div>
-</div>
-
-<script>
-function openModal(modalId) {
-    document.getElementById(modalId).classList.add('active');
-}
-
-function closeModal(modalId) {
-    document.getElementById(modalId).classList.remove('active');
-}
-
-// Close modal on background click
-document.querySelectorAll('.modal').forEach(modal => {
-    modal.addEventListener('click', function(e) {
-        if (e.target === this) {
-            closeModal(this.id);
-        }
+    
+    <script>
+    function openModal(modalId) {
+        document.getElementById(modalId).classList.add('active');
+    }
+    
+    function closeModal(modalId) {
+        document.getElementById(modalId).classList.remove('active');
+    }
+    
+    // Close modal on background click
+    document.querySelectorAll('.modal').forEach(modal => {
+        modal.addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeModal(this.id);
+            }
+        });
     });
-});
-</script>
-{% endblock %}
-
+    </script>
+</body>
+</html>
