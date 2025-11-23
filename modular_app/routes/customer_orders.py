@@ -21,6 +21,10 @@ def login_required(f):
         if 'tenant_admin_id' not in session:
             flash('Please login first', 'error')
             return redirect(url_for('admin.login'))
+        
+        # Make session permanent to prevent timeout
+        session.permanent = True
+        
         return f(*args, **kwargs)
     return decorated_function
 
