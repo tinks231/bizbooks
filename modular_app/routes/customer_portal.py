@@ -21,16 +21,27 @@ def customer_login_required(f):
     """Decorator to require customer login (matches admin.py pattern)"""
     @wraps(f)
     def decorated_function(*args, **kwargs):
+        print(f"\n🔒 DECORATOR CHECK for {f.__name__}:")
+        print(f"   customer_id in session: {'customer_id' in session}")
+        print(f"   Session customer_tenant_id: {session.get('customer_tenant_id')}")
+        print(f"   Current g.tenant.id: {g.tenant.id}")
+        print(f"   Match: {session.get('customer_tenant_id') == g.tenant.id}")
+        
         if 'customer_id' not in session:
+            print("   ❌ No customer_id in session - redirecting to login")
             flash('Please login to access this page', 'error')
             return redirect(url_for('customer_portal.login'))
         
         # Verify session tenant matches current tenant (NO database query!)
         if session.get('customer_tenant_id') != g.tenant.id:
+            print(f"   ❌ TENANT MISMATCH - clearing session")
+            print(f"      Session has: {session.get('customer_tenant_id')} (type: {type(session.get('customer_tenant_id'))})")
+            print(f"      Tenant is: {g.tenant.id} (type: {type(g.tenant.id)})")
             session.clear()
             flash('Session mismatch. Please login again.', 'error')
             return redirect(url_for('customer_portal.login'))
         
+        print("   ✅ Session valid - proceeding")
         # Make session permanent to prevent timeout
         session.permanent = True
         return f(*args, **kwargs)
