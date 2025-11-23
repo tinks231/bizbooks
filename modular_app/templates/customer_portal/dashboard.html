@@ -4,97 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard - Customer Portal</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/customer_portal.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/forms.css') }}">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: 'Inter', 'Segoe UI', sans-serif;
-            background: #f5f7fa;
-            min-height: 100vh;
-        }
-        
-        /* Header */
-        .portal-header {
-            background: linear-gradient(135deg, #4CAF50 0%, #388E3C 100%);
-            color: white;
-            padding: 20px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-        
-        .header-content {
-            max-width: 1200px;
-            margin: 0 auto;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        
-        .header-left h1 {
-            font-size: 24px;
-            margin-bottom: 5px;
-        }
-        
-        .header-left p {
-            font-size: 14px;
-            opacity: 0.9;
-        }
-        
-        .header-right {
-            display: flex;
-            gap: 10px;
-        }
-        
-        .btn-logout {
-            background: rgba(255,255,255,0.2);
-            color: white;
-            padding: 10px 20px;
-            border-radius: 8px;
-            text-decoration: none;
-            font-size: 14px;
-            transition: all 0.3s;
-        }
-        
-        .btn-logout:hover {
-            background: rgba(255,255,255,0.3);
-        }
-        
-        /* Navigation */
-        .portal-nav {
-            background: white;
-            border-bottom: 1px solid #e0e0e0;
-            padding: 0 20px;
-        }
-        
-        .nav-content {
-            max-width: 1200px;
-            margin: 0 auto;
-            display: flex;
-            gap: 30px;
-        }
-        
-        .nav-link {
-            padding: 15px 5px;
-            color: #666;
-            text-decoration: none;
-            border-bottom: 3px solid transparent;
-            transition: all 0.3s;
-            font-size: 14px;
-            font-weight: 500;
-        }
-        
-        .nav-link:hover {
-            color: #4CAF50;
-        }
-        
-        .nav-link.active {
-            color: #4CAF50;
-            border-bottom-color: #4CAF50;
-        }
         
         /* Main Content */
         .main-content {
