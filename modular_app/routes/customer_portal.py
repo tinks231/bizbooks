@@ -18,18 +18,17 @@ customer_portal_bp = Blueprint('customer_portal', __name__, url_prefix='/custome
 
 
 def customer_login_required(f):
-    """Decorator to require customer login"""
+    """Decorator to require customer login (matches admin.py pattern)"""
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if 'customer_id' not in session:
             flash('Please login to access this page', 'error')
             return redirect(url_for('customer_portal.login'))
         
-        # Verify customer belongs to current tenant
-        customer = Customer.query.get(session['customer_id'])
-        if not customer or customer.tenant_id != g.tenant.id:
+        # Verify session tenant matches current tenant (NO database query!)
+        if session.get('customer_tenant_id') != g.tenant.id:
             session.clear()
-            flash('Session invalid. Please login again.', 'error')
+            flash('Session mismatch. Please login again.', 'error')
             return redirect(url_for('customer_portal.login'))
         
         # Make session permanent to prevent timeout
@@ -64,6 +63,7 @@ def login():
             session['customer_id'] = customer.id
             session['customer_name'] = customer.name
             session['customer_phone'] = customer.phone
+            session['customer_tenant_id'] = customer.tenant_id  # Store tenant_id for validation
             flash(f'Welcome back, {customer.name}!', 'success')
             return redirect(url_for('customer_portal.dashboard'))
         else:
@@ -79,6 +79,7 @@ def logout():
     session.pop('customer_id', None)
     session.pop('customer_name', None)
     session.pop('customer_phone', None)
+    session.pop('customer_tenant_id', None)  # Clear tenant_id too
     flash(f'Goodbye, {customer_name}!', 'info')
     return redirect(url_for('customer_portal.login'))
 
