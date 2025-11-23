@@ -73,6 +73,19 @@
         </div>
         
         <div class="form-row">
+            <div class="form-group">
+                <label class="field-label" for="pin">Customer Portal PIN</label>
+                <input type="text" id="pin" name="pin" 
+                       value="{{ customer.pin or '' }}" placeholder="1234" maxlength="10">
+                <small class="help-text">Set a PIN for customer portal access (minimum 4 digits)</small>
+            </div>
+            
+            <div class="form-group">
+                <button type="button" class="btn btn-secondary" style="margin-top: 24px;" onclick="generatePIN()">🎲 Generate Random PIN</button>
+            </div>
+        </div>
+        
+        <div class="form-row">
             <div class="form-group form-group--full">
                 <label class="field-label" for="address">Address</label>
                 <textarea id="address" name="address" rows="2" 
@@ -201,5 +214,14 @@
     </div>
     
 </form>
+
+<script>
+// Generate random 4-digit PIN
+function generatePIN() {
+    const pin = Math.floor(1000 + Math.random() * 9000).toString();
+    document.getElementById('pin').value = pin;
+    alert('Generated PIN: ' + pin + '\n\nPlease share this PIN with the customer securely.');
+}
+</script>
 
 {% endblock %}

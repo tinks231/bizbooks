@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Invoices - Customer Portal</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/forms.css') }}">
+    <style>
+        body { font-family: 'Inter', sans-serif; background: #f5f7fa; margin: 0; padding: 0; }
+        .portal-header { background: linear-gradient(135deg, #4CAF50 0%, #388E3C 100%); color: white; padding: 20px; }
+        .header-content { max-width: 1200px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; }
+        .btn-logout { background: rgba(255,255,255,0.2); color: white; padding: 10px 20px; border-radius: 8px; text-decoration: none; }
+        .main-content { max-width: 1200px; margin: 30px auto; padding: 0 20px; }
+        .section { background: white; padding: 25px; border-radius: 12px; margin-bottom: 25px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+        .section-title { font-size: 20px; font-weight: 600; margin-bottom: 20px; }
+        .invoice-card { padding: 15px; background: #f9f9f9; border-radius: 8px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
+        .btn { padding: 10px 20px; border-radius: 8px; text-decoration: none; display: inline-block; }
+        .btn-primary { background: #4CAF50; color: white; }
+        .status { padding: 5px 10px; border-radius: 5px; font-size: 12px; font-weight: 600; }
+        .status-paid { background: #d4edda; color: #155724; }
+        .status-unpaid { background: #f8d7da; color: #721c24; }
+    </style>
+</head>
+<body>
+    <div class="portal-header">
+        <div class="header-content">
+            <h1>My Invoices</h1>
+            <div>
+                <a href="{{ url_for('customer_portal.dashboard') }}" class="btn-logout">Dashboard</a>
+                <a href="{{ url_for('customer_portal.logout') }}" class="btn-logout">Logout</a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="main-content">
+        <!-- Unpaid Invoices -->
+        <div class="section">
+            <h3 class="section-title">❗ Unpaid Invoices</h3>
+            {% if unpaid_invoices %}
+                {% for invoice in unpaid_invoices %}
+                <div class="invoice-card">
+                    <div>
+                        <strong>{{ invoice.invoice_number }}</strong><br>
+                        <small>{{ invoice.invoice_date.strftime('%d-%m-%Y') }}</small>
+                    </div>
+                    <div>
+                        <span class="status status-unpaid">UNPAID</span>
+                        <strong style="margin: 0 15px;">₹{{ '{:,.2f}'.format(invoice.total_amount) }}</strong>
+                        <a href="{{ url_for('invoices.view', invoice_id=invoice.id) }}" class="btn btn-primary" target="_blank">View</a>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <p>No unpaid invoices. Great!</p>
+            {% endif %}
+        </div>
+        
+        <!-- Paid Invoices -->
+        <div class="section">
+            <h3 class="section-title">✅ Paid Invoices</h3>
+            {% if paid_invoices %}
+                {% for invoice in paid_invoices %}
+                <div class="invoice-card">
+                    <div>
+                        <strong>{{ invoice.invoice_number }}</strong><br>
+                        <small>{{ invoice.invoice_date.strftime('%d-%m-%Y') }}</small>
+                    </div>
+                    <div>
+                        <span class="status status-paid">PAID</span>
+                        <strong style="margin: 0 15px;">₹{{ '{:,.2f}'.format(invoice.total_amount) }}</strong>
+                        <a href="{{ url_for('invoices.view', invoice_id=invoice.id) }}" class="btn btn-primary" target="_blank">View</a>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <p>No paid invoices yet.</p>
+            {% endif %}
+        </div>
+    </div>
+</body>
+</html>
+

@@ -17,6 +17,9 @@ class Customer(db.Model):
     email = db.Column(db.String(120))
     address = db.Column(db.Text)
     
+    # Portal Access (NEW - for customer portal login)
+    pin = db.Column(db.String(10))  # Customer portal PIN (like employee portal)
+    
     # GST Details
     gstin = db.Column(db.String(15))
     state = db.Column(db.String(50))

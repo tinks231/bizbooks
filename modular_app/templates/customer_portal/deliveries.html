@@ -1,0 +1,315 @@
+{% extends "customer_portal/dashboard.html" %}
+
+{% block extra_css %}
+<style>
+    /* Calendar styles */
+    .calendar-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+    }
+    
+    .month-nav {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+    }
+    
+    .btn-nav {
+        padding: 8px 15px;
+        background: #f0f0f0;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        text-decoration: none;
+        color: #333;
+    }
+    
+    .btn-nav:hover {
+        background: #e0e0e0;
+    }
+    
+    .current-month {
+        font-size: 20px;
+        font-weight: 600;
+    }
+    
+    .calendar-grid {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        gap: 10px;
+        margin-top: 20px;
+    }
+    
+    .day-header {
+        text-align: center;
+        font-weight: 600;
+        padding: 10px;
+        color: #666;
+        font-size: 13px;
+    }
+    
+    .day-cell {
+        aspect-ratio: 1;
+        border: 2px solid #e0e0e0;
+        border-radius: 8px;
+        padding: 10px;
+        font-size: 13px;
+        position: relative;
+    }
+    
+    .day-cell.delivered {
+        background: #d4edda;
+        border-color: #4CAF50;
+    }
+    
+    .day-cell.paused {
+        background: #f8d7da;
+        border-color: #dc3545;
+    }
+    
+    .day-cell.modified {
+        background: #fff3cd;
+        border-color: #ffc107;
+    }
+    
+    .day-number {
+        font-weight: 600;
+        margin-bottom: 5px;
+    }
+    
+    .day-quantity {
+        font-size: 11px;
+        color: #666;
+    }
+    
+    /* Action buttons */
+    .action-buttons {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-top: 20px;
+    }
+    
+    /* Modal styles */
+    .modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.5);
+        z-index: 1000;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .modal.active {
+        display: flex;
+    }
+    
+    .modal-content {
+        background: white;
+        padding: 30px;
+        border-radius: 12px;
+        max-width: 500px;
+        width: 90%;
+    }
+    
+    .modal-header {
+        font-size: 22px;
+        font-weight: 600;
+        margin-bottom: 20px;
+    }
+    
+    .form-group {
+        margin-bottom: 15px;
+    }
+    
+    .form-group label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 500;
+        color: #333;
+    }
+    
+    .form-group input {
+        width: 100%;
+        padding: 10px;
+        border: 2px solid #e0e0e0;
+        border-radius: 8px;
+        font-size: 14px;
+    }
+    
+    .modal-actions {
+        display: flex;
+        gap: 10px;
+        margin-top: 20px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="main-content">
+    <div class="section">
+        <div class="section-header">
+            <h3 class="section-title">📅 Delivery Log - {{ subscription.plan.name }}</h3>
+            <a href="{{ url_for('customer_portal.dashboard') }}" class="btn-view-all">← Back to Dashboard</a>
+        </div>
+        
+        <!-- Summary Cards -->
+        <div class="stats-grid" style="margin-bottom: 25px;">
+            <div class="stat-card">
+                <div class="icon">📦</div>
+                <div class="value">{{ total_quantity }}</div>
+                <div class="label">Total {{ subscription.plan.unit_name }} Delivered</div>
+            </div>
+            <div class="stat-card">
+                <div class="icon">💰</div>
+                <div class="value">₹{{ '{:,.2f}'.format(total_amount) }}</div>
+                <div class="label">Total Amount</div>
+            </div>
+            <div class="stat-card">
+                <div class="icon">⏸️</div>
+                <div class="value">{{ paused_days }}</div>
+                <div class="label">Paused Days</div>
+            </div>
+            <div class="stat-card">
+                <div class="icon">✏️</div>
+                <div class="value">{{ modified_days }}</div>
+                <div class="label">Modified Days</div>
+            </div>
+        </div>
+        
+        <!-- Month Navigation -->
+        <div class="calendar-header">
+            <div class="month-nav">
+                <a href="?year={{ view_date.year }}&month={{ (view_date.month - 2) % 12 + 1 }}" class="btn-nav">← Prev</a>
+                <span class="current-month">{{ view_date.strftime('%B %Y') }}</span>
+                <a href="?year={{ view_date.year }}&month={{ view_date.month % 12 + 1 }}" class="btn-nav">Next →</a>
+            </div>
+        </div>
+        
+        <!-- Calendar Grid -->
+        <div class="calendar-grid">
+            <div class="day-header">Mon</div>
+            <div class="day-header">Tue</div>
+            <div class="day-header">Wed</div>
+            <div class="day-header">Thu</div>
+            <div class="day-header">Fri</div>
+            <div class="day-header">Sat</div>
+            <div class="day-header">Sun</div>
+            
+            {% for day in range(1, 32) %}
+                {% set date_obj = view_date.replace(day=day if day <= view_date.replace(month=view_date.month % 12 + 1, day=1).toordinal() - view_date.toordinal() else 1) %}
+                {% if day <= ((view_date.replace(month=view_date.month % 12 + 1, day=1) - view_date).days + view_date.day) %}
+                    {% set delivery = deliveries.get(date_obj) %}
+                    <div class="day-cell {% if delivery %}{% if delivery.is_paused %}paused{% elif delivery.modified_quantity %}modified{% else %}delivered{% endif %}{% endif %}">
+                        <div class="day-number">{{ day }}</div>
+                        {% if delivery %}
+                            {% if delivery.is_paused %}
+                                <div class="day-quantity">⏸️ Paused</div>
+                            {% else %}
+                                <div class="day-quantity">{{ delivery.quantity_delivered }} {{ subscription.plan.unit_name }}</div>
+                                <div class="day-quantity">₹{{ '{:,.0f}'.format(delivery.amount) }}</div>
+                            {% endif %}
+                        {% endif %}
+                    </div>
+                {% endif %}
+            {% endfor %}
+        </div>
+        
+        <!-- Action Buttons -->
+        <div class="action-buttons">
+            <button class="btn btn-secondary" onclick="openModal('pauseModal')">⏸️ Pause Deliveries</button>
+            <button class="btn btn-secondary" onclick="openModal('resumeModal')">▶️ Resume Deliveries</button>
+            <button class="btn btn-secondary" onclick="openModal('modifyModal')">✏️ Modify Quantity</button>
+        </div>
+    </div>
+</div>
+
+<!-- Pause Modal -->
+<div id="pauseModal" class="modal">
+    <div class="modal-content">
+        <h3 class="modal-header">⏸️ Pause Deliveries</h3>
+        <form method="POST" action="{{ url_for('customer_portal.pause_deliveries', subscription_id=subscription.id) }}">
+            <div class="form-group">
+                <label>Start Date</label>
+                <input type="date" name="start_date" required>
+            </div>
+            <div class="form-group">
+                <label>End Date</label>
+                <input type="date" name="end_date" required>
+            </div>
+            <div class="modal-actions">
+                <button type="submit" class="btn btn-primary">Pause</button>
+                <button type="button" class="btn btn-secondary" onclick="closeModal('pauseModal')">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Resume Modal -->
+<div id="resumeModal" class="modal">
+    <div class="modal-content">
+        <h3 class="modal-header">▶️ Resume Deliveries</h3>
+        <form method="POST" action="{{ url_for('customer_portal.resume_deliveries', subscription_id=subscription.id) }}">
+            <div class="form-group">
+                <label>Start Date</label>
+                <input type="date" name="start_date" required>
+            </div>
+            <div class="form-group">
+                <label>End Date</label>
+                <input type="date" name="end_date" required>
+            </div>
+            <div class="modal-actions">
+                <button type="submit" class="btn btn-primary">Resume</button>
+                <button type="button" class="btn btn-secondary" onclick="closeModal('resumeModal')">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modify Modal -->
+<div id="modifyModal" class="modal">
+    <div class="modal-content">
+        <h3 class="modal-header">✏️ Modify Quantity</h3>
+        <form method="POST" action="{{ url_for('customer_portal.modify_delivery', subscription_id=subscription.id) }}">
+            <div class="form-group">
+                <label>Delivery Date</label>
+                <input type="date" name="delivery_date" required>
+            </div>
+            <div class="form-group">
+                <label>New Quantity ({{ subscription.plan.unit_name }})</label>
+                <input type="number" name="new_quantity" step="0.1" min="0.1" required>
+            </div>
+            <div class="modal-actions">
+                <button type="submit" class="btn btn-primary">Modify</button>
+                <button type="button" class="btn btn-secondary" onclick="closeModal('modifyModal')">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function openModal(modalId) {
+    document.getElementById(modalId).classList.add('active');
+}
+
+function closeModal(modalId) {
+    document.getElementById(modalId).classList.remove('active');
+}
+
+// Close modal on background click
+document.querySelectorAll('.modal').forEach(modal => {
+    modal.addEventListener('click', function(e) {
+        if (e.target === this) {
+            closeModal(this.id);
+        }
+    });
+});
+</script>
+{% endblock %}
+

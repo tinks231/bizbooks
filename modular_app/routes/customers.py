@@ -100,6 +100,7 @@ def add():
                 payment_terms_days=int(request.form.get('payment_terms_days', 30) or 30),
                 opening_balance=float(request.form.get('opening_balance', 0) or 0),
                 notes=request.form.get('notes'),
+                pin=request.form.get('pin', '').strip() or None,  # Customer portal PIN
                 is_active=True
             )
             
@@ -142,6 +143,7 @@ def edit(customer_id):
             customer.payment_terms_days = int(request.form.get('payment_terms_days', 30) or 30)
             customer.opening_balance = float(request.form.get('opening_balance', 0) or 0)
             customer.notes = request.form.get('notes')
+            customer.pin = request.form.get('pin', '').strip() or None  # Customer portal PIN
             customer.is_active = request.form.get('is_active') == 'on'
             customer.updated_at = datetime.utcnow()
             

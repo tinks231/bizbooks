@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Subscriptions - Customer Portal</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/forms.css') }}">
+    <style>
+        body { font-family: 'Inter', sans-serif; background: #f5f7fa; margin: 0; padding: 0; }
+        .portal-header { background: linear-gradient(135deg, #4CAF50 0%, #388E3C 100%); color: white; padding: 20px; }
+        .header-content { max-width: 1200px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; }
+        .btn-logout { background: rgba(255,255,255,0.2); color: white; padding: 10px 20px; border-radius: 8px; text-decoration: none; }
+        .main-content { max-width: 1200px; margin: 30px auto; padding: 0 20px; }
+        .section { background: white; padding: 25px; border-radius: 12px; margin-bottom: 25px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+        .section-title { font-size: 20px; font-weight: 600; margin-bottom: 20px; }
+        .subscription-card { padding: 20px; border: 2px solid #e0e0e0; border-radius: 10px; margin-bottom: 15px; }
+        .subscription-title { font-size: 18px; font-weight: 600; margin-bottom: 10px; }
+        .btn { padding: 10px 20px; border-radius: 8px; text-decoration: none; display: inline-block; margin-top: 10px; }
+        .btn-primary { background: #4CAF50; color: white; }
+    </style>
+</head>
+<body>
+    <div class="portal-header">
+        <div class="header-content">
+            <h1>My Subscriptions</h1>
+            <div>
+                <a href="{{ url_for('customer_portal.dashboard') }}" class="btn-logout">Dashboard</a>
+                <a href="{{ url_for('customer_portal.logout') }}" class="btn-logout">Logout</a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="main-content">
+        <div class="section">
+            <h3 class="section-title">📦 All Subscriptions</h3>
+            {% if subscriptions %}
+                {% for subscription in subscriptions %}
+                <div class="subscription-card">
+                    <div class="subscription-title">{{ subscription.plan.name }}</div>
+                    <p>Status: <strong>{{ subscription.status|upper }}</strong></p>
+                    <p>Started: {{ subscription.start_date.strftime('%d-%m-%Y') }}</p>
+                    <p>Next Billing: {{ subscription.current_period_end.strftime('%d-%m-%Y') }}</p>
+                    {% if subscription.plan.plan_type == 'metered' %}
+                        <a href="{{ url_for('customer_portal.view_deliveries', subscription_id=subscription.id) }}" class="btn btn-primary">View Deliveries</a>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            {% else %}
+                <p>No subscriptions found.</p>
+            {% endif %}
+        </div>
+    </div>
+</body>
+</html>
+
