@@ -34,6 +34,12 @@
 
 <style>
 /* Invoice Layout Improvements */
+.company-info {
+    font-size: 14px;
+    margin: 4px 0;
+    color: #2c3e50;
+}
+
 .invoice-info-row {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -57,10 +63,16 @@
 
 .details-table td {
     padding: 6px 0;
+    font-size: 14px;
 }
 
 .details-table td:first-child {
     width: 120px;
+    color: #666;
+}
+
+.details-table td:last-child {
+    color: #2c3e50;
 }
 
 .totals-section {
@@ -82,6 +94,11 @@
 .totals-table td {
     padding: 10px;
     border-bottom: 1px solid #edf0f3;
+    font-size: 14px;
+}
+
+.totals-table td:first-child {
+    color: #666;
 }
 
 .totals-table .total-row td {
@@ -121,19 +138,20 @@
     <div class="invoice-header">
         <div class="company-details">
             <h1 class="company-name">{{ tenant.company_name }}</h1>
-            {% if tenant_settings %}
-                {% if tenant_settings.get('address') %}
-                <p class="company-info">📍 {{ tenant_settings.get('address') }}</p>
-                {% endif %}
-                <p class="company-info">📞 {{ tenant_settings.get('phone', tenant.admin_phone) }}</p>
-                <p class="company-info">✉️ {{ tenant_settings.get('email', tenant.admin_email) }}</p>
-                {% if tenant_settings.get('gstin') %}
-                <p class="company-info"><strong>GSTIN:</strong> {{ tenant_settings.get('gstin') }}</p>
-                {% endif %}
-            {% else %}
-                <p class="company-info">📞 {{ tenant.admin_phone }}</p>
-                <p class="company-info">✉️ {{ tenant.admin_email }}</p>
-            {% endif %}
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 8px;">
+                <div>
+                    {% if tenant_settings and tenant_settings.get('address') %}
+                    <p class="company-info">📍 {{ tenant_settings.get('address') }}</p>
+                    {% endif %}
+                    <p class="company-info">📞 {{ tenant_settings.get('phone', tenant.admin_phone) if tenant_settings else tenant.admin_phone }}</p>
+                </div>
+                <div>
+                    <p class="company-info">✉️ {{ tenant_settings.get('email', tenant.admin_email) if tenant_settings else tenant.admin_email }}</p>
+                    {% if tenant_settings and tenant_settings.get('gstin') %}
+                    <p class="company-info"><strong>GSTIN:</strong> {{ tenant_settings.get('gstin') }}</p>
+                    {% endif %}
+                </div>
+            </div>
         </div>
         
         {% if tenant_settings and tenant_settings.get('logo_url') %}
@@ -152,27 +170,27 @@
     <div class="invoice-info-row">
         <div class="bill-to">
             <h3>Bill To</h3>
-            <p class="customer-name">{{ invoice.customer_name }}</p>
+            <p class="customer-name" style="font-size: 16px; font-weight: 600; margin-bottom: 8px;">{{ invoice.customer_name }}</p>
             {% if invoice.customer_id and invoice.customer %}
-            <p style="color: #666; font-size: 13px; margin-top: 3px;">
+            <p style="color: #666; font-size: 14px; margin: 4px 0;">
                 <strong>Customer ID:</strong> {{ invoice.customer.customer_code }}
                 {% if invoice.customer.phone %}
                 | 📞 {{ invoice.customer.phone }}
                 {% endif %}
             </p>
             {% elif invoice.customer_phone %}
-            <p>📞 {{ invoice.customer_phone }}</p>
+            <p style="font-size: 14px; margin: 4px 0;">📞 {{ invoice.customer_phone }}</p>
             {% endif %}
             {% if invoice.customer_email %}
-            <p>✉️ {{ invoice.customer_email }}</p>
+            <p style="font-size: 14px; margin: 4px 0;">✉️ {{ invoice.customer_email }}</p>
             {% endif %}
             {% if invoice.customer_address %}
-            <p>{{ invoice.customer_address }}</p>
+            <p style="font-size: 14px; margin: 4px 0;">{{ invoice.customer_address }}</p>
             {% endif %}
             {% if invoice.customer_gstin %}
-            <p><strong>GSTIN:</strong> {{ invoice.customer_gstin }}</p>
+            <p style="font-size: 14px; margin: 4px 0;"><strong>GSTIN:</strong> {{ invoice.customer_gstin }}</p>
             {% endif %}
-            <p><strong>State:</strong> {{ invoice.customer_state }}</p>
+            <p style="font-size: 14px; margin: 4px 0;"><strong>State:</strong> {{ invoice.customer_state }}</p>
         </div>
         
         <div class="invoice-details">
@@ -262,13 +280,8 @@
     <!-- Totals Section -->
     <div class="totals-section">
         <div class="invoice-notes">
-            <h4>Amount in Words:</h4>
-            <p><em>{{ invoice.amount_in_words() }}</em></p>
-            
-            {% if invoice.notes %}
-            <h4 style="margin-top: 20px;">Terms & Conditions:</h4>
-            <p style="white-space: pre-line;">{{ invoice.notes }}</p>
-            {% endif %}
+            <h4 style="font-size: 14px; font-weight: 700; margin-bottom: 10px;">Amount in Words:</h4>
+            <p style="font-size: 14px; font-style: italic; color: #2c3e50;">{{ invoice.amount_in_words() }}</p>
         </div>
         
         <div class="totals-table">
@@ -318,17 +331,28 @@
         </div>
     </div>
     
-    <!-- Signature Section -->
-    <div class="signature-section">
-        <div class="customer-signature">
-            <p>Customer Signature</p>
-            <div class="signature-line"></div>
+    <!-- Terms & Signature Section -->
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-top: 40px; padding-top: 30px; border-top: 2px solid #edf0f3;">
+        <!-- Left: Terms & Conditions -->
+        <div class="invoice-notes">
+            {% if invoice.notes %}
+            <h4 style="font-size: 14px; font-weight: 700; margin-bottom: 10px;">Terms & Conditions:</h4>
+            <p style="white-space: pre-line; font-size: 13px; color: #666; line-height: 1.6;">{{ invoice.notes }}</p>
+            {% endif %}
         </div>
         
-        <div class="company-signature">
-            <p>For: <strong>{{ tenant.company_name }}</strong></p>
-            <div class="signature-line"></div>
-            <p><strong>Authorized Signatory</strong></p>
+        <!-- Right: Signatures -->
+        <div class="signature-section" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+            <div class="customer-signature">
+                <p style="font-size: 13px; font-weight: 600; margin-bottom: 50px;">Customer Signature</p>
+                <div style="border-top: 1px solid #333; padding-top: 5px;"></div>
+            </div>
+            
+            <div class="company-signature">
+                <p style="font-size: 13px; margin-bottom: 5px;">For: <strong>{{ tenant.company_name }}</strong></p>
+                <div style="border-top: 1px solid #333; margin-top: 45px; padding-top: 5px;"></div>
+                <p style="font-size: 13px; font-weight: 600; margin-top: 5px;">Authorized Signatory</p>
+            </div>
         </div>
     </div>
     
