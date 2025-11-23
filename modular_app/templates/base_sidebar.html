@@ -911,21 +911,10 @@
                 </div>
             </div>
             
-            <!-- Customer Orders -->
-            <div class="nav-section">
-                <div class="nav-section-header" onclick="toggleSection('section-customer-orders')">
-                    <div class="nav-section-title">
-                        <span class="nav-section-icon">🛒</span>
-                        <span>Customer Orders</span>
-                    </div>
-                    <span class="nav-section-arrow">▶</span>
-                </div>
-                <div class="nav-section-content" id="section-customer-orders">
-                    <a href="/admin/customer-orders" class="nav-item {% if '/admin/customer-orders' in request.path %}active{% endif %}">
-                        <i>📦</i> All Orders
-                    </a>
-                </div>
-            </div>
+            <!-- Customer Orders (NEW) -->
+            <a href="/admin/customer-orders" class="nav-item {% if '/admin/customer-orders' in request.path %}active{% endif %}" style="background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%); color: white; font-weight: 600;">
+                <i>🛒</i> Customer Orders (NEW!)
+            </a>
             
             <!-- OPERATIONS Section (Collapsible) -->
             <div class="nav-section-collapsible">
