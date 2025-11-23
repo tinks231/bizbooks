@@ -1,0 +1,133 @@
+{% extends "base_sidebar.html" %}
+
+{% block title %}Customer Orders - {{ tenant.business_name }}{% endblock %}
+
+{% block content %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/forms.css') }}">
+
+<div class="page-header">
+    <h1>📦 Customer Orders</h1>
+</div>
+
+<!-- Stats Cards -->
+<div class="stats-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 30px;">
+    <div class="stat-card" style="background: white; padding: 20px; border-radius: 8px; border-left: 4px solid #ffc107;">
+        <div style="font-size: 24px; font-weight: 700; color: #ffc107;">{{ pending_count }}</div>
+        <div style="color: #666; font-size: 14px;">⏳ Pending Orders</div>
+    </div>
+    <div class="stat-card" style="background: white; padding: 20px; border-radius: 8px; border-left: 4px solid #17a2b8;">
+        <div style="font-size: 24px; font-weight: 700; color: #17a2b8;">{{ confirmed_count }}</div>
+        <div style="color: #666; font-size: 14px;">✓ Confirmed Orders</div>
+    </div>
+    <div class="stat-card" style="background: white; padding: 20px; border-radius: 8px; border-left: 4px solid #28a745;">
+        <div style="font-size: 24px; font-weight: 700; color: #28a745;">{{ fulfilled_count }}</div>
+        <div style="color: #666; font-size: 14px;">✓ Fulfilled Orders</div>
+    </div>
+</div>
+
+<!-- Filter Section -->
+<form method="GET" class="form-card" style="margin-bottom: 20px;">
+    <div class="form-row">
+        <div class="form-group">
+            <input type="text" 
+                   name="search" 
+                   class="form-input" 
+                   placeholder="🔍 Search by order number, customer name, or phone..." 
+                   value="{{ search_query or '' }}">
+        </div>
+        <div class="form-group" style="max-width: 200px;">
+            <select name="status" class="form-input">
+                <option value="">All Status</option>
+                <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>⏳ Pending</option>
+                <option value="confirmed" {% if status_filter == 'confirmed' %}selected{% endif %}>✓ Confirmed</option>
+                <option value="fulfilled" {% if status_filter == 'fulfilled' %}selected{% endif %}>✓ Fulfilled</option>
+                <option value="cancelled" {% if status_filter == 'cancelled' %}selected{% endif %}>✕ Cancelled</option>
+            </select>
+        </div>
+        <div class="form-group" style="max-width: 150px;">
+            <button type="submit" class="btn btn-primary" style="width: 100%;">Search</button>
+        </div>
+    </div>
+</form>
+
+<!-- Orders List -->
+{% if orders %}
+    <div class="table-responsive">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Order No.</th>
+                    <th>Customer</th>
+                    <th>Order Date</th>
+                    <th>Items</th>
+                    <th>Total</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for order in orders %}
+                    <tr>
+                        <td><strong>{{ order.order_number }}</strong></td>
+                        <td>
+                            <div>{{ order.customer.name }}</div>
+                            <div style="font-size: 12px; color: #999;">{{ order.customer.phone }}</div>
+                        </td>
+                        <td>{{ order.order_date.strftime('%d %b %Y, %I:%M %p') }}</td>
+                        <td>{{ order.items|length }} item(s)</td>
+                        <td><strong style="color: #28a745;">₹{{ '{:,.2f}'.format(order.total_amount) }}</strong></td>
+                        <td>
+                            {% if order.status == 'pending' %}
+                                <span class="badge badge-warning">⏳ Pending</span>
+                            {% elif order.status == 'confirmed' %}
+                                <span class="badge badge-info">✓ Confirmed</span>
+                            {% elif order.status == 'fulfilled' %}
+                                <span class="badge badge-success">✓ Fulfilled</span>
+                            {% elif order.status == 'cancelled' %}
+                                <span class="badge badge-danger">✕ Cancelled</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <a href="{{ url_for('customer_orders.view_order', order_id=order.id) }}" 
+                               class="btn btn-sm btn-primary">View</a>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% else %}
+    <div class="empty-state" style="text-align: center; padding: 60px 20px; background: white; border-radius: 8px;">
+        <div style="font-size: 64px; margin-bottom: 20px;">📦</div>
+        <h3>No orders found</h3>
+        <p style="color: #999;">Customer orders will appear here when customers place them through the customer portal</p>
+    </div>
+{% endif %}
+
+<style>
+    .badge {
+        display: inline-block;
+        padding: 5px 10px;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: 600;
+    }
+    .badge-warning {
+        background: #fff3cd;
+        color: #856404;
+    }
+    .badge-info {
+        background: #d1ecf1;
+        color: #0c5460;
+    }
+    .badge-success {
+        background: #d4edda;
+        color: #155724;
+    }
+    .badge-danger {
+        background: #f8d7da;
+        color: #721c24;
+    }
+</style>
+{% endblock %}
+

@@ -908,15 +908,22 @@
                     <a href="/admin/subscriptions/reports" class="nav-item {% if '/admin/subscriptions/reports' in request.path %}active{% endif %}">
                         <i>📊</i> Reports
                     </a>
-                    <!-- Coming soon: -->
-                    <!--
-                    <a href="/admin/subscriptions/due-soon" class="nav-item">
-                        <i>⏰</i> Due Soon
+                </div>
+            </div>
+            
+            <!-- Customer Orders -->
+            <div class="nav-section">
+                <div class="nav-section-header" onclick="toggleSection('section-customer-orders')">
+                    <div class="nav-section-title">
+                        <span class="nav-section-icon">🛒</span>
+                        <span>Customer Orders</span>
+                    </div>
+                    <span class="nav-section-arrow">▶</span>
+                </div>
+                <div class="nav-section-content" id="section-customer-orders">
+                    <a href="/admin/customer-orders" class="nav-item {% if '/admin/customer-orders' in request.path %}active{% endif %}">
+                        <i>📦</i> All Orders
                     </a>
-                    <a href="/admin/subscriptions/reports" class="nav-item">
-                        <i>📊</i> Reports
-                    </a>
-                    -->
                 </div>
             </div>
             

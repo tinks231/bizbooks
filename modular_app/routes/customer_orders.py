@@ -1,0 +1,128 @@
+"""
+Customer Orders Admin Routes
+For managing orders placed by customers through customer portal
+"""
+from flask import Blueprint, render_template, request, redirect, url_for, flash, session, g, jsonify
+from models import db, CustomerOrder, CustomerOrderItem, Customer
+from utils.tenant_middleware import require_tenant, login_required
+from datetime import datetime
+from sqlalchemy import desc, and_, or_
+
+customer_orders_bp = Blueprint('customer_orders', __name__, url_prefix='/admin/customer-orders')
+
+
+@customer_orders_bp.route('/')
+@require_tenant
+@login_required
+def index():
+    """List all customer orders"""
+    # Get filter params
+    status_filter = request.args.get('status', '').strip()
+    search_query = request.args.get('search', '').strip()
+    
+    # Base query
+    query = CustomerOrder.query.filter_by(tenant_id=g.tenant.id)
+    
+    # Apply status filter
+    if status_filter:
+        query = query.filter_by(status=status_filter)
+    
+    # Apply search
+    if search_query:
+        query = query.join(Customer).filter(
+            or_(
+                CustomerOrder.order_number.ilike(f'%{search_query}%'),
+                Customer.name.ilike(f'%{search_query}%'),
+                Customer.phone.ilike(f'%{search_query}%')
+            )
+        )
+    
+    orders = query.order_by(desc(CustomerOrder.order_date)).all()
+    
+    # Count by status
+    pending_count = CustomerOrder.query.filter_by(tenant_id=g.tenant.id, status='pending').count()
+    confirmed_count = CustomerOrder.query.filter_by(tenant_id=g.tenant.id, status='confirmed').count()
+    fulfilled_count = CustomerOrder.query.filter_by(tenant_id=g.tenant.id, status='fulfilled').count()
+    
+    return render_template('admin/customer_orders/list.html',
+                         orders=orders,
+                         status_filter=status_filter,
+                         search_query=search_query,
+                         pending_count=pending_count,
+                         confirmed_count=confirmed_count,
+                         fulfilled_count=fulfilled_count)
+
+
+@customer_orders_bp.route('/<int:order_id>')
+@require_tenant
+@login_required
+def view_order(order_id):
+    """View order details"""
+    order = CustomerOrder.query.filter_by(
+        id=order_id,
+        tenant_id=g.tenant.id
+    ).first_or_404()
+    
+    return render_template('admin/customer_orders/view.html',
+                         order=order)
+
+
+@customer_orders_bp.route('/<int:order_id>/update-status', methods=['POST'])
+@require_tenant
+@login_required
+def update_status(order_id):
+    """Update order status"""
+    order = CustomerOrder.query.filter_by(
+        id=order_id,
+        tenant_id=g.tenant.id
+    ).first_or_404()
+    
+    new_status = request.form.get('status', '').strip()
+    admin_notes = request.form.get('admin_notes', '').strip()
+    
+    if new_status not in ['pending', 'confirmed', 'fulfilled', 'cancelled']:
+        flash('❌ Invalid status', 'error')
+        return redirect(url_for('customer_orders.view_order', order_id=order_id))
+    
+    try:
+        order.status = new_status
+        if admin_notes:
+            order.admin_notes = admin_notes
+        
+        # If fulfilled, set fulfilled date and user
+        if new_status == 'fulfilled' and not order.fulfilled_date:
+            order.fulfilled_date = datetime.now()
+            order.fulfilled_by = session.get('user_id')
+        
+        order.updated_at = datetime.now()
+        db.session.commit()
+        
+        flash(f'✅ Order status updated to {new_status.upper()}', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'❌ Error updating order: {str(e)}', 'error')
+    
+    return redirect(url_for('customer_orders.view_order', order_id=order_id))
+
+
+@customer_orders_bp.route('/<int:order_id>/delete', methods=['POST'])
+@require_tenant
+@login_required
+def delete_order(order_id):
+    """Delete order"""
+    order = CustomerOrder.query.filter_by(
+        id=order_id,
+        tenant_id=g.tenant.id
+    ).first_or_404()
+    
+    try:
+        order_number = order.order_number
+        db.session.delete(order)
+        db.session.commit()
+        flash(f'✅ Order {order_number} deleted successfully', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'❌ Error deleting order: {str(e)}', 'error')
+    
+    return redirect(url_for('customer_orders.index'))
+
