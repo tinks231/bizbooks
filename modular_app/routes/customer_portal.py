@@ -491,11 +491,11 @@ def view_cart():
     for item_id_str, qty in cart.items():
         item = Item.query.get(int(item_id_str))
         if item:
-            amount = float(qty) * float(item.sale_price or 0)
+            amount = float(qty) * float(item.selling_price or 0)
             cart_items.append({
                 'item': item,
                 'quantity': qty,
-                'rate': item.sale_price,
+                'rate': item.selling_price,
                 'amount': amount
             })
             subtotal += amount
@@ -616,7 +616,7 @@ def place_order():
         for item_id_str, qty in cart.items():
             item = Item.query.get(int(item_id_str))
             if item:
-                rate = float(item.sale_price or 0)
+                rate = float(item.selling_price or 0)
                 amount = float(qty) * rate
                 tax_rate = float(item.gst_rate or 0)
                 tax_amt = amount * (tax_rate / 100)

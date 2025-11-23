@@ -214,20 +214,27 @@
                             <div class="product-description">{{ item.description }}</div>
                         {% endif %}
                         
-                        <div class="product-price">₹{{ '{:,.2f}'.format(item.sale_price or 0) }}</div>
-                        
-                        <form method="POST" action="{{ url_for('customer_portal.add_to_cart', item_id=item.id) }}">
-                            <div class="product-actions">
-                                <input type="number" 
-                                       name="quantity" 
-                                       class="qty-input" 
-                                       value="1" 
-                                       min="1" 
-                                       step="0.1" 
-                                       required>
-                                <button type="submit" class="add-btn">+ Add to Cart</button>
+                        {% if item.selling_price and item.selling_price > 0 %}
+                            <div class="product-price">₹{{ '{:,.2f}'.format(item.selling_price) }}</div>
+                            
+                            <form method="POST" action="{{ url_for('customer_portal.add_to_cart', item_id=item.id) }}">
+                                <div class="product-actions">
+                                    <input type="number" 
+                                           name="quantity" 
+                                           class="qty-input" 
+                                           value="1" 
+                                           min="1" 
+                                           step="0.1" 
+                                           required>
+                                    <button type="submit" class="add-btn">+ Add to Cart</button>
+                                </div>
+                            </form>
+                        {% else %}
+                            <div class="product-price" style="color: #999;">Price not set</div>
+                            <div style="font-size: 12px; color: #666; margin-top: 10px;">
+                                📞 Contact us for pricing
                             </div>
-                        </form>
+                        {% endif %}
                     </div>
                 {% endfor %}
             </div>
