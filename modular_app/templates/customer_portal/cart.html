@@ -163,22 +163,33 @@
     </style>
 </head>
 <body>
+    <!-- Header -->
+    <div class="portal-header">
+        <div class="header-content">
+            <div class="header-left">
+                <h1>Welcome, {{ session.get('customer_name', 'Customer') }}!</h1>
+                <p>{{ tenant.business_name }}</p>
+            </div>
+            <div class="header-right">
+                <a href="{{ url_for('customer_portal.profile') }}" class="btn-logout">👤 Profile</a>
+                <a href="{{ url_for('customer_portal.logout') }}" class="btn-logout">🚪 Logout</a>
+            </div>
+        </div>
+    </div>
+    
     <!-- Navigation -->
-    <nav class="customer-nav">
-        <div class="nav-brand">
-            <h2>🛍️ {{ tenant.business_name }}</h2>
+    <div class="portal-nav">
+        <div class="nav-content">
+            <a href="{{ url_for('customer_portal.dashboard') }}" class="nav-link">🏠 Dashboard</a>
+            <a href="{{ url_for('customer_portal.browse_products') }}" class="nav-link active">🛍️ Products</a>
+            <a href="{{ url_for('customer_portal.view_orders') }}" class="nav-link">📦 My Orders</a>
+            <a href="{{ url_for('customer_portal.subscriptions') }}" class="nav-link">🔄 Subscriptions</a>
+            <a href="{{ url_for('customer_portal.invoices') }}" class="nav-link">📄 Invoices</a>
         </div>
-        <div class="nav-links">
-            <a href="{{ url_for('customer_portal.dashboard') }}">Dashboard</a>
-            <a href="{{ url_for('customer_portal.browse_products') }}">Products</a>
-            <a href="{{ url_for('customer_portal.view_orders') }}">My Orders</a>
-            <a href="{{ url_for('customer_portal.profile') }}">Profile</a>
-            <a href="{{ url_for('customer_portal.logout') }}" style="color: #dc3545;">Logout</a>
-        </div>
-    </nav>
+    </div>
 
     <!-- Main Content -->
-    <div class="customer-container cart-container">
+    <div style="max-width: 900px; margin: 30px auto; padding: 0 20px;">
         <div class="cart-header">
             <h1>🛒 Shopping Cart</h1>
             <a href="{{ url_for('customer_portal.browse_products') }}" style="text-decoration: none; color: #4CAF50; font-weight: 500;">← Continue Shopping</a>
