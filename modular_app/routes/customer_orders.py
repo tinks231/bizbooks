@@ -14,9 +14,10 @@ from sqlalchemy import desc, and_, or_
 customer_orders_bp = Blueprint('customer_orders', __name__, url_prefix='/admin/customer-orders')
 
 
-# Login required decorator
+# Login required decorator (matches admin.py pattern EXACTLY)
 def login_required(f):
     @wraps(f)
+    @check_license  # ← Check license INSIDE decorator (runs AFTER login check)
     def decorated_function(*args, **kwargs):
         if 'tenant_admin_id' not in session:
             flash('Please login first', 'error')
@@ -31,7 +32,6 @@ def login_required(f):
 
 @customer_orders_bp.route('/')
 @require_tenant
-@check_license
 @login_required
 def index():
     """List all customer orders"""
@@ -75,7 +75,6 @@ def index():
 
 @customer_orders_bp.route('/<int:order_id>')
 @require_tenant
-@check_license
 @login_required
 def view_order(order_id):
     """View order details"""
@@ -91,7 +90,6 @@ def view_order(order_id):
 
 @customer_orders_bp.route('/<int:order_id>/update-status', methods=['POST'])
 @require_tenant
-@check_license
 @login_required
 def update_status(order_id):
     """Update order status"""
@@ -162,7 +160,6 @@ def update_status(order_id):
 
 @customer_orders_bp.route('/<int:order_id>/delete', methods=['POST'])
 @require_tenant
-@check_license
 @login_required
 def delete_order(order_id):
     """Delete order"""
