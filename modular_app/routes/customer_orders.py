@@ -4,7 +4,7 @@ For managing orders placed by customers through customer portal
 """
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session, g, jsonify
 from models import db, CustomerOrder, CustomerOrderItem, Customer
-from utils.tenant_middleware import require_tenant
+from utils.tenant_middleware import require_tenant, get_current_tenant_id
 from utils.license_check import check_license
 from utils.email_utils import send_order_confirmed_notification, send_order_fulfilled_notification, send_order_cancelled_notification
 from functools import wraps
@@ -22,10 +22,12 @@ def login_required(f):
         if 'tenant_admin_id' not in session:
             flash('Please login first', 'error')
             return redirect(url_for('admin.login'))
-        
-        # Make session permanent to prevent timeout
+        # Verify session tenant matches current tenant
+        if session.get('tenant_admin_id') != get_current_tenant_id():
+            session.clear()
+            flash('Session mismatch. Please login again.', 'error')
+            return redirect(url_for('admin.login'))
         session.permanent = True
-        
         return f(*args, **kwargs)
     return decorated_function
 
@@ -78,6 +80,12 @@ def index():
 @login_required
 def view_order(order_id):
     """View order details"""
+    print(f"\n🔍 VIEW ORDER DEBUG:")
+    print(f"   Order ID: {order_id}")
+    print(f"   Session tenant_admin_id: {session.get('tenant_admin_id')}")
+    print(f"   Current tenant ID: {g.tenant.id}")
+    print(f"   Session keys: {list(session.keys())}")
+    
     order = CustomerOrder.query.filter_by(
         id=order_id,
         tenant_id=g.tenant.id
