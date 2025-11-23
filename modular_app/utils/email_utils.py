@@ -363,3 +363,197 @@ This is an automated notification from {tenant_name}'s BizBooks account.
     
     return send_email(admin_email, subject, body_html, body_text)
 
+
+def send_order_confirmed_notification(customer_email, customer_name, order_number, total_amount, items_count, tenant_name):
+    """Send notification to customer when order is confirmed"""
+    
+    subject = f"✅ Order Confirmed: {order_number}"
+    
+    body_html = f"""
+    <html>
+    <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+        <div style="max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 8px;">
+            <h2 style="color: #17a2b8; margin-bottom: 20px;">✅ Order Confirmed!</h2>
+            
+            <p>Hello {customer_name},</p>
+            
+            <p>Great news! Your order has been confirmed and is being prepared.</p>
+            
+            <div style="background: #d1ecf1; border-left: 4px solid #17a2b8; padding: 15px; border-radius: 5px; margin: 20px 0;">
+                <p style="margin: 5px 0; font-size: 18px;"><strong>Order #{order_number}</strong></p>
+                <p style="margin: 5px 0;"><strong>Items:</strong> {items_count} item(s)</p>
+                <p style="margin: 5px 0;"><strong>Total:</strong> <span style="color: #28a745; font-size: 18px; font-weight: bold;">₹{total_amount:,.2f}</span></p>
+            </div>
+            
+            <div style="background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; border-radius: 5px; margin: 20px 0;">
+                <p style="margin: 0;"><strong>📦 What's Next?</strong></p>
+                <p style="margin: 5px 0 0 0; font-size: 14px;">We're preparing your items. You'll receive another notification when your order is ready!</p>
+            </div>
+            
+            <a href="https://{tenant_name}.bizbooks.co.in/customer/orders" 
+               style="display: inline-block; padding: 12px 24px; background: #17a2b8; color: white; text-decoration: none; border-radius: 5px; margin-top: 15px; font-weight: 600;">
+                📦 Track Your Order
+            </a>
+            
+            <p style="color: #666; font-size: 12px; margin-top: 30px; border-top: 1px solid #ddd; padding-top: 15px;">
+                This is an automated notification from {tenant_name}.<br>
+                Need help? Contact us through your customer portal.
+            </p>
+        </div>
+    </body>
+    </html>
+    """
+    
+    body_text = f"""
+✅ Order Confirmed!
+
+Hello {customer_name},
+
+Your order has been confirmed and is being prepared.
+
+Order Number: {order_number}
+Items: {items_count} item(s)
+Total: ₹{total_amount:,.2f}
+
+What's Next?
+We're preparing your items. You'll receive another notification when your order is ready!
+
+Track your order: https://{tenant_name}.bizbooks.co.in/customer/orders
+
+---
+This is an automated notification from {tenant_name}.
+    """
+    
+    return send_email(customer_email, subject, body_html, body_text)
+
+
+def send_order_fulfilled_notification(customer_email, customer_name, order_number, total_amount, items_count, tenant_name):
+    """Send notification to customer when order is fulfilled/ready"""
+    
+    subject = f"✓ Order Ready: {order_number}"
+    
+    body_html = f"""
+    <html>
+    <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+        <div style="max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 8px;">
+            <h2 style="color: #28a745; margin-bottom: 20px;">✓ Order Ready!</h2>
+            
+            <p>Hello {customer_name},</p>
+            
+            <p>Excellent news! Your order is ready for pickup/has been delivered.</p>
+            
+            <div style="background: #d4edda; border-left: 4px solid #28a745; padding: 15px; border-radius: 5px; margin: 20px 0;">
+                <p style="margin: 5px 0; font-size: 18px;"><strong>Order #{order_number}</strong></p>
+                <p style="margin: 5px 0;"><strong>Items:</strong> {items_count} item(s)</p>
+                <p style="margin: 5px 0;"><strong>Total:</strong> <span style="color: #28a745; font-size: 18px; font-weight: bold;">₹{total_amount:,.2f}</span></p>
+            </div>
+            
+            <div style="background: #e7f3ff; border-left: 4px solid #2196F3; padding: 15px; border-radius: 5px; margin: 20px 0;">
+                <p style="margin: 0;"><strong>🎉 Thank You!</strong></p>
+                <p style="margin: 5px 0 0 0; font-size: 14px;">We appreciate your business. Hope to serve you again soon!</p>
+            </div>
+            
+            <a href="https://{tenant_name}.bizbooks.co.in/customer/orders" 
+               style="display: inline-block; padding: 12px 24px; background: #28a745; color: white; text-decoration: none; border-radius: 5px; margin-top: 15px; font-weight: 600;">
+                📦 View Order Details
+            </a>
+            
+            <p style="color: #666; font-size: 12px; margin-top: 30px; border-top: 1px solid #ddd; padding-top: 15px;">
+                This is an automated notification from {tenant_name}.<br>
+                Need help? Contact us through your customer portal.
+            </p>
+        </div>
+    </body>
+    </html>
+    """
+    
+    body_text = f"""
+✓ Order Ready!
+
+Hello {customer_name},
+
+Your order is ready for pickup/has been delivered.
+
+Order Number: {order_number}
+Items: {items_count} item(s)
+Total: ₹{total_amount:,.2f}
+
+Thank you for your business! Hope to serve you again soon.
+
+View order details: https://{tenant_name}.bizbooks.co.in/customer/orders
+
+---
+This is an automated notification from {tenant_name}.
+    """
+    
+    return send_email(customer_email, subject, body_html, body_text)
+
+
+def send_order_cancelled_notification(customer_email, customer_name, order_number, total_amount, items_count, tenant_name, reason=None):
+    """Send notification to customer when order is cancelled"""
+    
+    subject = f"✕ Order Cancelled: {order_number}"
+    
+    reason_html = f"""
+    <div style="background: #fff3cd; padding: 15px; border-radius: 5px; margin: 20px 0;">
+        <p style="margin: 0;"><strong>Reason:</strong> {reason}</p>
+    </div>
+    """ if reason else ""
+    
+    body_html = f"""
+    <html>
+    <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+        <div style="max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 8px;">
+            <h2 style="color: #dc3545; margin-bottom: 20px;">✕ Order Cancelled</h2>
+            
+            <p>Hello {customer_name},</p>
+            
+            <p>We regret to inform you that your order has been cancelled.</p>
+            
+            <div style="background: #f8d7da; border-left: 4px solid #dc3545; padding: 15px; border-radius: 5px; margin: 20px 0;">
+                <p style="margin: 5px 0; font-size: 18px;"><strong>Order #{order_number}</strong></p>
+                <p style="margin: 5px 0;"><strong>Items:</strong> {items_count} item(s)</p>
+                <p style="margin: 5px 0;"><strong>Amount:</strong> ₹{total_amount:,.2f}</p>
+            </div>
+            
+            {reason_html}
+            
+            <p>If you have any questions, please contact us.</p>
+            
+            <a href="https://{tenant_name}.bizbooks.co.in/customer/products" 
+               style="display: inline-block; padding: 12px 24px; background: #6c757d; color: white; text-decoration: none; border-radius: 5px; margin-top: 15px; font-weight: 600;">
+                🛍️ Browse Products Again
+            </a>
+            
+            <p style="color: #666; font-size: 12px; margin-top: 30px; border-top: 1px solid #ddd; padding-top: 15px;">
+                This is an automated notification from {tenant_name}.<br>
+                Need help? Contact us through your customer portal.
+            </p>
+        </div>
+    </body>
+    </html>
+    """
+    
+    body_text = f"""
+✕ Order Cancelled
+
+Hello {customer_name},
+
+Your order has been cancelled.
+
+Order Number: {order_number}
+Items: {items_count} item(s)
+Amount: ₹{total_amount:,.2f}
+
+{"Reason: " + reason if reason else ""}
+
+If you have any questions, please contact us.
+
+Browse products: https://{tenant_name}.bizbooks.co.in/customer/products
+
+---
+This is an automated notification from {tenant_name}.
+    """
+    
+    return send_email(customer_email, subject, body_html, body_text)
+

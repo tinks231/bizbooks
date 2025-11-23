@@ -6,6 +6,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash,
 from models import db, CustomerOrder, CustomerOrderItem, Customer
 from utils.tenant_middleware import require_tenant
 from utils.license_check import check_license
+from utils.email_utils import send_order_confirmed_notification, send_order_fulfilled_notification, send_order_cancelled_notification
 from functools import wraps
 from datetime import datetime
 from sqlalchemy import desc, and_, or_
@@ -103,6 +104,7 @@ def update_status(order_id):
         return redirect(url_for('customer_orders.view_order', order_id=order_id))
     
     try:
+        old_status = order.status
         order.status = new_status
         if admin_notes:
             order.admin_notes = admin_notes
@@ -114,6 +116,37 @@ def update_status(order_id):
         
         order.updated_at = datetime.now()
         db.session.commit()
+        
+        # Send email notification to customer (if email exists and status changed)
+        if order.customer.email and old_status != new_status:
+            if new_status == 'confirmed':
+                send_order_confirmed_notification(
+                    customer_email=order.customer.email,
+                    customer_name=order.customer.name,
+                    order_number=order.order_number,
+                    total_amount=float(order.total_amount),
+                    items_count=len(order.items),
+                    tenant_name=g.tenant.subdomain
+                )
+            elif new_status == 'fulfilled':
+                send_order_fulfilled_notification(
+                    customer_email=order.customer.email,
+                    customer_name=order.customer.name,
+                    order_number=order.order_number,
+                    total_amount=float(order.total_amount),
+                    items_count=len(order.items),
+                    tenant_name=g.tenant.subdomain
+                )
+            elif new_status == 'cancelled':
+                send_order_cancelled_notification(
+                    customer_email=order.customer.email,
+                    customer_name=order.customer.name,
+                    order_number=order.order_number,
+                    total_amount=float(order.total_amount),
+                    items_count=len(order.items),
+                    tenant_name=g.tenant.subdomain,
+                    reason=admin_notes
+                )
         
         flash(f'✅ Order status updated to {new_status.upper()}', 'success')
     except Exception as e:
