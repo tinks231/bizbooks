@@ -924,32 +924,25 @@
             </div>
             
             <!-- Customer Orders (NEW) -->
-            {% if g.tenant %}
-                {% set pending_count = namespace(value=0) %}
-                {% for order in [] %}{% endfor %}
-                {# Query pending orders count #}
-                <a href="/admin/customer-orders" class="nav-item {% if '/admin/customer-orders' in request.path %}active{% endif %}" style="background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%); color: white; font-weight: 600; position: relative;">
-                    <i>🛒</i> Customer Orders
-                    <span id="pending-orders-badge" style="background: #fff; color: #FF6B6B; padding: 2px 8px; border-radius: 12px; font-size: 12px; font-weight: 700; margin-left: 8px;">NEW!</span>
-                </a>
-                <script>
-                // Fetch pending orders count
+            <a href="/admin/customer-orders" class="nav-item {% if '/admin/customer-orders' in request.path %}active{% endif %}" style="background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%); color: white; font-weight: 600; position: relative;">
+                <i>🛒</i> Customer Orders
+                <span id="pending-orders-badge" style="background: #fff; color: #FF6B6B; padding: 2px 8px; border-radius: 12px; font-size: 12px; font-weight: 700; margin-left: 8px;">NEW!</span>
+            </a>
+            <script>
+            // Fetch pending orders count dynamically
+            if (typeof fetch !== 'undefined') {
                 fetch('/admin/customer-orders/count')
                     .then(r => r.json())
                     .then(data => {
                         const badge = document.getElementById('pending-orders-badge');
-                        if (data.count > 0) {
+                        if (badge && data.count > 0) {
                             badge.textContent = data.count;
                             badge.style.animation = 'pulse 1.5s infinite';
                         }
                     })
                     .catch(() => {});
-                </script>
-            {% else %}
-                <a href="/admin/customer-orders" class="nav-item {% if '/admin/customer-orders' in request.path %}active{% endif %}" style="background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%); color: white; font-weight: 600;">
-                    <i>🛒</i> Customer Orders
-                </a>
-            {% endif %}
+            }
+            </script>
             
             <!-- OPERATIONS Section (Collapsible) -->
             <div class="nav-section-collapsible">
