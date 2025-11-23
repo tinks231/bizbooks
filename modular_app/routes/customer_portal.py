@@ -52,6 +52,7 @@ def login():
         
         if customer:
             # Store customer session
+            session.permanent = True  # Make session last 2 hours
             session['customer_id'] = customer.id
             session['customer_name'] = customer.name
             session['customer_phone'] = customer.phone
