@@ -319,6 +319,29 @@ h1, h2, h3, h4 {
         page-break-inside: avoid;
     }
     
+    /* Print-specific alignment for Bill To / Invoice Details */
+    /* Make them match the header layout (48%/48% for better alignment) */
+    .invoice-info-row {
+        display: flex !important;
+        justify-content: space-between;
+        gap: 0;
+        margin-bottom: 16px;
+    }
+    
+    .invoice-info-row .bill-to,
+    .invoice-info-row .invoice-details {
+        width: 48% !important;
+    }
+    
+    .invoice-info-row .invoice-details table {
+        width: 100% !important;
+    }
+    
+    /* Optional: tiny tweak if needed for pixel-perfect alignment */
+    .invoice-info-row .invoice-details {
+        padding-left: 4px;
+    }
+    
     /* Print-specific page setup */
     @page {
         margin: 12mm 10mm;
@@ -360,8 +383,8 @@ h1, h2, h3, h4 {
     <div class="invoice-title">TAX INVOICE</div>
 
     <div class="section">
-        <div style="display:flex;justify-content:space-between;">
-            <div style="width:50%;">
+        <div class="invoice-info-row" style="display:flex;justify-content:space-between;">
+            <div class="bill-to" style="width:50%;">
                 <div class="section-title">Bill To</div>
                 <strong>{{ invoice.customer_name }}</strong><br>
                 {% if invoice.customer_id and invoice.customer %}
@@ -374,7 +397,7 @@ h1, h2, h3, h4 {
                 {% if invoice.customer_state %}<strong>State:</strong> {{ invoice.customer_state }}{% endif %}
             </div>
 
-            <div style="width:45%;">
+            <div class="invoice-details" style="width:45%;">
                 <div class="section-title">Invoice Details</div>
                 <table class="invoice-meta-table">
                     <tr>
