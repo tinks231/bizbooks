@@ -182,7 +182,8 @@ def view_deliveries(subscription_id):
                          total_quantity=total_quantity,
                          total_amount=total_amount,
                          paused_days=paused_days,
-                         modified_days=modified_days)
+                         modified_days=modified_days,
+                         timedelta=timedelta)  # For date calculations in template
 
 
 @customer_portal_bp.route('/subscriptions/<int:subscription_id>/pause', methods=['POST'])
@@ -204,10 +205,11 @@ def pause_deliveries(subscription_id):
         start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
         end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
         today = datetime.now().date()
+        tomorrow = today + timedelta(days=1)
         
-        # Prevent modifying past dates
-        if start_date < today:
-            flash('❌ Cannot pause past deliveries. You can only modify future deliveries.', 'error')
+        # Prevent modifying past dates (including today - milk already delivered!)
+        if start_date < tomorrow:
+            flash('❌ Cannot pause today or past deliveries. Today\'s milk is already on its way! You can only modify from tomorrow onwards.', 'error')
             return redirect(url_for('customer_portal.view_deliveries', subscription_id=subscription_id))
         
         if start_date > end_date:
@@ -263,10 +265,11 @@ def resume_deliveries(subscription_id):
         start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
         end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
         today = datetime.now().date()
+        tomorrow = today + timedelta(days=1)
         
-        # Prevent modifying past dates
-        if start_date < today:
-            flash('❌ Cannot resume past deliveries. You can only modify future deliveries.', 'error')
+        # Prevent modifying past dates (including today - milk already delivered!)
+        if start_date < tomorrow:
+            flash('❌ Cannot resume today or past deliveries. Today\'s milk is already on its way! You can only modify from tomorrow onwards.', 'error')
             return redirect(url_for('customer_portal.view_deliveries', subscription_id=subscription_id))
         
         # Resume all paused deliveries in range
@@ -319,10 +322,11 @@ def modify_delivery(subscription_id):
         delivery_date = datetime.strptime(delivery_date_str, '%Y-%m-%d').date()
         new_quantity = float(new_quantity_str)
         today = datetime.now().date()
+        tomorrow = today + timedelta(days=1)
         
-        # Prevent modifying past dates
-        if delivery_date < today:
-            flash('❌ Cannot modify past deliveries. You can only modify future deliveries.', 'error')
+        # Prevent modifying past dates (including today - milk already delivered!)
+        if delivery_date < tomorrow:
+            flash('❌ Cannot modify today or past deliveries. Today\'s milk is already on its way! You can only modify from tomorrow onwards.', 'error')
             return redirect(url_for('customer_portal.view_deliveries', subscription_id=subscription_id))
         
         if new_quantity <= 0:
