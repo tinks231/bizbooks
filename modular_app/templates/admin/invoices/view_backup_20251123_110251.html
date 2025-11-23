@@ -1,0 +1,397 @@
+{% extends 'base_sidebar.html' %}
+
+{% block title %}Invoice #{{ invoice.invoice_number }} - {{ tenant.company_name }}{% endblock %}
+
+{% block page_title %}{% endblock %}
+
+{% block header_actions %}
+<div style="display: flex; gap: 10px; flex-wrap: wrap;">
+    <button onclick="window.print()" class="btn btn-primary">
+        🖨️ Print Invoice
+    </button>
+    
+    {% if invoice.status == 'draft' %}
+    <a href="{{ url_for('invoices.mark_sent', invoice_id=invoice.id) }}" class="btn btn-success" 
+       onclick="return confirm('Mark this invoice as sent?')">
+        ✉️ Mark as Sent
+    </a>
+    <a href="{{ url_for('invoices.edit', invoice_id=invoice.id) }}" class="btn btn-secondary">
+        ✏️ Edit
+    </a>
+    {% elif invoice.payment_status == 'unpaid' %}
+    <a href="{{ url_for('invoices.record_payment', invoice_id=invoice.id) }}" class="btn btn-success">
+        💰 Record Payment
+    </a>
+    {% endif %}
+    
+    <a href="{{ url_for('invoices.index') }}" class="btn btn-secondary">
+        ← Back to Invoices
+    </a>
+</div>
+{% endblock %}
+
+{% block content %}
+
+<style>
+/* Invoice Layout Improvements */
+.company-info {
+    font-size: 14px;
+    margin: 4px 0;
+    color: #2c3e50;
+}
+
+.invoice-info-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 30px;
+    margin-bottom: 30px;
+}
+
+.bill-to h3,
+.invoice-details h3 {
+    font-size: 16px;
+    font-weight: 700;
+    margin-bottom: 15px;
+    color: #2c3e50;
+    border-bottom: 2px solid #edf0f3;
+    padding-bottom: 8px;
+}
+
+.details-table {
+    width: 100%;
+}
+
+.details-table td {
+    padding: 6px 0;
+    font-size: 14px;
+}
+
+.details-table td:first-child {
+    width: 120px;
+    color: #666;
+}
+
+.details-table td:last-child {
+    color: #2c3e50;
+}
+
+.totals-section {
+    display: grid;
+    grid-template-columns: 1fr 400px;
+    gap: 30px;
+    margin-top: 30px;
+}
+
+.totals-table {
+    justify-self: end;
+}
+
+.totals-table table {
+    width: 100%;
+    min-width: 350px;
+}
+
+.totals-table td {
+    padding: 10px;
+    border-bottom: 1px solid #edf0f3;
+    font-size: 14px;
+}
+
+.totals-table td:first-child {
+    color: #666;
+}
+
+.totals-table .total-row td {
+    font-size: 18px;
+    font-weight: 700;
+    padding: 15px 10px;
+    background: var(--theme-light, #f3f0ff);
+    color: var(--theme-color, #8b5cf6);
+    border-bottom: none;
+}
+
+@media print {
+    .totals-section {
+        display: flex;
+        justify-content: space-between;
+    }
+}
+</style>
+
+<!-- Theme Selector (only show on screen, not in print) -->
+<div class="theme-selector no-print">
+    <label style="font-weight: 600; margin-right: 10px;">Invoice Theme:</label>
+    <select id="themeSelect" onchange="changeTheme(this.value)" style="padding: 8px; border-radius: 5px; border: 1px solid #ddd;">
+        <option value="purple">Purple Professional</option>
+        <option value="blue">Blue Corporate</option>
+        <option value="green">Green Fresh</option>
+        <option value="orange">Orange Vibrant</option>
+        <option value="teal">Teal Modern</option>
+        <option value="black">Black Formal</option>
+    </select>
+</div>
+
+<!-- Invoice Container -->
+<div class="invoice-container" id="invoicePrintArea">
+    
+    <!-- Invoice Header -->
+    <div class="invoice-header">
+        <div class="company-details">
+            <h1 class="company-name">{{ tenant.company_name }}</h1>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 8px;">
+                <div>
+                    {% if tenant_settings and tenant_settings.get('address') %}
+                    <p class="company-info">📍 {{ tenant_settings.get('address') }}</p>
+                    {% endif %}
+                    <p class="company-info">📞 {{ tenant_settings.get('phone', tenant.admin_phone) if tenant_settings else tenant.admin_phone }}</p>
+                </div>
+                <div>
+                    <p class="company-info">✉️ {{ tenant_settings.get('email', tenant.admin_email) if tenant_settings else tenant.admin_email }}</p>
+                    {% if tenant_settings and tenant_settings.get('gstin') %}
+                    <p class="company-info"><strong>GSTIN:</strong> {{ tenant_settings.get('gstin') }}</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        {% if tenant_settings and tenant_settings.get('logo_url') %}
+        <div class="logo-placeholder">
+            <img src="{{ tenant_settings.get('logo_url') }}" alt="Company Logo" style="max-width: 100%; max-height: 100%; object-fit: contain;">
+        </div>
+        {% endif %}
+    </div>
+    
+    <!-- Tax Invoice Title -->
+    <div class="invoice-title">
+        <h2>TAX INVOICE</h2>
+    </div>
+    
+    <!-- Invoice Info Row -->
+    <div class="invoice-info-row">
+        <div class="bill-to">
+            <h3>Bill To</h3>
+            <p class="customer-name" style="font-size: 16px; font-weight: 600; margin-bottom: 8px;">{{ invoice.customer_name }}</p>
+            {% if invoice.customer_id and invoice.customer %}
+            <p style="color: #666; font-size: 14px; margin: 4px 0;">
+                <strong>Customer ID:</strong> {{ invoice.customer.customer_code }}
+                {% if invoice.customer.phone %}
+                | 📞 {{ invoice.customer.phone }}
+                {% endif %}
+            </p>
+            {% elif invoice.customer_phone %}
+            <p style="font-size: 14px; margin: 4px 0;">📞 {{ invoice.customer_phone }}</p>
+            {% endif %}
+            {% if invoice.customer_email %}
+            <p style="font-size: 14px; margin: 4px 0;">✉️ {{ invoice.customer_email }}</p>
+            {% endif %}
+            {% if invoice.customer_address %}
+            <p style="font-size: 14px; margin: 4px 0;">{{ invoice.customer_address }}</p>
+            {% endif %}
+            {% if invoice.customer_gstin %}
+            <p style="font-size: 14px; margin: 4px 0;"><strong>GSTIN:</strong> {{ invoice.customer_gstin }}</p>
+            {% endif %}
+            <p style="font-size: 14px; margin: 4px 0;"><strong>State:</strong> {{ invoice.customer_state }}</p>
+        </div>
+        
+        <div class="invoice-details">
+            <h3>Invoice Details</h3>
+            <table class="details-table">
+                <tr>
+                    <td><strong>Invoice No:</strong></td>
+                    <td>{{ invoice.invoice_number }}</td>
+                </tr>
+                <tr>
+                    <td><strong>Date:</strong></td>
+                    <td>{{ invoice.invoice_date.strftime('%d-%m-%Y') }}</td>
+                </tr>
+                {% if invoice.due_date %}
+                <tr>
+                    <td><strong>Due Date:</strong></td>
+                    <td>{{ invoice.due_date.strftime('%d-%m-%Y') }}</td>
+                </tr>
+                {% endif %}
+                <tr>
+                    <td><strong>Status:</strong></td>
+                    <td>
+                        <span class="status-badge status-{{ invoice.status }}">
+                            {{ invoice.status.upper() }}
+                        </span>
+                    </td>
+                </tr>
+                <tr>
+                    <td><strong>Payment:</strong></td>
+                    <td>
+                        <span class="status-badge status-{{ invoice.payment_status }}">
+                            {{ invoice.payment_status.upper() }}
+                        </span>
+                    </td>
+                </tr>
+            </table>
+        </div>
+    </div>
+    
+    <!-- Items Table -->
+    <div class="items-section">
+        <table class="items-table">
+            <thead>
+                <tr class="table-header">
+                    <th style="width: 30px;">#</th>
+                    <th style="text-align: left;">Item Name</th>
+                    <th style="width: 120px;">SKU</th>
+                    <th style="width: 100px;">HSN/SAC</th>
+                    <th style="width: 60px;">Quantity</th>
+                    <th style="width: 60px;">Unit</th>
+                    <th style="width: 100px; text-align: right;">Rate (₹)</th>
+                    <th style="width: 80px; text-align: center;">GST %</th>
+                    <th style="width: 120px; text-align: right;">Amount (₹)</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in invoice.items %}
+                <tr>
+                    <td>{{ loop.index }}</td>
+                    <td>
+                        <strong>{{ item.item_name }}</strong>
+                        {% if item.description %}
+                        <br><small style="color: #666;">{{ item.description }}</small>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if item.item and item.item.sku %}
+                            <small style="color: #666;">{{ item.item.sku }}</small>
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                    <td>{{ item.hsn_code or '-' }}</td>
+                    <td>{{ item.quantity }}</td>
+                    <td>{{ item.unit }}</td>
+                    <td style="text-align: right;">{{ "%.2f"|format(item.rate) }}</td>
+                    <td style="text-align: center;">{{ item.gst_rate }}%</td>
+                    <td style="text-align: right;">
+                        <strong>{{ "%.2f"|format(item.taxable_value + item.cgst_amount + item.sgst_amount + item.igst_amount) }}</strong>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    
+    <!-- Totals Section -->
+    <div class="totals-section">
+        <div class="invoice-notes">
+            <h4 style="font-size: 14px; font-weight: 700; margin-bottom: 10px;">Amount in Words:</h4>
+            <p style="font-size: 14px; font-style: italic; color: #2c3e50;">{{ invoice.amount_in_words() }}</p>
+        </div>
+        
+        <div class="totals-table">
+            <table>
+                <tr>
+                    <td><strong>Subtotal:</strong></td>
+                    <td style="text-align: right;">₹{{ "%.2f"|format(invoice.subtotal) }}</td>
+                </tr>
+                
+                {% if invoice.discount_amount and invoice.discount_amount > 0 %}
+                <tr>
+                    <td><strong>Discount:</strong></td>
+                    <td style="text-align: right; color: #e74c3c;">-₹{{ "%.2f"|format(invoice.discount_amount) }}</td>
+                </tr>
+                {% endif %}
+                
+                {% if invoice.cgst_amount > 0 %}
+                <tr>
+                    <td>CGST:</td>
+                    <td style="text-align: right;">₹{{ "%.2f"|format(invoice.cgst_amount) }}</td>
+                </tr>
+                <tr>
+                    <td>SGST:</td>
+                    <td style="text-align: right;">₹{{ "%.2f"|format(invoice.sgst_amount) }}</td>
+                </tr>
+                {% endif %}
+                
+                {% if invoice.igst_amount > 0 %}
+                <tr>
+                    <td>IGST:</td>
+                    <td style="text-align: right;">₹{{ "%.2f"|format(invoice.igst_amount) }}</td>
+                </tr>
+                {% endif %}
+                
+                {% if invoice.round_off and invoice.round_off != 0 %}
+                <tr>
+                    <td>Round Off:</td>
+                    <td style="text-align: right;">₹{{ "%.2f"|format(invoice.round_off) }}</td>
+                </tr>
+                {% endif %}
+                
+                <tr class="total-row">
+                    <td><strong>TOTAL:</strong></td>
+                    <td style="text-align: right;"><strong>₹{{ "%.2f"|format(invoice.total_amount) }}</strong></td>
+                </tr>
+            </table>
+        </div>
+    </div>
+    
+    <!-- Terms & Signature Section -->
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-top: 40px; padding-top: 30px; border-top: 2px solid #edf0f3;">
+        <!-- Left: Terms & Conditions -->
+        <div class="invoice-notes">
+            {% if invoice.notes %}
+            <h4 style="font-size: 14px; font-weight: 700; margin-bottom: 10px;">Terms & Conditions:</h4>
+            <p style="white-space: pre-line; font-size: 13px; color: #666; line-height: 1.6;">{{ invoice.notes }}</p>
+            {% endif %}
+        </div>
+        
+        <!-- Right: Signatures -->
+        <div class="signature-section" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+            <div class="customer-signature">
+                <p style="font-size: 13px; font-weight: 600; margin-bottom: 50px;">Customer Signature</p>
+                <div style="border-top: 1px solid #333; padding-top: 5px;"></div>
+            </div>
+            
+            <div class="company-signature">
+                <p style="font-size: 13px; margin-bottom: 5px;">For: <strong>{{ tenant.company_name }}</strong></p>
+                <div style="border-top: 1px solid #333; margin-top: 45px; padding-top: 5px;"></div>
+                <p style="font-size: 13px; font-weight: 600; margin-top: 5px;">Authorized Signatory</p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Footer -->
+    <div class="invoice-footer">
+        <p>Thank you for your business!</p>
+        <p style="font-size: 12px; color: #666;">This is a computer-generated invoice and does not require a signature.</p>
+    </div>
+    
+</div>
+
+
+<script>
+    // Theme colors
+    const themes = {
+        purple: { color: '#8b5cf6', light: '#f3f0ff' },
+        blue: { color: '#3b82f6', light: '#dbeafe' },
+        green: { color: '#10b981', light: '#d1fae5' },
+        orange: { color: '#f97316', light: '#ffedd5' },
+        teal: { color: '#14b8a6', light: '#ccfbf1' },
+        black: { color: '#1f2937', light: '#f3f4f6' }
+    };
+    
+    function changeTheme(themeName) {
+        const theme = themes[themeName];
+        document.documentElement.style.setProperty('--theme-color', theme.color);
+        document.documentElement.style.setProperty('--theme-light', theme.light);
+        
+        // Save preference
+        localStorage.setItem('invoiceTheme', themeName);
+    }
+    
+    // Load saved theme
+    window.addEventListener('DOMContentLoaded', function() {
+        const savedTheme = localStorage.getItem('invoiceTheme') || 'purple';
+        document.getElementById('themeSelect').value = savedTheme;
+        changeTheme(savedTheme);
+    });
+</script>
+
+{% endblock %}
+
