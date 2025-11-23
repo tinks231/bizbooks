@@ -97,6 +97,7 @@ h1, h2, h3, h4 {
     text-align: right;
     font-size: 13px;
     color: #4b5563;
+    padding-right: 6px;  /* Match table cell padding for alignment */
 }
 
 .header-right div {
@@ -394,6 +395,11 @@ h1, h2, h3, h4 {
     .invoice .table tfoot tr td:first-child {
         text-align: right !important;
         font-weight: 600 !important;
+    }
+    
+    /* Match header-right padding with table cell padding */
+    .header-right {
+        padding-right: 6px !important;
     }
     
     /* Print-specific page setup */
