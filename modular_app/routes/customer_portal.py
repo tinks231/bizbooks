@@ -203,6 +203,12 @@ def pause_deliveries(subscription_id):
     try:
         start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
         end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
+        today = datetime.now().date()
+        
+        # Prevent modifying past dates
+        if start_date < today:
+            flash('❌ Cannot pause past deliveries. You can only modify future deliveries.', 'error')
+            return redirect(url_for('customer_portal.view_deliveries', subscription_id=subscription_id))
         
         if start_date > end_date:
             flash('Start date must be before end date', 'error')
@@ -256,6 +262,12 @@ def resume_deliveries(subscription_id):
     try:
         start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
         end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
+        today = datetime.now().date()
+        
+        # Prevent modifying past dates
+        if start_date < today:
+            flash('❌ Cannot resume past deliveries. You can only modify future deliveries.', 'error')
+            return redirect(url_for('customer_portal.view_deliveries', subscription_id=subscription_id))
         
         # Resume all paused deliveries in range
         deliveries = SubscriptionDelivery.query.filter(
@@ -306,6 +318,12 @@ def modify_delivery(subscription_id):
     try:
         delivery_date = datetime.strptime(delivery_date_str, '%Y-%m-%d').date()
         new_quantity = float(new_quantity_str)
+        today = datetime.now().date()
+        
+        # Prevent modifying past dates
+        if delivery_date < today:
+            flash('❌ Cannot modify past deliveries. You can only modify future deliveries.', 'error')
+            return redirect(url_for('customer_portal.view_deliveries', subscription_id=subscription_id))
         
         if new_quantity <= 0:
             flash('Quantity must be greater than 0', 'error')
