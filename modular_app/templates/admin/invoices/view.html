@@ -325,6 +325,31 @@ h1, h2, h3, h4 {
         max-width: 100% !important;
     }
     
+    /* Make Bill To / Invoice Details align with header in print */
+    .invoice-info-row {
+        display: grid !important;
+        grid-template-columns: 1fr auto 1fr !important;  /* same as .invoice-header */
+        column-gap: 16px !important;
+        align-items: flex-start;
+        width: 100% !important;
+    }
+    
+    .invoice-info-row .bill-to {
+        grid-column: 1 / span 2;
+        width: auto !important;     /* ignore 50% inline width */
+        padding-right: 0 !important;
+    }
+    
+    .invoice-info-row .invoice-details {
+        grid-column: 3;
+        width: auto !important;     /* ignore 45% inline width */
+        padding-left: 0 !important;
+    }
+    
+    .invoice-info-row .invoice-details table {
+        width: 100% !important;
+    }
+    
     /* Print-specific page setup */
     @page {
         margin: 12mm 10mm;
