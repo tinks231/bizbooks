@@ -270,7 +270,7 @@ h1, h2, h3, h4 {
         max-width: 100% !important;
         width: 100% !important;
         box-shadow: none !important;
-        padding: 15mm 15mm !important;
+        padding: 10mm !important;  /* Reduced padding for better use of space */
         margin: 0 !important;
     }
     
@@ -423,7 +423,7 @@ h1, h2, h3, h4 {
     
     /* Print-specific page setup */
     @page {
-        margin: 12mm 10mm;
+        margin: 0;  /* Let print dialog control margins - works with "Default" setting */
         size: A4;
     }
     
