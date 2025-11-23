@@ -5,6 +5,7 @@ For managing orders placed by customers through customer portal
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session, g, jsonify
 from models import db, CustomerOrder, CustomerOrderItem, Customer
 from utils.tenant_middleware import require_tenant
+from utils.license_check import check_license
 from functools import wraps
 from datetime import datetime
 from sqlalchemy import desc, and_, or_
@@ -25,6 +26,7 @@ def login_required(f):
 
 @customer_orders_bp.route('/')
 @require_tenant
+@check_license
 @login_required
 def index():
     """List all customer orders"""
@@ -68,6 +70,7 @@ def index():
 
 @customer_orders_bp.route('/<int:order_id>')
 @require_tenant
+@check_license
 @login_required
 def view_order(order_id):
     """View order details"""
@@ -83,6 +86,7 @@ def view_order(order_id):
 
 @customer_orders_bp.route('/<int:order_id>/update-status', methods=['POST'])
 @require_tenant
+@check_license
 @login_required
 def update_status(order_id):
     """Update order status"""
@@ -121,6 +125,7 @@ def update_status(order_id):
 
 @customer_orders_bp.route('/<int:order_id>/delete', methods=['POST'])
 @require_tenant
+@check_license
 @login_required
 def delete_order(order_id):
     """Delete order"""
