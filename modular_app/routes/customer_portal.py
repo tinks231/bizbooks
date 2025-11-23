@@ -183,7 +183,9 @@ def view_deliveries(subscription_id):
                          total_amount=total_amount,
                          paused_days=paused_days,
                          modified_days=modified_days,
-                         timedelta=timedelta)  # For date calculations in template
+                         timedelta=timedelta,  # For date calculations in template
+                         today=datetime.now().date(),  # Current date
+                         tomorrow=datetime.now().date() + timedelta(days=1))  # Tomorrow's date
 
 
 @customer_portal_bp.route('/subscriptions/<int:subscription_id>/pause', methods=['POST'])

@@ -100,7 +100,6 @@
             </div>
             
             {% if deliveries %}
-                {% set today = now().date() %}
                 {% for date, delivery in deliveries.items() | sort %}
                 {% set is_today = date == today %}
                 {% set is_past = date < today %}
@@ -148,11 +147,11 @@
             <form method="POST" action="{{ url_for('customer_portal.pause_deliveries', subscription_id=subscription.id) }}">
                 <div class="form-group">
                     <label>Start Date</label>
-                    <input type="date" name="start_date" min="{{ (now().date() + timedelta(days=1)).isoformat() }}" required>
+                    <input type="date" name="start_date" min="{{ tomorrow.isoformat() }}" required>
                 </div>
                 <div class="form-group">
                     <label>End Date</label>
-                    <input type="date" name="end_date" min="{{ (now().date() + timedelta(days=1)).isoformat() }}" required>
+                    <input type="date" name="end_date" min="{{ tomorrow.isoformat() }}" required>
                 </div>
                 <div class="modal-actions">
                     <button type="submit" class="btn btn-primary">Pause</button>
@@ -170,11 +169,11 @@
             <form method="POST" action="{{ url_for('customer_portal.resume_deliveries', subscription_id=subscription.id) }}">
                 <div class="form-group">
                     <label>Start Date</label>
-                    <input type="date" name="start_date" min="{{ (now().date() + timedelta(days=1)).isoformat() }}" required>
+                    <input type="date" name="start_date" min="{{ tomorrow.isoformat() }}" required>
                 </div>
                 <div class="form-group">
                     <label>End Date</label>
-                    <input type="date" name="end_date" min="{{ (now().date() + timedelta(days=1)).isoformat() }}" required>
+                    <input type="date" name="end_date" min="{{ tomorrow.isoformat() }}" required>
                 </div>
                 <div class="modal-actions">
                     <button type="submit" class="btn btn-primary">Resume</button>
@@ -192,7 +191,7 @@
             <form method="POST" action="{{ url_for('customer_portal.modify_delivery', subscription_id=subscription.id) }}">
                 <div class="form-group">
                     <label>Delivery Date</label>
-                    <input type="date" name="delivery_date" min="{{ (now().date() + timedelta(days=1)).isoformat() }}" required>
+                    <input type="date" name="delivery_date" min="{{ tomorrow.isoformat() }}" required>
                 </div>
                 <div class="form-group">
                     <label>New Quantity ({{ subscription.plan.unit_name }})</label>
