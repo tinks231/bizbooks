@@ -377,11 +377,19 @@ def modify_delivery(subscription_id):
 @customer_login_required
 def invoices():
     """View all invoices"""
+    print(f"\n🔍 INVOICES DEBUG:")
+    print(f"   Session customer_id: {session.get('customer_id')}")
+    print(f"   Session customer_tenant_id: {session.get('customer_tenant_id')}")
+    print(f"   Current tenant ID: {g.tenant.id}")
+    print(f"   All session keys: {list(session.keys())}")
+    
     customer = Customer.query.get(session['customer_id'])
+    print(f"   Customer found: {customer}")
     
     all_invoices = Invoice.query.filter_by(
         customer_id=customer.id
     ).order_by(Invoice.invoice_date.desc()).all()
+    print(f"   Invoices found: {len(all_invoices)}")
     
     # Separate by status
     unpaid_invoices = [inv for inv in all_invoices if inv.payment_status == 'unpaid']
