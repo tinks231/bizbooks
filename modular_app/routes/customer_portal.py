@@ -177,51 +177,74 @@ def view_deliveries(subscription_id):
         customer_id=customer.id
     ).first_or_404()
     
-    # Get selected month (default: current month)
-    try:
-        year = int(request.args.get('year', datetime.now().year))
-        month = int(request.args.get('month', datetime.now().month))
-        view_date = datetime(year, month, 1).date()
-    except (ValueError, TypeError):
-        view_date = datetime.now().date().replace(day=1)
-    
-    # Get all deliveries for the month
+    # Get ALL deliveries from subscription start to end of next month
     from calendar import monthrange
-    last_day = monthrange(view_date.year, view_date.month)[1]
-    month_start = view_date
-    month_end = view_date.replace(day=last_day)
     
-    deliveries = SubscriptionDelivery.query.filter(
+    today = datetime.now().date()
+    
+    # Get deliveries from subscription start
+    start_date = subscription.start_date
+    # Get deliveries up to end of next month (add ~32 days to get next month)
+    next_month = (today.replace(day=1) + timedelta(days=32)).replace(day=1)
+    end_date = next_month.replace(day=monthrange(next_month.year, next_month.month)[1])
+    
+    all_deliveries = SubscriptionDelivery.query.filter(
         and_(
             SubscriptionDelivery.subscription_id == subscription_id,
-            SubscriptionDelivery.delivery_date >= month_start,
-            SubscriptionDelivery.delivery_date <= month_end
+            SubscriptionDelivery.delivery_date >= start_date,
+            SubscriptionDelivery.delivery_date <= end_date
         )
     ).order_by(SubscriptionDelivery.delivery_date).all()
     
-    # Create calendar structure
-    delivery_dict = {d.delivery_date: d for d in deliveries}
+    # Group deliveries by month
+    from collections import defaultdict
+    months_data = defaultdict(list)
     
-    # Calculate month summary (ONLY count past/today deliveries, not future)
-    today = datetime.now().date()
-    total_quantity = sum(d.quantity for d in deliveries if d.status == 'delivered' and d.delivery_date <= today)
-    total_amount = sum(d.amount for d in deliveries if d.status == 'delivered' and d.delivery_date <= today)
-    paused_days = len([d for d in deliveries if d.status == 'paused'])
-    modified_days = len([d for d in deliveries if d.is_modified and d.delivery_date <= today])
+    for delivery in all_deliveries:
+        month_key = delivery.delivery_date.replace(day=1)
+        months_data[month_key].append(delivery)
+    
+    # Calculate summary for each month
+    monthly_summaries = []
+    for month_start in sorted(months_data.keys(), reverse=True):  # Most recent first
+        deliveries = months_data[month_start]
+        delivery_dict = {d.delivery_date: d for d in deliveries}
+        
+        # Calculate stats (only count past/today deliveries)
+        month_quantity = sum(d.quantity for d in deliveries if d.status == 'delivered' and d.delivery_date <= today)
+        month_amount = sum(d.amount for d in deliveries if d.status == 'delivered' and d.delivery_date <= today)
+        month_paused = len([d for d in deliveries if d.status == 'paused'])
+        month_modified = len([d for d in deliveries if d.is_modified and d.delivery_date <= today])
+        
+        monthly_summaries.append({
+            'month_start': month_start,
+            'month_name': month_start.strftime('%B %Y'),
+            'deliveries': delivery_dict,
+            'total_quantity': month_quantity,
+            'total_amount': month_amount,
+            'paused_days': month_paused,
+            'modified_days': month_modified,
+            'is_current_month': month_start.year == today.year and month_start.month == today.month
+        })
+    
+    # Calculate overall summary (all time)
+    total_quantity = sum(d.quantity for d in all_deliveries if d.status == 'delivered' and d.delivery_date <= today)
+    total_amount = sum(d.amount for d in all_deliveries if d.status == 'delivered' and d.delivery_date <= today)
+    paused_days = len([d for d in all_deliveries if d.status == 'paused'])
+    modified_days = len([d for d in all_deliveries if d.is_modified and d.delivery_date <= today])
     
     return render_template('customer_portal/deliveries.html',
                          tenant=g.tenant,
                          customer=customer,
                          subscription=subscription,
-                         view_date=view_date,
-                         deliveries=delivery_dict,
+                         monthly_summaries=monthly_summaries,
                          total_quantity=total_quantity,
                          total_amount=total_amount,
                          paused_days=paused_days,
                          modified_days=modified_days,
-                         timedelta=timedelta,  # For date calculations in template
-                         today=datetime.now().date(),  # Current date
-                         tomorrow=datetime.now().date() + timedelta(days=1))  # Tomorrow's date
+                         timedelta=timedelta,
+                         today=today,
+                         tomorrow=today + timedelta(days=1))
 
 
 @customer_portal_bp.route('/subscriptions/<int:subscription_id>/pause', methods=['POST'])
