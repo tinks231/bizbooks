@@ -112,7 +112,7 @@ class CustomerSubscription(db.Model):
     # Relationships
     customer = db.relationship('Customer', backref='subscriptions')
     payments = db.relationship('SubscriptionPayment', backref='subscription', lazy=True, order_by='SubscriptionPayment.payment_date.desc()')
-    deliveries = db.relationship('SubscriptionDelivery', backref='subscription', lazy=True, order_by='SubscriptionDelivery.delivery_date.desc()')
+    deliveries = db.relationship('SubscriptionDelivery', backref='subscription', lazy=True, cascade='all, delete-orphan', order_by='SubscriptionDelivery.delivery_date.desc()')
     
     def __repr__(self):
         return f'<CustomerSubscription {self.customer.name} - {self.plan.name}>'
