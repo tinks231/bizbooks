@@ -455,7 +455,7 @@ def browse_products():
             or_(
                 Item.name.ilike(f'%{search_query}%'),
                 Item.sku.ilike(f'%{search_query}%'),
-                Item.description.ilike(f'%{search_query}%')
+                Item.sales_description.ilike(f'%{search_query}%')
             )
         )
     
