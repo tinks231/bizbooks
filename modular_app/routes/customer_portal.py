@@ -24,6 +24,8 @@ def customer_login_required(f):
         if 'customer_id' not in session:
             flash('Please login to access this page', 'error')
             return redirect(url_for('customer_portal.login'))
+        # Make session permanent to prevent timeout
+        session.permanent = True
         return f(*args, **kwargs)
     return decorated_function
 
