@@ -101,6 +101,13 @@ def view_order(order_id):
 @login_required
 def update_status(order_id):
     """Update order status"""
+    print(f"\n🔍 UPDATE STATUS DEBUG:")
+    print(f"   Order ID: {order_id}")
+    print(f"   Session tenant_admin_id: {session.get('tenant_admin_id')}")
+    print(f"   Current tenant ID: {g.tenant.id}")
+    print(f"   Session keys: {list(session.keys())}")
+    print(f"   Form data: {request.form}")
+    
     order = CustomerOrder.query.filter_by(
         id=order_id,
         tenant_id=g.tenant.id
@@ -122,7 +129,9 @@ def update_status(order_id):
         # If fulfilled, set fulfilled date and user
         if new_status == 'fulfilled' and not order.fulfilled_date:
             order.fulfilled_date = datetime.now()
-            order.fulfilled_by = session.get('user_id')
+            # Note: tenant_admin_id is the tenant ID, not a user ID
+            # For now, leave fulfilled_by as None (can be enhanced later)
+            order.fulfilled_by = None
         
         order.updated_at = datetime.now()
         db.session.commit()
