@@ -6,6 +6,22 @@
     <title>Dashboard - Customer Portal</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/customer_portal.css') }}">
     <style>
+        /* Override: Ensure consistent taller green header */
+        .portal-header {
+            padding: 25px 20px !important; /* Taller header */
+        }
+        
+        .header-left h1 {
+            font-size: 24px !important;
+            margin-bottom: 8px !important;
+            line-height: 1.3 !important;
+        }
+        
+        .header-left p {
+            font-size: 14px !important;
+            margin: 0 !important;
+            line-height: 1.5 !important;
+        }
         
         /* Main Content */
         .main-content {
