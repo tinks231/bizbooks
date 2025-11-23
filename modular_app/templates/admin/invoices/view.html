@@ -32,6 +32,75 @@
 
 {% block content %}
 
+<style>
+/* Invoice Layout Improvements */
+.invoice-info-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 30px;
+    margin-bottom: 30px;
+}
+
+.bill-to h3,
+.invoice-details h3 {
+    font-size: 16px;
+    font-weight: 700;
+    margin-bottom: 15px;
+    color: #2c3e50;
+    border-bottom: 2px solid #edf0f3;
+    padding-bottom: 8px;
+}
+
+.details-table {
+    width: 100%;
+}
+
+.details-table td {
+    padding: 6px 0;
+}
+
+.details-table td:first-child {
+    width: 120px;
+}
+
+.totals-section {
+    display: grid;
+    grid-template-columns: 1fr 400px;
+    gap: 30px;
+    margin-top: 30px;
+}
+
+.totals-table {
+    justify-self: end;
+}
+
+.totals-table table {
+    width: 100%;
+    min-width: 350px;
+}
+
+.totals-table td {
+    padding: 10px;
+    border-bottom: 1px solid #edf0f3;
+}
+
+.totals-table .total-row td {
+    font-size: 18px;
+    font-weight: 700;
+    padding: 15px 10px;
+    background: var(--theme-light, #f3f0ff);
+    color: var(--theme-color, #8b5cf6);
+    border-bottom: none;
+}
+
+@media print {
+    .totals-section {
+        display: flex;
+        justify-content: space-between;
+    }
+}
+</style>
+
 <!-- Theme Selector (only show on screen, not in print) -->
 <div class="theme-selector no-print">
     <label style="font-weight: 600; margin-right: 10px;">Invoice Theme:</label>
