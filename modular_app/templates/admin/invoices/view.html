@@ -184,28 +184,83 @@ h1, h2, h3, h4 {
 
 /* Print cleanup */
 @media print {
-    /* Hide UI elements */
+    /* Hide ALL UI elements - be very aggressive */
     .no-print,
     .sidebar,
+    #sidebar,
     .header-actions,
     nav,
     button,
-    .btn { 
-        display: none !important; 
+    .btn,
+    .main-sidebar,
+    .top-bar,
+    .navbar,
+    header:not(.invoice-header),
+    .header:not(.invoice-header),
+    [class*="sidebar"]:not(.invoice),
+    [class*="nav"]:not(.invoice),
+    .page-header,
+    .breadcrumb,
+    aside,
+    .logo-container,
+    .user-profile,
+    .menu,
+    .navigation,
+    *[role="navigation"] { 
+        display: none !important;
+        visibility: hidden !important;
+        width: 0 !important;
+        height: 0 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        overflow: hidden !important;
     }
     
-    /* Page setup */
-    body { 
+    /* Reset page layout - full width */
+    html, body { 
         background: white !important;
-        margin: 0;
-        padding: 10mm;
+        margin: 0 !important;
+        padding: 0 !important;
+        width: 100% !important;
+        height: auto !important;
+    }
+    
+    /* Main content should take full width */
+    .main-content {
+        margin-left: 0 !important;
+        padding-left: 0 !important;
+        width: 100% !important;
+        max-width: 100% !important;
+    }
+    
+    .top-header {
+        display: none !important;
+    }
+    
+    .mobile-menu-btn {
+        display: none !important;
+    }
+    
+    aside {
+        display: none !important;
+    }
+    
+    .content,
+    .container,
+    .container-fluid,
+    main {
+        margin: 0 !important;
+        padding: 15mm !important;
+        width: 100% !important;
+        max-width: 100% !important;
     }
     
     .invoice { 
-        max-width: 100%;
-        box-shadow: none;
-        padding: 0;
-        margin: 0;
+        max-width: 100% !important;
+        width: 100% !important;
+        box-shadow: none !important;
+        padding: 0 !important;
+        margin: 0 auto !important;
     }
     
     /* Larger fonts for print */
@@ -243,6 +298,12 @@ h1, h2, h3, h4 {
     .table,
     .signature-block {
         page-break-inside: avoid;
+    }
+    
+    /* Print-specific page setup */
+    @page {
+        margin: 15mm;
+        size: A4;
     }
 }
 </style>
@@ -399,5 +460,44 @@ h1, h2, h3, h4 {
         <small>This is a computer-generated invoice.</small>
     </div>
 </div>
+
+<script>
+// Add print-specific class to body when printing
+window.addEventListener('beforeprint', function() {
+    document.body.classList.add('printing-invoice');
+});
+
+window.addEventListener('afterprint', function() {
+    document.body.classList.remove('printing-invoice');
+});
+
+// Also handle Ctrl+P / Cmd+P
+document.addEventListener('keydown', function(e) {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'p') {
+        document.body.classList.add('printing-invoice');
+    }
+});
+</script>
+
+<style>
+/* Additional print styles when printing class is active */
+body.printing-invoice .sidebar,
+body.printing-invoice #sidebar,
+body.printing-invoice .main-sidebar,
+body.printing-invoice nav,
+body.printing-invoice .navbar,
+body.printing-invoice .top-bar,
+body.printing-invoice .header-actions,
+body.printing-invoice .no-print {
+    display: none !important;
+}
+
+body.printing-invoice .content,
+body.printing-invoice .main-content {
+    margin-left: 0 !important;
+    padding-left: 0 !important;
+    width: 100% !important;
+}
+</style>
 
 {% endblock %}
