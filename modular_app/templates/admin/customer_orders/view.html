@@ -2,6 +2,10 @@
 
 {% block title %}Order {{ order.order_number }} - {{ tenant.business_name }}{% endblock %}
 
+{% block header_actions %}
+<!-- Remove Manual Entry and QR Code buttons from Customer Order detail page -->
+{% endblock %}
+
 {% block content %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/forms.css') }}">
 
