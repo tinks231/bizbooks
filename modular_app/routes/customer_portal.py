@@ -454,7 +454,7 @@ def browse_products():
         query = query.filter(
             or_(
                 Item.name.ilike(f'%{search_query}%'),
-                Item.item_code.ilike(f'%{search_query}%'),
+                Item.sku.ilike(f'%{search_query}%'),
                 Item.description.ilike(f'%{search_query}%')
             )
         )
