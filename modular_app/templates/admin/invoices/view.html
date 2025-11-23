@@ -356,8 +356,19 @@ h1, h2, h3, h4 {
     }
     
     .invoice-info-row .invoice-details table {
-        width: 100% !important;
+        width: auto !important;  /* Don't stretch to 100% */
         margin-left: auto;  /* Push table to right */
+    }
+    
+    /* Ensure table cells are right-aligned */
+    .invoice-info-row .invoice-details table td {
+        text-align: right !important;
+        padding: 3px 0 !important;
+    }
+    
+    .invoice-info-row .invoice-details table td:first-child {
+        padding-right: 20px !important;  /* Space between label and value */
+        text-align: right !important;
     }
     
     /* Print-specific page setup */
