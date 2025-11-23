@@ -97,7 +97,7 @@ h1, h2, h3, h4 {
     text-align: right;
     font-size: 13px;
     color: #4b5563;
-    padding-right: 6px;  /* Match table cell padding for alignment */
+    padding-right: 8px;  /* Consistent padding for all right-aligned sections */
 }
 
 .header-right div {
@@ -379,27 +379,46 @@ h1, h2, h3, h4 {
         max-width: 100% !important;
     }
     
-    /* Right-align AMOUNT column to match Invoice Details above */
+    /* This section is now handled below with consistent 8px padding */
+    
+    /* 
+     * UNIFIED ALIGNMENT STRATEGY:
+     * All right-aligned content uses 8px right padding for perfect alignment
+     */
+    
+    /* Header-right section (phone/email/GSTIN) */
+    .header-right {
+        padding-right: 8px !important;
+    }
+    
+    /* Invoice Details section container */
+    .invoice-info-row .invoice-details {
+        padding-right: 8px !important;
+    }
+    
+    /* Invoice Details table cells (remove their padding, container has 8px) */
+    .invoice-info-row .invoice-details table td {
+        padding-right: 0 !important;
+        text-align: right !important;
+    }
+    
+    /* Items table: AMOUNT column header and values */
     .invoice .table thead th:last-child,
     .invoice .table tbody td:last-child,
     .invoice .table tfoot td:last-child {
         text-align: right !important;
-        padding-right: 0 !important;
+        padding-right: 8px !important;
     }
     
-    /* Also align Subtotal and TOTAL rows */
-    .invoice .table tfoot tr td {
-        text-align: right !important;
-    }
-    
+    /* Subtotal and TOTAL labels (right-align) */
     .invoice .table tfoot tr td:first-child {
         text-align: right !important;
         font-weight: 600 !important;
     }
     
-    /* Match header-right padding with table cell padding */
-    .header-right {
-        padding-right: 6px !important;
+    /* All footer cells right-aligned */
+    .invoice .table tfoot tr td {
+        text-align: right !important;
     }
     
     /* Print-specific page setup */
