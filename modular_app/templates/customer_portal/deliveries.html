@@ -192,33 +192,36 @@
             </div>
         </div>
         
-        <!-- Calendar Grid -->
-        <div class="calendar-grid">
-            <div class="day-header">Mon</div>
-            <div class="day-header">Tue</div>
-            <div class="day-header">Wed</div>
-            <div class="day-header">Thu</div>
-            <div class="day-header">Fri</div>
-            <div class="day-header">Sat</div>
-            <div class="day-header">Sun</div>
-            
-            {% for day in range(1, 32) %}
-                {% set date_obj = view_date.replace(day=day if day <= view_date.replace(month=view_date.month % 12 + 1, day=1).toordinal() - view_date.toordinal() else 1) %}
-                {% if day <= ((view_date.replace(month=view_date.month % 12 + 1, day=1) - view_date).days + view_date.day) %}
-                    {% set delivery = deliveries.get(date_obj) %}
-                    <div class="day-cell {% if delivery %}{% if delivery.status == 'paused' %}paused{% elif delivery.is_modified %}modified{% else %}delivered{% endif %}{% endif %}">
-                        <div class="day-number">{{ day }}</div>
-                        {% if delivery %}
+        <!-- Deliveries List (Simple) -->
+        <div style="display: grid; gap: 10px; margin-top: 20px;">
+            {% if deliveries %}
+                {% for date, delivery in deliveries.items() | sort %}
+                    <div style="padding: 15px; background: {% if delivery.status == 'paused' %}#f8d7da{% elif delivery.is_modified %}#fff3cd{% else %}#d4edda{% endif %}; border-radius: 8px; display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <strong>{{ date.strftime('%a, %d %B %Y') }}</strong>
                             {% if delivery.status == 'paused' %}
-                                <div class="day-quantity">⏸️ Paused</div>
-                            {% else %}
-                                <div class="day-quantity">{{ delivery.quantity }} {{ subscription.plan.unit_name }}</div>
-                                <div class="day-quantity">₹{{ '{:,.0f}'.format(delivery.amount) }}</div>
+                                <span style="color: #dc3545; margin-left: 10px;">⏸️ PAUSED</span>
+                            {% elif delivery.is_modified %}
+                                <span style="color: #ffc107; margin-left: 10px;">✏️ Modified</span>
                             {% endif %}
-                        {% endif %}
+                        </div>
+                        <div style="text-align: right;">
+                            {% if delivery.status != 'paused' %}
+                                <div style="font-size: 18px; font-weight: 700; color: #4CAF50;">
+                                    {{ delivery.quantity }} {{ subscription.plan.unit_name }}
+                                </div>
+                                <div style="font-size: 14px; color: #666;">
+                                    ₹{{ '{:,.2f}'.format(delivery.amount) }}
+                                </div>
+                            {% endif %}
+                        </div>
                     </div>
-                {% endif %}
-            {% endfor %}
+                {% endfor %}
+            {% else %}
+                <div style="text-align: center; padding: 40px; color: #999;">
+                    <p>No deliveries found for this month.</p>
+                </div>
+            {% endif %}
         </div>
         
         <!-- Action Buttons -->
