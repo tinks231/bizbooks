@@ -3,13 +3,27 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Delivery Log - Customer Portal</title>
+    <title>Delivery Log - {{ tenant.company_name }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/customer_portal.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/forms.css') }}">
     <style>
-        body { font-family: 'Inter', sans-serif; background: #f5f7fa; margin: 0; padding: 0; }
-        .portal-header { background: linear-gradient(135deg, #4CAF50 0%, #388E3C 100%); color: white; padding: 20px; }
-        .header-content { max-width: 1200px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; }
-        .btn-logout { background: rgba(255,255,255,0.2); color: white; padding: 10px 20px; border-radius: 8px; text-decoration: none; }
+        /* Override: Ensure consistent taller green header (match dashboard) */
+        .portal-header {
+            padding: 25px 20px !important; /* Taller header */
+        }
+        
+        .header-left h1 {
+            font-size: 24px !important;
+            margin-bottom: 8px !important;
+            line-height: 1.3 !important;
+        }
+        
+        .header-left p {
+            font-size: 14px !important;
+            margin: 0 !important;
+            line-height: 1.5 !important;
+        }
+        
         .main-content { max-width: 1200px; margin: 30px auto; padding: 0 20px; }
         .section { background: white; padding: 25px; border-radius: 12px; margin-bottom: 25px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
         .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 2px solid #f0f0f0; }
@@ -59,16 +73,37 @@
     <!-- Header -->
     <div class="portal-header">
         <div class="header-content">
-            <h1>📅 Delivery Log - {{ subscription.plan.name }}</h1>
-            <div>
-                <a href="{{ url_for('customer_portal.dashboard') }}" class="btn-logout">← Back to Dashboard</a>
+            <div class="header-left">
+                <h1>Welcome, {{ session.get('customer_name', 'Customer') }}!</h1>
+                <p>{{ tenant.company_name }}</p>
+            </div>
+            <div class="header-right">
+                <a href="{{ url_for('customer_portal.profile') }}" class="btn-logout">👤 Profile</a>
                 <a href="{{ url_for('customer_portal.logout') }}" class="btn-logout">🚪 Logout</a>
             </div>
         </div>
     </div>
     
+    <!-- Navigation -->
+    <div class="portal-nav">
+        <div class="nav-content">
+            <a href="{{ url_for('customer_portal.dashboard') }}" class="nav-link">🏠 Dashboard</a>
+            <a href="{{ url_for('customer_portal.browse_products') }}" class="nav-link">🛍️ Products</a>
+            <a href="{{ url_for('customer_portal.view_orders') }}" class="nav-link">📦 My Orders</a>
+            <a href="{{ url_for('customer_portal.subscriptions') }}" class="nav-link active">🔄 Subscriptions</a>
+            <a href="{{ url_for('customer_portal.invoices') }}" class="nav-link">📄 Invoices</a>
+        </div>
+    </div>
+    
     <!-- Main Content -->
     <div class="main-content">
+        <!-- Page Title -->
+        <div class="section">
+            <h2 style="margin: 0; font-size: 22px; color: #333;">
+                📅 Delivery Log - {{ subscription.plan.name }}
+            </h2>
+        </div>
+        
         <!-- Summary Cards -->
         <div class="stats-grid">
             <div class="stat-card">
