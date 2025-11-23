@@ -202,11 +202,12 @@ def view_deliveries(subscription_id):
     # Create calendar structure
     delivery_dict = {d.delivery_date: d for d in deliveries}
     
-    # Calculate month summary
-    total_quantity = sum(d.quantity for d in deliveries if d.status == 'delivered')
-    total_amount = sum(d.amount for d in deliveries if d.status == 'delivered')
+    # Calculate month summary (ONLY count past/today deliveries, not future)
+    today = datetime.now().date()
+    total_quantity = sum(d.quantity for d in deliveries if d.status == 'delivered' and d.delivery_date <= today)
+    total_amount = sum(d.amount for d in deliveries if d.status == 'delivered' and d.delivery_date <= today)
     paused_days = len([d for d in deliveries if d.status == 'paused'])
-    modified_days = len([d for d in deliveries if d.is_modified])
+    modified_days = len([d for d in deliveries if d.is_modified and d.delivery_date <= today])
     
     return render_template('customer_portal/deliveries.html',
                          tenant=g.tenant,
