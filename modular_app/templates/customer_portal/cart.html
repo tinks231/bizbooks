@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shopping Cart - {{ tenant.business_name }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/customer_portal.css') }}">
+    <style>
+        .cart-container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        
+        .cart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+        
+        .cart-table {
+            width: 100%;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            margin-bottom: 30px;
+        }
+        
+        .cart-table table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .cart-table th {
+            background: #f5f5f5;
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+            color: #333;
+            border-bottom: 2px solid #e0e0e0;
+        }
+        
+        .cart-table td {
+            padding: 15px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        
+        .item-name {
+            font-weight: 500;
+            color: #333;
+        }
+        
+        .item-code {
+            font-size: 12px;
+            color: #999;
+        }
+        
+        .qty-input {
+            width: 70px;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            text-align: center;
+        }
+        
+        .remove-btn {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        
+        .remove-btn:hover {
+            background: #c82333;
+        }
+        
+        .cart-summary {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        
+        .summary-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        
+        .summary-row:last-child {
+            border-bottom: none;
+            font-size: 20px;
+            font-weight: 700;
+            color: #4CAF50;
+            padding-top: 15px;
+        }
+        
+        .checkout-section {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+        }
+        
+        .checkout-section textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-family: inherit;
+            resize: vertical;
+            min-height: 80px;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        .btn {
+            flex: 1;
+            padding: 15px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 16px;
+        }
+        
+        .btn-primary {
+            background: #4CAF50;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #45a049;
+        }
+        
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+        
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+        
+        .empty-cart {
+            text-align: center;
+            padding: 60px 20px;
+            background: white;
+            border-radius: 8px;
+        }
+        
+        .empty-cart-icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="customer-nav">
+        <div class="nav-brand">
+            <h2>🛍️ {{ tenant.business_name }}</h2>
+        </div>
+        <div class="nav-links">
+            <a href="{{ url_for('customer_portal.dashboard') }}">Dashboard</a>
+            <a href="{{ url_for('customer_portal.browse_products') }}">Products</a>
+            <a href="{{ url_for('customer_portal.view_orders') }}">My Orders</a>
+            <a href="{{ url_for('customer_portal.profile') }}">Profile</a>
+            <a href="{{ url_for('customer_portal.logout') }}" style="color: #dc3545;">Logout</a>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="customer-container cart-container">
+        <div class="cart-header">
+            <h1>🛒 Shopping Cart</h1>
+            <a href="{{ url_for('customer_portal.browse_products') }}" style="text-decoration: none; color: #4CAF50; font-weight: 500;">← Continue Shopping</a>
+        </div>
+
+        {% if cart_items %}
+            <!-- Cart Items Table -->
+            <div class="cart-table">
+                <form method="POST" action="{{ url_for('customer_portal.update_cart') }}" id="cartForm">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Product</th>
+                                <th style="width: 100px;">Price</th>
+                                <th style="width: 100px;">Quantity</th>
+                                <th style="width: 120px; text-align: right;">Amount</th>
+                                <th style="width: 80px;"></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for cart_item in cart_items %}
+                                <tr>
+                                    <td>
+                                        <div class="item-name">{{ cart_item.item.name }}</div>
+                                        <div class="item-code">{{ cart_item.item.item_code }}</div>
+                                    </td>
+                                    <td>₹{{ '{:,.2f}'.format(cart_item.rate) }}</td>
+                                    <td>
+                                        <input type="number" 
+                                               name="qty_{{ cart_item.item.id }}" 
+                                               class="qty-input" 
+                                               value="{{ cart_item.quantity }}" 
+                                               min="0.1" 
+                                               step="0.1"
+                                               onchange="document.getElementById('cartForm').submit()">
+                                    </td>
+                                    <td style="text-align: right; font-weight: 600;">₹{{ '{:,.2f}'.format(cart_item.amount) }}</td>
+                                    <td>
+                                        <form method="POST" action="{{ url_for('customer_portal.remove_from_cart', item_id=cart_item.item.id) }}" style="display: inline;">
+                                            <button type="submit" class="remove-btn" onclick="return confirm('Remove this item?')">✕ Remove</button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </form>
+            </div>
+
+            <!-- Cart Summary -->
+            <div class="cart-summary">
+                <div class="summary-row">
+                    <span>Subtotal:</span>
+                    <span>₹{{ '{:,.2f}'.format(subtotal) }}</span>
+                </div>
+                <div class="summary-row">
+                    <span>Total:</span>
+                    <span>₹{{ '{:,.2f}'.format(subtotal) }}</span>
+                </div>
+            </div>
+
+            <!-- Checkout Section -->
+            <div class="checkout-section">
+                <form method="POST" action="{{ url_for('customer_portal.place_order') }}">
+                    <label style="display: block; margin-bottom: 10px; font-weight: 600;">Order Notes (Optional):</label>
+                    <textarea name="notes" placeholder="Any special instructions or requirements..."></textarea>
+                    
+                    <div class="action-buttons">
+                        <a href="{{ url_for('customer_portal.browse_products') }}" class="btn btn-secondary" style="text-decoration: none; display: flex; align-items: center; justify-content: center;">
+                            ← Continue Shopping
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            ✓ Place Order
+                        </button>
+                    </div>
+                </form>
+            </div>
+        {% else %}
+            <!-- Empty Cart -->
+            <div class="empty-cart">
+                <div class="empty-cart-icon">🛒</div>
+                <h3>Your cart is empty</h3>
+                <p>Browse our products and add items to your cart</p>
+                <br>
+                <a href="{{ url_for('customer_portal.browse_products') }}" class="btn btn-primary" style="text-decoration: none; display: inline-block; max-width: 250px;">
+                    🛍️ Browse Products
+                </a>
+            </div>
+        {% endif %}
+    </div>
+</body>
+</html>
+

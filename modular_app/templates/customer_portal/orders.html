@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Orders - {{ tenant.business_name }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/customer_portal.css') }}">
+    <style>
+        .orders-list {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+        
+        .order-card {
+            background: white;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            transition: all 0.2s;
+        }
+        
+        .order-card:hover {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        
+        .order-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        
+        .order-number {
+            font-size: 18px;
+            font-weight: 700;
+            color: #333;
+        }
+        
+        .order-date {
+            color: #666;
+            font-size: 14px;
+        }
+        
+        .order-status {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 500;
+        }
+        
+        .status-pending {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .status-confirmed {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+        
+        .status-fulfilled {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .status-cancelled {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .order-details {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 15px;
+            padding: 15px 0;
+            border-top: 1px solid #f0f0f0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        
+        .detail-item label {
+            display: block;
+            font-size: 12px;
+            color: #999;
+            margin-bottom: 5px;
+        }
+        
+        .detail-item value {
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .order-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+        
+        .btn-view {
+            background: #4CAF50;
+            color: white;
+            text-decoration: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            font-weight: 500;
+            display: inline-block;
+        }
+        
+        .btn-view:hover {
+            background: #45a049;
+        }
+        
+        .empty-orders {
+            text-align: center;
+            padding: 60px 20px;
+            background: white;
+            border-radius: 8px;
+        }
+        
+        .empty-orders-icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="customer-nav">
+        <div class="nav-brand">
+            <h2>🛍️ {{ tenant.business_name }}</h2>
+        </div>
+        <div class="nav-links">
+            <a href="{{ url_for('customer_portal.dashboard') }}">Dashboard</a>
+            <a href="{{ url_for('customer_portal.browse_products') }}">Products</a>
+            <a href="{{ url_for('customer_portal.view_orders') }}" class="active">My Orders</a>
+            <a href="{{ url_for('customer_portal.profile') }}">Profile</a>
+            <a href="{{ url_for('customer_portal.logout') }}" style="color: #dc3545;">Logout</a>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="customer-container">
+        <h1 style="margin-bottom: 30px;">📦 My Orders</h1>
+
+        {% if orders %}
+            <div class="orders-list">
+                {% for order in orders %}
+                    <div class="order-card">
+                        <div class="order-header">
+                            <div>
+                                <div class="order-number">{{ order.order_number }}</div>
+                                <div class="order-date">{{ order.order_date.strftime('%d %b %Y, %I:%M %p') }}</div>
+                            </div>
+                            <span class="order-status status-{{ order.status }}">
+                                {% if order.status == 'pending' %}⏳ Pending
+                                {% elif order.status == 'confirmed' %}✓ Confirmed
+                                {% elif order.status == 'fulfilled' %}✓ Fulfilled
+                                {% elif order.status == 'cancelled' %}✕ Cancelled
+                                {% endif %}
+                            </span>
+                        </div>
+
+                        <div class="order-details">
+                            <div class="detail-item">
+                                <label>Items</label>
+                                <value>{{ order.items|length }} item(s)</value>
+                            </div>
+                            <div class="detail-item">
+                                <label>Total Amount</label>
+                                <value style="color: #4CAF50;">₹{{ '{:,.2f}'.format(order.total_amount) }}</value>
+                            </div>
+                            {% if order.fulfilled_date %}
+                                <div class="detail-item">
+                                    <label>Fulfilled On</label>
+                                    <value>{{ order.fulfilled_date.strftime('%d %b %Y') }}</value>
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        {% if order.notes %}
+                            <div style="margin-bottom: 15px; padding: 10px; background: #f9f9f9; border-radius: 5px; font-size: 13px;">
+                                <strong>Your Notes:</strong> {{ order.notes }}
+                            </div>
+                        {% endif %}
+
+                        <div class="order-actions">
+                            <a href="{{ url_for('customer_portal.view_order_detail', order_id=order.id) }}" class="btn-view">
+                                View Details →
+                            </a>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <!-- Empty State -->
+            <div class="empty-orders">
+                <div class="empty-orders-icon">📦</div>
+                <h3>No orders yet</h3>
+                <p>Your order history will appear here</p>
+                <br>
+                <a href="{{ url_for('customer_portal.browse_products') }}" class="btn-view" style="display: inline-block;">
+                    🛍️ Browse Products
+                </a>
+            </div>
+        {% endif %}
+    </div>
+</body>
+</html>
+

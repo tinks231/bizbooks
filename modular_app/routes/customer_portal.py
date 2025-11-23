@@ -8,7 +8,7 @@ Allows customers to:
 """
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session, g
 from functools import wraps
-from models import db, Customer, CustomerSubscription, SubscriptionDelivery, Invoice, SubscriptionPlan
+from models import db, Customer, CustomerSubscription, SubscriptionDelivery, Invoice, SubscriptionPlan, Item, ItemCategory, CustomerOrder, CustomerOrderItem
 from utils.tenant_middleware import require_tenant, get_current_tenant
 from datetime import datetime, timedelta
 from sqlalchemy import and_, or_
@@ -428,4 +428,263 @@ def change_pin():
         flash(f'Error changing PIN: {str(e)}', 'error')
     
     return redirect(url_for('customer_portal.profile'))
+
+
+# ============================================================================
+# PRODUCT ORDERING ROUTES
+# ============================================================================
+
+@customer_portal_bp.route('/products')
+@require_tenant
+@customer_login_required
+def browse_products():
+    """Browse products available for ordering"""
+    customer = Customer.query.get(session['customer_id'])
+    
+    # Get search and filter params
+    search_query = request.args.get('search', '').strip()
+    category_id = request.args.get('category', type=int)
+    
+    # Base query - all active items
+    query = Item.query.filter_by(tenant_id=g.tenant.id, is_active=True)
+    
+    # Apply search
+    if search_query:
+        query = query.filter(
+            or_(
+                Item.name.ilike(f'%{search_query}%'),
+                Item.item_code.ilike(f'%{search_query}%'),
+                Item.description.ilike(f'%{search_query}%')
+            )
+        )
+    
+    # Apply category filter
+    if category_id:
+        query = query.filter_by(category_id=category_id)
+    
+    items = query.order_by(Item.name).all()
+    
+    # Get all categories for filter dropdown
+    categories = ItemCategory.query.filter_by(tenant_id=g.tenant.id).order_by(ItemCategory.name).all()
+    
+    return render_template('customer_portal/products.html',
+                         tenant=g.tenant,
+                         customer=customer,
+                         items=items,
+                         categories=categories,
+                         search_query=search_query,
+                         selected_category=category_id)
+
+
+@customer_portal_bp.route('/cart')
+@require_tenant
+@customer_login_required
+def view_cart():
+    """View shopping cart"""
+    customer = Customer.query.get(session['customer_id'])
+    
+    # Cart stored in session
+    cart = session.get('cart', {})
+    cart_items = []
+    subtotal = 0
+    
+    for item_id_str, qty in cart.items():
+        item = Item.query.get(int(item_id_str))
+        if item:
+            amount = float(qty) * float(item.sale_price or 0)
+            cart_items.append({
+                'item': item,
+                'quantity': qty,
+                'rate': item.sale_price,
+                'amount': amount
+            })
+            subtotal += amount
+    
+    return render_template('customer_portal/cart.html',
+                         tenant=g.tenant,
+                         customer=customer,
+                         cart_items=cart_items,
+                         subtotal=subtotal)
+
+
+@customer_portal_bp.route('/cart/add/<int:item_id>', methods=['POST'])
+@require_tenant
+@customer_login_required
+def add_to_cart(item_id):
+    """Add item to cart"""
+    quantity = float(request.form.get('quantity', 1))
+    
+    if quantity <= 0:
+        flash('❌ Quantity must be greater than 0', 'error')
+        return redirect(url_for('customer_portal.browse_products'))
+    
+    # Verify item exists
+    item = Item.query.filter_by(id=item_id, tenant_id=g.tenant.id, is_active=True).first()
+    if not item:
+        flash('❌ Item not found', 'error')
+        return redirect(url_for('customer_portal.browse_products'))
+    
+    # Get or create cart in session
+    cart = session.get('cart', {})
+    item_key = str(item_id)
+    
+    # Add or update quantity
+    if item_key in cart:
+        cart[item_key] = float(cart[item_key]) + quantity
+    else:
+        cart[item_key] = quantity
+    
+    session['cart'] = cart
+    session.modified = True
+    
+    flash(f'✅ Added {quantity} x {item.name} to cart', 'success')
+    return redirect(url_for('customer_portal.browse_products'))
+
+
+@customer_portal_bp.route('/cart/remove/<int:item_id>', methods=['POST'])
+@require_tenant
+@customer_login_required
+def remove_from_cart(item_id):
+    """Remove item from cart"""
+    cart = session.get('cart', {})
+    item_key = str(item_id)
+    
+    if item_key in cart:
+        del cart[item_key]
+        session['cart'] = cart
+        session.modified = True
+        flash('✅ Item removed from cart', 'success')
+    
+    return redirect(url_for('customer_portal.view_cart'))
+
+
+@customer_portal_bp.route('/cart/update', methods=['POST'])
+@require_tenant
+@customer_login_required
+def update_cart():
+    """Update cart quantities"""
+    cart = session.get('cart', {})
+    
+    for item_id_str in list(cart.keys()):
+        new_qty = request.form.get(f'qty_{item_id_str}', type=float)
+        if new_qty and new_qty > 0:
+            cart[item_id_str] = new_qty
+        elif new_qty == 0:
+            del cart[item_id_str]
+    
+    session['cart'] = cart
+    session.modified = True
+    flash('✅ Cart updated', 'success')
+    return redirect(url_for('customer_portal.view_cart'))
+
+
+@customer_portal_bp.route('/orders/place', methods=['POST'])
+@require_tenant
+@customer_login_required
+def place_order():
+    """Place order from cart"""
+    customer = Customer.query.get(session['customer_id'])
+    cart = session.get('cart', {})
+    
+    if not cart:
+        flash('❌ Your cart is empty', 'error')
+        return redirect(url_for('customer_portal.browse_products'))
+    
+    try:
+        # Generate order number
+        last_order = CustomerOrder.query.filter_by(tenant_id=g.tenant.id).order_by(CustomerOrder.id.desc()).first()
+        if last_order and last_order.order_number:
+            last_num = int(last_order.order_number.split('-')[-1])
+            order_number = f'ORD-{last_num + 1:05d}'
+        else:
+            order_number = 'ORD-00001'
+        
+        # Create order
+        order = CustomerOrder(
+            tenant_id=g.tenant.id,
+            customer_id=customer.id,
+            order_number=order_number,
+            order_date=datetime.now(),
+            status='pending',
+            notes=request.form.get('notes', '').strip()
+        )
+        
+        # Add items
+        subtotal = 0
+        tax_total = 0
+        
+        for item_id_str, qty in cart.items():
+            item = Item.query.get(int(item_id_str))
+            if item:
+                rate = float(item.sale_price or 0)
+                amount = float(qty) * rate
+                tax_rate = float(item.gst_rate or 0)
+                tax_amt = amount * (tax_rate / 100)
+                
+                order_item = CustomerOrderItem(
+                    item_id=item.id,
+                    quantity=qty,
+                    rate=rate,
+                    amount=amount,
+                    tax_rate=tax_rate,
+                    tax_amount=tax_amt
+                )
+                order.items.append(order_item)
+                
+                subtotal += amount
+                tax_total += tax_amt
+        
+        order.subtotal = subtotal
+        order.tax_amount = tax_total
+        order.total_amount = subtotal + tax_total
+        
+        db.session.add(order)
+        db.session.commit()
+        
+        # Clear cart
+        session['cart'] = {}
+        session.modified = True
+        
+        flash(f'✅ Order #{order.order_number} placed successfully! We will fulfill it soon.', 'success')
+        return redirect(url_for('customer_portal.view_orders'))
+        
+    except Exception as e:
+        db.session.rollback()
+        flash(f'❌ Error placing order: {str(e)}', 'error')
+        return redirect(url_for('customer_portal.view_cart'))
+
+
+@customer_portal_bp.route('/orders')
+@require_tenant
+@customer_login_required
+def view_orders():
+    """View order history"""
+    customer = Customer.query.get(session['customer_id'])
+    
+    orders = CustomerOrder.query.filter_by(
+        customer_id=customer.id
+    ).order_by(CustomerOrder.order_date.desc()).all()
+    
+    return render_template('customer_portal/orders.html',
+                         tenant=g.tenant,
+                         customer=customer,
+                         orders=orders)
+
+
+@customer_portal_bp.route('/orders/<int:order_id>')
+@require_tenant
+@customer_login_required
+def view_order_detail(order_id):
+    """View order details"""
+    customer = Customer.query.get(session['customer_id'])
+    
+    order = CustomerOrder.query.filter_by(
+        id=order_id,
+        customer_id=customer.id
+    ).first_or_404()
+    
+    return render_template('customer_portal/order_detail.html',
+                         tenant=g.tenant,
+                         customer=customer,
+                         order=order)
 
