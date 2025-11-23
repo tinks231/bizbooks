@@ -78,10 +78,10 @@ def dashboard():
     """Customer dashboard - show active subscriptions and upcoming deliveries"""
     customer = Customer.query.get(session['customer_id'])
     
-    # Get active subscriptions
-    active_subscriptions = CustomerSubscription.query.filter_by(
-        customer_id=customer.id,
-        status='active'
+    # Get active subscriptions (including pending_payment - invoice generated but not paid yet)
+    active_subscriptions = CustomerSubscription.query.filter(
+        CustomerSubscription.customer_id == customer.id,
+        CustomerSubscription.status.in_(['active', 'pending_payment'])
     ).all()
     
     # Get upcoming deliveries (next 7 days) for metered subscriptions
