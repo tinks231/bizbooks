@@ -58,12 +58,44 @@ h1, h2, h3, h4 {
 .header {
     display: flex;
     justify-content: space-between;
+    align-items: flex-start;
     border-bottom: 2px solid #e5e5e5;
     padding-bottom: 10px;
 }
 
+.company-info {
+    display: grid;
+    grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+    column-gap: 24px;
+    font-size: 13px;
+}
+
 .company-info div {
     margin-bottom: 4px;
+}
+
+.company-name-strong {
+    font-size: 16px;
+    font-weight: 700;
+    margin-bottom: 2px;
+}
+
+.invoice-meta-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+
+.invoice-meta-table td {
+    padding: 3px 0;          /* tighter than default */
+}
+
+.invoice-meta-table td:first-child {
+    color: #6b7280;
+}
+
+.invoice-meta-table td:last-child {
+    font-weight: 500;
 }
 
 .invoice-title {
@@ -155,11 +187,19 @@ h1, h2, h3, h4 {
             {% endif %}
         </div>
         <div class="company-info">
-            <div><strong>{{ tenant.company_name }}</strong></div>
-            {% if tenant_settings and tenant_settings.get('address') %}<div>{{ tenant_settings.get('address') }}</div>{% endif %}
-            <div>📞 {{ tenant_settings.get('phone', tenant.admin_phone) if tenant_settings else tenant.admin_phone }}</div>
-            <div>✉️ {{ tenant_settings.get('email', tenant.admin_email) if tenant_settings else tenant.admin_email }}</div>
-            {% if tenant_settings and tenant_settings.get('gstin') %}<div><strong>GSTIN:</strong> {{ tenant_settings.get('gstin') }}</div>{% endif %}
+            <div class="company-left">
+                <div class="company-name-strong">{{ tenant.company_name }}</div>
+                {% if tenant_settings and tenant_settings.get('address') %}
+                <div>{{ tenant_settings.get('address') }}</div>
+                {% endif %}
+            </div>
+            <div class="company-right text-right">
+                <div>📞 {{ tenant_settings.get('phone', tenant.admin_phone) if tenant_settings else tenant.admin_phone }}</div>
+                <div>✉️ {{ tenant_settings.get('email', tenant.admin_email) if tenant_settings else tenant.admin_email }}</div>
+                {% if tenant_settings and tenant_settings.get('gstin') %}
+                <div><strong>GSTIN:</strong> {{ tenant_settings.get('gstin') }}</div>
+                {% endif %}
+            </div>
         </div>
     </div>
 
@@ -182,14 +222,29 @@ h1, h2, h3, h4 {
 
             <div style="width:45%;">
                 <div class="section-title">Invoice Details</div>
-                <table style="width:100%;">
-                    <tr><td>Invoice No:</td><td class="text-right">{{ invoice.invoice_number }}</td></tr>
-                    <tr><td>Date:</td><td class="text-right">{{ invoice.invoice_date.strftime('%d-%m-%Y') }}</td></tr>
+                <table class="invoice-meta-table">
+                    <tr>
+                        <td>Invoice No:</td>
+                        <td class="text-right">{{ invoice.invoice_number }}</td>
+                    </tr>
+                    <tr>
+                        <td>Date:</td>
+                        <td class="text-right">{{ invoice.invoice_date.strftime('%d-%m-%Y') }}</td>
+                    </tr>
                     {% if invoice.due_date %}
-                    <tr><td>Due Date:</td><td class="text-right">{{ invoice.due_date.strftime('%d-%m-%Y') }}</td></tr>
+                    <tr>
+                        <td>Due Date:</td>
+                        <td class="text-right">{{ invoice.due_date.strftime('%d-%m-%Y') }}</td>
+                    </tr>
                     {% endif %}
-                    <tr><td>Status:</td><td class="text-right">{{ invoice.status.upper() }}</td></tr>
-                    <tr><td>Payment:</td><td class="text-right">{{ invoice.payment_status.upper() }}</td></tr>
+                    <tr>
+                        <td>Status:</td>
+                        <td class="text-right">{{ invoice.status.upper() }}</td>
+                    </tr>
+                    <tr>
+                        <td>Payment:</td>
+                        <td class="text-right">{{ invoice.payment_status.upper() }}</td>
+                    </tr>
                 </table>
             </div>
         </div>
