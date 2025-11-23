@@ -57,6 +57,7 @@ def index():
     fulfilled_count = CustomerOrder.query.filter_by(tenant_id=g.tenant.id, status='fulfilled').count()
     
     return render_template('admin/customer_orders/list.html',
+                         tenant=g.tenant,
                          orders=orders,
                          status_filter=status_filter,
                          search_query=search_query,
@@ -76,6 +77,7 @@ def view_order(order_id):
     ).first_or_404()
     
     return render_template('admin/customer_orders/view.html',
+                         tenant=g.tenant,
                          order=order)
 
 
