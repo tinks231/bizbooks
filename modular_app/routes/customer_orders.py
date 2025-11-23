@@ -4,11 +4,23 @@ For managing orders placed by customers through customer portal
 """
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session, g, jsonify
 from models import db, CustomerOrder, CustomerOrderItem, Customer
-from utils.tenant_middleware import require_tenant, login_required
+from utils.tenant_middleware import require_tenant
+from functools import wraps
 from datetime import datetime
 from sqlalchemy import desc, and_, or_
 
 customer_orders_bp = Blueprint('customer_orders', __name__, url_prefix='/admin/customer-orders')
+
+
+# Login required decorator
+def login_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'tenant_admin_id' not in session:
+            flash('Please login first', 'error')
+            return redirect(url_for('admin.login'))
+        return f(*args, **kwargs)
+    return decorated_function
 
 
 @customer_orders_bp.route('/')
