@@ -513,7 +513,7 @@
                         {% if delivery.is_paused %}
                         <span style="color: #dc3545; font-weight: 600;">⏸️ PAUSED</span>
                         {% else %}
-                        <span>{{ delivery.quantity_delivered }} {{ delivery.subscription.plan.unit_name }}</span>
+                        <span>{{ delivery.quantity }} {{ delivery.subscription.plan.unit_name }}</span>
                         <span style="color: #4CAF50; font-weight: 600;">₹{{ '{:,.2f}'.format(delivery.amount) }}</span>
                         {% endif %}
                     </div>

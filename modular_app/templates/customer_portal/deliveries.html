@@ -212,7 +212,7 @@
                             {% if delivery.is_paused %}
                                 <div class="day-quantity">⏸️ Paused</div>
                             {% else %}
-                                <div class="day-quantity">{{ delivery.quantity_delivered }} {{ subscription.plan.unit_name }}</div>
+                                <div class="day-quantity">{{ delivery.quantity }} {{ subscription.plan.unit_name }}</div>
                                 <div class="day-quantity">₹{{ '{:,.0f}'.format(delivery.amount) }}</div>
                             {% endif %}
                         {% endif %}

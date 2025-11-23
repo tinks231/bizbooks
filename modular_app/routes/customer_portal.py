@@ -168,7 +168,7 @@ def view_deliveries(subscription_id):
     delivery_dict = {d.delivery_date: d for d in deliveries}
     
     # Calculate month summary
-    total_quantity = sum(d.quantity_delivered for d in deliveries if d.status == 'delivered')
+    total_quantity = sum(d.quantity for d in deliveries if d.status == 'delivered')
     total_amount = sum(d.amount for d in deliveries if d.status == 'delivered')
     paused_days = len([d for d in deliveries if d.is_paused])
     modified_days = len([d for d in deliveries if d.modified_quantity is not None])
@@ -222,7 +222,7 @@ def pause_deliveries(subscription_id):
         for delivery in deliveries:
             delivery.is_paused = True
             delivery.status = 'paused'
-            delivery.quantity_delivered = 0
+            delivery.quantity = 0
             delivery.amount = 0
             delivery.updated_at = datetime.now()
             paused_count += 1
@@ -271,8 +271,8 @@ def resume_deliveries(subscription_id):
             delivery.is_paused = False
             delivery.status = 'delivered'
             # Restore original quantity (or default)
-            delivery.quantity_delivered = delivery.modified_quantity or subscription.default_quantity
-            delivery.amount = float(delivery.quantity_delivered) * float(subscription.plan.unit_rate)
+            delivery.quantity = delivery.modified_quantity or subscription.default_quantity
+            delivery.amount = float(delivery.quantity) * float(subscription.plan.unit_rate)
             delivery.updated_at = datetime.now()
             resumed_count += 1
         
@@ -317,7 +317,7 @@ def modify_delivery(subscription_id):
         
         if delivery:
             delivery.modified_quantity = new_quantity
-            delivery.quantity_delivered = new_quantity
+            delivery.quantity = new_quantity
             delivery.amount = float(new_quantity) * float(subscription.plan.unit_rate)
             delivery.updated_at = datetime.now()
             db.session.commit()
