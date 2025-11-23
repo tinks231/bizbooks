@@ -39,7 +39,7 @@
         <div class="header-content">
             <div class="header-left">
                 <h1>Welcome, {{ session.get('customer_name', 'Customer') }}!</h1>
-                <p>{{ tenant.business_name }}</p>
+                <p>{{ tenant.company_name }}</p>
             </div>
             <div class="header-right">
                 <a href="{{ url_for('customer_portal.profile') }}" class="btn-logout">👤 Profile</a>
