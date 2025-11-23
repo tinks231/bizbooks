@@ -170,8 +170,8 @@ def view_deliveries(subscription_id):
     # Calculate month summary
     total_quantity = sum(d.quantity for d in deliveries if d.status == 'delivered')
     total_amount = sum(d.amount for d in deliveries if d.status == 'delivered')
-    paused_days = len([d for d in deliveries if d.is_paused])
-    modified_days = len([d for d in deliveries if d.modified_quantity is not None])
+    paused_days = len([d for d in deliveries if d.status == 'paused'])
+    modified_days = len([d for d in deliveries if d.is_modified])
     
     return render_template('customer_portal/deliveries.html',
                          tenant=g.tenant,
@@ -220,10 +220,11 @@ def pause_deliveries(subscription_id):
         
         paused_count = 0
         for delivery in deliveries:
-            delivery.is_paused = True
             delivery.status = 'paused'
             delivery.quantity = 0
             delivery.amount = 0
+            delivery.is_modified = True
+            delivery.modification_reason = 'Paused by customer'
             delivery.updated_at = datetime.now()
             paused_count += 1
         
@@ -262,17 +263,18 @@ def resume_deliveries(subscription_id):
                 SubscriptionDelivery.subscription_id == subscription_id,
                 SubscriptionDelivery.delivery_date >= start_date,
                 SubscriptionDelivery.delivery_date <= end_date,
-                SubscriptionDelivery.is_paused == True
+                SubscriptionDelivery.status == 'paused'
             )
         ).all()
         
         resumed_count = 0
         for delivery in deliveries:
-            delivery.is_paused = False
             delivery.status = 'delivered'
-            # Restore original quantity (or default)
-            delivery.quantity = delivery.modified_quantity or subscription.default_quantity
+            # Restore default quantity
+            delivery.quantity = subscription.default_quantity
             delivery.amount = float(delivery.quantity) * float(subscription.plan.unit_rate)
+            delivery.is_modified = False
+            delivery.modification_reason = None
             delivery.updated_at = datetime.now()
             resumed_count += 1
         
@@ -316,9 +318,10 @@ def modify_delivery(subscription_id):
         ).first()
         
         if delivery:
-            delivery.modified_quantity = new_quantity
             delivery.quantity = new_quantity
             delivery.amount = float(new_quantity) * float(subscription.plan.unit_rate)
+            delivery.is_modified = True
+            delivery.modification_reason = f'Quantity changed to {new_quantity} by customer'
             delivery.updated_at = datetime.now()
             db.session.commit()
             flash(f'✅ Modified delivery for {delivery_date.strftime("%d-%m-%Y")} to {new_quantity} {subscription.plan.unit_name}', 'success')

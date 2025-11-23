@@ -206,10 +206,10 @@
                 {% set date_obj = view_date.replace(day=day if day <= view_date.replace(month=view_date.month % 12 + 1, day=1).toordinal() - view_date.toordinal() else 1) %}
                 {% if day <= ((view_date.replace(month=view_date.month % 12 + 1, day=1) - view_date).days + view_date.day) %}
                     {% set delivery = deliveries.get(date_obj) %}
-                    <div class="day-cell {% if delivery %}{% if delivery.is_paused %}paused{% elif delivery.modified_quantity %}modified{% else %}delivered{% endif %}{% endif %}">
+                    <div class="day-cell {% if delivery %}{% if delivery.status == 'paused' %}paused{% elif delivery.is_modified %}modified{% else %}delivered{% endif %}{% endif %}">
                         <div class="day-number">{{ day }}</div>
                         {% if delivery %}
-                            {% if delivery.is_paused %}
+                            {% if delivery.status == 'paused' %}
                                 <div class="day-quantity">⏸️ Paused</div>
                             {% else %}
                                 <div class="day-quantity">{{ delivery.quantity }} {{ subscription.plan.unit_name }}</div>
