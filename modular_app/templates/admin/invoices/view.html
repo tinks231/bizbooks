@@ -344,10 +344,20 @@ h1, h2, h3, h4 {
         grid-column: 3;
         width: auto !important;     /* ignore 45% inline width */
         padding-left: 0 !important;
+        text-align: right !important;  /* Align with header-right */
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;  /* Push content to right edge */
+    }
+    
+    .invoice-info-row .invoice-details .section-title {
+        text-align: right !important;
+        width: 100%;
     }
     
     .invoice-info-row .invoice-details table {
         width: 100% !important;
+        margin-left: auto;  /* Push table to right */
     }
     
     /* Print-specific page setup */
