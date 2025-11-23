@@ -5,7 +5,7 @@
 {% block page_title %}{% endblock %}
 
 {% block header_actions %}
-<div style="display: flex; gap: 10px; flex-wrap: wrap;">
+<div class="no-print" style="display: flex; gap: 10px; flex-wrap: wrap;">
     <button onclick="window.print()" class="btn btn-primary">
         🖨️ Print Invoice
     </button>
@@ -184,9 +184,66 @@ h1, h2, h3, h4 {
 
 /* Print cleanup */
 @media print {
-    .no-print { display: none !important; }
-    body { background: white; }
-    .invoice { box-shadow: none; }
+    /* Hide UI elements */
+    .no-print,
+    .sidebar,
+    .header-actions,
+    nav,
+    button,
+    .btn { 
+        display: none !important; 
+    }
+    
+    /* Page setup */
+    body { 
+        background: white !important;
+        margin: 0;
+        padding: 10mm;
+    }
+    
+    .invoice { 
+        max-width: 100%;
+        box-shadow: none;
+        padding: 0;
+        margin: 0;
+    }
+    
+    /* Larger fonts for print */
+    .invoice {
+        font-size: 12pt !important;
+    }
+    
+    .company-name-strong {
+        font-size: 16pt !important;
+    }
+    
+    .invoice-title {
+        font-size: 20pt !important;
+    }
+    
+    .section-title {
+        font-size: 13pt !important;
+    }
+    
+    .table th {
+        font-size: 11pt !important;
+    }
+    
+    .table td {
+        font-size: 11pt !important;
+    }
+    
+    .total-row td {
+        font-size: 14pt !important;
+    }
+    
+    /* Ensure content fits on page */
+    .invoice-header,
+    .section,
+    .table,
+    .signature-block {
+        page-break-inside: avoid;
+    }
 }
 </style>
 
