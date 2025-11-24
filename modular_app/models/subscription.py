@@ -297,6 +297,14 @@ class SubscriptionDelivery(db.Model):
     is_modified = db.Column(db.Boolean, default=False)  # True if manually changed from default
     modification_reason = db.Column(db.String(200))  # "Party", "Vacation", "Reduced quantity", etc.
     
+    # Delivery tracking (for employee portal)
+    delivered_by = db.Column(db.Integer, db.ForeignKey('employees.id'))  # Employee who delivered
+    delivered_at = db.Column(db.DateTime)  # When marked as delivered
+    
+    # Bottle tracking (for milk/beverage deliveries)
+    bottles_delivered = db.Column(db.Integer, default=0)  # New bottles given
+    bottles_collected = db.Column(db.Integer, default=0)  # Empty bottles taken back
+    
     # Notes
     notes = db.Column(db.Text)  # Additional delivery notes
     
