@@ -557,3 +557,180 @@ This is an automated notification from {tenant_name}.
     
     return send_email(customer_email, subject, body_html, body_text)
 
+
+def send_subscription_pause_notification(admin_email, customer_name, customer_phone, subscription_plan, start_date, end_date, paused_days, tenant_name):
+    """
+    Send email to admin when customer pauses their subscription deliveries
+    """
+    subject = f"⏸️ Subscription Paused - {customer_name}"
+    
+    body_html = f"""
+    <html>
+    <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+        <div style="max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 8px;">
+            <h2 style="color: #ffc107; margin-bottom: 20px;">⏸️ Subscription Paused</h2>
+            
+            <p>A customer has paused their subscription deliveries.</p>
+            
+            <div style="background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; border-radius: 5px; margin: 20px 0;">
+                <p style="margin: 5px 0;"><strong>Customer:</strong> {customer_name}</p>
+                <p style="margin: 5px 0;"><strong>Phone:</strong> {customer_phone}</p>
+                <p style="margin: 5px 0;"><strong>Plan:</strong> {subscription_plan}</p>
+                <p style="margin: 5px 0;"><strong>Paused From:</strong> {start_date} to {end_date}</p>
+                <p style="margin: 5px 0; font-size: 18px; color: #ffc107;"><strong>⏸️ {paused_days} days paused</strong></p>
+            </div>
+            
+            <p style="color: #666; font-size: 14px;">Please update your delivery schedule accordingly.</p>
+            
+            <a href="https://{tenant_name}.bizbooks.co.in/admin/subscriptions" 
+               style="display: inline-block; padding: 12px 24px; background: #4CAF50; color: white; text-decoration: none; border-radius: 5px; margin-top: 15px; font-weight: 600;">
+                📋 View Subscriptions
+            </a>
+            
+            <p style="color: #666; font-size: 12px; margin-top: 30px; border-top: 1px solid #ddd; padding-top: 15px;">
+                This is an automated notification from BizBooks.
+            </p>
+        </div>
+    </body>
+    </html>
+    """
+    
+    body_text = f"""
+⏸️ Subscription Paused
+
+A customer has paused their subscription deliveries.
+
+Customer: {customer_name}
+Phone: {customer_phone}
+Plan: {subscription_plan}
+Paused From: {start_date} to {end_date}
+Days Paused: {paused_days}
+
+Please update your delivery schedule accordingly.
+
+View subscriptions: https://{tenant_name}.bizbooks.co.in/admin/subscriptions
+
+---
+This is an automated notification from BizBooks.
+    """
+    
+    return send_email(admin_email, subject, body_html, body_text)
+
+
+def send_subscription_resume_notification(admin_email, customer_name, customer_phone, subscription_plan, start_date, end_date, resumed_days, tenant_name):
+    """
+    Send email to admin when customer resumes their subscription deliveries
+    """
+    subject = f"▶️ Subscription Resumed - {customer_name}"
+    
+    body_html = f"""
+    <html>
+    <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+        <div style="max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 8px;">
+            <h2 style="color: #28a745; margin-bottom: 20px;">▶️ Subscription Resumed</h2>
+            
+            <p>A customer has resumed their subscription deliveries.</p>
+            
+            <div style="background: #d4edda; border-left: 4px solid #28a745; padding: 15px; border-radius: 5px; margin: 20px 0;">
+                <p style="margin: 5px 0;"><strong>Customer:</strong> {customer_name}</p>
+                <p style="margin: 5px 0;"><strong>Phone:</strong> {customer_phone}</p>
+                <p style="margin: 5px 0;"><strong>Plan:</strong> {subscription_plan}</p>
+                <p style="margin: 5px 0;"><strong>Resumed From:</strong> {start_date} to {end_date}</p>
+                <p style="margin: 5px 0; font-size: 18px; color: #28a745;"><strong>▶️ {resumed_days} days resumed</strong></p>
+            </div>
+            
+            <p style="color: #666; font-size: 14px;">Please update your delivery schedule accordingly.</p>
+            
+            <a href="https://{tenant_name}.bizbooks.co.in/admin/subscriptions" 
+               style="display: inline-block; padding: 12px 24px; background: #4CAF50; color: white; text-decoration: none; border-radius: 5px; margin-top: 15px; font-weight: 600;">
+                📋 View Subscriptions
+            </a>
+            
+            <p style="color: #666; font-size: 12px; margin-top: 30px; border-top: 1px solid #ddd; padding-top: 15px;">
+                This is an automated notification from BizBooks.
+            </p>
+        </div>
+    </body>
+    </html>
+    """
+    
+    body_text = f"""
+▶️ Subscription Resumed
+
+A customer has resumed their subscription deliveries.
+
+Customer: {customer_name}
+Phone: {customer_phone}
+Plan: {subscription_plan}
+Resumed From: {start_date} to {end_date}
+Days Resumed: {resumed_days}
+
+Please update your delivery schedule accordingly.
+
+View subscriptions: https://{tenant_name}.bizbooks.co.in/admin/subscriptions
+
+---
+This is an automated notification from BizBooks.
+    """
+    
+    return send_email(admin_email, subject, body_html, body_text)
+
+
+def send_subscription_modify_notification(admin_email, customer_name, customer_phone, subscription_plan, delivery_date, new_quantity, unit_name, tenant_name):
+    """
+    Send email to admin when customer modifies delivery quantity
+    """
+    subject = f"✏️ Delivery Modified - {customer_name}"
+    
+    body_html = f"""
+    <html>
+    <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+        <div style="max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 8px;">
+            <h2 style="color: #17a2b8; margin-bottom: 20px;">✏️ Delivery Quantity Modified</h2>
+            
+            <p>A customer has modified their delivery quantity.</p>
+            
+            <div style="background: #d1ecf1; border-left: 4px solid #17a2b8; padding: 15px; border-radius: 5px; margin: 20px 0;">
+                <p style="margin: 5px 0;"><strong>Customer:</strong> {customer_name}</p>
+                <p style="margin: 5px 0;"><strong>Phone:</strong> {customer_phone}</p>
+                <p style="margin: 5px 0;"><strong>Plan:</strong> {subscription_plan}</p>
+                <p style="margin: 5px 0;"><strong>Delivery Date:</strong> {delivery_date}</p>
+                <p style="margin: 5px 0; font-size: 18px; color: #17a2b8;"><strong>✏️ New Quantity: {new_quantity} {unit_name}</strong></p>
+            </div>
+            
+            <p style="color: #666; font-size: 14px;">Please update this delivery accordingly.</p>
+            
+            <a href="https://{tenant_name}.bizbooks.co.in/admin/subscriptions" 
+               style="display: inline-block; padding: 12px 24px; background: #4CAF50; color: white; text-decoration: none; border-radius: 5px; margin-top: 15px; font-weight: 600;">
+                📋 View Subscriptions
+            </a>
+            
+            <p style="color: #666; font-size: 12px; margin-top: 30px; border-top: 1px solid #ddd; padding-top: 15px;">
+                This is an automated notification from BizBooks.
+            </p>
+        </div>
+    </body>
+    </html>
+    """
+    
+    body_text = f"""
+✏️ Delivery Quantity Modified
+
+A customer has modified their delivery quantity.
+
+Customer: {customer_name}
+Phone: {customer_phone}
+Plan: {subscription_plan}
+Delivery Date: {delivery_date}
+New Quantity: {new_quantity} {unit_name}
+
+Please update this delivery accordingly.
+
+View subscriptions: https://{tenant_name}.bizbooks.co.in/admin/subscriptions
+
+---
+This is an automated notification from BizBooks.
+    """
+    
+    return send_email(admin_email, subject, body_html, body_text)
+

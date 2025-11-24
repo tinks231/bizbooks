@@ -10,7 +10,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash,
 from functools import wraps
 from models import db, Customer, CustomerSubscription, SubscriptionDelivery, Invoice, SubscriptionPlan, Item, ItemCategory, CustomerOrder, CustomerOrderItem
 from utils.tenant_middleware import require_tenant, get_current_tenant
-from utils.email_utils import send_customer_order_notification
+from utils.email_utils import send_customer_order_notification, send_subscription_pause_notification, send_subscription_resume_notification, send_subscription_modify_notification
 from datetime import datetime, timedelta
 from sqlalchemy import and_, or_
 
@@ -300,6 +300,19 @@ def pause_deliveries(subscription_id):
         db.session.commit()
         flash(f'✅ Paused {paused_count} deliveries from {start_date.strftime("%d-%m-%Y")} to {end_date.strftime("%d-%m-%Y")}', 'success')
         
+        # Send email notification to admin
+        if g.tenant.admin_email and paused_count > 0:
+            send_subscription_pause_notification(
+                admin_email=g.tenant.admin_email,
+                customer_name=customer.name,
+                customer_phone=customer.phone or 'Not provided',
+                subscription_plan=subscription.plan.name,
+                start_date=start_date.strftime("%d-%m-%Y"),
+                end_date=end_date.strftime("%d-%m-%Y"),
+                paused_days=paused_count,
+                tenant_name=g.tenant.subdomain
+            )
+        
     except Exception as e:
         db.session.rollback()
         flash(f'Error pausing deliveries: {str(e)}', 'error')
@@ -357,6 +370,19 @@ def resume_deliveries(subscription_id):
         db.session.commit()
         flash(f'✅ Resumed {resumed_count} deliveries from {start_date.strftime("%d-%m-%Y")} to {end_date.strftime("%d-%m-%Y")}', 'success')
         
+        # Send email notification to admin
+        if g.tenant.admin_email and resumed_count > 0:
+            send_subscription_resume_notification(
+                admin_email=g.tenant.admin_email,
+                customer_name=customer.name,
+                customer_phone=customer.phone or 'Not provided',
+                subscription_plan=subscription.plan.name,
+                start_date=start_date.strftime("%d-%m-%Y"),
+                end_date=end_date.strftime("%d-%m-%Y"),
+                resumed_days=resumed_count,
+                tenant_name=g.tenant.subdomain
+            )
+        
     except Exception as e:
         db.session.rollback()
         flash(f'Error resuming deliveries: {str(e)}', 'error')
@@ -408,6 +434,19 @@ def modify_delivery(subscription_id):
             delivery.updated_at = datetime.now()
             db.session.commit()
             flash(f'✅ Modified delivery for {delivery_date.strftime("%d-%m-%Y")} to {new_quantity} {subscription.plan.unit_name}', 'success')
+            
+            # Send email notification to admin
+            if g.tenant.admin_email:
+                send_subscription_modify_notification(
+                    admin_email=g.tenant.admin_email,
+                    customer_name=customer.name,
+                    customer_phone=customer.phone or 'Not provided',
+                    subscription_plan=subscription.plan.name,
+                    delivery_date=delivery_date.strftime("%d-%m-%Y"),
+                    new_quantity=new_quantity,
+                    unit_name=subscription.plan.unit_name,
+                    tenant_name=g.tenant.subdomain
+                )
         else:
             flash('Delivery not found', 'error')
         
