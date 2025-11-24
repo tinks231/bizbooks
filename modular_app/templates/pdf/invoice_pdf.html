@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style>
+        @page { size: A4; margin: 15mm; }
+        body { font-family: Arial, sans-serif; font-size: 12px; color: #333; line-height: 1.4; margin: 0; padding: 0; }
+        .invoice { width: 100%; max-width: 210mm; margin: 0 auto; }
+        h1, h2, h3 { margin: 0; font-weight: 600; }
+        .header { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; border-bottom: 3px solid #4CAF50; padding-bottom: 15px; margin-bottom: 20px; }
+        .company-info h1 { font-size: 20px; margin-bottom: 8px; color: #333; }
+        .company-info p { margin: 3px 0; font-size: 11px; color: #666; }
+        .invoice-title { text-align: right; }
+        .invoice-title h2 { font-size: 28px; color: #4CAF50; margin-bottom: 8px; }
+        .invoice-title p { margin: 3px 0; font-size: 11px; }
+        .status-badge { display: inline-block; padding: 4px 10px; border-radius: 12px; font-size: 10px; font-weight: 600; }
+        .status-unpaid { background: #fff3cd; color: #856404; }
+        .status-paid { background: #d4edda; color: #155724; }
+        .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
+        .info-box { }
+        .section-title { font-size: 10px; font-weight: 600; color: #999; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .info-box p { margin: 3px 0; font-size: 11px; }
+        .info-box strong { font-weight: 600; }
+        table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+        thead { background: #f8f9fa; }
+        th { text-align: left; padding: 10px 8px; font-weight: 600; font-size: 11px; color: #333; border-bottom: 2px solid #dee2e6; }
+        td { padding: 10px 8px; font-size: 11px; border-bottom: 1px solid #f1f1f1; }
+        .text-right { text-align: right; }
+        .text-center { text-align: center; }
+        .totals { margin-left: auto; width: 300px; margin-top: 20px; }
+        .totals-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #f1f1f1; font-size: 11px; }
+        .totals-row.grand-total { font-size: 16px; font-weight: 700; color: #4CAF50; border-top: 2px solid #dee2e6; border-bottom: none; padding-top: 12px; margin-top: 8px; }
+        .footer { margin-top: 30px; padding-top: 20px; border-top: 2px solid #f1f1f1; }
+        .footer-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; }
+        .footer-section h4 { font-size: 11px; margin-bottom: 8px; color: #666; }
+        .footer-section p { font-size: 10px; color: #999; margin: 3px 0; }
+        .signature-line { border-top: 1px solid #333; width: 200px; margin-top: 40px; padding-top: 5px; text-align: center; font-size: 10px; }
+    </style>
+</head>
+<body>
+    <div class="invoice">
+        <!-- Header -->
+        <div class="header">
+            <div class="company-info">
+                <h1>{{ tenant.company_name }}</h1>
+                {% if tenant.admin_phone %}
+                <p>📞 {{ tenant.admin_phone }}</p>
+                {% endif %}
+                {% if tenant.admin_email %}
+                <p>📧 {{ tenant.admin_email }}</p>
+                {% endif %}
+            </div>
+            <div class="invoice-title">
+                <h2>TAX INVOICE</h2>
+                <p><strong>{{ invoice.invoice_number }}</strong></p>
+                <p>Date: {{ invoice.invoice_date.strftime('%d-%m-%Y') }}</p>
+                {% if invoice.payment_status == 'unpaid' %}
+                    <span class="status-badge status-unpaid">UNPAID</span>
+                {% else %}
+                    <span class="status-badge status-paid">PAID</span>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Bill To & Invoice Details -->
+        <div class="info-grid">
+            <div class="info-box">
+                <div class="section-title">Bill To</div>
+                <p><strong>{{ invoice.customer_name }}</strong></p>
+                {% if invoice.customer_phone %}
+                <p>📞 {{ invoice.customer_phone }}</p>
+                {% endif %}
+                {% if invoice.customer_email %}
+                <p>📧 {{ invoice.customer_email }}</p>
+                {% endif %}
+                {% if invoice.customer_address %}
+                <p>{{ invoice.customer_address }}</p>
+                {% endif %}
+                {% if invoice.customer_state %}
+                <p>State: {{ invoice.customer_state }}</p>
+                {% endif %}
+                {% if invoice.customer_gstin %}
+                <p>GSTIN: {{ invoice.customer_gstin }}</p>
+                {% endif %}
+            </div>
+            <div class="info-box" style="text-align: right;">
+                <div class="section-title" style="text-align: right;">Invoice Details</div>
+                {% if invoice.due_date %}
+                <p>Due Date: {{ invoice.due_date.strftime('%d-%m-%Y') }}</p>
+                {% endif %}
+                <p>Status: {{ invoice.status|upper }}</p>
+                <p>Payment: {{ invoice.payment_status|upper }}</p>
+            </div>
+        </div>
+
+        <!-- Items Table -->
+        <table>
+            <thead>
+                <tr>
+                    <th style="width: 5%;">#</th>
+                    <th style="width: 35%;">Item</th>
+                    <th class="text-center" style="width: 10%;">HSN</th>
+                    <th class="text-center" style="width: 12%;">Qty</th>
+                    <th class="text-right" style="width: 13%;">Rate</th>
+                    <th class="text-right" style="width: 10%;">GST %</th>
+                    <th class="text-right" style="width: 15%;">Amount</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in invoice.items %}
+                <tr>
+                    <td>{{ loop.index }}</td>
+                    <td>
+                        <strong>{{ item.item_name }}</strong>
+                        {% if item.description %}
+                        <br><span style="color: #999; font-size: 10px;">{{ item.description }}</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-center">{{ item.hsn_code or '-' }}</td>
+                    <td class="text-center">{{ item.quantity }} {{ item.unit }}</td>
+                    <td class="text-right">₹{{ '{:,.2f}'.format(item.rate) }}</td>
+                    <td class="text-right">{{ item.gst_rate }}%</td>
+                    <td class="text-right"><strong>₹{{ '{:,.2f}'.format(item.total_amount) }}</strong></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <!-- Totals -->
+        <div class="totals">
+            <div class="totals-row">
+                <span>Subtotal:</span>
+                <span>₹{{ '{:,.2f}'.format(invoice.subtotal) }}</span>
+            </div>
+            {% if invoice.cgst_amount > 0 %}
+            <div class="totals-row">
+                <span>CGST:</span>
+                <span>₹{{ '{:,.2f}'.format(invoice.cgst_amount) }}</span>
+            </div>
+            <div class="totals-row">
+                <span>SGST:</span>
+                <span>₹{{ '{:,.2f}'.format(invoice.sgst_amount) }}</span>
+            </div>
+            {% endif %}
+            {% if invoice.igst_amount > 0 %}
+            <div class="totals-row">
+                <span>IGST:</span>
+                <span>₹{{ '{:,.2f}'.format(invoice.igst_amount) }}</span>
+            </div>
+            {% endif %}
+            {% if invoice.discount_amount > 0 %}
+            <div class="totals-row">
+                <span>Discount:</span>
+                <span>-₹{{ '{:,.2f}'.format(invoice.discount_amount) }}</span>
+            </div>
+            {% endif %}
+            {% if invoice.round_off != 0 %}
+            <div class="totals-row">
+                <span>Round Off:</span>
+                <span>₹{{ '{:,.2f}'.format(invoice.round_off) }}</span>
+            </div>
+            {% endif %}
+            <div class="totals-row grand-total">
+                <span>TOTAL:</span>
+                <span>₹{{ '{:,.2f}'.format(invoice.total_amount) }}</span>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            <div class="footer-grid">
+                <div class="footer-section">
+                    {% if invoice.notes %}
+                    <h4>Terms & Conditions</h4>
+                    <p>{{ invoice.notes }}</p>
+                    {% else %}
+                    <h4>Terms & Conditions</h4>
+                    <p>Payment is due within 30 days of invoice date.</p>
+                    {% endif %}
+                </div>
+                <div class="footer-section" style="text-align: right;">
+                    <div class="signature-line" style="margin-left: auto;">
+                        <p><strong>For {{ tenant.company_name }}</strong></p>
+                        <p style="font-size: 9px; color: #999;">Authorized Signatory</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Thank you note -->
+        <div style="margin-top: 20px; padding: 10px; background: #f8f9fa; border-radius: 5px; text-align: center;">
+            <p style="margin: 0; font-size: 11px; color: #666;"><strong>Thank you for your business!</strong></p>
+        </div>
+    </div>
+</body>
+</html>
+

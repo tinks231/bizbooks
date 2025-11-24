@@ -248,7 +248,7 @@ def generate_invoice(order_id):
         
         db.session.commit()
         
-        # Send invoice email to customer
+        # Send invoice email to customer (with PDF attachment)
         if order.customer.email:
             try:
                 send_invoice_email(
@@ -258,11 +258,16 @@ def generate_invoice(order_id):
                     invoice_id=invoice.id,
                     total_amount=float(invoice.total_amount),
                     tenant_name=g.tenant.company_name,
-                    tenant_subdomain=g.tenant.subdomain
+                    tenant_subdomain=g.tenant.subdomain,
+                    invoice=invoice,  # Pass invoice object for PDF generation
+                    tenant=g.tenant   # Pass tenant object for PDF generation
                 )
-                flash(f'✅ Invoice {invoice_number} generated and emailed to customer!', 'success')
+                flash(f'✅ Invoice {invoice_number} generated and emailed with PDF attachment!', 'success')
             except Exception as email_error:
                 flash(f'✅ Invoice {invoice_number} generated, but email failed: {str(email_error)}', 'warning')
+                print(f"📧 Email error details: {email_error}")
+                import traceback
+                traceback.print_exc()
         else:
             flash(f'✅ Invoice {invoice_number} generated! (Customer has no email)', 'success')
         

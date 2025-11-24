@@ -5,9 +5,10 @@ import os
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+from email.mime.application import MIMEApplication
 from flask import current_app
 
-def send_email(to_email, subject, body_html, body_text=None):
+def send_email(to_email, subject, body_html, body_text=None, attachments=None):
     """
     Send email using Gmail SMTP
     
@@ -16,6 +17,10 @@ def send_email(to_email, subject, body_html, body_text=None):
     - SMTP_PASSWORD: Gmail app password (not regular password!)
     - SMTP_SERVER: smtp.gmail.com (default)
     - SMTP_PORT: 587 (default)
+    
+    Args:
+        attachments: List of dicts with 'filename' and 'data' (bytes)
+                    Example: [{'filename': 'invoice.pdf', 'data': pdf_bytes}]
     """
     
     # Get SMTP configuration from environment
@@ -31,15 +36,27 @@ def send_email(to_email, subject, body_html, body_text=None):
     
     try:
         # Create message
-        msg = MIMEMultipart('alternative')
+        msg = MIMEMultipart('mixed')  # Changed to 'mixed' to support attachments
         msg['From'] = smtp_email
         msg['To'] = to_email
         msg['Subject'] = subject
         
+        # Create alternative part for text/html
+        msg_alternative = MIMEMultipart('alternative')
+        
         # Add text and HTML parts
         if body_text:
-            msg.attach(MIMEText(body_text, 'plain'))
-        msg.attach(MIMEText(body_html, 'html'))
+            msg_alternative.attach(MIMEText(body_text, 'plain'))
+        msg_alternative.attach(MIMEText(body_html, 'html'))
+        
+        msg.attach(msg_alternative)
+        
+        # Add attachments if provided
+        if attachments:
+            for attachment in attachments:
+                part = MIMEApplication(attachment['data'], Name=attachment['filename'])
+                part['Content-Disposition'] = f'attachment; filename="{attachment["filename"]}"'
+                msg.attach(part)
         
         # Send email
         with smtplib.SMTP(smtp_server, smtp_port) as server:
@@ -806,7 +823,7 @@ def send_customer_modify_confirmation(customer_email, customer_name, subscriptio
 
 # ==================== INVOICE EMAILS ====================
 
-def send_invoice_email(customer_email, customer_name, invoice_number, invoice_id, total_amount, tenant_name, tenant_subdomain):
+def send_invoice_email(customer_email, customer_name, invoice_number, invoice_id, total_amount, tenant_name, tenant_subdomain, invoice=None, tenant=None):
     """Send invoice PDF to customer via email"""
     subject = f"📄 Invoice {invoice_number} from {tenant_name}"
     
@@ -821,18 +838,20 @@ def send_invoice_email(customer_email, customer_name, invoice_number, invoice_id
             
             <p>Dear {customer_name},</p>
             
-            <p>Thank you for your purchase! Your invoice has been generated.</p>
+            <p>Thank you for your purchase! Your invoice has been generated and is attached to this email as a PDF.</p>
             
             <div style="background: #f0f8ff; border-left: 4px solid #2c3e50; padding: 15px; border-radius: 5px; margin: 20px 0;">
                 <p style="margin: 5px 0;"><strong>Invoice Number:</strong> {invoice_number}</p>
                 <p style="margin: 5px 0; font-size: 20px; color: #2c3e50;"><strong>Total Amount:</strong> ₹{total_amount:,.2f}</p>
             </div>
             
-            <p>You can view and download your invoice by clicking the button below:</p>
+            <p>📎 <strong>Please find your invoice attached as PDF.</strong></p>
+            
+            <p>You can also view your invoice online by clicking the button below:</p>
             
             <a href="{invoice_url}" 
                style="display: inline-block; padding: 12px 24px; background: #2c3e50; color: white; text-decoration: none; border-radius: 5px; margin-top: 15px; font-weight: 600;">
-                📄 View Invoice
+                📄 View Invoice Online
             </a>
             
             <p style="color: #666; font-size: 14px; margin-top: 20px;">
@@ -856,12 +875,12 @@ def send_invoice_email(customer_email, customer_name, invoice_number, invoice_id
 
 Dear {customer_name},
 
-Thank you for your purchase! Your invoice has been generated.
+Thank you for your purchase! Your invoice has been generated and is attached to this email as a PDF.
 
 Invoice Number: {invoice_number}
 Total Amount: ₹{total_amount:,.2f}
 
-View invoice: {invoice_url}
+You can also view your invoice online: {invoice_url}
 
 Please make payment as per the terms mentioned in the invoice.
 
@@ -871,5 +890,17 @@ If you have any questions, please don't hesitate to contact us.
 This is an automated email from {tenant_name}.
     """
     
-    return send_email(customer_email, subject, body_html, body_text)
+    # Generate PDF attachment if invoice and tenant objects provided
+    attachments = None
+    if invoice and tenant:
+        try:
+            from utils.pdf_utils import generate_invoice_pdf
+            pdf_bytes = generate_invoice_pdf(invoice, tenant)
+            pdf_filename = f"{invoice_number}.pdf"
+            attachments = [{'filename': pdf_filename, 'data': pdf_bytes.read()}]
+        except Exception as pdf_error:
+            current_app.logger.error(f'Failed to generate PDF for invoice {invoice_number}: {str(pdf_error)}')
+            # Continue sending email without attachment if PDF generation fails
+    
+    return send_email(customer_email, subject, body_html, body_text, attachments=attachments)
 
