@@ -19,9 +19,9 @@
         ✏️ Edit
     </a>
     {% elif invoice.payment_status == 'unpaid' %}
-    <a href="{{ url_for('invoices.record_payment', invoice_id=invoice.id) }}" class="btn btn-success">
+    <button onclick="document.getElementById('paymentModal').style.display='block'" class="btn btn-success">
         💰 Record Payment
-    </a>
+    </button>
     {% endif %}
     
     <a href="{{ url_for('invoices.index') }}" class="btn btn-secondary">
@@ -653,6 +653,93 @@ body.printing-invoice .main-content {
     padding-left: 0 !important;
     width: 100% !important;
 }
+</style>
+
+<!-- Payment Modal -->
+<div id="paymentModal" class="modal" style="display: none;">
+    <div class="modal-content" style="max-width: 500px;">
+        <span class="close" onclick="document.getElementById('paymentModal').style.display='none'">&times;</span>
+        <h3>💰 Record Payment</h3>
+        
+        <form method="POST" action="{{ url_for('invoices.record_payment', invoice_id=invoice.id) }}">
+            <div class="form-group">
+                <label>Amount Paid</label>
+                <input type="number" name="amount_paid" class="form-input" step="0.01" 
+                       value="{{ invoice.total_amount }}" required>
+            </div>
+            
+            <div class="form-group">
+                <label>Payment Method</label>
+                <select name="payment_method" class="form-input" required>
+                    <option value="Cash">Cash</option>
+                    <option value="UPI" selected>UPI</option>
+                    <option value="Card">Card</option>
+                    <option value="Bank Transfer">Bank Transfer</option>
+                    <option value="Cheque">Cheque</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label>Payment Date</label>
+                <input type="date" name="payment_date" class="form-input" 
+                       value="{{ today.strftime('%Y-%m-%d') if today else '' }}" required>
+            </div>
+            
+            <div class="form-group">
+                <label>Notes (Optional)</label>
+                <textarea name="payment_notes" class="form-input" rows="3" 
+                          placeholder="Transaction ID, reference number, etc."></textarea>
+            </div>
+            
+            <div class="modal-actions">
+                <button type="submit" class="btn btn-success">Record Payment</button>
+                <button type="button" class="btn btn-secondary" 
+                        onclick="document.getElementById('paymentModal').style.display='none'">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<style>
+    .modal {
+        display: none;
+        position: fixed;
+        z-index: 1000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0,0,0,0.5);
+    }
+    
+    .modal-content {
+        background: white;
+        margin: 10% auto;
+        padding: 30px;
+        border-radius: 8px;
+        max-width: 600px;
+        position: relative;
+    }
+    
+    .close {
+        position: absolute;
+        right: 20px;
+        top: 20px;
+        font-size: 28px;
+        font-weight: bold;
+        color: #aaa;
+        cursor: pointer;
+    }
+    
+    .close:hover {
+        color: #000;
+    }
+    
+    .modal-actions {
+        display: flex;
+        gap: 10px;
+        margin-top: 20px;
+    }
 </style>
 
 {% endblock %}

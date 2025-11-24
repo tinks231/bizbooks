@@ -533,7 +533,8 @@ def view(invoice_id):
     return render_template('admin/invoices/view.html',
                          tenant=g.tenant,
                          invoice=invoice,
-                         tenant_settings=tenant_settings)
+                         tenant_settings=tenant_settings,
+                         today=date.today())
 
 
 @invoices_bp.route('/<int:invoice_id>/edit', methods=['GET', 'POST'])
