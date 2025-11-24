@@ -159,8 +159,10 @@ def generate_invoice(order_id):
             rate = float(order_item.rate)
             gst_rate = float(order_item.tax_rate) if order_item.tax_rate else 0
             
-            # Calculate GST split (for same state, assume CGST+SGST)
-            is_same_state = (order.customer.state == g.tenant.address_state) if order.customer.state and g.tenant.address_state else True
+            # Calculate GST split
+            # Note: Since Tenant model doesn't have address_state, we default to same state (CGST+SGST)
+            # You can add tenant state field later if needed for inter-state GST
+            is_same_state = True  # Default to CGST+SGST
             
             if is_same_state:
                 cgst = (quantity * rate * gst_rate) / 200  # Half of GST
