@@ -2,6 +2,10 @@
 
 {% block title %}Tomorrow's Deliveries{% endblock %}
 
+{% block header_actions %}
+<!-- Remove Manual Entry and QR Code buttons -->
+{% endblock %}
+
 {% block extra_css %}
 <style>
     body {
@@ -258,34 +262,27 @@
         border-left-color: #45a049;
     }
     
-    .product-item strong {
+    .product-item .product-name {
         display: block;
         color: #2c3e50;
-        font-size: 17px;
-        margin-bottom: 15px;
+        font-size: 16px;
+        margin-bottom: 8px;
         font-weight: 700;
-        padding-bottom: 12px;
-        border-bottom: 2px solid #e0e0e0;
     }
     
-    .product-item div {
-        color: #555;
+    .product-item .product-quantity {
+        color: #4CAF50;
+        font-size: 28px;
+        font-weight: 700;
+        display: block;
+        margin: 0;
+    }
+    
+    .product-item .product-unit {
+        color: #666;
         font-size: 14px;
-        margin: 8px 0;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-    }
-    
-    .product-item div span:first-child {
-        color: #888;
-        font-weight: 500;
-    }
-    
-    .product-item div span:last-child {
-        color: #2c3e50;
-        font-weight: 700;
-        font-size: 15px;
+        margin-top: 4px;
+        display: block;
     }
     
     /* Deliveries Table */
@@ -687,26 +684,16 @@
         </div>
     </div>
     
-    <!-- Product Summary -->
+    <!-- Product Summary (Quantities Only) -->
     {% if product_summary %}
     <div class="product-summary">
         <h3>Product Summary</h3>
         <div class="product-list">
             {% for product_name, summary in product_summary.items() %}
             <div class="product-item">
-                <strong>{{ product_name }}</strong>
-                <div>
-                    <span>Total Quantity:</span>
-                    <span>{{ '{:,.2f}'.format(summary.quantity) }}</span>
-                </div>
-                <div>
-                    <span>Customers:</span>
-                    <span>{{ summary.customers }}</span>
-                </div>
-                <div>
-                    <span>Total Amount:</span>
-                    <span>₹{{ '{:,.0f}'.format(summary.amount) }}</span>
-                </div>
+                <span class="product-name">{{ product_name }}</span>
+                <span class="product-quantity">{{ '{:,.2f}'.format(summary.quantity) }}</span>
+                <span class="product-unit">Total Quantity</span>
             </div>
             {% endfor %}
         </div>
