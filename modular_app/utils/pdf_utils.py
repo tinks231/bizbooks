@@ -109,10 +109,11 @@ def generate_invoice_pdf(invoice, tenant):
     header_row1_data = [[
         '',  # Empty left column
         Paragraph(f"<b>{tenant.company_name}</b>", company_center_style),
-        Table([[p] for p in contact_right], colWidths=[55*mm])
+        Table([[p] for p in contact_right], colWidths=[57*mm])
     ]]
     
-    header_row1_table = Table(header_row1_data, colWidths=[40*mm, 85*mm, 55*mm])
+    # MATCH items table width: 185mm total
+    header_row1_table = Table(header_row1_data, colWidths=[38*mm, 90*mm, 57*mm])
     header_row1_table.setStyle(TableStyle([
         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
         ('ALIGN', (1, 0), (1, 0), 'CENTER'),
@@ -163,12 +164,14 @@ def generate_invoice_pdf(invoice, tenant):
         Paragraph(f"Payment: {invoice.payment_status.upper()}", right_detail_style),
     ]
     
+    # MATCH items table width: 185mm total
+    # Invoice Details narrower (60mm) to shift text more right
     info_data = [[
-        Table([[p] for p in bill_to_content], colWidths=[100*mm]),
-        Table([[p] for p in invoice_details_content], colWidths=[70*mm])
+        Table([[p] for p in bill_to_content], colWidths=[110*mm]),
+        Table([[p] for p in invoice_details_content], colWidths=[60*mm])
     ]]
     
-    info_table = Table(info_data, colWidths=[100*mm, 70*mm])
+    info_table = Table(info_data, colWidths=[115*mm, 70*mm])
     info_table.setStyle(TableStyle([
         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
         ('ALIGN', (1, 0), (1, 0), 'RIGHT'),  # Right-align Invoice Details column
@@ -294,7 +297,8 @@ def generate_invoice_pdf(invoice, tenant):
         )
         
         words_data = [[Paragraph(f"<b>Amount in Words:</b> {invoice.amount_in_words()}", words_box_style)]]
-        words_table = Table(words_data, colWidths=[170*mm])
+        # MATCH items table width: 185mm
+        words_table = Table(words_data, colWidths=[185*mm])
         words_table.setStyle(TableStyle([
             ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#f0f7ff')),
             ('LEFTPADDING', (0, 0), (-1, -1), 12),
