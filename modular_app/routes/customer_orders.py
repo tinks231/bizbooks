@@ -230,7 +230,8 @@ def generate_invoice(order_id):
                         total_value=quantity * (item.cost_price or 0),
                         reference_type='invoice',
                         reference_id=invoice.id,
-                        remarks=f'Sold via invoice {invoice_number} (Customer Order: {order.order_number})'
+                        reference_number=invoice_number,
+                        notes=f'Sold via invoice {invoice_number} (Customer Order: {order.order_number})'
                     )
                     db.session.add(stock_movement)
         
