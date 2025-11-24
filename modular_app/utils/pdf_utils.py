@@ -37,13 +37,15 @@ def generate_invoice_pdf(invoice, tenant):
     # Header
     header_data = [
         [Paragraph(f"<b>{tenant.company_name}</b>", heading_style),
-         Paragraph("<b>TAX INVOICE</b>", title_style)],
+         Paragraph("TAX INVOICE", title_style)],
         [Paragraph(f"Phone: {tenant.admin_phone or 'N/A'}<br/>Email: {tenant.admin_email or 'N/A'}", normal_style),
          Paragraph(f"<b>{invoice.invoice_number}</b><br/>Date: {invoice.invoice_date.strftime('%d-%m-%Y')}<br/>Status: {invoice.payment_status.upper()}", normal_style)]
     ]
     header_table = Table(header_data, colWidths=[90*mm, 90*mm])
     header_table.setStyle(TableStyle([
         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('ALIGN', (1, 0), (1, 0), 'CENTER'),  # Center-align TAX INVOICE
+        ('ALIGN', (1, 1), (1, 1), 'RIGHT'),   # Right-align invoice details
         ('LINEBELOW', (0, 1), (-1, 1), 2, colors.HexColor('#4CAF50')),
         ('BOTTOMPADDING', (0, 1), (-1, 1), 10),
     ]))
@@ -101,14 +103,17 @@ def generate_invoice_pdf(invoice, tenant):
         totals_data.append(['SGST:', f"Rs {invoice.sgst_amount:,.2f}"])
     if invoice.igst_amount > 0:
         totals_data.append(['IGST:', f"Rs {invoice.igst_amount:,.2f}"])
-    totals_data.append(['<b>TOTAL:</b>', f"<b>Rs {invoice.total_amount:,.2f}</b>"])
+    # Use Paragraph for bold text (not HTML tags in plain text)
+    totals_data.append([
+        Paragraph('<b>TOTAL:</b>', normal_style),
+        Paragraph(f'<b>Rs {invoice.total_amount:,.2f}</b>', normal_style)
+    ])
     
     totals_table = Table(totals_data, colWidths=[40*mm, 40*mm], hAlign='RIGHT')
     totals_table.setStyle(TableStyle([
         ('ALIGN', (0, 0), (0, -1), 'LEFT'),
         ('ALIGN', (1, 0), (1, -1), 'RIGHT'),
         ('LINEABOVE', (0, -1), (-1, -1), 2, colors.HexColor('#4CAF50')),
-        ('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold'),
         ('FONTSIZE', (0, -1), (-1, -1), 14),
         ('TEXTCOLOR', (0, -1), (-1, -1), colors.HexColor('#4CAF50')),
     ]))
