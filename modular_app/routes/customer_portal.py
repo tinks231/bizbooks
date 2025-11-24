@@ -280,7 +280,7 @@ def pause_deliveries(subscription_id):
         is_after_cutoff = now_ist >= cutoff_time
         
         # Get support phone for emergency contact message
-        support_phone = g.tenant.phone or g.tenant.admin_email or "support"
+        support_phone = g.tenant.admin_phone or g.tenant.admin_email or "support"
         
         # After 9 PM: Can only modify from day-after-tomorrow
         if is_after_cutoff:
@@ -344,7 +344,7 @@ def pause_deliveries(subscription_id):
                     end_date=end_date.strftime("%d-%m-%Y"),
                     paused_days=paused_count,
                     tenant_name=g.tenant.subdomain,
-                    support_phone=g.tenant.phone or g.tenant.admin_email or "support"
+                    support_phone=g.tenant.admin_phone or g.tenant.admin_email or "support"
                 )
         
     except Exception as e:
@@ -383,7 +383,7 @@ def resume_deliveries(subscription_id):
         # Check if current time is after 9 PM IST (21:00)
         cutoff_time = now_ist.replace(hour=21, minute=0, second=0, microsecond=0)
         is_after_cutoff = now_ist >= cutoff_time
-        support_phone = g.tenant.phone or g.tenant.admin_email or "support"
+        support_phone = g.tenant.admin_phone or g.tenant.admin_email or "support"
         
         # After 9 PM: Can only modify from day-after-tomorrow
         if is_after_cutoff:
@@ -481,7 +481,7 @@ def modify_delivery(subscription_id):
         # Check if current time is after 9 PM IST (21:00)
         cutoff_time = now_ist.replace(hour=21, minute=0, second=0, microsecond=0)
         is_after_cutoff = now_ist >= cutoff_time
-        support_phone = g.tenant.phone or g.tenant.admin_email or "support"
+        support_phone = g.tenant.admin_phone or g.tenant.admin_email or "support"
         
         # After 9 PM: Can only modify from day-after-tomorrow
         if is_after_cutoff:
