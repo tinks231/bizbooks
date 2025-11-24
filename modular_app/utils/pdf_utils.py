@@ -43,11 +43,11 @@ def generate_invoice_pdf(invoice, tenant):
         spaceAfter=2
     )
     
-    # TAX INVOICE style (centered, green, large)
+    # TAX INVOICE style (centered, green, smaller)
     tax_invoice_style = ParagraphStyle(
         'TaxInvoice',
         parent=styles['Heading1'],
-        fontSize=26,
+        fontSize=20,
         textColor=colors.HexColor('#4CAF50'),
         alignment=TA_CENTER,
         fontName='Helvetica-Bold'
@@ -109,10 +109,10 @@ def generate_invoice_pdf(invoice, tenant):
     header_row1_data = [[
         '',  # Empty left column
         Paragraph(f"<b>{tenant.company_name}</b>", company_center_style),
-        Table([[p] for p in contact_right], colWidths=[60*mm])
+        Table([[p] for p in contact_right], colWidths=[55*mm])
     ]]
     
-    header_row1_table = Table(header_row1_data, colWidths=[60*mm, 60*mm, 60*mm])
+    header_row1_table = Table(header_row1_data, colWidths=[40*mm, 85*mm, 55*mm])
     header_row1_table.setStyle(TableStyle([
         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
         ('ALIGN', (1, 0), (1, 0), 'CENTER'),
@@ -148,22 +148,30 @@ def generate_invoice_pdf(invoice, tenant):
     if hasattr(invoice.customer, 'state') and invoice.customer.state:
         bill_to_content.append(Paragraph(f"State: {invoice.customer.state}", normal_style))
     
+    # Right-aligned style for invoice details
+    right_detail_style = ParagraphStyle(
+        'RightDetail',
+        parent=normal_style,
+        alignment=TA_RIGHT
+    )
+    
     invoice_details_content = [
         Paragraph("<b>Invoice Details</b>", section_heading_style),
-        Paragraph(f"Invoice No: {invoice.invoice_number}", normal_style),
-        Paragraph(f"Date: {invoice.invoice_date.strftime('%d-%m-%Y')}", normal_style),
-        Paragraph(f"Status: {invoice.status.upper()}", normal_style),
-        Paragraph(f"Payment: {invoice.payment_status.upper()}", normal_style),
+        Paragraph(f"Invoice No: {invoice.invoice_number}", right_detail_style),
+        Paragraph(f"Date: {invoice.invoice_date.strftime('%d-%m-%Y')}", right_detail_style),
+        Paragraph(f"Status: {invoice.status.upper()}", right_detail_style),
+        Paragraph(f"Payment: {invoice.payment_status.upper()}", right_detail_style),
     ]
     
     info_data = [[
-        Table([[p] for p in bill_to_content], colWidths=[85*mm]),
-        Table([[p] for p in invoice_details_content], colWidths=[85*mm])
+        Table([[p] for p in bill_to_content], colWidths=[100*mm]),
+        Table([[p] for p in invoice_details_content], colWidths=[70*mm])
     ]]
     
-    info_table = Table(info_data, colWidths=[85*mm, 85*mm])
+    info_table = Table(info_data, colWidths=[100*mm, 70*mm])
     info_table.setStyle(TableStyle([
         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('ALIGN', (1, 0), (1, 0), 'RIGHT'),  # Right-align Invoice Details column
     ]))
     elements.append(info_table)
     elements.append(Spacer(1, 8*mm))
