@@ -1,11 +1,10 @@
 """
 PDF Generation Utilities
-Generate PDFs from HTML templates
+Generate PDFs from HTML templates using xhtml2pdf (works on serverless!)
 """
 from io import BytesIO
 from flask import render_template
-from weasyprint import HTML, CSS
-from weasyprint.text.fonts import FontConfiguration
+from xhtml2pdf import pisa
 
 def generate_invoice_pdf(invoice, tenant):
     """
@@ -17,14 +16,18 @@ def generate_invoice_pdf(invoice, tenant):
                                    invoice=invoice, 
                                    tenant=tenant)
     
-    # Create PDF from HTML
-    font_config = FontConfiguration()
+    # Create PDF from HTML using xhtml2pdf
     pdf_bytes = BytesIO()
     
-    HTML(string=html_content).write_pdf(
-        pdf_bytes,
-        font_config=font_config
+    # Convert HTML to PDF
+    pisa_status = pisa.CreatePDF(
+        html_content,
+        dest=pdf_bytes
     )
+    
+    # Check for errors
+    if pisa_status.err:
+        raise Exception(f"PDF generation error: {pisa_status.err}")
     
     pdf_bytes.seek(0)
     return pdf_bytes
