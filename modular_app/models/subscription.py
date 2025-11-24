@@ -39,6 +39,10 @@ class SubscriptionPlan(db.Model):
     unit_rate = db.Column(db.Numeric(10, 2))  # ₹60 per liter (NULL for fixed plans)
     unit_name = db.Column(db.String(20))  # 'liter', 'kg', 'piece', 'hour' (NULL for fixed)
     
+    # DELIVERY SCHEDULE (for metered plans)
+    delivery_pattern = db.Column(db.String(20), default='daily')  # 'daily', 'alternate', 'weekdays', 'weekends', 'custom'
+    custom_days = db.Column(db.String(50))  # JSON string: '1,3,5' for Mon, Wed, Fri (0=Mon, 6=Sun)
+    
     # Status
     is_active = db.Column(db.Boolean, default=True, nullable=False)
     

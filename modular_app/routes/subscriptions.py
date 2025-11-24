@@ -47,6 +47,51 @@ def test_route():
 
 
 # ============================================================
+# DELIVERY SCHEDULE HELPER FUNCTIONS
+# ============================================================
+def should_deliver_on_date(date, pattern, custom_days=None, start_date=None):
+    """
+    Check if delivery should occur on a given date based on schedule pattern
+    
+    Args:
+        date: The date to check
+        pattern: 'daily', 'alternate', 'weekdays', 'weekends', 'custom'
+        custom_days: Comma-separated weekday numbers (0=Mon, 6=Sun): '0,2,4' for Mon/Wed/Fri
+        start_date: For 'alternate' pattern - day 1 of alternation
+    
+    Returns:
+        bool: True if delivery should occur on this date
+    """
+    if pattern == 'daily':
+        return True
+    
+    elif pattern == 'alternate':
+        # Alternate days (every other day)
+        if start_date:
+            days_diff = (date - start_date).days
+            return days_diff % 2 == 0
+        return True  # Fallback to daily if no start_date
+    
+    elif pattern == 'weekdays':
+        # Monday to Friday (0-4)
+        return date.weekday() < 5
+    
+    elif pattern == 'weekends':
+        # Saturday and Sunday (5-6)
+        return date.weekday() >= 5
+    
+    elif pattern == 'custom' and custom_days:
+        # Custom days (e.g., '0,2,4' for Mon/Wed/Fri)
+        try:
+            selected_days = [int(d.strip()) for d in custom_days.split(',')]
+            return date.weekday() in selected_days
+        except:
+            return True  # Fallback to daily if parsing fails
+    
+    return True  # Default: deliver
+
+
+# ============================================================
 # DAILY DELIVERIES (METERED SUBSCRIPTIONS)
 # ============================================================
 @subscriptions_bp.route('/deliveries', methods=['GET'], strict_slashes=False)
@@ -381,6 +426,9 @@ def add_plan():
             plan_data['unit_name'] = request.form['unit_name']
             # Billing cycle for metered plans (defaults to 30 days if not provided)
             plan_data['duration_days'] = int(request.form.get('billing_cycle_days', 30))
+            # Delivery schedule pattern
+            plan_data['delivery_pattern'] = request.form.get('delivery_pattern', 'daily')
+            plan_data['custom_days'] = request.form.get('custom_days', '') if request.form.get('delivery_pattern') == 'custom' else None
         
         plan = SubscriptionPlan(**plan_data)
         
@@ -653,29 +701,48 @@ def enroll_member():
         db.session.add(subscription)
         db.session.flush()  # Get subscription ID
         
-        # AUTO-GENERATE DAILY DELIVERIES for metered plans
+        # AUTO-GENERATE DELIVERIES for metered plans (based on schedule pattern)
         if plan.plan_type == 'metered':
             current_date = start_date
             deliveries_created = 0
+            skipped_days = 0
+            
+            # Get delivery schedule pattern
+            delivery_pattern = plan.delivery_pattern or 'daily'
+            custom_days = plan.custom_days
             
             # Include period_end (e.g., Nov 22-30 should include Nov 30)
             while current_date <= period_end:
-                delivery = SubscriptionDelivery(
-                    tenant_id=tenant_id,
-                    subscription_id=subscription.id,
-                    delivery_date=current_date,
-                    quantity=subscription.default_quantity,
-                    rate=plan.unit_rate,
-                    amount=subscription.default_quantity * plan.unit_rate,
-                    status='delivered',  # Will be updated only if exception occurs
-                    is_modified=False
-                )
-                db.session.add(delivery)
-                deliveries_created += 1
+                # Check if delivery should occur on this date based on schedule
+                if should_deliver_on_date(current_date, delivery_pattern, custom_days, start_date):
+                    delivery = SubscriptionDelivery(
+                        tenant_id=tenant_id,
+                        subscription_id=subscription.id,
+                        delivery_date=current_date,
+                        quantity=subscription.default_quantity,
+                        rate=plan.unit_rate,
+                        amount=subscription.default_quantity * plan.unit_rate,
+                        status='delivered',  # Will be updated only if exception occurs
+                        is_modified=False
+                    )
+                    db.session.add(delivery)
+                    deliveries_created += 1
+                else:
+                    skipped_days += 1
                 
                 current_date += timedelta(days=1)
             
-            flash(f'📊 Auto-generated {deliveries_created} daily deliveries for the first billing cycle!', 'info')
+            pattern_display = {
+                'daily': 'Daily',
+                'alternate': 'Alternate days',
+                'weekdays': 'Weekdays only (Mon-Fri)',
+                'weekends': 'Weekends only (Sat-Sun)',
+                'custom': f'Custom schedule'
+            }.get(delivery_pattern, 'Daily')
+            
+            flash(f'📊 Auto-generated {deliveries_created} deliveries ({pattern_display})!', 'info')
+            if skipped_days > 0:
+                flash(f'⏭️ Skipped {skipped_days} days based on schedule pattern', 'info')
         
         # Record payment and invoice only if payment collected (FIXED plans only)
         # Metered plans: Payment collected at end of billing cycle based on consumption

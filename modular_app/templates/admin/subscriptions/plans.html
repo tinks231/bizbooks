@@ -278,6 +278,56 @@
                             <input type="number" name="billing_cycle_days" id="add_billing_cycle" class="form-control" min="1" placeholder="30" value="30">
                             <small class="form-text text-muted">How often to generate invoices (default: 30 days = monthly)</small>
                         </div>
+                        
+                        <!-- Delivery Schedule Pattern -->
+                        <div class="form-group">
+                            <label class="field-label"><strong>Delivery Schedule *</strong></label>
+                            <select name="delivery_pattern" id="add_delivery_pattern" class="form-control" onchange="toggleCustomDays('add')">
+                                <option value="daily" selected>Daily (Every Day)</option>
+                                <option value="alternate">Alternate Days (Every Other Day)</option>
+                                <option value="weekdays">Weekdays Only (Mon-Fri)</option>
+                                <option value="weekends">Weekends Only (Sat-Sun)</option>
+                                <option value="custom">Custom Days (Select Specific Days)</option>
+                            </select>
+                            <small class="form-text text-muted">When should deliveries occur?</small>
+                        </div>
+                        
+                        <!-- Custom Days Selection (Hidden by default) -->
+                        <div class="form-group" id="add_custom_days_group" style="display: none;">
+                            <label class="field-label"><strong>Select Delivery Days</strong></label>
+                            <div style="padding: 10px; background: #f8f9fa; border-radius: 6px;">
+                                <div class="custom-control custom-checkbox">
+                                    <input type="checkbox" class="custom-control-input add-custom-day" id="add_day_0" value="0">
+                                    <label class="custom-control-label" for="add_day_0">Monday</label>
+                                </div>
+                                <div class="custom-control custom-checkbox">
+                                    <input type="checkbox" class="custom-control-input add-custom-day" id="add_day_1" value="1">
+                                    <label class="custom-control-label" for="add_day_1">Tuesday</label>
+                                </div>
+                                <div class="custom-control custom-checkbox">
+                                    <input type="checkbox" class="custom-control-input add-custom-day" id="add_day_2" value="2">
+                                    <label class="custom-control-label" for="add_day_2">Wednesday</label>
+                                </div>
+                                <div class="custom-control custom-checkbox">
+                                    <input type="checkbox" class="custom-control-input add-custom-day" id="add_day_3" value="3">
+                                    <label class="custom-control-label" for="add_day_3">Thursday</label>
+                                </div>
+                                <div class="custom-control custom-checkbox">
+                                    <input type="checkbox" class="custom-control-input add-custom-day" id="add_day_4" value="4">
+                                    <label class="custom-control-label" for="add_day_4">Friday</label>
+                                </div>
+                                <div class="custom-control custom-checkbox">
+                                    <input type="checkbox" class="custom-control-input add-custom-day" id="add_day_5" value="5">
+                                    <label class="custom-control-label" for="add_day_5">Saturday</label>
+                                </div>
+                                <div class="custom-control custom-checkbox">
+                                    <input type="checkbox" class="custom-control-input add-custom-day" id="add_day_6" value="6">
+                                    <label class="custom-control-label" for="add_day_6">Sunday</label>
+                                </div>
+                            </div>
+                            <input type="hidden" name="custom_days" id="add_custom_days_value">
+                            <small class="form-text text-muted">Example: Mon-Wed-Fri or Tue-Thu-Sat</small>
+                        </div>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -384,6 +434,38 @@ function openEditPlanModal(id, name, description, price, duration, is_active) {
     
     $('#editPlanModal').modal('show');
 }
+
+// Toggle custom days visibility based on delivery pattern selection
+function toggleCustomDays(prefix) {
+    const pattern = document.getElementById(prefix + '_delivery_pattern').value;
+    const customDaysGroup = document.getElementById(prefix + '_custom_days_group');
+    
+    if (pattern === 'custom') {
+        customDaysGroup.style.display = 'block';
+    } else {
+        customDaysGroup.style.display = 'none';
+    }
+}
+
+// Update hidden field with selected custom days when form submits
+document.getElementById('addPlanForm').addEventListener('submit', function(e) {
+    const pattern = document.getElementById('add_delivery_pattern').value;
+    
+    if (pattern === 'custom') {
+        const selectedDays = [];
+        document.querySelectorAll('.add-custom-day:checked').forEach(cb => {
+            selectedDays.push(cb.value);
+        });
+        
+        if (selectedDays.length === 0) {
+            e.preventDefault();
+            alert('Please select at least one delivery day for custom schedule!');
+            return false;
+        }
+        
+        document.getElementById('add_custom_days_value').value = selectedDays.join(',');
+    }
+});
 </script>
 {% endblock %}
 
