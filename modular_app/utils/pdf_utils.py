@@ -149,29 +149,30 @@ def generate_invoice_pdf(invoice, tenant):
     if hasattr(invoice.customer, 'state') and invoice.customer.state:
         bill_to_content.append(Paragraph(f"State: {invoice.customer.state}", normal_style))
     
-    # Right-aligned style for invoice details
-    right_detail_style = ParagraphStyle(
-        'RightDetail',
+    # Left-aligned style for invoice details (first letters match)
+    left_detail_style = ParagraphStyle(
+        'LeftDetail',
         parent=normal_style,
-        alignment=TA_RIGHT
+        alignment=TA_LEFT
     )
     
     invoice_details_content = [
         Paragraph("<b>Invoice Details</b>", section_heading_style),
-        Paragraph(f"Invoice No: {invoice.invoice_number}", right_detail_style),
-        Paragraph(f"Date: {invoice.invoice_date.strftime('%d-%m-%Y')}", right_detail_style),
-        Paragraph(f"Status: {invoice.status.upper()}", right_detail_style),
-        Paragraph(f"Payment: {invoice.payment_status.upper()}", right_detail_style),
+        Paragraph(f"Invoice No: {invoice.invoice_number}", left_detail_style),
+        Paragraph(f"Date: {invoice.invoice_date.strftime('%d-%m-%Y')}", left_detail_style),
+        Paragraph(f"Status: {invoice.status.upper()}", left_detail_style),
+        Paragraph(f"Payment: {invoice.payment_status.upper()}", left_detail_style),
     ]
     
     # MATCH items table width: 185mm total
-    # Invoice Details narrower (60mm) to shift text more right
+    # Invoice Details narrower (55mm) pushed to far right
     info_data = [[
-        Table([[p] for p in bill_to_content], colWidths=[110*mm]),
-        Table([[p] for p in invoice_details_content], colWidths=[60*mm])
+        Table([[p] for p in bill_to_content], colWidths=[120*mm]),
+        Table([[p] for p in invoice_details_content], colWidths=[55*mm])
     ]]
     
-    info_table = Table(info_data, colWidths=[115*mm, 70*mm])
+    # Outer columns MUST match inner table widths for proper alignment
+    info_table = Table(info_data, colWidths=[130*mm, 55*mm])
     info_table.setStyle(TableStyle([
         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
         ('ALIGN', (1, 0), (1, 0), 'RIGHT'),  # Right-align Invoice Details column
