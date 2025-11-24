@@ -161,7 +161,7 @@ def tomorrow_deliveries():
         joinedload(SubscriptionDelivery.subscription).joinedload(CustomerSubscription.customer),
         joinedload(SubscriptionDelivery.subscription).joinedload(CustomerSubscription.plan)
     ).order_by(
-        CustomerSubscription.customer.has(Customer.name.asc())  # Sort by customer name
+        Customer.name.asc()  # Sort by customer name (already joined)
     ).all()
     
     # Separate into deliveries and paused
