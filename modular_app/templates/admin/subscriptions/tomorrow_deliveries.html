@@ -406,6 +406,41 @@
         font-size: 15px;
     }
     
+    /* Delivery Status */
+    .status-badge {
+        display: inline-block;
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 700;
+        white-space: nowrap;
+    }
+    
+    .status-badge.completed {
+        background: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+    }
+    
+    .status-badge.pending {
+        background: #fff3cd;
+        color: #856404;
+        border: 1px solid #ffc107;
+    }
+    
+    .delivery-details {
+        font-size: 11px;
+        color: #666;
+        margin-top: 4px;
+    }
+    
+    .bottle-info {
+        font-size: 11px;
+        color: #4CAF50;
+        margin-top: 4px;
+        font-weight: 600;
+    }
+    
     .total-row {
         background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
         font-weight: 700;
@@ -706,10 +741,11 @@
             <thead>
                 <tr>
                     <th style="width: 5%;">#</th>
-                    <th style="width: 25%;">Customer</th>
-                    <th style="width: 15%;">Contact</th>
-                    <th style="width: 25%;">Product</th>
-                    <th style="width: 15%;">Quantity</th>
+                    <th style="width: 20%;">Customer</th>
+                    <th style="width: 12%;">Contact</th>
+                    <th style="width: 18%;">Product</th>
+                    <th style="width: 12%;">Quantity</th>
+                    <th style="width: 18%;">Status</th>
                     <th style="width: 15%;">Amount</th>
                 </tr>
             </thead>
@@ -748,6 +784,26 @@
                                 {{ delivery.quantity }} {{ delivery.subscription.plan.unit_name }}
                             </span>
                         </td>
+                        <td>
+                            {% if delivery.delivered_at %}
+                            <span class="status-badge completed">✅ Delivered</span>
+                            <div class="delivery-details">
+                                {% if delivery.delivered_by_employee %}
+                                By: {{ delivery.delivered_by_employee.name }}
+                                {% endif %}
+                            </div>
+                            <div class="delivery-details">
+                                {{ delivery.delivered_at.strftime('%I:%M %p') }}
+                            </div>
+                            {% if delivery.bottles_collected > 0 or delivery.bottles_delivered > 0 %}
+                            <div class="bottle-info">
+                                🍾 Delivered: {{ delivery.bottles_delivered }}, Collected: {{ delivery.bottles_collected }}
+                            </div>
+                            {% endif %}
+                            {% else %}
+                            <span class="status-badge pending">⏳ Pending</span>
+                            {% endif %}
+                        </td>
                         <td class="amount-cell">
                             ₹{{ '{:,.2f}'.format(delivery.amount) }}
                         </td>
@@ -756,7 +812,7 @@
                     
                     <!-- Total Row -->
                     <tr class="total-row">
-                        <td colspan="5" class="total-label">
+                        <td colspan="6" class="total-label">
                             TOTAL
                         </td>
                         <td class="total-amount">
@@ -765,7 +821,7 @@
                     </tr>
                 {% else %}
                     <tr>
-                        <td colspan="6">
+                        <td colspan="7">
                             <div class="no-data">
                                 <p>No deliveries scheduled for {{ target_date.strftime('%d %B %Y') }}</p>
                             </div>

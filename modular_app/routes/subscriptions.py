@@ -159,7 +159,8 @@ def tomorrow_deliveries():
         CustomerSubscription.status == 'active'  # Only active subscriptions
     ).options(
         joinedload(SubscriptionDelivery.subscription).joinedload(CustomerSubscription.customer),
-        joinedload(SubscriptionDelivery.subscription).joinedload(CustomerSubscription.plan)
+        joinedload(SubscriptionDelivery.subscription).joinedload(CustomerSubscription.plan),
+        joinedload(SubscriptionDelivery.delivered_by_employee)
     ).order_by(
         Customer.name.asc()  # Sort by customer name (already joined)
     ).all()

@@ -317,6 +317,9 @@ class SubscriptionDelivery(db.Model):
         db.UniqueConstraint('subscription_id', 'delivery_date', name='uq_subscription_delivery_date'),
     )
     
+    # Relationships
+    delivered_by_employee = db.relationship('Employee', foreign_keys=[delivered_by], backref='deliveries_made')
+    
     def __repr__(self):
         return f'<SubscriptionDelivery {self.delivery_date} - {self.quantity} {self.subscription.plan.unit_name}>'
     
