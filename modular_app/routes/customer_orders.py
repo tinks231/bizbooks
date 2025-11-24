@@ -246,6 +246,21 @@ def generate_invoice(order_id):
         order.fulfilled_date = datetime.now()
         order.updated_at = datetime.now()
         
+        # Check if payment should be recorded immediately
+        mark_paid = request.form.get('mark_paid')
+        if mark_paid:
+            payment_method = request.form.get('payment_method', 'Cash')
+            payment_notes = request.form.get('payment_notes', '')
+            
+            # Mark invoice as paid
+            invoice.payment_status = 'paid'
+            invoice.paid_amount = float(invoice.total_amount)
+            invoice.payment_method = payment_method
+            
+            # Add payment notes
+            if payment_notes:
+                invoice.notes = f"{invoice.notes}\n\nPayment Notes: {payment_notes}" if invoice.notes else f"Payment Notes: {payment_notes}"
+        
         db.session.commit()
         
         # Send invoice email to customer (with PDF attachment)
@@ -262,14 +277,17 @@ def generate_invoice(order_id):
                     invoice=invoice,  # Pass invoice object for PDF generation
                     tenant=g.tenant   # Pass tenant object for PDF generation
                 )
-                flash(f'✅ Invoice {invoice_number} generated and emailed with PDF attachment!', 'success')
+                payment_status_msg = " and marked as PAID" if mark_paid else ""
+                flash(f'✅ Invoice {invoice_number} generated{payment_status_msg} and emailed with PDF attachment!', 'success')
             except Exception as email_error:
-                flash(f'✅ Invoice {invoice_number} generated, but email failed: {str(email_error)}', 'warning')
+                payment_status_msg = " and marked as PAID" if mark_paid else ""
+                flash(f'✅ Invoice {invoice_number} generated{payment_status_msg}, but email failed: {str(email_error)}', 'warning')
                 print(f"📧 Email error details: {email_error}")
                 import traceback
                 traceback.print_exc()
         else:
-            flash(f'✅ Invoice {invoice_number} generated! (Customer has no email)', 'success')
+            payment_status_msg = " and marked as PAID" if mark_paid else ""
+            flash(f'✅ Invoice {invoice_number} generated{payment_status_msg}! (Customer has no email)', 'success')
         
     except Exception as e:
         db.session.rollback()

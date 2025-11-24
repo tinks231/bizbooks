@@ -40,11 +40,9 @@
                 </a>
             {% elif order.status in ['confirmed', 'fulfilled'] %}
                 <!-- Generate Invoice Button (only for confirmed/fulfilled orders) -->
-                <form method="POST" action="{{ url_for('customer_orders.generate_invoice', order_id=order.id) }}" style="display: inline;">
-                    <button type="submit" class="btn btn-success" onclick="return confirm('Generate invoice for this order? This will deduct inventory.')">
-                        📄 Generate Invoice
-                    </button>
-                </form>
+                <button onclick="document.getElementById('invoiceModal').style.display='block'" class="btn btn-success">
+                    📄 Generate Invoice
+                </button>
             {% endif %}
             <button onclick="document.getElementById('statusModal').style.display='block'" class="btn btn-primary">
                 Update Status
@@ -259,5 +257,60 @@
         margin-top: 20px;
     }
 </style>
+
+<!-- Generate Invoice Modal -->
+<div id="invoiceModal" class="modal">
+    <div class="modal-content" style="max-width: 500px;">
+        <span class="close" onclick="document.getElementById('invoiceModal').style.display='none'">&times;</span>
+        <h3>📄 Generate Invoice</h3>
+        
+        <p style="margin-bottom: 20px; color: #666;">
+            This will create an invoice for <strong>₹{{ '{:,.2f}'.format(order.total_amount) }}</strong> and deduct inventory.
+        </p>
+        
+        <form method="POST" action="{{ url_for('customer_orders.generate_invoice', order_id=order.id) }}">
+            <div class="form-group">
+                <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; padding: 15px; background: #f8f9fa; border-radius: 8px; margin-bottom: 15px;">
+                    <input type="checkbox" name="mark_paid" value="1" id="markPaidCheckbox" onchange="togglePaymentFields()">
+                    <span style="font-weight: 600;">💰 Mark as PAID (payment already received)</span>
+                </label>
+            </div>
+            
+            <div id="paymentFields" style="display: none; background: #e8f5e9; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                <div class="form-group">
+                    <label>Payment Method</label>
+                    <select name="payment_method" class="form-input">
+                        <option value="Cash">Cash</option>
+                        <option value="UPI" selected>UPI</option>
+                        <option value="Card">Card</option>
+                        <option value="Bank Transfer">Bank Transfer</option>
+                        <option value="Cheque">Cheque</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label>Payment Notes (Optional)</label>
+                    <input type="text" name="payment_notes" class="form-input" 
+                           placeholder="Transaction ID, reference number, etc.">
+                </div>
+            </div>
+            
+            <div class="modal-actions">
+                <button type="submit" class="btn btn-success">Generate Invoice</button>
+                <button type="button" class="btn btn-secondary" 
+                        onclick="document.getElementById('invoiceModal').style.display='none'">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function togglePaymentFields() {
+    const checkbox = document.getElementById('markPaidCheckbox');
+    const fields = document.getElementById('paymentFields');
+    fields.style.display = checkbox.checked ? 'block' : 'none';
+}
+</script>
+
 {% endblock %}
 
