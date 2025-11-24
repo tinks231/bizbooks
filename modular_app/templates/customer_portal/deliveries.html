@@ -128,6 +128,32 @@
             </div>
         </div>
         
+        <!-- Important Info Card: 9 PM Cut-off -->
+        <div style="background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%); border-left: 4px solid #2196F3; border-radius: 8px; padding: 20px; margin-bottom: 25px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
+            <div style="display: flex; align-items: start; gap: 15px;">
+                <div style="font-size: 32px;">🕘</div>
+                <div style="flex: 1;">
+                    <h3 style="margin: 0 0 10px 0; color: #1976D2; font-size: 18px; font-weight: 600;">⏰ Modification Cut-off Time</h3>
+                    <p style="margin: 0 0 8px 0; color: #555; font-size: 14px; line-height: 1.6;">
+                        <strong>Before 9:00 PM IST:</strong> You can pause/modify tomorrow's delivery<br>
+                        <strong>After 9:00 PM IST:</strong> You can only modify from day-after-tomorrow onwards
+                    </p>
+                    <div style="background: #fff; border-radius: 6px; padding: 12px; margin-top: 12px; border: 1px solid #90CAF9;">
+                        <p style="margin: 0; color: #333; font-size: 14px;">
+                            <strong>📞 Need urgent changes after 9 PM?</strong><br>
+                            <span style="font-size: 16px; color: #1976D2; font-weight: 600;">
+                                {% if tenant.admin_phone %}
+                                    Call: {{ tenant.admin_phone }}
+                                {% else %}
+                                    Email: {{ tenant.admin_email }}
+                                {% endif %}
+                            </span>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
         <!-- Monthly Deliveries (Collapsible Accordion) -->
         {% for month_data in monthly_summaries %}
         <div class="section">
