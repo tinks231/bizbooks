@@ -14,6 +14,7 @@ from utils.email_utils import (send_customer_order_notification, send_subscripti
     send_customer_pause_confirmation, send_customer_resume_confirmation, send_customer_modify_confirmation)
 from datetime import datetime, timedelta
 from sqlalchemy import and_, or_
+import pytz
 
 customer_portal_bp = Blueprint('customer_portal', __name__, url_prefix='/customer')
 
@@ -266,14 +267,17 @@ def pause_deliveries(subscription_id):
     try:
         start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
         end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
-        now = datetime.now()
-        today = now.date()
+        
+        # Get current time in India Standard Time (IST)
+        ist = pytz.timezone('Asia/Kolkata')
+        now_ist = datetime.now(ist)
+        today = now_ist.date()
         tomorrow = today + timedelta(days=1)
         day_after_tomorrow = today + timedelta(days=2)
         
-        # Check if current time is after 9 PM (21:00)
-        cutoff_time = now.replace(hour=21, minute=0, second=0, microsecond=0)
-        is_after_cutoff = now >= cutoff_time
+        # Check if current time is after 9 PM IST (21:00)
+        cutoff_time = now_ist.replace(hour=21, minute=0, second=0, microsecond=0)
+        is_after_cutoff = now_ist >= cutoff_time
         
         # Get support phone for emergency contact message
         support_phone = g.tenant.phone or g.tenant.admin_email or "support"
@@ -368,14 +372,17 @@ def resume_deliveries(subscription_id):
     try:
         start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
         end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
-        now = datetime.now()
-        today = now.date()
+        
+        # Get current time in India Standard Time (IST)
+        ist = pytz.timezone('Asia/Kolkata')
+        now_ist = datetime.now(ist)
+        today = now_ist.date()
         tomorrow = today + timedelta(days=1)
         day_after_tomorrow = today + timedelta(days=2)
         
-        # Check if current time is after 9 PM
-        cutoff_time = now.replace(hour=21, minute=0, second=0, microsecond=0)
-        is_after_cutoff = now >= cutoff_time
+        # Check if current time is after 9 PM IST (21:00)
+        cutoff_time = now_ist.replace(hour=21, minute=0, second=0, microsecond=0)
+        is_after_cutoff = now_ist >= cutoff_time
         support_phone = g.tenant.phone or g.tenant.admin_email or "support"
         
         # After 9 PM: Can only modify from day-after-tomorrow
@@ -463,14 +470,17 @@ def modify_delivery(subscription_id):
     try:
         delivery_date = datetime.strptime(delivery_date_str, '%Y-%m-%d').date()
         new_quantity = float(new_quantity_str)
-        now = datetime.now()
-        today = now.date()
+        
+        # Get current time in India Standard Time (IST)
+        ist = pytz.timezone('Asia/Kolkata')
+        now_ist = datetime.now(ist)
+        today = now_ist.date()
         tomorrow = today + timedelta(days=1)
         day_after_tomorrow = today + timedelta(days=2)
         
-        # Check if current time is after 9 PM
-        cutoff_time = now.replace(hour=21, minute=0, second=0, microsecond=0)
-        is_after_cutoff = now >= cutoff_time
+        # Check if current time is after 9 PM IST (21:00)
+        cutoff_time = now_ist.replace(hour=21, minute=0, second=0, microsecond=0)
+        is_after_cutoff = now_ist >= cutoff_time
         support_phone = g.tenant.phone or g.tenant.admin_email or "support"
         
         # After 9 PM: Can only modify from day-after-tomorrow
