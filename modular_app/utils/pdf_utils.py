@@ -87,46 +87,45 @@ def generate_invoice_pdf(invoice, tenant):
         leading=14
     )
     
-    # ========== HEADER SECTION (3 columns) ==========
-    header_left = [
-        Paragraph(f"<b>{tenant.company_name}</b>", company_style),
+    # ========== HEADER ROW 1: Company Name (CENTER) | Phone/Email (RIGHT) ==========
+    company_center_style = ParagraphStyle(
+        'CompanyCenter',
+        parent=styles['Heading1'],
+        fontSize=18,
+        textColor=colors.black,
+        alignment=TA_CENTER,
+        fontName='Helvetica-Bold'
+    )
+    
+    # Build right side contact info
+    contact_right = [
         Paragraph(f"Phone: {tenant.admin_phone or 'N/A'}", normal_style),
         Paragraph(f"Email: {tenant.admin_email or 'N/A'}", normal_style),
     ]
-    # Add GSTIN if available (from settings JSON or attribute)
+    # Add GSTIN if available
     if hasattr(tenant, 'gstin') and tenant.gstin:
-        header_left.append(Paragraph(f"GSTIN: {tenant.gstin}", normal_style))
+        contact_right.append(Paragraph(f"GSTIN: {tenant.gstin}", normal_style))
     
-    header_center = [
-        Paragraph("TAX INVOICE", tax_invoice_style)
-    ]
+    header_row1_data = [[
+        '',  # Empty left column
+        Paragraph(f"<b>{tenant.company_name}</b>", company_center_style),
+        Table([[p] for p in contact_right], colWidths=[60*mm])
+    ]]
     
-    header_right = [
-        Paragraph(f"<b>{invoice.invoice_number}</b>", bold_style),
-        Paragraph(f"Date: {invoice.invoice_date.strftime('%d-%m-%Y')}", normal_style),
-        Paragraph(f"Status: {invoice.status.upper()}", normal_style),
-        Paragraph(f"Payment: {invoice.payment_status.upper()}", normal_style),
-    ]
-    
-    # Create header table with proper alignment
-    header_data = [
-        [
-            Table([[p] for p in header_left], colWidths=[55*mm]),
-            Table([[p] for p in header_center], colWidths=[70*mm]),
-            Table([[p] for p in header_right], colWidths=[55*mm])
-        ]
-    ]
-    
-    header_table = Table(header_data, colWidths=[55*mm, 70*mm, 55*mm])
-    header_table.setStyle(TableStyle([
+    header_row1_table = Table(header_row1_data, colWidths=[60*mm, 60*mm, 60*mm])
+    header_row1_table.setStyle(TableStyle([
         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-        ('ALIGN', (0, 0), (0, 0), 'LEFT'),
         ('ALIGN', (1, 0), (1, 0), 'CENTER'),
         ('ALIGN', (2, 0), (2, 0), 'RIGHT'),
         ('LINEBELOW', (0, 0), (-1, 0), 2.5, colors.HexColor('#4CAF50')),
         ('BOTTOMPADDING', (0, 0), (-1, 0), 8),
     ]))
-    elements.append(header_table)
+    elements.append(header_row1_table)
+    elements.append(Spacer(1, 4*mm))
+    
+    # ========== HEADER ROW 2: TAX INVOICE (CENTERED) ==========
+    tax_invoice_centered = Paragraph("TAX INVOICE", tax_invoice_style)
+    elements.append(tax_invoice_centered)
     elements.append(Spacer(1, 8*mm))
     
     # ========== BILL TO & INVOICE DETAILS (2 columns) ==========
@@ -151,8 +150,10 @@ def generate_invoice_pdf(invoice, tenant):
     
     invoice_details_content = [
         Paragraph("<b>Invoice Details</b>", section_heading_style),
-        Paragraph(f"Payment: {invoice.payment_status.upper()}", normal_style),
+        Paragraph(f"Invoice No: {invoice.invoice_number}", normal_style),
+        Paragraph(f"Date: {invoice.invoice_date.strftime('%d-%m-%Y')}", normal_style),
         Paragraph(f"Status: {invoice.status.upper()}", normal_style),
+        Paragraph(f"Payment: {invoice.payment_status.upper()}", normal_style),
     ]
     
     info_data = [[
@@ -251,6 +252,8 @@ def generate_invoice_pdf(invoice, tenant):
         leading=20
     )
     
+    # Totals must align with AMOUNT column (last column = 28mm, starting at 157mm from left)
+    # Items table columns: 8 + 65 + 22 + 22 + 25 + 15 + 28 = 185mm total
     totals_data = [
         [Paragraph('Subtotal', totals_label_style), 
          Paragraph(f"₹{invoice.subtotal:,.2f}", totals_value_style)],
@@ -258,15 +261,17 @@ def generate_invoice_pdf(invoice, tenant):
          Paragraph(f"₹{invoice.total_amount:,.2f}", grand_total_value_style)],
     ]
     
-    totals_table = Table(totals_data, colWidths=[100*mm, 50*mm])
+    # Match items table width: label area (157mm) + amount column width (28mm) = 185mm
+    totals_table = Table(totals_data, colWidths=[157*mm, 28*mm])
     totals_table.setStyle(TableStyle([
-        ('ALIGN', (0, 0), (-1, -1), 'RIGHT'),
+        ('ALIGN', (0, 0), (0, -1), 'RIGHT'),  # Labels right-aligned
+        ('ALIGN', (1, 0), (1, -1), 'RIGHT'),  # Values right-aligned
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
         ('LINEABOVE', (0, 1), (-1, 1), 2, colors.HexColor('#4CAF50')),
         ('TOPPADDING', (0, 1), (-1, 1), 6),
         ('BOTTOMPADDING', (0, 0), (0, 0), 4),
     ]))
-    totals_table.hAlign = 'RIGHT'
+    # No hAlign needed - table spans full width like items table
     elements.append(totals_table)
     elements.append(Spacer(1, 6*mm))
     
