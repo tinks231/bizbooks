@@ -5,7 +5,7 @@ Handles subscription plans, member enrollment,
 payment collection, and recurring billing.
 """
 
-from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
+from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, g
 from models import db, SubscriptionPlan, CustomerSubscription, SubscriptionPayment, SubscriptionDelivery, Customer, Invoice, InvoiceItem
 from utils.tenant_middleware import require_tenant, get_current_tenant, get_current_tenant_id
 from utils.license_check import check_license
@@ -81,6 +81,69 @@ def deliveries():
                          active_subscriptions=active_subscriptions,
                          now=datetime.now,
                          timedelta=timedelta)
+
+
+@subscriptions_bp.route('/deliveries/tomorrow', methods=['GET'], strict_slashes=False)
+@require_tenant
+@login_required
+def tomorrow_deliveries():
+    """Tomorrow's Deliveries Report - Complete list for delivery personnel"""
+    tenant_id = get_current_tenant_id()
+    
+    # Get target date (default: tomorrow, but allow date parameter)
+    from datetime import datetime, timedelta
+    date_param = request.args.get('date')
+    if date_param:
+        try:
+            target_date = datetime.strptime(date_param, '%Y-%m-%d').date()
+        except:
+            target_date = (datetime.now().date() + timedelta(days=1))
+    else:
+        target_date = (datetime.now().date() + timedelta(days=1))
+    
+    # Get ALL deliveries for target date (regardless of status - we want the full list)
+    all_deliveries = SubscriptionDelivery.query.join(
+        CustomerSubscription
+    ).join(
+        CustomerSubscription.customer
+    ).join(
+        CustomerSubscription.plan
+    ).filter(
+        SubscriptionDelivery.tenant_id == tenant_id,
+        SubscriptionDelivery.delivery_date == target_date,
+        CustomerSubscription.status == 'active'  # Only active subscriptions
+    ).options(
+        joinedload(SubscriptionDelivery.subscription).joinedload(CustomerSubscription.customer),
+        joinedload(SubscriptionDelivery.subscription).joinedload(CustomerSubscription.plan)
+    ).order_by(
+        CustomerSubscription.customer.has(Customer.name.asc())  # Sort by customer name
+    ).all()
+    
+    # Separate into deliveries and paused
+    active_deliveries = [d for d in all_deliveries if d.status != 'paused' and d.quantity > 0]
+    paused_deliveries = [d for d in all_deliveries if d.status == 'paused' or d.quantity == 0]
+    
+    # Calculate totals
+    total_customers = len(active_deliveries)
+    total_amount = sum(float(d.amount) for d in active_deliveries)
+    
+    # Group by product for summary
+    from collections import defaultdict
+    product_summary = defaultdict(lambda: {'quantity': 0, 'amount': 0, 'customers': 0})
+    for delivery in active_deliveries:
+        product_name = delivery.subscription.plan.name
+        product_summary[product_name]['quantity'] += float(delivery.quantity)
+        product_summary[product_name]['amount'] += float(delivery.amount)
+        product_summary[product_name]['customers'] += 1
+    
+    return render_template('admin/subscriptions/tomorrow_deliveries.html',
+                         target_date=target_date,
+                         active_deliveries=active_deliveries,
+                         paused_deliveries=paused_deliveries,
+                         total_customers=total_customers,
+                         total_amount=total_amount,
+                         product_summary=dict(product_summary),
+                         tenant=g.tenant)
 
 
 @subscriptions_bp.route('/deliveries/modify', methods=['POST'], strict_slashes=False)

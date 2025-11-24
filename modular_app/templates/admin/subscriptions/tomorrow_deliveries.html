@@ -1,0 +1,440 @@
+{% extends "base_sidebar.html" %}
+
+{% block title %}Tomorrow's Deliveries{% endblock %}
+
+{% block extra_head %}
+<style>
+    .delivery-report {
+        background: white;
+        border-radius: 8px;
+        padding: 25px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .report-header {
+        text-align: center;
+        margin-bottom: 30px;
+        padding-bottom: 20px;
+        border-bottom: 3px solid #4CAF50;
+    }
+    
+    .report-header h1 {
+        color: #2c3e50;
+        margin: 0 0 10px 0;
+        font-size: 28px;
+    }
+    
+    .report-date {
+        font-size: 18px;
+        color: #666;
+        font-weight: 600;
+    }
+    
+    .summary-cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 15px;
+        margin-bottom: 30px;
+    }
+    
+    .summary-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 20px;
+        border-radius: 8px;
+        text-align: center;
+    }
+    
+    .summary-card.green {
+        background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+    }
+    
+    .summary-card.blue {
+        background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%);
+    }
+    
+    .summary-card.orange {
+        background: linear-gradient(135deg, #FF9800 0%, #F57C00 100%);
+    }
+    
+    .summary-card h3 {
+        margin: 0 0 10px 0;
+        font-size: 14px;
+        opacity: 0.9;
+        font-weight: 500;
+    }
+    
+    .summary-card .value {
+        font-size: 32px;
+        font-weight: 700;
+        margin: 0;
+    }
+    
+    .product-summary {
+        background: #f8f9fa;
+        padding: 20px;
+        border-radius: 8px;
+        margin-bottom: 30px;
+    }
+    
+    .product-summary h3 {
+        margin: 0 0 15px 0;
+        color: #2c3e50;
+        font-size: 18px;
+    }
+    
+    .product-list {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 15px;
+    }
+    
+    .product-item {
+        background: white;
+        padding: 15px;
+        border-radius: 6px;
+        border-left: 4px solid #4CAF50;
+    }
+    
+    .product-item strong {
+        display: block;
+        color: #2c3e50;
+        font-size: 16px;
+        margin-bottom: 8px;
+    }
+    
+    .product-item div {
+        color: #666;
+        font-size: 14px;
+        margin: 3px 0;
+    }
+    
+    .deliveries-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 30px;
+    }
+    
+    .deliveries-table thead {
+        background: #4CAF50;
+        color: white;
+    }
+    
+    .deliveries-table th {
+        padding: 12px;
+        text-align: left;
+        font-weight: 600;
+        font-size: 14px;
+    }
+    
+    .deliveries-table tbody tr {
+        border-bottom: 1px solid #e0e0e0;
+    }
+    
+    .deliveries-table tbody tr:hover {
+        background: #f5f5f5;
+    }
+    
+    .deliveries-table td {
+        padding: 12px;
+        font-size: 14px;
+    }
+    
+    .customer-name {
+        font-weight: 600;
+        color: #2c3e50;
+    }
+    
+    .customer-address {
+        color: #666;
+        font-size: 13px;
+        margin-top: 3px;
+    }
+    
+    .product-info {
+        color: #4CAF50;
+        font-weight: 600;
+    }
+    
+    .quantity-badge {
+        background: #4CAF50;
+        color: white;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-weight: 600;
+        font-size: 14px;
+    }
+    
+    .modified-badge {
+        background: #FF9800;
+        color: white;
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-size: 11px;
+        margin-left: 8px;
+    }
+    
+    .paused-section {
+        margin-top: 30px;
+        padding: 20px;
+        background: #fff3cd;
+        border-left: 4px solid #ffc107;
+        border-radius: 6px;
+    }
+    
+    .paused-section h3 {
+        color: #856404;
+        margin: 0 0 15px 0;
+    }
+    
+    .paused-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+    
+    .paused-list li {
+        padding: 8px 0;
+        color: #856404;
+    }
+    
+    .print-button {
+        position: fixed;
+        bottom: 30px;
+        right: 30px;
+        background: #4CAF50;
+        color: white;
+        border: none;
+        padding: 15px 30px;
+        border-radius: 50px;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        box-shadow: 0 4px 12px rgba(76, 175, 80, 0.4);
+        transition: all 0.3s;
+        z-index: 1000;
+    }
+    
+    .print-button:hover {
+        background: #45a049;
+        box-shadow: 0 6px 16px rgba(76, 175, 80, 0.5);
+        transform: translateY(-2px);
+    }
+    
+    .date-selector {
+        margin-bottom: 20px;
+        padding: 15px;
+        background: #f8f9fa;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        gap: 15px;
+    }
+    
+    .date-selector label {
+        font-weight: 600;
+        color: #2c3e50;
+    }
+    
+    .date-selector input[type="date"] {
+        padding: 8px 12px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 14px;
+    }
+    
+    .date-selector button {
+        background: #4CAF50;
+        color: white;
+        border: none;
+        padding: 8px 20px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 600;
+    }
+    
+    @media print {
+        .sidebar, .print-button, .date-selector {
+            display: none !important;
+        }
+        
+        .delivery-report {
+            box-shadow: none;
+            padding: 0;
+        }
+        
+        body {
+            background: white !important;
+        }
+        
+        .deliveries-table {
+            page-break-inside: auto;
+        }
+        
+        .deliveries-table tr {
+            page-break-inside: avoid;
+            page-break-after: auto;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="delivery-report">
+    <!-- Date Selector -->
+    <div class="date-selector">
+        <label>📅 Select Date:</label>
+        <input type="date" 
+               id="delivery-date" 
+               value="{{ target_date.strftime('%Y-%m-%d') }}"
+               onchange="loadDate()">
+        <button onclick="loadDate()">View Deliveries</button>
+        <button onclick="window.location.href='{{ url_for('subscriptions.tomorrow_deliveries') }}'" 
+                style="background: #2196F3;">
+            Tomorrow
+        </button>
+    </div>
+    
+    <!-- Header -->
+    <div class="report-header">
+        <h1>🚚 {{ tenant.company_name }}</h1>
+        <p class="report-date">Delivery Report for {{ target_date.strftime('%A, %d %B %Y') }}</p>
+    </div>
+    
+    <!-- Summary Cards -->
+    <div class="summary-cards">
+        <div class="summary-card green">
+            <h3>Total Customers</h3>
+            <p class="value">{{ total_customers }}</p>
+        </div>
+        <div class="summary-card blue">
+            <h3>Total Amount</h3>
+            <p class="value">₹{{ '{:,.0f}'.format(total_amount) }}</p>
+        </div>
+        <div class="summary-card orange">
+            <h3>Paused</h3>
+            <p class="value">{{ paused_deliveries|length }}</p>
+        </div>
+    </div>
+    
+    <!-- Product Summary -->
+    {% if product_summary %}
+    <div class="product-summary">
+        <h3>📦 Product Summary</h3>
+        <div class="product-list">
+            {% for product_name, summary in product_summary.items() %}
+            <div class="product-item">
+                <strong>{{ product_name }}</strong>
+                <div>{{ '{:,.2f}'.format(summary.quantity) }} total</div>
+                <div>{{ summary.customers }} customers</div>
+                <div>₹{{ '{:,.0f}'.format(summary.amount) }}</div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- Deliveries Table -->
+    <table class="deliveries-table">
+        <thead>
+            <tr>
+                <th style="width: 5%;">#</th>
+                <th style="width: 25%;">Customer</th>
+                <th style="width: 20%;">Contact</th>
+                <th style="width: 20%;">Product</th>
+                <th style="width: 15%;">Quantity</th>
+                <th style="width: 15%;">Amount</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% if active_deliveries %}
+                {% for delivery in active_deliveries %}
+                <tr>
+                    <td>{{ loop.index }}</td>
+                    <td>
+                        <div class="customer-name">{{ delivery.subscription.customer.name }}</div>
+                        {% if delivery.subscription.customer.address %}
+                        <div class="customer-address">{{ delivery.subscription.customer.address }}</div>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if delivery.subscription.customer.phone %}
+                        📞 {{ delivery.subscription.customer.phone }}
+                        {% endif %}
+                    </td>
+                    <td>
+                        <span class="product-info">{{ delivery.subscription.plan.name }}</span>
+                        {% if delivery.is_modified %}
+                        <span class="modified-badge">MODIFIED</span>
+                        {% endif %}
+                        {% if delivery.notes %}
+                        <div style="font-size: 12px; color: #666; margin-top: 5px;">
+                            📝 {{ delivery.notes }}
+                        </div>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <span class="quantity-badge">
+                            {{ delivery.quantity }} {{ delivery.subscription.plan.unit_name }}
+                        </span>
+                    </td>
+                    <td style="font-weight: 600; color: #2c3e50;">
+                        ₹{{ '{:,.2f}'.format(delivery.amount) }}
+                    </td>
+                </tr>
+                {% endfor %}
+                
+                <!-- Total Row -->
+                <tr style="background: #f8f9fa; font-weight: 700;">
+                    <td colspan="5" style="text-align: right; padding-right: 20px;">
+                        TOTAL:
+                    </td>
+                    <td style="color: #4CAF50; font-size: 16px;">
+                        ₹{{ '{:,.2f}'.format(total_amount) }}
+                    </td>
+                </tr>
+            {% else %}
+                <tr>
+                    <td colspan="6" style="text-align: center; padding: 40px; color: #999;">
+                        No deliveries scheduled for {{ target_date.strftime('%d %B %Y') }}
+                    </td>
+                </tr>
+            {% endif %}
+        </tbody>
+    </table>
+    
+    <!-- Paused Deliveries -->
+    {% if paused_deliveries %}
+    <div class="paused-section">
+        <h3>⏸️ Paused Deliveries ({{ paused_deliveries|length }})</h3>
+        <ul class="paused-list">
+            {% for delivery in paused_deliveries %}
+            <li>
+                <strong>{{ delivery.subscription.customer.name }}</strong> - 
+                {{ delivery.subscription.plan.name }}
+                {% if delivery.modification_reason %}
+                (Reason: {{ delivery.modification_reason }})
+                {% endif %}
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+    
+</div>
+
+<!-- Print Button -->
+<button class="print-button" onclick="window.print()">
+    🖨️ Print Report
+</button>
+
+<script>
+function loadDate() {
+    const date = document.getElementById('delivery-date').value;
+    window.location.href = '{{ url_for("subscriptions.tomorrow_deliveries") }}?date=' + date;
+}
+</script>
+
+{% endblock %}
+

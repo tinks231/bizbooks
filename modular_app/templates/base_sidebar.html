@@ -911,8 +911,11 @@
                     <a href="/admin/subscriptions/members" class="nav-item {% if '/admin/subscriptions/members' in request.path %}active{% endif %}">
                         <i>👥</i> Active Members
                     </a>
-                    <a href="/admin/subscriptions/deliveries" class="nav-item {% if '/admin/subscriptions/deliveries' in request.path %}active{% endif %}">
+                    <a href="/admin/subscriptions/deliveries" class="nav-item {% if '/admin/subscriptions/deliveries' in request.path and 'tomorrow' not in request.path %}active{% endif %}">
                         <i>📦</i> Daily Deliveries
+                    </a>
+                    <a href="/admin/subscriptions/deliveries/tomorrow" class="nav-item {% if '/admin/subscriptions/deliveries/tomorrow' in request.path %}active{% endif %}">
+                        <i>🚚</i> Tomorrow's Deliveries
                     </a>
                     <a href="/admin/subscriptions/members/enroll" class="nav-item {% if '/admin/subscriptions/members/enroll' in request.path %}active{% endif %}">
                         <i>➕</i> Enroll Member
