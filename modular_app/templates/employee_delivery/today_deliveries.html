@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Today's Deliveries - {{ tenant.company_name }}</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #f5f7fa;
+            padding: 0;
+            margin: 0;
+        }
+        
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+        
+        .header-content {
+            max-width: 800px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .header-left h1 {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+        
+        .header-left p {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+        
+        .logout-btn {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .logout-btn:hover {
+            background: rgba(255,255,255,0.3);
+        }
+        
+        /* Stats Cards */
+        .stats-section {
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 0 20px;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            text-align: center;
+        }
+        
+        .stat-card.total {
+            border-left: 5px solid #667eea;
+        }
+        
+        .stat-card.completed {
+            border-left: 5px solid #4CAF50;
+        }
+        
+        .stat-card.pending {
+            border-left: 5px solid #FF9800;
+        }
+        
+        .stat-label {
+            font-size: 12px;
+            color: #888;
+            text-transform: uppercase;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+        
+        .stat-value {
+            font-size: 36px;
+            font-weight: 700;
+            color: #2c3e50;
+        }
+        
+        /* Deliveries Section */
+        .deliveries-section {
+            max-width: 800px;
+            margin: 0 auto 80px auto;
+            padding: 0 20px;
+        }
+        
+        .section-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: #2c3e50;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .badge {
+            background: #FF9800;
+            color: white;
+            padding: 2px 10px;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 700;
+        }
+        
+        .badge.completed {
+            background: #4CAF50;
+        }
+        
+        /* Delivery Card */
+        .delivery-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            transition: all 0.3s;
+        }
+        
+        .delivery-card.completed {
+            opacity: 0.7;
+            background: #f8f9fa;
+        }
+        
+        .delivery-card:not(.completed):hover {
+            box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+            transform: translateY(-2px);
+        }
+        
+        .delivery-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 12px;
+        }
+        
+        .customer-name {
+            font-size: 18px;
+            font-weight: 700;
+            color: #2c3e50;
+        }
+        
+        .quantity-badge {
+            background: #4CAF50;
+            color: white;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 700;
+        }
+        
+        .delivery-info {
+            margin-bottom: 15px;
+        }
+        
+        .info-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 6px 0;
+            font-size: 14px;
+            color: #666;
+        }
+        
+        .info-icon {
+            font-size: 16px;
+        }
+        
+        .delivery-actions {
+            display: flex;
+            gap: 10px;
+            padding-top: 15px;
+            border-top: 1px solid #e0e0e0;
+        }
+        
+        .bottle-input-group {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .bottle-label {
+            font-size: 14px;
+            font-weight: 600;
+            color: #2c3e50;
+            white-space: nowrap;
+        }
+        
+        .bottle-input {
+            width: 70px;
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 700;
+            text-align: center;
+        }
+        
+        .bottle-input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .mark-btn {
+            background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s;
+            white-space: nowrap;
+        }
+        
+        .mark-btn:hover {
+            box-shadow: 0 4px 12px rgba(76, 175, 80, 0.4);
+            transform: translateY(-2px);
+        }
+        
+        .undo-btn {
+            background: #f44336;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .undo-btn:hover {
+            background: #d32f2f;
+        }
+        
+        .completed-badge {
+            background: #4CAF50;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #999;
+        }
+        
+        .empty-state-icon {
+            font-size: 64px;
+            margin-bottom: 15px;
+            opacity: 0.5;
+        }
+        
+        .empty-state p {
+            font-size: 16px;
+        }
+        
+        .alert {
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        
+        .alert-error {
+            background: #fee;
+            color: #c33;
+            border-left: 4px solid #c33;
+        }
+        
+        .alert-success {
+            background: #efe;
+            color: #3c3;
+            border-left: 4px solid #3c3;
+        }
+        
+        /* Mobile Responsive */
+        @media (max-width: 600px) {
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .delivery-header {
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            .bottle-input-group {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .bottle-input {
+                width: 100%;
+            }
+            
+            .mark-btn {
+                width: 100%;
+            }
+            
+            .delivery-actions {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="header">
+        <div class="header-content">
+            <div class="header-left">
+                <h1>🚚 {{ tenant.company_name }}</h1>
+                <p>👋 {{ employee_name }} • {{ today.strftime('%d %B %Y') }}</p>
+            </div>
+            <form method="GET" action="{{ url_for('employee_delivery.logout') }}" style="display: inline;">
+                <button type="submit" class="logout-btn">Logout</button>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Stats Section -->
+    <div class="stats-section">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        
+        <div class="stats-grid">
+            <div class="stat-card total">
+                <div class="stat-label">Total</div>
+                <div class="stat-value">{{ total_deliveries }}</div>
+            </div>
+            <div class="stat-card completed">
+                <div class="stat-label">Completed</div>
+                <div class="stat-value">{{ completed_count }}</div>
+            </div>
+            <div class="stat-card pending">
+                <div class="stat-label">Pending</div>
+                <div class="stat-value">{{ pending_count }}</div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Deliveries Section -->
+    <div class="deliveries-section">
+        <!-- Pending Deliveries -->
+        {% if pending_deliveries %}
+        <h2 class="section-title">
+            📦 Pending Deliveries
+            <span class="badge">{{ pending_count }}</span>
+        </h2>
+        
+        {% for delivery in pending_deliveries %}
+        <div class="delivery-card">
+            <div class="delivery-header">
+                <div class="customer-name">{{ delivery.subscription.customer.name }}</div>
+                <div class="quantity-badge">
+                    {{ delivery.quantity }} {{ delivery.subscription.plan.unit_name }}
+                </div>
+            </div>
+            
+            <div class="delivery-info">
+                {% if delivery.subscription.customer.address %}
+                <div class="info-row">
+                    <span class="info-icon">📍</span>
+                    <span>{{ delivery.subscription.customer.address }}</span>
+                </div>
+                {% endif %}
+                
+                {% if delivery.subscription.customer.phone %}
+                <div class="info-row">
+                    <span class="info-icon">📞</span>
+                    <span>{{ delivery.subscription.customer.phone }}</span>
+                </div>
+                {% endif %}
+                
+                <div class="info-row">
+                    <span class="info-icon">🥛</span>
+                    <span>{{ delivery.subscription.plan.name }}</span>
+                </div>
+                
+                {% if delivery.subscription.customer.bottles_in_possession > 0 %}
+                <div class="info-row">
+                    <span class="info-icon">🍾</span>
+                    <span><strong>{{ delivery.subscription.customer.bottles_in_possession }} bottles</strong> with customer</span>
+                </div>
+                {% endif %}
+            </div>
+            
+            <form method="POST" action="{{ url_for('employee_delivery.mark_delivery', delivery_id=delivery.id) }}">
+                <div class="delivery-actions">
+                    <div class="bottle-input-group">
+                        <label class="bottle-label">🔄 Collect bottles:</label>
+                        <input type="number" 
+                               name="bottles_collected" 
+                               class="bottle-input" 
+                               value="0" 
+                               min="0" 
+                               max="99">
+                    </div>
+                    <button type="submit" class="mark-btn">
+                        ✅ Mark Delivered
+                    </button>
+                </div>
+            </form>
+        </div>
+        {% endfor %}
+        {% else %}
+        <div class="empty-state">
+            <div class="empty-state-icon">🎉</div>
+            <p>All deliveries completed!</p>
+        </div>
+        {% endif %}
+        
+        <!-- Completed Deliveries -->
+        {% if completed_deliveries %}
+        <h2 class="section-title" style="margin-top: 40px;">
+            ✅ Completed Deliveries
+            <span class="badge completed">{{ completed_count }}</span>
+        </h2>
+        
+        {% for delivery in completed_deliveries %}
+        <div class="delivery-card completed">
+            <div class="delivery-header">
+                <div class="customer-name">{{ delivery.subscription.customer.name }}</div>
+                <div class="quantity-badge">
+                    {{ delivery.quantity }} {{ delivery.subscription.plan.unit_name }}
+                </div>
+            </div>
+            
+            <div class="delivery-info">
+                <div class="info-row">
+                    <span class="info-icon">✅</span>
+                    <span>Delivered at {{ delivery.delivered_at.strftime('%I:%M %p') }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-icon">🔄</span>
+                    <span>Collected {{ delivery.bottles_collected }} bottles</span>
+                </div>
+            </div>
+            
+            <div class="delivery-actions">
+                <div class="completed-badge">
+                    <span>✅</span>
+                    <span>Completed</span>
+                </div>
+                <form method="POST" action="{{ url_for('employee_delivery.undo_delivery', delivery_id=delivery.id) }}" style="margin-left: auto;">
+                    <button type="submit" class="undo-btn" onclick="return confirm('Undo this delivery?')">
+                        ↩️ Undo
+                    </button>
+                </form>
+            </div>
+        </div>
+        {% endfor %}
+        {% endif %}
+    </div>
+</body>
+</html>
+

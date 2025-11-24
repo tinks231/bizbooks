@@ -116,6 +116,7 @@ from routes.subscription_indexes import subscription_indexes_bp  # NEW: Subscrip
 from routes.sku_migration import sku_migration_bp  # NEW: SKU constraint migration (global → per-tenant)
 from routes.customer_portal import customer_portal_bp  # NEW: Customer self-service portal
 from routes.customer_orders import customer_orders_bp  # NEW: Customer orders admin
+from routes.employee_delivery import employee_delivery_bp  # NEW: Employee delivery portal with bottle tracking
 
 app.register_blueprint(registration_bp)
 app.register_blueprint(employee_portal_bp)  # Register unified portal
@@ -146,6 +147,7 @@ app.register_blueprint(subscription_indexes_bp)  # NEW: Subscription performance
 app.register_blueprint(sku_migration_bp)  # NEW: SKU constraint migration
 app.register_blueprint(customer_portal_bp)  # NEW: Customer self-service portal
 app.register_blueprint(customer_orders_bp)  # NEW: Customer orders admin
+app.register_blueprint(employee_delivery_bp)  # NEW: Employee delivery portal  # NEW: Customer orders admin
 
 # ============================================================
 # Main route
