@@ -810,7 +810,8 @@ def send_invoice_email(customer_email, customer_name, invoice_number, invoice_id
     """Send invoice PDF to customer via email"""
     subject = f"📄 Invoice {invoice_number} from {tenant_name}"
     
-    invoice_url = f"https://{tenant_subdomain}.bizbooks.co.in/admin/invoices/{invoice_id}"
+    # Customer-facing invoice link (NO admin access)
+    invoice_url = f"https://{tenant_subdomain}.bizbooks.co.in/customer/invoices/{invoice_id}"
     
     body_html = f"""
     <html>

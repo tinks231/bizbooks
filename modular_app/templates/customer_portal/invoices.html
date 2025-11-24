@@ -75,7 +75,7 @@
                     <div>
                         <span class="status status-unpaid">UNPAID</span>
                         <strong style="margin: 0 15px;">₹{{ '{:,.2f}'.format(invoice.total_amount) }}</strong>
-                        <a href="{{ url_for('invoices.view', invoice_id=invoice.id) }}" class="btn btn-primary" target="_blank">View</a>
+                        <a href="{{ url_for('customer_portal.view_invoice', invoice_id=invoice.id) }}" class="btn btn-primary" target="_blank">View</a>
                     </div>
                 </div>
                 {% endfor %}
@@ -97,7 +97,7 @@
                     <div>
                         <span class="status status-paid">PAID</span>
                         <strong style="margin: 0 15px;">₹{{ '{:,.2f}'.format(invoice.total_amount) }}</strong>
-                        <a href="{{ url_for('invoices.view', invoice_id=invoice.id) }}" class="btn btn-primary" target="_blank">View</a>
+                        <a href="{{ url_for('customer_portal.view_invoice', invoice_id=invoice.id) }}" class="btn btn-primary" target="_blank">View</a>
                     </div>
                 </div>
                 {% endfor %}

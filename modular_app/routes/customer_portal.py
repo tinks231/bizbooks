@@ -576,6 +576,27 @@ def invoices():
                          paid_invoices=paid_invoices)
 
 
+@customer_portal_bp.route('/invoices/<int:invoice_id>')
+@require_tenant
+@customer_login_required
+def view_invoice(invoice_id):
+    """View a specific invoice (customer can only see their own invoices)"""
+    customer = Customer.query.get(session['customer_id'])
+    
+    # Get invoice and verify it belongs to this customer (SECURITY CHECK)
+    invoice = Invoice.query.filter_by(
+        id=invoice_id,
+        customer_id=customer.id,
+        tenant_id=g.tenant.id
+    ).first_or_404()
+    
+    # If invoice not found or doesn't belong to customer, 404
+    return render_template('customer_portal/invoice_view.html',
+                         tenant=g.tenant,
+                         customer=customer,
+                         invoice=invoice)
+
+
 @customer_portal_bp.route('/profile')
 @require_tenant
 @customer_login_required

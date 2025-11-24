@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Invoice {{ invoice.invoice_number }} - {{ tenant.company_name }}</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
+        .invoice-container { max-width: 900px; margin: 0 auto; background: white; padding: 40px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 3px solid #4CAF50; padding-bottom: 20px; margin-bottom: 30px; }
+        .company-info h1 { margin: 0 0 5px 0; color: #333; }
+        .company-info p { margin: 3px 0; color: #666; font-size: 14px; }
+        .invoice-title { text-align: right; }
+        .invoice-title h2 { margin: 0; color: #4CAF50; font-size: 32px; }
+        .invoice-title p { margin: 5px 0; color: #666; }
+        .section { margin-bottom: 30px; }
+        .section-title { font-size: 14px; font-weight: 600; color: #999; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-bottom: 30px; }
+        .info-box p { margin: 5px 0; }
+        .info-box strong { display: inline-block; width: 120px; color: #666; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 30px; }
+        thead { background: #f8f9fa; }
+        th { text-align: left; padding: 12px; font-weight: 600; color: #333; border-bottom: 2px solid #dee2e6; }
+        td { padding: 12px; border-bottom: 1px solid #f1f1f1; }
+        .text-right { text-align: right; }
+        .text-center { text-align: center; }
+        .totals { margin-left: auto; width: 350px; }
+        .totals-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #f1f1f1; }
+        .totals-row.grand-total { font-size: 20px; font-weight: 700; color: #4CAF50; border-top: 2px solid #dee2e6; border-bottom: none; padding-top: 15px; }
+        .status-badge { display: inline-block; padding: 5px 12px; border-radius: 15px; font-size: 12px; font-weight: 600; }
+        .status-unpaid { background: #fff3cd; color: #856404; }
+        .status-paid { background: #d4edda; color: #155724; }
+        .actions { margin-top: 30px; text-align: center; padding-top: 20px; border-top: 2px solid #f1f1f1; }
+        .btn { display: inline-block; padding: 12px 24px; margin: 0 10px; text-decoration: none; border-radius: 8px; font-weight: 600; }
+        .btn-primary { background: #4CAF50; color: white; }
+        .btn-secondary { background: #6c757d; color: white; }
+        .btn:hover { opacity: 0.9; }
+        @media print {
+            body { background: white; margin: 0; }
+            .invoice-container { box-shadow: none; padding: 20px; }
+            .actions { display: none; }
+        }
+    </style>
+</head>
+<body>
+    <div class="invoice-container">
+        <!-- Header -->
+        <div class="header">
+            <div class="company-info">
+                <h1>{{ tenant.company_name }}</h1>
+                {% if tenant.admin_phone %}
+                <p>📞 {{ tenant.admin_phone }}</p>
+                {% endif %}
+                {% if tenant.admin_email %}
+                <p>📧 {{ tenant.admin_email }}</p>
+                {% endif %}
+            </div>
+            <div class="invoice-title">
+                <h2>INVOICE</h2>
+                <p><strong>{{ invoice.invoice_number }}</strong></p>
+                <p>Date: {{ invoice.invoice_date.strftime('%d-%m-%Y') }}</p>
+                {% if invoice.payment_status == 'unpaid' %}
+                    <span class="status-badge status-unpaid">UNPAID</span>
+                {% else %}
+                    <span class="status-badge status-paid">PAID</span>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Bill To -->
+        <div class="info-grid">
+            <div class="info-box">
+                <div class="section-title">Bill To</div>
+                <p><strong>{{ invoice.customer_name }}</strong></p>
+                {% if invoice.customer_phone %}
+                <p>📞 {{ invoice.customer_phone }}</p>
+                {% endif %}
+                {% if invoice.customer_email %}
+                <p>📧 {{ invoice.customer_email }}</p>
+                {% endif %}
+                {% if invoice.customer_address %}
+                <p>{{ invoice.customer_address }}</p>
+                {% endif %}
+                {% if invoice.customer_gstin %}
+                <p>GSTIN: {{ invoice.customer_gstin }}</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Items Table -->
+        <table>
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Item</th>
+                    <th class="text-center">HSN</th>
+                    <th class="text-center">Qty</th>
+                    <th class="text-right">Rate</th>
+                    <th class="text-right">GST %</th>
+                    <th class="text-right">Amount</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in invoice.items %}
+                <tr>
+                    <td>{{ loop.index }}</td>
+                    <td>
+                        <strong>{{ item.item_name }}</strong>
+                        {% if item.description %}
+                        <br><small style="color: #999;">{{ item.description }}</small>
+                        {% endif %}
+                    </td>
+                    <td class="text-center">{{ item.hsn_code or '-' }}</td>
+                    <td class="text-center">{{ item.quantity }} {{ item.unit }}</td>
+                    <td class="text-right">₹{{ '{:,.2f}'.format(item.rate) }}</td>
+                    <td class="text-right">{{ item.gst_rate }}%</td>
+                    <td class="text-right"><strong>₹{{ '{:,.2f}'.format(item.total_amount) }}</strong></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <!-- Totals -->
+        <div class="totals">
+            <div class="totals-row">
+                <span>Subtotal:</span>
+                <span>₹{{ '{:,.2f}'.format(invoice.subtotal) }}</span>
+            </div>
+            {% if invoice.cgst_amount > 0 %}
+            <div class="totals-row">
+                <span>CGST:</span>
+                <span>₹{{ '{:,.2f}'.format(invoice.cgst_amount) }}</span>
+            </div>
+            <div class="totals-row">
+                <span>SGST:</span>
+                <span>₹{{ '{:,.2f}'.format(invoice.sgst_amount) }}</span>
+            </div>
+            {% endif %}
+            {% if invoice.igst_amount > 0 %}
+            <div class="totals-row">
+                <span>IGST:</span>
+                <span>₹{{ '{:,.2f}'.format(invoice.igst_amount) }}</span>
+            </div>
+            {% endif %}
+            {% if invoice.discount_amount > 0 %}
+            <div class="totals-row">
+                <span>Discount:</span>
+                <span>-₹{{ '{:,.2f}'.format(invoice.discount_amount) }}</span>
+            </div>
+            {% endif %}
+            {% if invoice.round_off != 0 %}
+            <div class="totals-row">
+                <span>Round Off:</span>
+                <span>₹{{ '{:,.2f}'.format(invoice.round_off) }}</span>
+            </div>
+            {% endif %}
+            <div class="totals-row grand-total">
+                <span>TOTAL:</span>
+                <span>₹{{ '{:,.2f}'.format(invoice.total_amount) }}</span>
+            </div>
+        </div>
+
+        <!-- Notes -->
+        {% if invoice.notes %}
+        <div class="section">
+            <div class="section-title">Terms & Conditions</div>
+            <p>{{ invoice.notes }}</p>
+        </div>
+        {% endif %}
+
+        <!-- Actions -->
+        <div class="actions">
+            <button onclick="window.print()" class="btn btn-primary">🖨️ Print Invoice</button>
+            <a href="{{ url_for('customer_portal.invoices') }}" class="btn btn-secondary">← Back to Invoices</a>
+        </div>
+    </div>
+</body>
+</html>
+
