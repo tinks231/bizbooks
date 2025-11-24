@@ -93,7 +93,8 @@ def generate_invoice_pdf(invoice, tenant):
         Paragraph(f"Phone: {tenant.admin_phone or 'N/A'}", normal_style),
         Paragraph(f"Email: {tenant.admin_email or 'N/A'}", normal_style),
     ]
-    if tenant.gstin:
+    # Add GSTIN if available (from settings JSON or attribute)
+    if hasattr(tenant, 'gstin') and tenant.gstin:
         header_left.append(Paragraph(f"GSTIN: {tenant.gstin}", normal_style))
     
     header_center = [
