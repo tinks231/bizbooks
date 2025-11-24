@@ -10,7 +10,8 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash,
 from functools import wraps
 from models import db, Customer, CustomerSubscription, SubscriptionDelivery, Invoice, SubscriptionPlan, Item, ItemCategory, CustomerOrder, CustomerOrderItem
 from utils.tenant_middleware import require_tenant, get_current_tenant
-from utils.email_utils import send_customer_order_notification, send_subscription_pause_notification, send_subscription_resume_notification, send_subscription_modify_notification
+from utils.email_utils import (send_customer_order_notification, send_subscription_pause_notification, send_subscription_resume_notification, send_subscription_modify_notification,
+    send_customer_pause_confirmation, send_customer_resume_confirmation, send_customer_modify_confirmation)
 from datetime import datetime, timedelta
 from sqlalchemy import and_, or_
 
@@ -265,13 +266,28 @@ def pause_deliveries(subscription_id):
     try:
         start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
         end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
-        today = datetime.now().date()
+        now = datetime.now()
+        today = now.date()
         tomorrow = today + timedelta(days=1)
+        day_after_tomorrow = today + timedelta(days=2)
         
-        # Prevent modifying past dates (including today - milk already delivered!)
-        if start_date < tomorrow:
-            flash('❌ Cannot pause today or past deliveries. Today\'s milk is already on its way! You can only modify from tomorrow onwards.', 'error')
-            return redirect(url_for('customer_portal.view_deliveries', subscription_id=subscription_id))
+        # Check if current time is after 9 PM (21:00)
+        cutoff_time = now.replace(hour=21, minute=0, second=0, microsecond=0)
+        is_after_cutoff = now >= cutoff_time
+        
+        # Get support phone for emergency contact message
+        support_phone = g.tenant.phone or g.tenant.admin_email or "support"
+        
+        # After 9 PM: Can only modify from day-after-tomorrow
+        if is_after_cutoff:
+            if start_date < day_after_tomorrow:
+                flash(f'❌ After 9 PM, you can only pause from {day_after_tomorrow.strftime("%d-%m-%Y")} onwards. For urgent changes, please call {support_phone}.', 'error')
+                return redirect(url_for('customer_portal.view_deliveries', subscription_id=subscription_id))
+        # Before 9 PM: Can modify from tomorrow
+        else:
+            if start_date < tomorrow:
+                flash('❌ Cannot pause today or past deliveries. You can only modify from tomorrow onwards.', 'error')
+                return redirect(url_for('customer_portal.view_deliveries', subscription_id=subscription_id))
         
         if start_date > end_date:
             flash('Start date must be before end date', 'error')
@@ -300,18 +316,32 @@ def pause_deliveries(subscription_id):
         db.session.commit()
         flash(f'✅ Paused {paused_count} deliveries from {start_date.strftime("%d-%m-%Y")} to {end_date.strftime("%d-%m-%Y")}', 'success')
         
-        # Send email notification to admin
-        if g.tenant.admin_email and paused_count > 0:
-            send_subscription_pause_notification(
-                admin_email=g.tenant.admin_email,
-                customer_name=customer.name,
-                customer_phone=customer.phone or 'Not provided',
-                subscription_plan=subscription.plan.name,
-                start_date=start_date.strftime("%d-%m-%Y"),
-                end_date=end_date.strftime("%d-%m-%Y"),
-                paused_days=paused_count,
-                tenant_name=g.tenant.subdomain
-            )
+        # Send email notifications
+        if paused_count > 0:
+            # Notify admin
+            if g.tenant.admin_email:
+                send_subscription_pause_notification(
+                    admin_email=g.tenant.admin_email,
+                    customer_name=customer.name,
+                    customer_phone=customer.phone or 'Not provided',
+                    subscription_plan=subscription.plan.name,
+                    start_date=start_date.strftime("%d-%m-%Y"),
+                    end_date=end_date.strftime("%d-%m-%Y"),
+                    paused_days=paused_count,
+                    tenant_name=g.tenant.subdomain
+                )
+            # Confirm to customer
+            if customer.email:
+                send_customer_pause_confirmation(
+                    customer_email=customer.email,
+                    customer_name=customer.name,
+                    subscription_plan=subscription.plan.name,
+                    start_date=start_date.strftime("%d-%m-%Y"),
+                    end_date=end_date.strftime("%d-%m-%Y"),
+                    paused_days=paused_count,
+                    tenant_name=g.tenant.subdomain,
+                    support_phone=g.tenant.phone or g.tenant.admin_email or "support"
+                )
         
     except Exception as e:
         db.session.rollback()

@@ -582,9 +582,9 @@ def send_subscription_pause_notification(admin_email, customer_name, customer_ph
             
             <p style="color: #666; font-size: 14px;">Please update your delivery schedule accordingly.</p>
             
-            <a href="https://{tenant_name}.bizbooks.co.in/admin/subscriptions" 
+            <a href="https://{tenant_name}.bizbooks.co.in/admin/subscriptions/deliveries" 
                style="display: inline-block; padding: 12px 24px; background: #4CAF50; color: white; text-decoration: none; border-radius: 5px; margin-top: 15px; font-weight: 600;">
-                📋 View Subscriptions
+                📋 View Deliveries
             </a>
             
             <p style="color: #666; font-size: 12px; margin-top: 30px; border-top: 1px solid #ddd; padding-top: 15px;">
@@ -608,7 +608,7 @@ Days Paused: {paused_days}
 
 Please update your delivery schedule accordingly.
 
-View subscriptions: https://{tenant_name}.bizbooks.co.in/admin/subscriptions
+View deliveries: https://{tenant_name}.bizbooks.co.in/admin/subscriptions/deliveries
 
 ---
 This is an automated notification from BizBooks.
@@ -641,9 +641,9 @@ def send_subscription_resume_notification(admin_email, customer_name, customer_p
             
             <p style="color: #666; font-size: 14px;">Please update your delivery schedule accordingly.</p>
             
-            <a href="https://{tenant_name}.bizbooks.co.in/admin/subscriptions" 
+            <a href="https://{tenant_name}.bizbooks.co.in/admin/subscriptions/deliveries" 
                style="display: inline-block; padding: 12px 24px; background: #4CAF50; color: white; text-decoration: none; border-radius: 5px; margin-top: 15px; font-weight: 600;">
-                📋 View Subscriptions
+                📋 View Deliveries
             </a>
             
             <p style="color: #666; font-size: 12px; margin-top: 30px; border-top: 1px solid #ddd; padding-top: 15px;">
@@ -667,7 +667,7 @@ Days Resumed: {resumed_days}
 
 Please update your delivery schedule accordingly.
 
-View subscriptions: https://{tenant_name}.bizbooks.co.in/admin/subscriptions
+View deliveries: https://{tenant_name}.bizbooks.co.in/admin/subscriptions/deliveries
 
 ---
 This is an automated notification from BizBooks.
@@ -700,9 +700,9 @@ def send_subscription_modify_notification(admin_email, customer_name, customer_p
             
             <p style="color: #666; font-size: 14px;">Please update this delivery accordingly.</p>
             
-            <a href="https://{tenant_name}.bizbooks.co.in/admin/subscriptions" 
+            <a href="https://{tenant_name}.bizbooks.co.in/admin/subscriptions/deliveries" 
                style="display: inline-block; padding: 12px 24px; background: #4CAF50; color: white; text-decoration: none; border-radius: 5px; margin-top: 15px; font-weight: 600;">
-                📋 View Subscriptions
+                📋 View Deliveries
             </a>
             
             <p style="color: #666; font-size: 12px; margin-top: 30px; border-top: 1px solid #ddd; padding-top: 15px;">
@@ -726,11 +726,80 @@ New Quantity: {new_quantity} {unit_name}
 
 Please update this delivery accordingly.
 
-View subscriptions: https://{tenant_name}.bizbooks.co.in/admin/subscriptions
+View deliveries: https://{tenant_name}.bizbooks.co.in/admin/subscriptions/deliveries
 
 ---
 This is an automated notification from BizBooks.
     """
     
     return send_email(admin_email, subject, body_html, body_text)
+
+
+# ==================== CUSTOMER CONFIRMATION EMAILS ====================
+
+def send_customer_pause_confirmation(customer_email, customer_name, subscription_plan, start_date, end_date, paused_days, tenant_name, support_phone):
+    """Send confirmation email to customer when they pause their subscription"""
+    subject = f"⏸️ Delivery Paused - {subscription_plan}"
+    
+    body_html = f"""<html><body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+        <div style="max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 8px;">
+            <h2 style="color: #ffc107; margin-bottom: 20px;">⏸️ Delivery Paused Successfully</h2>
+            <p>Hello {customer_name},</p>
+            <p>Your delivery pause request has been confirmed!</p>
+            <div style="background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; border-radius: 5px; margin: 20px 0;">
+                <p style="margin: 5px 0;"><strong>Subscription:</strong> {subscription_plan}</p>
+                <p style="margin: 5px 0;"><strong>Paused From:</strong> {start_date} to {end_date}</p>
+                <p style="margin: 5px 0; font-size: 18px; color: #ffc107;"><strong>⏸️ {paused_days} days paused</strong></p>
+            </div>
+            <p style="color: #666; font-size: 14px;">Your deliveries will automatically resume after this period.</p>
+            <a href="https://{tenant_name}.bizbooks.co.in/customer/subscriptions" style="display: inline-block; padding: 12px 24px; background: #4CAF50; color: white; text-decoration: none; border-radius: 5px; margin-top: 15px; font-weight: 600;">📋 View My Subscriptions</a>
+            <p style="color: #999; font-size: 13px; margin-top: 20px; padding: 15px; background: #f9f9f9; border-radius: 5px;">💡 <strong>Need immediate changes after 9 PM?</strong><br>Call us at <strong>{support_phone}</strong></p>
+            <p style="color: #666; font-size: 12px; margin-top: 30px; border-top: 1px solid #ddd; padding-top: 15px;">This is an automated confirmation from {tenant_name}.</p>
+        </div></body></html>"""
+    
+    return send_email(customer_email, subject, body_html)
+
+
+def send_customer_resume_confirmation(customer_email, customer_name, subscription_plan, start_date, end_date, resumed_days, tenant_name):
+    """Send confirmation email to customer when they resume their subscription"""
+    subject = f"▶️ Delivery Resumed - {subscription_plan}"
+    
+    body_html = f"""<html><body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+        <div style="max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 8px;">
+            <h2 style="color: #28a745; margin-bottom: 20px;">▶️ Delivery Resumed Successfully</h2>
+            <p>Hello {customer_name},</p>
+            <p>Your delivery resume request has been confirmed!</p>
+            <div style="background: #d4edda; border-left: 4px solid #28a745; padding: 15px; border-radius: 5px; margin: 20px 0;">
+                <p style="margin: 5px 0;"><strong>Subscription:</strong> {subscription_plan}</p>
+                <p style="margin: 5px 0;"><strong>Resumed From:</strong> {start_date} to {end_date}</p>
+                <p style="margin: 5px 0; font-size: 18px; color: #28a745;"><strong>▶️ {resumed_days} days resumed</strong></p>
+            </div>
+            <p style="color: #666; font-size: 14px;">Your deliveries will continue as scheduled.</p>
+            <a href="https://{tenant_name}.bizbooks.co.in/customer/subscriptions" style="display: inline-block; padding: 12px 24px; background: #4CAF50; color: white; text-decoration: none; border-radius: 5px; margin-top: 15px; font-weight: 600;">📋 View My Subscriptions</a>
+            <p style="color: #666; font-size: 12px; margin-top: 30px; border-top: 1px solid #ddd; padding-top: 15px;">This is an automated confirmation from {tenant_name}.</p>
+        </div></body></html>"""
+    
+    return send_email(customer_email, subject, body_html)
+
+
+def send_customer_modify_confirmation(customer_email, customer_name, subscription_plan, delivery_date, new_quantity, unit_name, tenant_name):
+    """Send confirmation email to customer when they modify delivery quantity"""
+    subject = f"✏️ Delivery Modified - {subscription_plan}"
+    
+    body_html = f"""<html><body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+        <div style="max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 8px;">
+            <h2 style="color: #17a2b8; margin-bottom: 20px;">✏️ Delivery Quantity Modified</h2>
+            <p>Hello {customer_name},</p>
+            <p>Your delivery modification has been confirmed!</p>
+            <div style="background: #d1ecf1; border-left: 4px solid #17a2b8; padding: 15px; border-radius: 5px; margin: 20px 0;">
+                <p style="margin: 5px 0;"><strong>Subscription:</strong> {subscription_plan}</p>
+                <p style="margin: 5px 0;"><strong>Delivery Date:</strong> {delivery_date}</p>
+                <p style="margin: 5px 0; font-size: 18px; color: #17a2b8;"><strong>✏️ New Quantity: {new_quantity} {unit_name}</strong></p>
+            </div>
+            <p style="color: #666; font-size: 14px;">This is a one-time modification. Other deliveries will continue with your default quantity.</p>
+            <a href="https://{tenant_name}.bizbooks.co.in/customer/subscriptions" style="display: inline-block; padding: 12px 24px; background: #4CAF50; color: white; text-decoration: none; border-radius: 5px; margin-top: 15px; font-weight: 600;">📋 View My Subscriptions</a>
+            <p style="color: #666; font-size: 12px; margin-top: 30px; border-top: 1px solid #ddd; padding-top: 15px;">This is an automated confirmation from {tenant_name}.</p>
+        </div></body></html>"""
+    
+    return send_email(customer_email, subject, body_html)
 
