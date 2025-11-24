@@ -189,9 +189,9 @@ def generate_invoice_pdf(invoice, tenant):
             item.item_name,
             item.hsn_code or '-',
             f"{item.quantity} {item.unit}",
-            f"₹{item.rate:,.2f}",
+            f"{item.rate:,.2f}",
             f"{item.gst_rate}%",
-            f"₹{item.total_amount:,.2f}"
+            f"{item.total_amount:,.2f}"
         ])
     
     items_table = Table(
@@ -268,9 +268,9 @@ def generate_invoice_pdf(invoice, tenant):
     # Items table columns: 8 + 65 + 22 + 22 + 25 + 15 + 28 = 185mm total
     totals_data = [
         [Paragraph('Subtotal', totals_label_style), 
-         Paragraph(f"₹{invoice.subtotal:,.2f}", totals_value_style)],
+         Paragraph(f"{invoice.subtotal:,.2f}", totals_value_style)],
         [Paragraph('TOTAL:', grand_total_label_style), 
-         Paragraph(f"₹{invoice.total_amount:,.2f}", grand_total_value_style)],
+         Paragraph(f"Rs {invoice.total_amount:,.2f}", grand_total_value_style)],
     ]
     
     # Match items table width: label area (157mm) + amount column width (28mm) = 185mm
