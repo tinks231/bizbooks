@@ -1,20 +1,55 @@
 """
 PDF Generation Utilities
-Generate PDFs using ReportLab (pure Python, serverless-ready!)
+Generate professional PDFs from HTML templates
 """
 from io import BytesIO
-from reportlab.lib.pagesizes import A4
-from reportlab.lib import colors
-from reportlab.lib.units import mm
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.lib.enums import TA_LEFT, TA_RIGHT, TA_CENTER
+from flask import render_template, current_app
+from xhtml2pdf import pisa
 
 def generate_invoice_pdf(invoice, tenant):
     """
-    Generate professional invoice PDF using ReportLab
+    Generate professional invoice PDF from HTML template
     Returns: BytesIO object containing PDF
     """
+    try:
+        # Render the professional HTML template
+        html_content = render_template('pdf/invoice_clean.html',
+                                      invoice=invoice,
+                                      tenant=tenant)
+        
+        # Create PDF from HTML
+        pdf_bytes = BytesIO()
+        pisa_status = pisa.CreatePDF(
+            html_content.encode('utf-8'),
+            dest=pdf_bytes,
+            encoding='utf-8'
+        )
+        
+        if pisa_status.err:
+            raise Exception(f"PDF generation error: {pisa_status.err}")
+        
+        # Reset pointer to beginning
+        pdf_bytes.seek(0)
+        return pdf_bytes
+        
+    except Exception as e:
+        current_app.logger.error(f"PDF generation failed: {str(e)}")
+        # Fallback to ReportLab if xhtml2pdf fails
+        return generate_invoice_pdf_reportlab(invoice, tenant)
+
+
+def generate_invoice_pdf_reportlab(invoice, tenant):
+    """
+    Fallback PDF generation using ReportLab (pure Python)
+    Returns: BytesIO object containing PDF
+    """
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib import colors
+    from reportlab.lib.units import mm
+    from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.lib.enums import TA_LEFT, TA_RIGHT, TA_CENTER
+    
     pdf_bytes = BytesIO()
     
     # Create PDF document
@@ -85,58 +120,72 @@ def generate_invoice_pdf(invoice, tenant):
             f"Rs {item.total_amount:,.2f}"
         ])
     
-    items_table = Table(items_data, colWidths=[10*mm, 50*mm, 20*mm, 20*mm, 25*mm, 15*mm, 30*mm])
+    items_table = Table(items_data, colWidths=[10*mm, 60*mm, 20*mm, 20*mm, 25*mm, 15*mm, 30*mm])
     items_table.setStyle(TableStyle([
         ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#f8f9fa')),
         ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
-        ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
+        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+        ('ALIGN', (3, 1), (3, -1), 'RIGHT'),  # Qty
+        ('ALIGN', (4, 1), (4, -1), 'RIGHT'),  # Rate
+        ('ALIGN', (5, 1), (5, -1), 'RIGHT'),  # GST%
+        ('ALIGN', (6, 0), (6, -1), 'RIGHT'),  # Amount
         ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
         ('FONTSIZE', (0, 0), (-1, 0), 10),
-        ('BOTTOMPADDING', (0, 0), (-1, 0), 8),
-        ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+        ('TOPPADDING', (0, 0), (-1, 0), 12),
+        ('LINEBELOW', (0, 0), (-1, 0), 2, colors.HexColor('#dee2e6')),
+        ('LINEBELOW', (0, 1), (-1, -1), 1, colors.HexColor('#e9ecef')),
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-        ('ALIGN', (3, 1), (3, -1), 'CENTER'),
-        ('ALIGN', (4, 1), (-1, -1), 'RIGHT'),
     ]))
     elements.append(items_table)
     elements.append(Spacer(1, 10*mm))
     
-    # Totals
+    # Totals section - Right aligned
+    right_align_style = ParagraphStyle('RightAlign', parent=normal_style, alignment=TA_RIGHT)
+    bold_right_style = ParagraphStyle('BoldRight', parent=normal_style, 
+                                     alignment=TA_RIGHT, fontName='Helvetica-Bold', fontSize=12)
+    
     totals_data = [
-        ['Subtotal:', f"Rs {invoice.subtotal:,.2f}"],
+        [Paragraph('Subtotal', right_align_style), Paragraph(f"Rs {invoice.subtotal:,.2f}", right_align_style)],
+        [Paragraph('<b>TOTAL:</b>', bold_right_style), Paragraph(f'<b>Rs {invoice.total_amount:,.2f}</b>', bold_right_style)],
     ]
-    if invoice.cgst_amount > 0:
-        totals_data.append(['CGST:', f"Rs {invoice.cgst_amount:,.2f}"])
-        totals_data.append(['SGST:', f"Rs {invoice.sgst_amount:,.2f}"])
-    if invoice.igst_amount > 0:
-        totals_data.append(['IGST:', f"Rs {invoice.igst_amount:,.2f}"])
-    # Use Paragraph for bold text (not HTML tags in plain text)
-    totals_data.append([
-        Paragraph('<b>TOTAL:</b>', normal_style),
-        Paragraph(f'<b>Rs {invoice.total_amount:,.2f}</b>', normal_style)
-    ])
-    
-    totals_table = Table(totals_data, colWidths=[40*mm, 40*mm], hAlign='RIGHT')
+    totals_table = Table(totals_data, colWidths=[100*mm, 80*mm])
     totals_table.setStyle(TableStyle([
-        ('ALIGN', (0, 0), (0, -1), 'LEFT'),
-        ('ALIGN', (1, 0), (1, -1), 'RIGHT'),
-        ('LINEABOVE', (0, -1), (-1, -1), 2, colors.HexColor('#4CAF50')),
-        ('FONTSIZE', (0, -1), (-1, -1), 14),
-        ('TEXTCOLOR', (0, -1), (-1, -1), colors.HexColor('#4CAF50')),
+        ('ALIGN', (0, 0), (-1, -1), 'RIGHT'),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('LINEABOVE', (1, 1), (1, 1), 2, colors.HexColor('#4CAF50')),
+        ('TOPPADDING', (0, 1), (-1, 1), 8),
     ]))
+    totals_table.hAlign = 'RIGHT'
     elements.append(totals_table)
-    elements.append(Spacer(1, 15*mm))
-    
-    # Footer
-    footer_text = invoice.notes or "Payment is due within 30 days of invoice date."
-    elements.append(Paragraph(f"<b>Terms & Conditions:</b><br/>{footer_text}", normal_style))
     elements.append(Spacer(1, 10*mm))
-    elements.append(Paragraph(f"<b>For {tenant.company_name}</b><br/>Authorized Signatory", 
-                             ParagraphStyle('Signature', parent=normal_style, alignment=TA_RIGHT)))
+    
+    # Amount in words
+    if hasattr(invoice, 'amount_in_words'):
+        words_para = Paragraph(f"<b>Amount in Words:</b> {invoice.amount_in_words()}", normal_style)
+        elements.append(words_para)
+        elements.append(Spacer(1, 10*mm))
+    
+    # Terms & Conditions
+    terms_para = Paragraph("<b>Terms & Conditions:</b><br/>Generated from customer order", normal_style)
+    elements.append(terms_para)
+    elements.append(Spacer(1, 20*mm))
+    
+    # Footer - Signatures
+    footer_data = [
+        [Paragraph('Customer Signature', normal_style), Paragraph(f'For: <b>{tenant.company_name}</b>', right_align_style)],
+        [Paragraph('_' * 30, normal_style), Paragraph('_' * 30 + '<br/>Authorized Signatory', right_align_style)]
+    ]
+    footer_table = Table(footer_data, colWidths=[90*mm, 90*mm])
+    footer_table.setStyle(TableStyle([
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('TOPPADDING', (0, 1), (-1, 1), 30),
+    ]))
+    elements.append(footer_table)
     
     # Build PDF
     doc.build(elements)
-    pdf_bytes.seek(0)
     
+    # Reset pointer to beginning
+    pdf_bytes.seek(0)
     return pdf_bytes
-

@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: Arial, sans-serif;
+            font-size: 13px;
+            color: #2c3e50;
+            line-height: 1.45;
+            padding: 20px;
+        }
+        
+        .invoice-container {
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+        
+        /* Header */
+        .invoice-header {
+            display: table;
+            width: 100%;
+            margin-bottom: 30px;
+            border-bottom: 3px solid #4CAF50;
+            padding-bottom: 15px;
+        }
+        
+        .header-left {
+            display: table-cell;
+            width: 33%;
+            vertical-align: top;
+        }
+        
+        .header-center {
+            display: table-cell;
+            width: 34%;
+            text-align: center;
+            vertical-align: top;
+        }
+        
+        .header-right {
+            display: table-cell;
+            width: 33%;
+            text-align: right;
+            vertical-align: top;
+        }
+        
+        .company-name {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+        
+        .tax-invoice {
+            font-size: 28px;
+            font-weight: bold;
+            color: #4CAF50;
+            margin-bottom: 8px;
+        }
+        
+        .invoice-number {
+            font-size: 15px;
+            font-weight: bold;
+            margin-bottom: 4px;
+        }
+        
+        /* Bill To Section */
+        .invoice-info-row {
+            display: table;
+            width: 100%;
+            margin-bottom: 30px;
+        }
+        
+        .bill-to {
+            display: table-cell;
+            width: 50%;
+            vertical-align: top;
+            padding-right: 20px;
+        }
+        
+        .invoice-details {
+            display: table-cell;
+            width: 50%;
+            vertical-align: top;
+            padding-left: 20px;
+        }
+        
+        .section-title {
+            font-size: 14px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #1a1a1a;
+        }
+        
+        .customer-name {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        /* Items Table */
+        .items-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        
+        .items-table thead {
+            background: #f8f9fa;
+        }
+        
+        .items-table th {
+            padding: 12px 8px;
+            text-align: left;
+            font-weight: 600;
+            border-bottom: 2px solid #dee2e6;
+        }
+        
+        .items-table td {
+            padding: 10px 8px;
+            border-bottom: 1px solid #e9ecef;
+        }
+        
+        .items-table th:first-child,
+        .items-table td:first-child {
+            width: 40px;
+            text-align: center;
+        }
+        
+        .items-table th:nth-child(3),
+        .items-table td:nth-child(3) {
+            width: 100px;
+        }
+        
+        .items-table th:nth-child(4),
+        .items-table td:nth-child(4),
+        .items-table th:nth-child(5),
+        .items-table td:nth-child(5),
+        .items-table th:nth-child(6),
+        .items-table td:nth-child(6) {
+            width: 80px;
+            text-align: right;
+        }
+        
+        .items-table th:last-child,
+        .items-table td:last-child {
+            width: 100px;
+            text-align: right;
+            font-weight: 600;
+        }
+        
+        /* Totals Section */
+        .totals-section {
+            margin-left: auto;
+            width: 350px;
+            margin-top: 20px;
+        }
+        
+        .totals-row {
+            display: table;
+            width: 100%;
+            margin-bottom: 8px;
+        }
+        
+        .totals-label {
+            display: table-cell;
+            text-align: right;
+            padding-right: 20px;
+            font-weight: 500;
+        }
+        
+        .totals-value {
+            display: table-cell;
+            text-align: right;
+            font-weight: 600;
+            width: 120px;
+        }
+        
+        .grand-total {
+            border-top: 2px solid #4CAF50;
+            padding-top: 8px;
+            margin-top: 8px;
+        }
+        
+        .grand-total .totals-label,
+        .grand-total .totals-value {
+            font-size: 16px;
+            font-weight: bold;
+            color: #1a1a1a;
+        }
+        
+        /* Amount in Words */
+        .amount-words {
+            background: #f0f7ff;
+            padding: 12px 16px;
+            margin: 20px 0;
+            border-left: 4px solid #2196F3;
+        }
+        
+        /* Footer */
+        .invoice-footer {
+            display: table;
+            width: 100%;
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid #dee2e6;
+        }
+        
+        .footer-left {
+            display: table-cell;
+            width: 50%;
+            vertical-align: top;
+        }
+        
+        .footer-right {
+            display: table-cell;
+            width: 50%;
+            text-align: right;
+            vertical-align: top;
+        }
+        
+        .signature-line {
+            border-top: 1px solid #000;
+            margin-top: 60px;
+            padding-top: 5px;
+        }
+        
+        .footer-note {
+            text-align: center;
+            margin-top: 30px;
+            font-size: 11px;
+            color: #6c757d;
+        }
+    </style>
+</head>
+<body>
+    <div class="invoice-container">
+        <!-- Header -->
+        <div class="invoice-header">
+            <div class="header-left">
+                <div class="company-name">{{ tenant.company_name }}</div>
+                <div>Phone: {{ tenant.admin_phone or 'N/A' }}</div>
+                <div>Email: {{ tenant.admin_email or 'N/A' }}</div>
+                {% if tenant.gstin %}
+                <div>GSTIN: {{ tenant.gstin }}</div>
+                {% endif %}
+            </div>
+            
+            <div class="header-center">
+                <div class="tax-invoice">TAX INVOICE</div>
+            </div>
+            
+            <div class="header-right">
+                <div class="invoice-number">{{ invoice.invoice_number }}</div>
+                <div>Date: {{ invoice.invoice_date.strftime('%d-%m-%Y') }}</div>
+                <div>Status: {{ invoice.status.upper() }}</div>
+                <div>Payment: {{ invoice.payment_status.upper() }}</div>
+            </div>
+        </div>
+        
+        <!-- Bill To & Invoice Details -->
+        <div class="invoice-info-row">
+            <div class="bill-to">
+                <div class="section-title">Bill To</div>
+                <div class="customer-name">{{ invoice.customer_name }}</div>
+                {% if invoice.customer.customer_id %}
+                <div>Customer ID: {{ invoice.customer.customer_id }}</div>
+                {% endif %}
+                <div>Phone: {{ invoice.customer_phone or 'N/A' }}</div>
+                {% if invoice.customer_email %}
+                <div>Email: {{ invoice.customer_email }}</div>
+                {% endif %}
+                {% if invoice.customer_address %}
+                <div>{{ invoice.customer_address }}</div>
+                {% endif %}
+                {% if invoice.customer.state %}
+                <div>State: {{ invoice.customer.state }}</div>
+                {% endif %}
+            </div>
+            
+            <div class="invoice-details">
+                <div class="section-title">Invoice Details</div>
+                <div>Payment: {{ invoice.payment_status.upper() }}</div>
+                <div>Status: {{ invoice.status.upper() }}</div>
+            </div>
+        </div>
+        
+        <!-- Items Table -->
+        <table class="items-table">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>ITEM</th>
+                    <th>HSN</th>
+                    <th>QTY</th>
+                    <th>RATE</th>
+                    <th>GST %</th>
+                    <th>AMOUNT</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in invoice.items %}
+                <tr>
+                    <td style="text-align: center;">{{ loop.index }}</td>
+                    <td>{{ item.item_name }}</td>
+                    <td>{{ item.hsn_code or '-' }}</td>
+                    <td style="text-align: right;">{{ item.quantity }} {{ item.unit }}</td>
+                    <td style="text-align: right;">{{ '{:,.2f}'.format(item.rate) }}</td>
+                    <td style="text-align: right;">{{ item.gst_rate }}%</td>
+                    <td style="text-align: right;">₹{{ '{:,.2f}'.format(item.total_amount) }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        
+        <!-- Totals Section -->
+        <div class="totals-section">
+            <div class="totals-row">
+                <div class="totals-label">Subtotal</div>
+                <div class="totals-value">₹{{ '{:,.2f}'.format(invoice.subtotal) }}</div>
+            </div>
+            
+            <div class="totals-row grand-total">
+                <div class="totals-label">TOTAL:</div>
+                <div class="totals-value">₹{{ '{:,.2f}'.format(invoice.total_amount) }}</div>
+            </div>
+        </div>
+        
+        <!-- Amount in Words -->
+        {% if invoice.total_amount %}
+        <div class="amount-words">
+            <strong>Amount in Words:</strong> {{ invoice.amount_in_words() }}
+        </div>
+        {% endif %}
+        
+        <!-- Terms & Conditions -->
+        {% if invoice.notes or tenant.settings %}
+        <div style="margin-top: 30px;">
+            <div class="section-title">Terms & Conditions</div>
+            <div style="margin-top: 8px;">
+                {% if invoice.notes %}
+                {{ invoice.notes }}
+                {% else %}
+                Generated from customer order
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+        
+        <!-- Footer -->
+        <div class="invoice-footer">
+            <div class="footer-left">
+                <div style="font-weight: 600; margin-bottom: 5px;">Customer Signature</div>
+                <div class="signature-line"></div>
+            </div>
+            
+            <div class="footer-right">
+                <div style="font-weight: 600; margin-bottom: 5px;">For: {{ tenant.company_name }}</div>
+                <div class="signature-line">Authorized Signatory</div>
+            </div>
+        </div>
+        
+        <div class="footer-note">
+            Thank you for your business!<br>
+            This is a computer-generated invoice.
+        </div>
+    </div>
+</body>
+</html>
+
