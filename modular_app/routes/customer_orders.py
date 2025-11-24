@@ -177,15 +177,20 @@ def generate_invoice(order_id):
                 total_igst += igst
             
             # Create invoice item
+            taxable_value = quantity * rate
             invoice_item = InvoiceItem(
                 invoice_id=invoice.id,
                 item_id=item.id,
-                name=item.name,
+                item_name=item.name,
                 hsn_code=item.hsn_code or '',
                 quantity=quantity,
                 unit=item.unit or 'Nos',
                 rate=rate,
-                gst_rate=gst_rate
+                gst_rate=gst_rate,
+                taxable_value=taxable_value,
+                cgst_amount=cgst,
+                sgst_amount=sgst,
+                igst_amount=igst
             )
             db.session.add(invoice_item)
             
