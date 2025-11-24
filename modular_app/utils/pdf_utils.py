@@ -34,18 +34,25 @@ def generate_invoice_pdf(invoice, tenant):
                                    fontSize=14, textColor=colors.black)
     normal_style = styles['Normal']
     
-    # Header
+    # Header - 3 column layout: Company | TAX INVOICE | Invoice Details
     header_data = [
-        [Paragraph(f"<b>{tenant.company_name}</b>", heading_style),
-         Paragraph("TAX INVOICE", title_style)],
-        [Paragraph(f"Phone: {tenant.admin_phone or 'N/A'}<br/>Email: {tenant.admin_email or 'N/A'}", normal_style),
-         Paragraph(f"<b>{invoice.invoice_number}</b><br/>Date: {invoice.invoice_date.strftime('%d-%m-%Y')}<br/>Status: {invoice.payment_status.upper()}", normal_style)]
+        [
+            Paragraph(f"<b>{tenant.company_name}</b>", heading_style),
+            Paragraph("TAX INVOICE", title_style),
+            ''
+        ],
+        [
+            Paragraph(f"Phone: {tenant.admin_phone or 'N/A'}<br/>Email: {tenant.admin_email or 'N/A'}", normal_style),
+            '',
+            Paragraph(f"<b>{invoice.invoice_number}</b><br/>Date: {invoice.invoice_date.strftime('%d-%m-%Y')}<br/>Status: {invoice.payment_status.upper()}", normal_style)
+        ]
     ]
-    header_table = Table(header_data, colWidths=[90*mm, 90*mm])
+    header_table = Table(header_data, colWidths=[60*mm, 60*mm, 60*mm])
     header_table.setStyle(TableStyle([
         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-        ('ALIGN', (1, 0), (1, 0), 'CENTER'),  # Center-align TAX INVOICE
-        ('ALIGN', (1, 1), (1, 1), 'RIGHT'),   # Right-align invoice details
+        ('ALIGN', (0, 0), (0, -1), 'LEFT'),    # Company info - left aligned
+        ('ALIGN', (1, 0), (1, 0), 'CENTER'),   # TAX INVOICE - centered
+        ('ALIGN', (2, 0), (2, -1), 'RIGHT'),   # Invoice details - right aligned
         ('LINEBELOW', (0, 1), (-1, 1), 2, colors.HexColor('#4CAF50')),
         ('BOTTOMPADDING', (0, 1), (-1, 1), 10),
     ]))
