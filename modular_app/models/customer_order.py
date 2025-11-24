@@ -21,6 +21,9 @@ class CustomerOrder(db.Model):
     # Status: pending, confirmed, fulfilled, cancelled
     status = db.Column(db.String(20), nullable=False, default='pending')
     
+    # Invoice link (if invoice generated)
+    invoice_id = db.Column(db.Integer, db.ForeignKey('invoices.id'), nullable=True)
+    
     # Totals
     subtotal = db.Column(db.Numeric(10, 2), nullable=False, default=0)
     tax_amount = db.Column(db.Numeric(10, 2), nullable=False, default=0)
@@ -43,6 +46,7 @@ class CustomerOrder(db.Model):
     customer = db.relationship('Customer', backref='orders')
     items = db.relationship('CustomerOrderItem', back_populates='order', cascade='all, delete-orphan')
     fulfilled_by_user = db.relationship('User', foreign_keys=[fulfilled_by])
+    invoice = db.relationship('Invoice', foreign_keys=[invoice_id])
     
     __table_args__ = (
         db.UniqueConstraint('tenant_id', 'order_number', name='unique_order_number_per_tenant'),

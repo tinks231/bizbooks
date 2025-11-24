@@ -3,12 +3,12 @@ Customer Orders Admin Routes
 For managing orders placed by customers through customer portal
 """
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session, g, jsonify
-from models import db, CustomerOrder, CustomerOrderItem, Customer
+from models import db, CustomerOrder, CustomerOrderItem, Customer, Invoice, InvoiceItem, Item, ItemStock, ItemStockMovement, Site
 from utils.tenant_middleware import require_tenant, get_current_tenant_id
 from utils.license_check import check_license
-from utils.email_utils import send_order_confirmed_notification, send_order_fulfilled_notification, send_order_cancelled_notification
+from utils.email_utils import send_order_confirmed_notification, send_order_fulfilled_notification, send_order_cancelled_notification, send_invoice_email
 from functools import wraps
-from datetime import datetime
+from datetime import datetime, date
 from sqlalchemy import desc, and_, or_
 
 customer_orders_bp = Blueprint('customer_orders', __name__, url_prefix='/admin/customer-orders')
@@ -94,6 +94,175 @@ def view_order(order_id):
     return render_template('admin/customer_orders/view.html',
                          tenant=g.tenant,
                          order=order)
+
+
+@customer_orders_bp.route('/<int:order_id>/generate-invoice', methods=['POST'])
+@require_tenant
+@login_required
+def generate_invoice(order_id):
+    """Generate invoice from customer order (auto-deducts inventory)"""
+    order = CustomerOrder.query.filter_by(
+        id=order_id,
+        tenant_id=g.tenant.id
+    ).first_or_404()
+    
+    # Check if invoice already generated
+    if order.invoice_id:
+        flash('⚠️ Invoice already generated for this order!', 'warning')
+        return redirect(url_for('customer_orders.view_order', order_id=order_id))
+    
+    try:
+        # Generate invoice number (INV-YYYY-NNN)
+        today = date.today()
+        year = today.year
+        existing_invoices = Invoice.query.filter(
+            Invoice.tenant_id == g.tenant.id,
+            Invoice.invoice_number.like(f'INV-{year}-%')
+        ).count()
+        invoice_number = f"INV-{year}-{existing_invoices + 1:03d}"
+        
+        # Create invoice
+        invoice = Invoice(
+            tenant_id=g.tenant.id,
+            invoice_number=invoice_number,
+            invoice_date=today,
+            customer_id=order.customer_id,
+            customer_name=order.customer.name,
+            customer_phone=order.customer.phone,
+            customer_email=order.customer.email,
+            customer_address=order.customer.address,
+            customer_gstin=order.customer.gstin,
+            customer_state=order.customer.state,
+            subtotal=float(order.subtotal),
+            cgst_amount=0,  # Will calculate from items
+            sgst_amount=0,
+            igst_amount=0,
+            total_amount=float(order.total_amount),
+            payment_status='unpaid',
+            status='sent',
+            notes='Generated from customer order'
+        )
+        db.session.add(invoice)
+        db.session.flush()  # Get invoice ID
+        
+        # Get default site for inventory deduction
+        default_site = Site.query.filter_by(tenant_id=g.tenant.id).first()
+        
+        total_cgst = 0
+        total_sgst = 0
+        total_igst = 0
+        
+        # Create invoice items and deduct inventory
+        for order_item in order.items:
+            item = order_item.item
+            quantity = float(order_item.quantity)
+            rate = float(order_item.rate)
+            gst_rate = float(order_item.tax_rate) if order_item.tax_rate else 0
+            
+            # Calculate GST split (for same state, assume CGST+SGST)
+            is_same_state = (order.customer.state == g.tenant.address_state) if order.customer.state and g.tenant.address_state else True
+            
+            if is_same_state:
+                cgst = (quantity * rate * gst_rate) / 200  # Half of GST
+                sgst = (quantity * rate * gst_rate) / 200  # Half of GST
+                igst = 0
+                total_cgst += cgst
+                total_sgst += sgst
+            else:
+                cgst = 0
+                sgst = 0
+                igst = (quantity * rate * gst_rate) / 100
+                total_igst += igst
+            
+            # Create invoice item
+            invoice_item = InvoiceItem(
+                invoice_id=invoice.id,
+                item_id=item.id,
+                name=item.name,
+                hsn_code=item.hsn_code or '',
+                quantity=quantity,
+                unit=item.unit or 'Nos',
+                rate=rate,
+                gst_rate=gst_rate
+            )
+            db.session.add(invoice_item)
+            
+            # Deduct inventory (if item tracks inventory)
+            if item.track_inventory and default_site:
+                item_stock = ItemStock.query.filter_by(
+                    tenant_id=g.tenant.id,
+                    item_id=item.id,
+                    site_id=default_site.id
+                ).first()
+                
+                if item_stock:
+                    # Check stock availability
+                    if item_stock.quantity_available < quantity:
+                        flash(f'⚠️ Warning: {item.name} has insufficient stock! Available: {item_stock.quantity_available:.2f}, Selling: {quantity}', 'warning')
+                    
+                    # Reduce stock
+                    old_qty = item_stock.quantity_available
+                    item_stock.quantity_available -= quantity
+                    new_qty = item_stock.quantity_available
+                    
+                    # Update stock value
+                    if item.cost_price:
+                        item_stock.stock_value = new_qty * item.cost_price
+                    
+                    # Create stock movement record
+                    stock_movement = ItemStockMovement(
+                        tenant_id=g.tenant.id,
+                        item_id=item.id,
+                        site_id=default_site.id,
+                        movement_type='stock_out',
+                        quantity=quantity,
+                        unit_cost=item.cost_price or 0,
+                        total_value=quantity * (item.cost_price or 0),
+                        reference_type='invoice',
+                        reference_id=invoice.id,
+                        remarks=f'Sold via invoice {invoice_number} (Customer Order: {order.order_number})'
+                    )
+                    db.session.add(stock_movement)
+        
+        # Update invoice GST amounts
+        invoice.cgst_amount = total_cgst
+        invoice.sgst_amount = total_sgst
+        invoice.igst_amount = total_igst
+        
+        # Link invoice to order
+        order.invoice_id = invoice.id
+        order.status = 'fulfilled'
+        order.fulfilled_date = datetime.now()
+        order.updated_at = datetime.now()
+        
+        db.session.commit()
+        
+        # Send invoice email to customer
+        if order.customer.email:
+            try:
+                send_invoice_email(
+                    customer_email=order.customer.email,
+                    customer_name=order.customer.name,
+                    invoice_number=invoice_number,
+                    invoice_id=invoice.id,
+                    total_amount=float(invoice.total_amount),
+                    tenant_name=g.tenant.company_name,
+                    tenant_subdomain=g.tenant.subdomain
+                )
+                flash(f'✅ Invoice {invoice_number} generated and emailed to customer!', 'success')
+            except Exception as email_error:
+                flash(f'✅ Invoice {invoice_number} generated, but email failed: {str(email_error)}', 'warning')
+        else:
+            flash(f'✅ Invoice {invoice_number} generated! (Customer has no email)', 'success')
+        
+    except Exception as e:
+        db.session.rollback()
+        flash(f'❌ Error generating invoice: {str(e)}', 'error')
+        print(f"❌ Invoice generation error: {e}")
+        import traceback
+        traceback.print_exc()
+    
+    return redirect(url_for('customer_orders.view_order', order_id=order_id))
 
 
 @customer_orders_bp.route('/<int:order_id>/update-status', methods=['POST'])

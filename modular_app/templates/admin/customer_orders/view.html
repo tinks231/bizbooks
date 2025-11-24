@@ -32,12 +32,36 @@
                 <span style="color: #666;">{{ order.order_date.strftime('%d %B %Y, %I:%M %p') }}</span>
             </div>
         </div>
-        <div>
+        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+            {% if order.invoice_id %}
+                <!-- Invoice Generated -->
+                <a href="{{ url_for('invoices.view', invoice_id=order.invoice_id) }}" class="btn btn-success" style="text-decoration: none;">
+                    📄 View Invoice
+                </a>
+            {% elif order.status in ['confirmed', 'fulfilled'] %}
+                <!-- Generate Invoice Button (only for confirmed/fulfilled orders) -->
+                <form method="POST" action="{{ url_for('customer_orders.generate_invoice', order_id=order.id) }}" style="display: inline;">
+                    <button type="submit" class="btn btn-success" onclick="return confirm('Generate invoice for this order? This will deduct inventory.')">
+                        📄 Generate Invoice
+                    </button>
+                </form>
+            {% endif %}
             <button onclick="document.getElementById('statusModal').style.display='block'" class="btn btn-primary">
                 Update Status
             </button>
         </div>
     </div>
+
+    <!-- Invoice Notice (if generated) -->
+    {% if order.invoice_id %}
+        <div style="background: #d4edda; border-left: 4px solid #28a745; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+            <strong>✅ Invoice Generated:</strong> 
+            <a href="{{ url_for('invoices.view', invoice_id=order.invoice_id) }}" style="color: #155724; font-weight: 600;">
+                {{ order.invoice.invoice_number }}
+            </a>
+            <span style="color: #666; font-size: 14px; margin-left: 10px;">(Inventory deducted)</span>
+        </div>
+    {% endif %}
 
     <!-- Order Details Grid -->
     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 30px; padding: 20px 0; border-top: 1px solid #eee; border-bottom: 1px solid #eee; margin-bottom: 30px;">
@@ -57,6 +81,16 @@
             <div>
                 <label style="display: block; font-size: 13px; color: #999; margin-bottom: 5px;">Fulfilled On</label>
                 <div style="font-weight: 600;">{{ order.fulfilled_date.strftime('%d %B %Y') }}</div>
+            </div>
+        {% endif %}
+        {% if order.invoice_id %}
+            <div>
+                <label style="display: block; font-size: 13px; color: #999; margin-bottom: 5px;">Invoice Number</label>
+                <div style="font-weight: 600;">
+                    <a href="{{ url_for('invoices.view', invoice_id=order.invoice_id) }}" style="color: #28a745;">
+                        {{ order.invoice.invoice_number }}
+                    </a>
+                </div>
             </div>
         {% endif %}
     </div>

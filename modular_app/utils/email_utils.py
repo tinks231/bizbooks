@@ -803,3 +803,72 @@ def send_customer_modify_confirmation(customer_email, customer_name, subscriptio
     
     return send_email(customer_email, subject, body_html)
 
+
+# ==================== INVOICE EMAILS ====================
+
+def send_invoice_email(customer_email, customer_name, invoice_number, invoice_id, total_amount, tenant_name, tenant_subdomain):
+    """Send invoice PDF to customer via email"""
+    subject = f"📄 Invoice {invoice_number} from {tenant_name}"
+    
+    invoice_url = f"https://{tenant_subdomain}.bizbooks.co.in/admin/invoices/{invoice_id}"
+    
+    body_html = f"""
+    <html>
+    <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+        <div style="max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 8px;">
+            <h2 style="color: #2c3e50; margin-bottom: 20px;">📄 Invoice Generated</h2>
+            
+            <p>Dear {customer_name},</p>
+            
+            <p>Thank you for your purchase! Your invoice has been generated.</p>
+            
+            <div style="background: #f0f8ff; border-left: 4px solid #2c3e50; padding: 15px; border-radius: 5px; margin: 20px 0;">
+                <p style="margin: 5px 0;"><strong>Invoice Number:</strong> {invoice_number}</p>
+                <p style="margin: 5px 0; font-size: 20px; color: #2c3e50;"><strong>Total Amount:</strong> ₹{total_amount:,.2f}</p>
+            </div>
+            
+            <p>You can view and download your invoice by clicking the button below:</p>
+            
+            <a href="{invoice_url}" 
+               style="display: inline-block; padding: 12px 24px; background: #2c3e50; color: white; text-decoration: none; border-radius: 5px; margin-top: 15px; font-weight: 600;">
+                📄 View Invoice
+            </a>
+            
+            <p style="color: #666; font-size: 14px; margin-top: 20px;">
+                Please make payment as per the terms mentioned in the invoice.
+            </p>
+            
+            <p style="color: #666; font-size: 14px;">
+                If you have any questions, please don't hesitate to contact us.
+            </p>
+            
+            <p style="color: #666; font-size: 12px; margin-top: 30px; border-top: 1px solid #ddd; padding-top: 15px;">
+                This is an automated email from {tenant_name}.
+            </p>
+        </div>
+    </body>
+    </html>
+    """
+    
+    body_text = f"""
+📄 Invoice Generated
+
+Dear {customer_name},
+
+Thank you for your purchase! Your invoice has been generated.
+
+Invoice Number: {invoice_number}
+Total Amount: ₹{total_amount:,.2f}
+
+View invoice: {invoice_url}
+
+Please make payment as per the terms mentioned in the invoice.
+
+If you have any questions, please don't hesitate to contact us.
+
+---
+This is an automated email from {tenant_name}.
+    """
+    
+    return send_email(customer_email, subject, body_html, body_text)
+
