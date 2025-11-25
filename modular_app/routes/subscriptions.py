@@ -128,23 +128,33 @@ def deliveries():
                          timedelta=timedelta)
 
 
-@subscriptions_bp.route('/deliveries/tomorrow', methods=['GET'], strict_slashes=False)
+@subscriptions_bp.route('/schedule', methods=['GET'], strict_slashes=False)
 @require_tenant
 @login_required
-def tomorrow_deliveries():
-    """Tomorrow's Deliveries Report - Complete list for delivery personnel"""
+def delivery_schedule():
+    """Delivery Schedule - Today/Tomorrow/Custom Date view with bulk assignment"""
     tenant_id = get_current_tenant_id()
     
-    # Get target date (default: tomorrow, but allow date parameter)
+    # Get view type and target date
     from datetime import datetime, timedelta
+    view = request.args.get('view', 'today')  # today, tomorrow, or custom
     date_param = request.args.get('date')
+    
+    # Determine target date based on view
+    today = datetime.now().date()
     if date_param:
+        # Custom date provided
         try:
             target_date = datetime.strptime(date_param, '%Y-%m-%d').date()
+            view = 'custom'
         except:
-            target_date = (datetime.now().date() + timedelta(days=1))
-    else:
-        target_date = (datetime.now().date() + timedelta(days=1))
+            target_date = today
+            view = 'today'
+    elif view == 'tomorrow':
+        target_date = today + timedelta(days=1)
+    else:  # default to today
+        target_date = today
+        view = 'today'
     
     # Get ALL deliveries for target date (regardless of status - we want the full list)
     all_deliveries = SubscriptionDelivery.query.join(
@@ -238,8 +248,9 @@ def tomorrow_deliveries():
             'default_employee_id': customer.default_delivery_employee
         })
     
-    return render_template('admin/subscriptions/tomorrow_deliveries.html',
+    return render_template('admin/subscriptions/delivery_schedule.html',
                          target_date=target_date,
+                         current_view=view,
                          active_deliveries=active_deliveries,
                          paused_deliveries=paused_deliveries,
                          total_customers=total_customers,
@@ -250,6 +261,15 @@ def tomorrow_deliveries():
                          employees_json=employees_json,
                          all_customers_json=all_customers_json,
                          tenant=g.tenant)
+
+
+# Backward compatibility redirects
+@subscriptions_bp.route('/deliveries/tomorrow', methods=['GET'], strict_slashes=False)
+@require_tenant
+@login_required
+def tomorrow_deliveries():
+    """Redirect to new delivery schedule page (tomorrow view)"""
+    return redirect(url_for('subscriptions.delivery_schedule', view='tomorrow'))
 
 
 @subscriptions_bp.route('/deliveries/assign', methods=['POST'], strict_slashes=False)
@@ -289,8 +309,8 @@ def assign_delivery():
         db.session.rollback()
         flash(f'❌ Error assigning delivery: {str(e)}', 'error')
     
-    # Redirect back to tomorrow's deliveries
-    return redirect(url_for('subscriptions.tomorrow_deliveries'))
+    # Redirect back to delivery schedule
+    return redirect(url_for('subscriptions.delivery_schedule'))
 
 
 @subscriptions_bp.route('/deliveries/bulk-assign', methods=['POST'], strict_slashes=False)
@@ -308,7 +328,7 @@ def bulk_assign_deliveries():
         
         if not customer_ids:
             flash('⚠️ Please select at least one customer', 'warning')
-            return redirect(url_for('subscriptions.tomorrow_deliveries'))
+            return redirect(url_for('subscriptions.delivery_schedule'))
         
         # Verify employee
         from models.employee import Employee
@@ -375,7 +395,7 @@ def bulk_assign_deliveries():
         db.session.rollback()
         flash(f'❌ Error bulk assigning: {str(e)}', 'error')
     
-    return redirect(url_for('subscriptions.tomorrow_deliveries'))
+    return redirect(url_for('subscriptions.delivery_schedule'))
 
 
 @subscriptions_bp.route('/assets/report', methods=['GET'], strict_slashes=False)

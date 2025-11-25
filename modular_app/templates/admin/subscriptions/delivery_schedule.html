@@ -1,0 +1,1233 @@
+{% extends "base_sidebar.html" %}
+
+{% block title %}Delivery Schedule{% endblock %}
+
+{% block header_actions %}
+<!-- Remove Manual Entry and QR Code buttons -->
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    body {
+        background: #f5f7fa;
+    }
+    
+    .delivery-report {
+        max-width: 1600px;
+        margin: 0 auto;
+        padding: 30px;
+        width: 100%;
+    }
+    
+    /* View Tabs */
+    .view-tabs-card {
+        background: white;
+        border-radius: 12px;
+        padding: 8px;
+        margin-bottom: 25px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+    
+    .view-tabs {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        flex-wrap: wrap;
+    }
+    
+    .tab-button {
+        padding: 12px 24px;
+        border-radius: 8px;
+        font-size: 15px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s;
+        text-decoration: none;
+        color: #666;
+        background: transparent;
+        border: 2px solid transparent;
+        display: flex;
+        align-items: center;
+        white-space: nowrap;
+    }
+    
+    .tab-button:hover {
+        background: #f5f7fa;
+        color: #2c3e50;
+    }
+    
+    .tab-button.active {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+    }
+    
+    .tab-button.custom-date {
+        margin-left: auto;
+        padding: 8px 16px;
+    }
+    
+    .tab-button.custom-date.active {
+        background: #4CAF50;
+        color: white;
+    }
+    
+    .tab-button.custom-date input {
+        background: white;
+        color: #2c3e50;
+    }
+    
+    @media (max-width: 768px) {
+        .view-tabs {
+            flex-direction: column;
+            align-items: stretch;
+        }
+        
+        .tab-button {
+            justify-content: center;
+        }
+        
+        .tab-button.custom-date {
+            margin-left: 0;
+        }
+    }
+    
+    /* Header */
+    .report-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 12px;
+        padding: 30px;
+        margin-bottom: 25px;
+        text-align: center;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    
+    .report-header h1 {
+        margin: 0 0 8px 0;
+        font-size: 28px;
+        font-weight: 700;
+        letter-spacing: -0.5px;
+    }
+    
+    .report-date {
+        font-size: 16px;
+        opacity: 0.95;
+        font-weight: 500;
+    }
+    
+    /* Summary Cards - Force horizontal layout */
+    .delivery-report .summary-cards {
+        display: grid !important;
+        grid-template-columns: repeat(3, 1fr) !important;
+        gap: 20px !important;
+        margin-bottom: 25px !important;
+        width: 100% !important;
+    }
+    
+    .delivery-report .summary-cards .summary-card {
+        background: white !important;
+        border-radius: 12px !important;
+        padding: 25px !important;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08) !important;
+        transition: all 0.3s !important;
+        border-left: 5px solid !important;
+        display: block !important;
+    }
+    
+    .summary-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 16px rgba(0,0,0,0.12);
+    }
+    
+    .summary-card.green {
+        border-left-color: #4CAF50;
+    }
+    
+    .summary-card.blue {
+        border-left-color: #2196F3;
+    }
+    
+    .summary-card.orange {
+        border-left-color: #FF9800;
+    }
+    
+    .summary-card-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 12px;
+    }
+    
+    .summary-card h3 {
+        margin: 0;
+        font-size: 13px;
+        color: #666;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .summary-card-icon {
+        font-size: 24px;
+        opacity: 0.8;
+    }
+    
+    .summary-card .value {
+        font-size: 36px;
+        font-weight: 700;
+        margin: 0;
+        color: #2c3e50;
+    }
+    
+    /* Product Summary */
+    .product-summary {
+        background: white;
+        border-radius: 12px;
+        padding: 25px;
+        margin-bottom: 25px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+    
+    .product-summary h3 {
+        margin: 0 0 20px 0;
+        color: #2c3e50;
+        font-size: 18px;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    .product-summary h3::before {
+        content: '📦';
+        font-size: 22px;
+    }
+    
+    .delivery-report .product-summary .product-list {
+        display: grid !important;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)) !important;
+        gap: 20px !important;
+        width: 100% !important;
+    }
+    
+    @media (min-width: 1200px) {
+        .delivery-report .product-summary .product-list {
+            grid-template-columns: repeat(4, 1fr) !important;
+        }
+    }
+    
+    @media (min-width: 992px) and (max-width: 1199px) {
+        .delivery-report .product-summary .product-list {
+            grid-template-columns: repeat(3, 1fr) !important;
+        }
+    }
+    
+    .product-item {
+        background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+        padding: 20px;
+        border-radius: 12px;
+        border: 1px solid #e0e0e0;
+        border-left: 5px solid #4CAF50;
+        transition: all 0.3s;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+    
+    .product-item:hover {
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        transform: translateY(-2px);
+        border-left-color: #45a049;
+    }
+    
+    .product-item .product-name {
+        display: block;
+        color: #2c3e50;
+        font-size: 16px;
+        margin-bottom: 8px;
+        font-weight: 700;
+    }
+    
+    .product-item .product-quantity {
+        color: #4CAF50;
+        font-size: 28px;
+        font-weight: 700;
+        display: block;
+        margin: 0;
+    }
+    
+    .product-item .product-unit {
+        color: #666;
+        font-size: 14px;
+        margin-top: 4px;
+        display: block;
+    }
+    
+    /* Deliveries Table */
+    .table-container {
+        background: white;
+        border-radius: 12px;
+        padding: 25px;
+        margin-bottom: 25px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        overflow-x: auto;
+    }
+    
+    .deliveries-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    
+    .deliveries-table thead {
+        background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+        color: white;
+    }
+    
+    .deliveries-table th {
+        padding: 15px 12px;
+        text-align: left;
+        font-weight: 600;
+        font-size: 13px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        white-space: nowrap;
+    }
+    
+    .deliveries-table th:first-child {
+        border-top-left-radius: 8px;
+    }
+    
+    .deliveries-table th:last-child {
+        border-top-right-radius: 8px;
+    }
+    
+    .deliveries-table tbody tr {
+        border-bottom: 1px solid #f0f0f0;
+        transition: all 0.2s;
+    }
+    
+    .deliveries-table tbody tr:hover {
+        background: #f8f9fa;
+    }
+    
+    .deliveries-table tbody tr:last-child {
+        border-bottom: none;
+    }
+    
+    .deliveries-table td {
+        padding: 15px 12px;
+        font-size: 14px;
+        vertical-align: top;
+    }
+    
+    .customer-name {
+        font-weight: 700;
+        color: #2c3e50;
+        font-size: 15px;
+    }
+    
+    .customer-address {
+        color: #999;
+        font-size: 12px;
+        margin-top: 4px;
+        line-height: 1.4;
+    }
+    
+    .customer-phone {
+        color: #666;
+        font-size: 13px;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+    }
+    
+    .product-info {
+        color: #4CAF50;
+        font-weight: 700;
+        font-size: 14px;
+    }
+    
+    .quantity-badge {
+        background: #4CAF50;
+        color: white;
+        padding: 6px 14px;
+        border-radius: 20px;
+        font-weight: 700;
+        font-size: 14px;
+        display: inline-block;
+    }
+    
+    .modified-badge {
+        background: #FF9800;
+        color: white;
+        padding: 3px 10px;
+        border-radius: 12px;
+        font-size: 10px;
+        margin-left: 8px;
+        font-weight: 700;
+        text-transform: uppercase;
+    }
+    
+    .delivery-notes {
+        font-size: 12px;
+        color: #666;
+        margin-top: 6px;
+        padding: 6px 10px;
+        background: #fff3cd;
+        border-radius: 4px;
+        border-left: 3px solid #ffc107;
+    }
+    
+    .amount-cell {
+        font-weight: 700;
+        color: #2c3e50;
+        font-size: 15px;
+    }
+    
+    /* Delivery Status */
+    .status-badge {
+        display: inline-block;
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 700;
+        white-space: nowrap;
+    }
+    
+    .status-badge.completed {
+        background: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+    }
+    
+    .status-badge.pending {
+        background: #fff3cd;
+        color: #856404;
+        border: 1px solid #ffc107;
+    }
+    
+    .delivery-details {
+        font-size: 11px;
+        color: #666;
+        margin-top: 4px;
+    }
+    
+    .bottle-info {
+        font-size: 11px;
+        color: #4CAF50;
+        margin-top: 4px;
+        font-weight: 600;
+    }
+    
+    /* Assignment Dropdown */
+    .assign-select {
+        width: 100%;
+        padding: 8px 12px;
+        border: 2px solid #e0e0e0;
+        border-radius: 8px;
+        font-size: 13px;
+        font-weight: 600;
+        color: #2c3e50;
+        background: white;
+        cursor: pointer;
+        transition: all 0.3s;
+        appearance: none;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%232c3e50' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 10px center;
+        padding-right: 35px;
+    }
+    
+    .assign-select:focus {
+        outline: none;
+        border-color: #4CAF50;
+        box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.1);
+    }
+    
+    .assign-select.assigned {
+        border-color: #4CAF50;
+        background-color: #f1f8f4;
+        color: #2e7d32;
+    }
+    
+    .assign-select.unassigned {
+        border-color: #FF9800;
+        background-color: #fff8f0;
+        color: #f57c00;
+    }
+    
+    .assigned-badge {
+        display: inline-block;
+        padding: 4px 10px;
+        border-radius: 12px;
+        font-size: 11px;
+        font-weight: 700;
+        background: #e8f5e9;
+        color: #2e7d32;
+        border: 1px solid #a5d6a7;
+    }
+    
+    .unassigned-badge {
+        display: inline-block;
+        padding: 4px 10px;
+        border-radius: 12px;
+        font-size: 11px;
+        font-weight: 700;
+        background: #fff3e0;
+        color: #f57c00;
+        border: 1px solid #ffb74d;
+    }
+    
+    .bulk-assign-card {
+        background: white;
+        border-radius: 12px;
+        padding: 20px;
+        margin-bottom: 25px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        border-left: 5px solid #2196F3;
+    }
+    
+    .bulk-assign-card h3 {
+        color: #2c3e50;
+        margin: 0 0 15px 0;
+        font-size: 16px;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    .bulk-assign-card h3::before {
+        content: '👥';
+        font-size: 20px;
+    }
+    
+    .bulk-assign-form {
+        display: grid;
+        grid-template-columns: 1fr 1fr auto;
+        gap: 15px;
+        align-items: end;
+    }
+    
+    @media (max-width: 768px) {
+        .bulk-assign-form {
+            grid-template-columns: 1fr;
+        }
+    }
+    
+    .total-row {
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        font-weight: 700;
+        border-top: 3px solid #4CAF50 !important;
+    }
+    
+    .total-row td {
+        padding: 18px 12px;
+        font-size: 16px;
+    }
+    
+    .total-label {
+        text-align: right;
+        padding-right: 20px;
+        color: #2c3e50;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+    
+    .total-amount {
+        color: #4CAF50;
+        font-size: 18px;
+        font-weight: 700;
+    }
+    
+    /* Paused Section */
+    .paused-section {
+        background: white;
+        border-radius: 12px;
+        padding: 25px;
+        margin-bottom: 25px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        border-left: 5px solid #FF9800;
+    }
+    
+    .paused-section h3 {
+        color: #2c3e50;
+        margin: 0 0 20px 0;
+        font-size: 18px;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    .paused-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+    
+    .paused-list li {
+        padding: 12px 16px;
+        margin-bottom: 10px;
+        background: #fff3cd;
+        border-radius: 8px;
+        color: #856404;
+        font-size: 14px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        border-left: 4px solid #ffc107;
+    }
+    
+    .paused-list li::before {
+        content: '⏸️';
+        font-size: 16px;
+    }
+    
+    .paused-list li strong {
+        color: #2c3e50;
+        font-weight: 700;
+    }
+    
+    /* No Data State */
+    .no-data {
+        text-align: center;
+        padding: 60px 20px;
+        color: #999;
+    }
+    
+    .no-data::before {
+        content: '📭';
+        display: block;
+        font-size: 64px;
+        margin-bottom: 15px;
+        opacity: 0.5;
+    }
+    
+    .no-data p {
+        font-size: 16px;
+        margin: 0;
+    }
+    
+    /* Print Button */
+    .print-button {
+        position: fixed;
+        bottom: 30px;
+        right: 30px;
+        background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+        color: white;
+        border: none;
+        padding: 16px 32px;
+        border-radius: 50px;
+        font-size: 16px;
+        font-weight: 700;
+        cursor: pointer;
+        box-shadow: 0 6px 20px rgba(76, 175, 80, 0.4);
+        transition: all 0.3s;
+        z-index: 1000;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    .print-button:hover {
+        background: linear-gradient(135deg, #45a049 0%, #3d8b40 100%);
+        box-shadow: 0 8px 25px rgba(76, 175, 80, 0.5);
+        transform: translateY(-2px);
+    }
+    
+    .print-button::before {
+        content: '🖨️';
+        font-size: 18px;
+    }
+    
+    /* Print Styles */
+    @media print {
+        body {
+            background: white !important;
+        }
+        
+        .sidebar, .print-button, .date-selector-card, .btn-date {
+            display: none !important;
+        }
+        
+        .delivery-report {
+            padding: 0;
+            max-width: 100%;
+        }
+        
+        .report-header, .summary-card, .product-summary, .table-container, .paused-section {
+            box-shadow: none !important;
+            page-break-inside: avoid;
+        }
+        
+        .deliveries-table {
+            page-break-inside: auto;
+        }
+        
+        .deliveries-table tr {
+            page-break-inside: avoid;
+            page-break-after: auto;
+        }
+        
+        .report-header {
+            background: #667eea !important;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+    }
+    
+    /* Responsive */
+    @media (max-width: 768px) {
+        .delivery-report {
+            padding: 15px;
+        }
+        
+        .date-selector-card {
+            flex-direction: column;
+            align-items: stretch;
+        }
+        
+        .date-selector-left,
+        .date-selector-buttons {
+            width: 100%;
+            justify-content: space-between;
+        }
+        
+        .delivery-report .summary-cards {
+            grid-template-columns: 1fr !important;
+            gap: 12px !important;
+        }
+        
+        .delivery-report .product-summary .product-list {
+            grid-template-columns: 1fr !important;
+        }
+    }
+    
+    @media (min-width: 769px) and (max-width: 991px) {
+        .delivery-report .summary-cards {
+            grid-template-columns: repeat(3, 1fr) !important;
+        }
+        
+        .delivery-report .product-summary .product-list {
+            grid-template-columns: repeat(2, 1fr) !important;
+        }
+    }
+        
+        .table-container {
+            padding: 15px;
+        }
+        
+        .deliveries-table {
+            font-size: 12px;
+        }
+        
+        .deliveries-table th,
+        .deliveries-table td {
+            padding: 10px 8px;
+        }
+        
+        .print-button {
+            bottom: 20px;
+            right: 20px;
+            padding: 14px 24px;
+            font-size: 14px;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="delivery-report">
+    <!-- View Tabs -->
+    <div class="view-tabs-card">
+        <div class="view-tabs">
+            <a href="{{ url_for('subscriptions.delivery_schedule', view='today') }}" 
+               class="tab-button {% if current_view == 'today' %}active{% endif %}">
+                📅 Today
+            </a>
+            <a href="{{ url_for('subscriptions.delivery_schedule', view='tomorrow') }}" 
+               class="tab-button {% if current_view == 'tomorrow' %}active{% endif %}">
+                🚚 Tomorrow
+            </a>
+            <div class="tab-button custom-date {% if current_view == 'custom' %}active{% endif %}">
+                📆 Select Date:
+                <input type="date" 
+                       id="delivery-date" 
+                       value="{{ target_date.strftime('%Y-%m-%d') }}"
+                       onchange="loadDate()"
+                       style="margin-left: 8px; padding: 6px 12px; border: 2px solid #e0e0e0; border-radius: 6px; font-size: 14px; cursor: pointer;">
+            </div>
+        </div>
+    </div>
+    
+    <!-- Header -->
+    <div class="report-header">
+        <h1>{{ tenant.company_name }}</h1>
+        <p class="report-date">Delivery Report for {{ target_date.strftime('%A, %d %B %Y') }}</p>
+    </div>
+    
+    <!-- Summary Cards -->
+    <div class="summary-cards">
+        <div class="summary-card green">
+            <div class="summary-card-header">
+                <h3>Total Customers</h3>
+                <div class="summary-card-icon">👥</div>
+            </div>
+            <p class="value">{{ total_customers }}</p>
+        </div>
+        <div class="summary-card blue">
+            <div class="summary-card-header">
+                <h3>Total Amount</h3>
+                <div class="summary-card-icon">💰</div>
+            </div>
+            <p class="value">₹{{ '{:,.0f}'.format(total_amount) }}</p>
+        </div>
+        <div class="summary-card orange">
+            <div class="summary-card-header">
+                <h3>Paused</h3>
+                <div class="summary-card-icon">⏸️</div>
+            </div>
+            <p class="value">{{ paused_deliveries|length }}</p>
+        </div>
+    </div>
+    
+    <!-- Product Summary (Quantities Only) -->
+    {% if product_summary %}
+    <div class="product-summary">
+        <h3>Product Summary</h3>
+        <div class="product-list">
+            {% for product_name, summary in product_summary.items() %}
+            <div class="product-item">
+                <span class="product-name">{{ product_name }}</span>
+                <span class="product-quantity">{{ '{:,.2f}'.format(summary.quantity) }}</span>
+                <span class="product-unit">Total Quantity</span>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- Bulk Assignment Tool - Using Table Layout -->
+    {% if employees %}
+    <div class="bulk-assign-card">
+        <h3>👥 Permanent Employee-Customer Assignment</h3>
+        <p style="font-size: 13px; color: #666; margin-bottom: 8px;">
+            <strong>Step 1:</strong> Select employee → <strong>Step 2:</strong> Select their customers → <strong>Step 3:</strong> Save
+        </p>
+        <p style="font-size: 12px; color: #ff6b00; margin-bottom: 15px; font-style: italic;">
+            💡 This sets the default employee for each customer (applies to ALL future deliveries, not just the selected date)
+        </p>
+        
+        <!-- Employee Selector -->
+        <div style="margin-bottom: 20px; display: flex; align-items: center; gap: 15px;">
+            <label style="font-size: 14px; font-weight: 700; color: #2c3e50; white-space: nowrap;">
+                Select Delivery Employee:
+            </label>
+            <select id="employee-selector" class="assign-select" style="flex: 1; max-width: 400px; font-size: 15px; padding: 12px;">
+                <option value="">-- Choose employee first --</option>
+                {% for emp in employees %}
+                    <option value="{{ emp.id }}">{{ emp.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        
+        <!-- Customer Selection Form -->
+        <form id="bulk-assign-form" method="POST" action="{{ url_for('subscriptions.bulk_assign_deliveries') }}" style="display: none;">
+            <input type="hidden" name="employee_id" id="selected-employee-id">
+            <input type="hidden" name="date" value="{{ target_date.strftime('%Y-%m-%d') }}">
+            
+            <div style="margin-bottom: 15px;">
+                <!-- Header with Title and Buttons -->
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                    <h4 style="margin: 0; font-size: 16px; color: #2c3e50;">
+                        Select Customers for <span id="employee-name-display" style="color: #4CAF50;"></span>:
+                    </h4>
+                    <div>
+                        <button type="button" onclick="selectAll()" style="background: #2196F3; color: white; border: none; padding: 8px 16px; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; margin-right: 10px;">
+                            ✓ Select All
+                        </button>
+                        <button type="button" onclick="deselectAll()" style="background: #FF5722; color: white; border: none; padding: 8px 16px; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer;">
+                            ✗ Deselect All
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Search Box and Selection Counter -->
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; gap: 15px;">
+                    <div style="flex: 1; max-width: 400px;">
+                        <input type="text" 
+                               id="customer-search" 
+                               placeholder="🔍 Search customers by name or phone..."
+                               style="width: 100%; padding: 10px 15px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 14px; transition: border-color 0.2s;"
+                               onkeyup="filterCustomers()"
+                               onfocus="this.style.borderColor='#4CAF50'"
+                               onblur="this.style.borderColor='#e0e0e0'">
+                    </div>
+                    <div id="selection-counter" style="font-size: 14px; font-weight: 600; color: #4CAF50; background: #f1f8f4; padding: 10px 20px; border-radius: 8px; white-space: nowrap;">
+                        <span id="selected-count">0</span> customers selected
+                    </div>
+                </div>
+                
+                <!-- Customer Table (Same style as main delivery table) -->
+                <div style="border: 2px solid #e0e0e0; border-radius: 8px; overflow: hidden;">
+                    <div style="max-height: 500px; overflow-y: auto;">
+                        <table class="deliveries-table" id="customer-table">
+                            <thead style="position: sticky; top: 0; background: white; z-index: 10;">
+                                <tr>
+                                    <th style="width: 5%;">☑</th>
+                                    <th style="width: 5%;">#</th>
+                                    <th style="width: 30%;">Customer</th>
+                                    <th style="width: 20%;">Contact</th>
+                                    <th style="width: 25%;">Product</th>
+                                    <th style="width: 15%;">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="customer-table-body">
+                                <!-- Will be populated by JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <!-- Results Summary -->
+                <div id="search-summary" style="margin-top: 8px; font-size: 13px; color: #666; display: none;">
+                    Showing <span id="visible-count">0</span> of <span id="total-count">0</span> customers
+                </div>
+            </div>
+            
+            <button type="submit" class="btn-date primary" style="margin: 0; width: 100%; padding: 14px; font-size: 16px;">
+                💾 Assign Selected Customers
+            </button>
+        </form>
+    </div>
+    {% endif %}
+    
+    <!-- Deliveries Table -->
+    <div class="table-container">
+        <table class="deliveries-table">
+            <thead>
+                <tr>
+                    <th style="width: 4%;">#</th>
+                    <th style="width: 16%;">Customer</th>
+                    <th style="width: 10%;">Contact</th>
+                    <th style="width: 14%;">Product</th>
+                    <th style="width: 10%;">Quantity</th>
+                    <th style="width: 14%;">Assigned To</th>
+                    <th style="width: 16%;">Status</th>
+                    <th style="width: 12%;">Amount</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if active_deliveries %}
+                    {% for delivery in active_deliveries %}
+                    <tr>
+                        <td>{{ loop.index }}</td>
+                        <td>
+                            <div class="customer-name">{{ delivery.subscription.customer.name }}</div>
+                            {% if delivery.subscription.customer.address %}
+                            <div class="customer-address">{{ delivery.subscription.customer.address }}</div>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if delivery.subscription.customer.phone %}
+                            <div class="customer-phone">
+                                <span>📞</span>
+                                <span>{{ delivery.subscription.customer.phone }}</span>
+                            </div>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="product-info">{{ delivery.subscription.plan.name }}</span>
+                            {% if delivery.is_modified %}
+                            <span class="modified-badge">Modified</span>
+                            {% endif %}
+                            {% if delivery.notes %}
+                            <div class="delivery-notes">
+                                📝 {{ delivery.notes }}
+                            </div>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="quantity-badge">
+                                {{ delivery.quantity }} {{ delivery.subscription.plan.unit_name }}
+                            </span>
+                        </td>
+                        <td>
+                            <!-- Assignment Dropdown -->
+                            <form method="POST" action="{{ url_for('subscriptions.assign_delivery') }}" style="margin: 0;">
+                                <input type="hidden" name="delivery_id" value="{{ delivery.id }}">
+                                <select name="employee_id" 
+                                        class="assign-select {% if delivery.assigned_to %}assigned{% else %}unassigned{% endif %}"
+                                        onchange="this.form.submit()">
+                                    <option value="">🚫 Unassigned</option>
+                                    {% for emp in employees %}
+                                        <option value="{{ emp.id }}" {% if delivery.assigned_to == emp.id %}selected{% endif %}>
+                                            👤 {{ emp.name }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </form>
+                        </td>
+                        <td>
+                            {% if delivery.delivered_at %}
+                            <span class="status-badge completed">✅ Delivered</span>
+                            <div class="delivery-details">
+                                {% if delivery.delivered_by_employee %}
+                                By: {{ delivery.delivered_by_employee.name }}
+                                {% endif %}
+                            </div>
+                            <div class="delivery-details">
+                                {{ delivery.delivered_at.strftime('%I:%M %p') }}
+                            </div>
+                            {% if delivery.bottles_collected > 0 or delivery.bottles_delivered > 0 %}
+                            <div class="bottle-info">
+                                🍾 Delivered: {{ delivery.bottles_delivered }}, Collected: {{ delivery.bottles_collected }}
+                            </div>
+                            {% endif %}
+                            {% else %}
+                            <span class="status-badge pending">⏳ Pending</span>
+                            {% endif %}
+                        </td>
+                        <td class="amount-cell">
+                            ₹{{ '{:,.2f}'.format(delivery.amount) }}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    
+                    <!-- Total Row -->
+                    <tr class="total-row">
+                        <td colspan="7" class="total-label">
+                            TOTAL
+                        </td>
+                        <td class="total-amount">
+                            ₹{{ '{:,.2f}'.format(total_amount) }}
+                        </td>
+                    </tr>
+                {% else %}
+                    <tr>
+                        <td colspan="8">
+                            <div class="no-data">
+                                <p>No deliveries scheduled for {{ target_date.strftime('%d %B %Y') }}</p>
+                            </div>
+                        </td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+    
+    <!-- Paused Deliveries -->
+    {% if paused_deliveries %}
+    <div class="paused-section">
+        <h3>Paused Deliveries ({{ paused_deliveries|length }})</h3>
+        <ul class="paused-list">
+            {% for delivery in paused_deliveries %}
+            <li>
+                <strong>{{ delivery.subscription.customer.name }}</strong> - 
+                {{ delivery.subscription.plan.name }}
+                {% if delivery.modification_reason %}
+                ({{ delivery.modification_reason }})
+                {% endif %}
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+    
+</div>
+
+<!-- Print Button -->
+<button class="print-button" onclick="window.print()">
+    Print Report
+</button>
+
+<script>
+function loadDate() {
+    const date = document.getElementById('delivery-date').value;
+    window.location.href = '{{ url_for("subscriptions.delivery_schedule") }}?date=' + date;
+}
+
+// Bulk Assignment Tool Functions
+// For date-specific delivery list
+const deliveries = {{ deliveries_json | tojson }};
+const employees = {{ employees_json | tojson }};
+
+// For bulk assignment (ALL customers with active subscriptions, not date-filtered)
+const allCustomers = {{ all_customers_json | tojson }};
+
+document.addEventListener('DOMContentLoaded', function() {
+    const employeeSelector = document.getElementById('employee-selector');
+    const bulkAssignForm = document.getElementById('bulk-assign-form');
+    const employeeNameDisplay = document.getElementById('employee-name-display');
+    const selectedEmployeeIdInput = document.getElementById('selected-employee-id');
+    
+    employeeSelector.addEventListener('change', function() {
+        const employeeId = this.value;
+        
+        if (!employeeId) {
+            bulkAssignForm.style.display = 'none';
+            return;
+        }
+        
+        // Find employee name
+        const employee = employees.find(e => e.id == employeeId);
+        const employeeName = employee ? employee.name : '';
+        
+        // Show form and update employee name
+        bulkAssignForm.style.display = 'block';
+        employeeNameDisplay.textContent = employeeName;
+        selectedEmployeeIdInput.value = employeeId;
+        
+        // Populate customer table
+        populateCustomerList(employeeId);
+    });
+});
+
+function populateCustomerList(employeeId) {
+    const tableBody = document.getElementById('customer-table-body');
+    
+    // Use ALL customers with active subscriptions (not date-filtered)
+    // This shows permanent employee-customer mapping
+    let html = '';
+    let rowNum = 0;
+    
+    allCustomers.forEach(customer => {
+        rowNum++;
+        const isAssigned = customer.default_employee_id == employeeId;
+        
+        html += `
+            <tr class="customer-row" data-name="${customer.name.toLowerCase()}" data-phone="${customer.phone.toLowerCase()}" style="${isAssigned ? 'background: #f1f8f4;' : ''}">
+                <td style="text-align: center;">
+                    <input type="checkbox" name="customer_ids" value="${customer.id}" ${isAssigned ? 'checked' : ''} 
+                           class="customer-checkbox"
+                           style="width: 18px; height: 18px; cursor: pointer;"
+                           onchange="updateSelectionCounter()">
+                </td>
+                <td>${rowNum}</td>
+                <td>
+                    <div class="customer-name">${customer.name}</div>
+                </td>
+                <td>
+                    ${customer.phone ? `<div class="customer-phone">📞 ${customer.phone}</div>` : '<span style="color: #999;">-</span>'}
+                </td>
+                <td>
+                    <span class="product-info">${customer.plans}</span>
+                </td>
+                <td>
+                    ${isAssigned ? 
+                        '<span class="status-badge completed">✅ Assigned</span>' : 
+                        '<span class="status-badge pending">⏳ Unassigned</span>'
+                    }
+                </td>
+            </tr>
+        `;
+    });
+    
+    // Show message if no customers
+    if (allCustomers.length === 0) {
+        html = `
+            <tr>
+                <td colspan="6" style="text-align: center; padding: 30px; color: #999;">
+                    <strong>No customers with active subscriptions found</strong>
+                </td>
+            </tr>
+        `;
+    }
+    
+    tableBody.innerHTML = html;
+    
+    // Initialize counters and summary
+    updateSelectionCounter();
+    updateSearchSummary();
+    
+    // Clear search box
+    const searchBox = document.getElementById('customer-search');
+    if (searchBox) searchBox.value = '';
+}
+
+function selectAll() {
+    // Only select visible (not filtered out) checkboxes
+    document.querySelectorAll('#customer-table tbody tr:not([style*="display: none"]) input[type="checkbox"]').forEach(cb => {
+        cb.checked = true;
+    });
+    updateSelectionCounter();
+}
+
+function deselectAll() {
+    document.querySelectorAll('#customer-table input[type="checkbox"]').forEach(cb => {
+        cb.checked = false;
+    });
+    updateSelectionCounter();
+}
+
+function updateSelectionCounter() {
+    const checkboxes = document.querySelectorAll('#customer-table input.customer-checkbox');
+    const checkedCount = Array.from(checkboxes).filter(cb => cb.checked).length;
+    
+    const counterElement = document.getElementById('selected-count');
+    if (counterElement) {
+        counterElement.textContent = checkedCount;
+        
+        // Change color based on selection
+        const counterContainer = document.getElementById('selection-counter');
+        if (checkedCount > 0) {
+            counterContainer.style.background = '#e8f5e9';
+            counterContainer.style.color = '#2e7d32';
+        } else {
+            counterContainer.style.background = '#f1f8f4';
+            counterContainer.style.color = '#4CAF50';
+        }
+    }
+}
+
+function filterCustomers() {
+    const searchInput = document.getElementById('customer-search');
+    const searchText = searchInput.value.toLowerCase().trim();
+    const rows = document.querySelectorAll('#customer-table tbody .customer-row');
+    
+    let visibleCount = 0;
+    
+    rows.forEach(row => {
+        const name = row.getAttribute('data-name') || '';
+        const phone = row.getAttribute('data-phone') || '';
+        
+        if (name.includes(searchText) || phone.includes(searchText)) {
+            row.style.display = '';
+            visibleCount++;
+        } else {
+            row.style.display = 'none';
+        }
+    });
+    
+    updateSearchSummary(visibleCount, rows.length);
+}
+
+function updateSearchSummary(visibleCount = null, totalCount = null) {
+    const summaryElement = document.getElementById('search-summary');
+    const visibleCountElement = document.getElementById('visible-count');
+    const totalCountElement = document.getElementById('total-count');
+    
+    if (!summaryElement) return;
+    
+    // Calculate counts if not provided
+    if (visibleCount === null) {
+        const allRows = document.querySelectorAll('#customer-table tbody .customer-row');
+        totalCount = allRows.length;
+        visibleCount = Array.from(allRows).filter(row => row.style.display !== 'none').length;
+    }
+    
+    // Show/hide summary based on search
+    const searchInput = document.getElementById('customer-search');
+    const isSearching = searchInput && searchInput.value.trim() !== '';
+    
+    if (isSearching && totalCount > 0) {
+        summaryElement.style.display = 'block';
+        visibleCountElement.textContent = visibleCount;
+        totalCountElement.textContent = totalCount;
+    } else {
+        summaryElement.style.display = 'none';
+    }
+}
+</script>
+
+{% endblock %}
