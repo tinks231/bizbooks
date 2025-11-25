@@ -188,7 +188,7 @@
                 <h5 class="modal-title">⏸️ Pause Deliveries</h5>
                 <button type="button" class="close" data-dismiss="modal">&times;</button>
             </div>
-            <form method="POST" action="{{ url_for('subscriptions.pause_deliveries_metered') }}">
+            <form method="POST" action="{{ url_for('subscriptions.pause_deliveries') }}">
                 <div class="modal-body">
                     <div class="form-group">
                         <label class="field-label"><strong>Customer *</strong></label>
@@ -229,8 +229,7 @@
                 <h5 class="modal-title">✏️ Edit Delivery</h5>
                 <button type="button" class="close" data-dismiss="modal">&times;</button>
             </div>
-            <form method="POST" action="{{ url_for('subscriptions.edit_delivery_direct') }}">
-                <input type="hidden" name="delivery_id" id="edit_delivery_id">
+            <form method="POST" id="editDeliveryForm">
                 <div class="modal-body">
                     <div class="form-group">
                         <label class="field-label"><strong>Date</strong></label>
@@ -239,7 +238,7 @@
                     <div class="form-group">
                         <label class="field-label"><strong>New Quantity *</strong></label>
                         <div style="display: flex; align-items: center; gap: 10px;">
-                            <input type="number" name="new_quantity" id="edit_quantity" class="form-control" step="0.01" min="0" required style="flex: 1;">
+                            <input type="number" name="quantity" id="edit_quantity" class="form-control" step="0.01" min="0" required style="flex: 1;">
                             <span id="edit_unit" style="color: #666; font-weight: 600; min-width: 60px;">units</span>
                         </div>
                     </div>
@@ -346,10 +345,15 @@ function openPauseModal() {
 }
 
 function openEditDeliveryModal(deliveryId, date, subscriptionId, quantity, unit) {
-    document.getElementById('edit_delivery_id').value = deliveryId;
+    // Set form action with delivery_id in URL
+    const form = document.getElementById('editDeliveryForm');
+    form.action = `/admin/subscriptions/deliveries/edit/${deliveryId}`;
+    
+    // Populate form fields
     document.getElementById('edit_delivery_date').value = date;
     document.getElementById('edit_quantity').value = quantity;
     document.getElementById('edit_unit').textContent = unit;
+    
     $('#editDeliveryModal').modal('show');
 }
 
