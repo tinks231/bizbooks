@@ -94,38 +94,8 @@ def should_deliver_on_date(date, pattern, custom_days=None, start_date=None):
 # ============================================================
 # DAILY DELIVERIES (METERED SUBSCRIPTIONS)
 # ============================================================
-@subscriptions_bp.route('/deliveries', methods=['GET'], strict_slashes=False)
-@require_tenant
-@login_required
-def deliveries():
-    """Daily Deliveries page - Shows exceptions and allows modifications"""
-    tenant_id = get_current_tenant_id()
-    
-    # Get only exceptions (modified/paused deliveries)
-    today = datetime.now().date()
-    exceptions = SubscriptionDelivery.get_exceptions(
-        tenant_id=tenant_id,
-        date_from=today - timedelta(days=7),  # Past week
-        date_to=today + timedelta(days=30)     # Next month
-    )
-    
-    # Get all active metered subscriptions for dropdowns
-    active_subscriptions = CustomerSubscription.query.join(
-        CustomerSubscription.plan
-    ).filter(
-        CustomerSubscription.tenant_id == tenant_id,
-        CustomerSubscription.status == 'active',
-        SubscriptionPlan.plan_type == 'metered'
-    ).options(
-        joinedload(CustomerSubscription.customer),
-        joinedload(CustomerSubscription.plan)
-    ).all()
-    
-    return render_template('admin/subscriptions/deliveries.html',
-                         exceptions=exceptions,
-                         active_subscriptions=active_subscriptions,
-                         now=datetime.now,
-                         timedelta=timedelta)
+# NOTE: This route has been merged into delivery_schedule() with view='manage'
+# See backward compatibility redirect below
 
 
 @subscriptions_bp.route('/schedule', methods=['GET'], strict_slashes=False)
