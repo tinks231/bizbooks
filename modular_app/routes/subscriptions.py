@@ -132,16 +132,47 @@ def deliveries():
 @require_tenant
 @login_required
 def delivery_schedule():
-    """Delivery Schedule - Today/Tomorrow/Custom Date view with bulk assignment"""
+    """Delivery Schedule - Manage/Today/Tomorrow/Custom Date view with bulk assignment"""
     tenant_id = get_current_tenant_id()
     
     # Get view type and target date
     from datetime import datetime, timedelta
-    view = request.args.get('view', 'today')  # today, tomorrow, or custom
+    view = request.args.get('view', 'manage')  # manage, today, tomorrow, or custom
     date_param = request.args.get('date')
     
-    # Determine target date based on view
     today = datetime.now().date()
+    
+    # Handle "Manage" view (exceptions & billing)
+    if view == 'manage':
+        # Get only exceptions (modified/paused deliveries)
+        exceptions = SubscriptionDelivery.get_exceptions(
+            tenant_id=tenant_id,
+            date_from=today - timedelta(days=7),  # Past week
+            date_to=today + timedelta(days=30)     # Next month
+        )
+        
+        # Get all active metered subscriptions for dropdowns and billing
+        active_subscriptions = CustomerSubscription.query.join(
+            CustomerSubscription.plan
+        ).filter(
+            CustomerSubscription.tenant_id == tenant_id,
+            CustomerSubscription.status == 'active',
+            SubscriptionPlan.plan_type == 'metered'
+        ).options(
+            joinedload(CustomerSubscription.customer),
+            joinedload(CustomerSubscription.plan)
+        ).all()
+        
+        return render_template('admin/subscriptions/delivery_schedule.html',
+                             current_view=view,
+                             exceptions=exceptions,
+                             active_subscriptions=active_subscriptions,
+                             now=datetime.now,
+                             timedelta=timedelta,
+                             tenant=g.tenant)
+    
+    # Handle date-based views (today, tomorrow, custom)
+    # Determine target date based on view
     if date_param:
         # Custom date provided
         try:
@@ -264,6 +295,13 @@ def delivery_schedule():
 
 
 # Backward compatibility redirects
+@subscriptions_bp.route('/deliveries', methods=['GET'], strict_slashes=False)
+@require_tenant
+@login_required
+def deliveries():
+    """Redirect to new delivery schedule page (manage view)"""
+    return redirect(url_for('subscriptions.delivery_schedule', view='manage'))
+
 @subscriptions_bp.route('/deliveries/tomorrow', methods=['GET'], strict_slashes=False)
 @require_tenant
 @login_required

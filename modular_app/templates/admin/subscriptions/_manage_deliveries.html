@@ -1,0 +1,365 @@
+<!-- MANAGE VIEW: Exceptions & Billing -->
+
+<!-- Page Header -->
+<div class="report-header">
+    <h1>📝 Manage Deliveries</h1>
+    <p class="report-date">Exceptions, modifications & monthly billing</p>
+</div>
+
+<!-- Billing Ready Section (Month-End) -->
+{% set today = now().date() %}
+{% set ready_for_billing = [] %}
+{% for sub in active_subscriptions %}
+    {% if sub.plan.plan_type == 'metered' and sub.current_period_end <= today + timedelta(days=30) %}
+        {% set _ = ready_for_billing.append(sub) %}
+    {% endif %}
+{% endfor %}
+
+{% if ready_for_billing %}
+<div class="billing-ready-card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <div>
+            <h2 style="margin: 0 0 8px 0;">💰 Ready for Monthly Billing</h2>
+            <p style="margin: 0; color: #666; font-size: 15px;">{{ ready_for_billing|length }} subscription(s) ending soon. Generate invoices to bill customers</p>
+        </div>
+        <form method="POST" action="{{ url_for('subscriptions.generate_all_invoices') }}" style="display: inline;" onsubmit="return confirm('Generate invoices for all {{ ready_for_billing|length }} customer(s)? This cannot be undone.')">
+            <button type="submit" class="btn-primary" style="padding: 12px 24px; font-size: 16px;">
+                💰 Generate All Invoices ({{ ready_for_billing|length }})
+            </button>
+        </form>
+    </div>
+    {% for sub in ready_for_billing %}
+    <div class="billing-customer-card">
+        <div>
+            <strong style="font-size: 16px; color: #2c3e50;">{{ sub.customer.name }}</strong> - {{ sub.plan.name }}<br>
+            <small style="color: #666;">Period: {{ sub.current_period_start.strftime('%b %d') }} - {{ sub.current_period_end.strftime('%b %d, %Y') }} ({{ (sub.current_period_end - sub.current_period_start).days + 1 }} days)</small>
+        </div>
+        <div style="display: flex; gap: 10px;">
+            <a href="{{ url_for('subscriptions.generate_invoice_metered', subscription_id=sub.id) }}" class="btn-outline">
+                👁️ Preview
+            </a>
+            <form method="POST" action="{{ url_for('subscriptions.generate_invoice_metered', subscription_id=sub.id) }}" style="display: inline;">
+                <button type="submit" class="btn-primary">
+                    💰 Generate
+                </button>
+            </form>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+<!-- Exceptions Section -->
+<div class="exceptions-section">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <div>
+            <h2 style="margin: 0 0 8px 0;">🚨 Exceptions & Changes</h2>
+            <p style="margin: 0; color: #666; font-size: 14px;">Shows only paused, modified, or upcoming changes (99% automated!)</p>
+        </div>
+        <div style="display: flex; gap: 10px;">
+            <button class="btn-primary" onclick="openModifyModal()">
+                ✏️ Modify Delivery
+            </button>
+            <button class="btn-primary" onclick="openPauseModal()" style="background: #FFA726;">
+                ⏸️ Pause Deliveries
+            </button>
+        </div>
+    </div>
+
+    <!-- Exceptions Table -->
+    {% if exceptions %}
+    <div style="background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
+        <table class="deliveries-table">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Customer</th>
+                    <th>Plan</th>
+                    <th>Quantity</th>
+                    <th>Status</th>
+                    <th>Reason</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for delivery in exceptions %}
+                <tr>
+                    <td><strong>{{ delivery.delivery_date.strftime('%b %d, %Y') }}</strong></td>
+                    <td>
+                        <div class="customer-name">{{ delivery.subscription.customer.name }}</div>
+                    </td>
+                    <td>{{ delivery.subscription.plan.name }}</td>
+                    <td>
+                        {% if delivery.quantity == 0 %}
+                        <span style="color: #999;">-</span>
+                        {% else %}
+                        <strong>{{ delivery.quantity }} {{ delivery.subscription.plan.unit_name }}</strong>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if delivery.status == 'paused' or delivery.quantity == 0 %}
+                        <span class="status-badge" style="background: #FFF3E0; color: #F57C00;">⏸️ Paused</span>
+                        {% elif delivery.is_modified %}
+                        <span class="status-badge" style="background: #E3F2FD; color: #1976D2;">✏️ Modified</span>
+                        {% else %}
+                        <span class="status-badge completed">✅ Delivered</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ delivery.modification_reason or '-' }}</td>
+                    <td>
+                        <button class="action-btn" onclick="openEditDeliveryModal({{ delivery.id }}, '{{ delivery.delivery_date }}', {{ delivery.subscription.id }}, {{ delivery.quantity }}, '{{ delivery.subscription.plan.unit_name }}')" title="Edit">
+                            ✏️
+                        </button>
+                        {% if delivery.status == 'paused' %}
+                        <form method="POST" action="{{ url_for('subscriptions.resume_delivery', delivery_id=delivery.id) }}" style="display: inline;">
+                            <button type="submit" class="action-btn" style="background: #4CAF50; color: white;" title="Resume">
+                                ▶️
+                            </button>
+                        </form>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div style="background: white; border-radius: 12px; padding: 60px 20px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
+        <div style="font-size: 64px; margin-bottom: 20px;">🎉</div>
+        <h3 style="color: #2c3e50; margin-bottom: 10px;">No Exceptions - All Good!</h3>
+        <p style="color: #666; font-size: 15px; margin: 0;">All deliveries are running as per default schedule. System is on autopilot! 🚀</p>
+        <p style="color: #999; font-size: 13px; margin-top: 8px;">You'll only see entries here when customers pause, increase, or decrease their orders.</p>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Modify Delivery Modal -->
+<div class="modal fade" id="modifyModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">✏️ Modify Delivery</h5>
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+            </div>
+            <form method="POST" action="{{ url_for('subscriptions.modify_delivery') }}">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label class="field-label"><strong>Customer *</strong></label>
+                        <select name="subscription_id" id="modify_subscription" class="form-control" required onchange="updateModifyUnit()">
+                            <option value="">-- Select Customer --</option>
+                            {% for sub in active_subscriptions %}
+                            <option value="{{ sub.id }}" data-unit="{{ sub.plan.unit_name }}" data-default="{{ sub.default_quantity }}">
+                                {{ sub.customer.name }} - {{ sub.plan.name }} ({{ sub.default_quantity }} {{ sub.plan.unit_name }}/day)
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="field-label"><strong>Date *</strong></label>
+                        <input type="date" name="delivery_date" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="field-label"><strong>New Quantity *</strong></label>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <input type="number" name="new_quantity" id="modify_quantity" class="form-control" step="0.01" min="0" required style="flex: 1;">
+                            <span id="modify_unit" style="color: #666; font-weight: 600; min-width: 60px;">units</span>
+                        </div>
+                        <small class="text-muted">Default: <span id="modify_default">-</span></small>
+                    </div>
+                    <div class="form-group">
+                        <label class="field-label"><strong>Reason</strong></label>
+                        <input type="text" name="reason" class="form-control" placeholder="Optional">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success">💾 Save Change</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Pause Deliveries Modal -->
+<div class="modal fade" id="pauseModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">⏸️ Pause Deliveries</h5>
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+            </div>
+            <form method="POST" action="{{ url_for('subscriptions.pause_deliveries_metered') }}">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label class="field-label"><strong>Customer *</strong></label>
+                        <select name="subscription_id" class="form-control" required>
+                            <option value="">-- Select Customer --</option>
+                            {% for sub in active_subscriptions %}
+                            <option value="{{ sub.id }}">{{ sub.customer.name }} - {{ sub.plan.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="field-label"><strong>From Date *</strong></label>
+                        <input type="date" name="start_date" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="field-label"><strong>To Date *</strong></label>
+                        <input type="date" name="end_date" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="field-label"><strong>Reason</strong></label>
+                        <input type="text" name="reason" class="form-control" placeholder="Optional">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-warning">⏸️ Pause Deliveries</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Delivery Modal -->
+<div class="modal fade" id="editDeliveryModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">✏️ Edit Delivery</h5>
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+            </div>
+            <form method="POST" action="{{ url_for('subscriptions.edit_delivery_direct') }}">
+                <input type="hidden" name="delivery_id" id="edit_delivery_id">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label class="field-label"><strong>Date</strong></label>
+                        <input type="text" id="edit_delivery_date" class="form-control" readonly style="background: #f5f5f5;">
+                    </div>
+                    <div class="form-group">
+                        <label class="field-label"><strong>New Quantity *</strong></label>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <input type="number" name="new_quantity" id="edit_quantity" class="form-control" step="0.01" min="0" required style="flex: 1;">
+                            <span id="edit_unit" style="color: #666; font-weight: 600; min-width: 60px;">units</span>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="field-label"><strong>Reason</strong></label>
+                        <input type="text" name="reason" class="form-control" placeholder="Optional">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success">💾 Update Delivery</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Manage View Specific Styles */
+.billing-ready-card {
+    background: #E8F5E9;
+    border-radius: 12px;
+    padding: 25px;
+    margin-bottom: 30px;
+    border-left: 5px solid #4CAF50;
+}
+
+.billing-customer-card {
+    padding: 15px;
+    background: white;
+    border-radius: 8px;
+    margin-top: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.exceptions-section {
+    margin-top: 30px;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 10px 20px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.btn-outline {
+    background: transparent;
+    color: #4CAF50;
+    border: 2px solid #4CAF50;
+    border-radius: 8px;
+    padding: 8px 16px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+    text-decoration: none;
+    display: inline-block;
+}
+
+.btn-outline:hover {
+    background: #4CAF50;
+    color: white;
+}
+
+.action-btn {
+    background: #E3F2FD;
+    color: #1976D2;
+    border: none;
+    border-radius: 6px;
+    padding: 6px 12px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.action-btn:hover {
+    background: #1976D2;
+    color: white;
+    transform: scale(1.05);
+}
+</style>
+
+<script>
+function openModifyModal() {
+    $('#modifyModal').modal('show');
+}
+
+function openPauseModal() {
+    $('#pauseModal').modal('show');
+}
+
+function openEditDeliveryModal(deliveryId, date, subscriptionId, quantity, unit) {
+    document.getElementById('edit_delivery_id').value = deliveryId;
+    document.getElementById('edit_delivery_date').value = date;
+    document.getElementById('edit_quantity').value = quantity;
+    document.getElementById('edit_unit').textContent = unit;
+    $('#editDeliveryModal').modal('show');
+}
+
+function updateModifyUnit() {
+    const select = document.getElementById('modify_subscription');
+    const option = select.options[select.selectedIndex];
+    const unit = option.getAttribute('data-unit') || 'units';
+    const defaultQty = option.getAttribute('data-default') || '-';
+    document.getElementById('modify_unit').textContent = unit;
+    document.getElementById('modify_default').textContent = defaultQty + ' ' + unit;
+}
+</script>
+
