@@ -190,6 +190,27 @@ def tomorrow_deliveries():
         active=True
     ).order_by(Employee.name.asc()).all()
     
+    # Convert deliveries to JSON-serializable format for JavaScript
+    deliveries_json = []
+    for d in active_deliveries:
+        deliveries_json.append({
+            'id': d.id,
+            'subscription': {
+                'customer': {
+                    'id': d.subscription.customer.id,
+                    'name': d.subscription.customer.name,
+                    'phone': d.subscription.customer.phone
+                },
+                'plan': {
+                    'name': d.subscription.plan.name
+                }
+            },
+            'assigned_to': d.assigned_to
+        })
+    
+    # Convert employees to JSON-serializable format
+    employees_json = [{'id': e.id, 'name': e.name} for e in employees]
+    
     return render_template('admin/subscriptions/tomorrow_deliveries.html',
                          target_date=target_date,
                          active_deliveries=active_deliveries,
@@ -198,6 +219,8 @@ def tomorrow_deliveries():
                          total_amount=total_amount,
                          product_summary=dict(product_summary),
                          employees=employees,
+                         deliveries_json=deliveries_json,
+                         employees_json=employees_json,
                          tenant=g.tenant)
 
 

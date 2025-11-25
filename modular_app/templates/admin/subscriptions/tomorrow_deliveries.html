@@ -1037,8 +1037,8 @@ function loadDate() {
 }
 
 // Bulk Assignment Tool Functions
-const customers = {{ active_deliveries | tojson }};
-const employees = {{ employees | tojson }};
+const customers = {{ deliveries_json | tojson }};
+const employees = {{ employees_json | tojson }};
 
 document.addEventListener('DOMContentLoaded', function() {
     const employeeSelector = document.getElementById('employee-selector');
