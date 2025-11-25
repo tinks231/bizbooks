@@ -187,7 +187,7 @@ def tomorrow_deliveries():
     from models.employee import Employee
     employees = Employee.query.filter_by(
         tenant_id=tenant_id,
-        is_active=True
+        active=True
     ).order_by(Employee.name.asc()).all()
     
     return render_template('admin/subscriptions/tomorrow_deliveries.html',
@@ -224,7 +224,7 @@ def assign_delivery():
             employee = Employee.query.filter_by(
                 id=int(employee_id),
                 tenant_id=tenant_id,
-                is_active=True
+                active=True
             ).first_or_404()
             delivery.assigned_to = employee.id
             flash(f'✅ Delivery assigned to {employee.name}', 'success')
@@ -289,7 +289,7 @@ def bulk_assign_deliveries():
             employee = Employee.query.filter_by(
                 id=int(employee_id),
                 tenant_id=tenant_id,
-                is_active=True
+                active=True
             ).first_or_404()
             
             # Update all deliveries
