@@ -74,7 +74,7 @@
 {% endif %}
 
 <!-- Exceptions Section -->
-<div class="exceptions-section">
+<div class="exceptions-card">
     <!-- Collapsible Header -->
     <div class="collapsible-header" onclick="toggleManageSection('exceptions')" style="cursor: pointer; display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
         <div style="display: flex; align-items: center; gap: 15px;">
@@ -329,8 +329,12 @@
     box-shadow: 0 2px 4px rgba(0,0,0,0.05);
 }
 
-.exceptions-section {
-    margin-top: 30px;
+.exceptions-card {
+    background: #FFF3E0;
+    border-radius: 12px;
+    padding: 25px;
+    margin-bottom: 30px;
+    border-left: 5px solid #FF9800;
 }
 
 .btn-primary {
