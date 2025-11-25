@@ -834,9 +834,12 @@
     <!-- Bulk Assignment Tool - Using Table Layout -->
     {% if employees %}
     <div class="bulk-assign-card">
-        <h3>👥 Bulk Assignment Tool</h3>
-        <p style="font-size: 13px; color: #666; margin-bottom: 15px;">
-            <strong>Step 1:</strong> Select employee → <strong>Step 2:</strong> Select customers → <strong>Step 3:</strong> Save
+        <h3>👥 Permanent Employee-Customer Assignment</h3>
+        <p style="font-size: 13px; color: #666; margin-bottom: 8px;">
+            <strong>Step 1:</strong> Select employee → <strong>Step 2:</strong> Select their customers → <strong>Step 3:</strong> Save
+        </p>
+        <p style="font-size: 12px; color: #ff6b00; margin-bottom: 15px; font-style: italic;">
+            💡 This sets the default employee for each customer (applies to ALL future deliveries, not just the selected date)
         </p>
         
         <!-- Employee Selector -->
@@ -1045,8 +1048,12 @@ function loadDate() {
 }
 
 // Bulk Assignment Tool Functions
-const customers = {{ deliveries_json | tojson }};
+// For date-specific delivery list
+const deliveries = {{ deliveries_json | tojson }};
 const employees = {{ employees_json | tojson }};
+
+// For bulk assignment (ALL customers with active subscriptions, not date-filtered)
+const allCustomers = {{ all_customers_json | tojson }};
 
 document.addEventListener('DOMContentLoaded', function() {
     const employeeSelector = document.getElementById('employee-selector');
@@ -1079,28 +1086,14 @@ document.addEventListener('DOMContentLoaded', function() {
 function populateCustomerList(employeeId) {
     const tableBody = document.getElementById('customer-table-body');
     
-    // Get unique customers
-    const uniqueCustomers = {};
-    customers.forEach(delivery => {
-        const custId = delivery.subscription.customer.id;
-        if (!uniqueCustomers[custId]) {
-            uniqueCustomers[custId] = {
-                id: custId,
-                name: delivery.subscription.customer.name,
-                phone: delivery.subscription.customer.phone || '',
-                plan: delivery.subscription.plan.name,
-                assigned_to: delivery.assigned_to
-            };
-        }
-    });
-    
-    // Build table rows
+    // Use ALL customers with active subscriptions (not date-filtered)
+    // This shows permanent employee-customer mapping
     let html = '';
     let rowNum = 0;
     
-    Object.values(uniqueCustomers).forEach(customer => {
+    allCustomers.forEach(customer => {
         rowNum++;
-        const isAssigned = customer.assigned_to == employeeId;
+        const isAssigned = customer.default_employee_id == employeeId;
         
         html += `
             <tr style="${isAssigned ? 'background: #f1f8f4;' : ''}">
@@ -1116,7 +1109,7 @@ function populateCustomerList(employeeId) {
                     ${customer.phone ? `<div class="customer-phone">📞 ${customer.phone}</div>` : '<span style="color: #999;">-</span>'}
                 </td>
                 <td>
-                    <span class="product-info">${customer.plan}</span>
+                    <span class="product-info">${customer.plans}</span>
                 </td>
                 <td>
                     ${isAssigned ? 
@@ -1127,6 +1120,17 @@ function populateCustomerList(employeeId) {
             </tr>
         `;
     });
+    
+    // Show message if no customers
+    if (allCustomers.length === 0) {
+        html = `
+            <tr>
+                <td colspan="6" style="text-align: center; padding: 30px; color: #999;">
+                    <strong>No customers with active subscriptions found</strong>
+                </td>
+            </tr>
+        `;
+    }
     
     tableBody.innerHTML = html;
 }

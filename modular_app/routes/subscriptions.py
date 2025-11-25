@@ -190,7 +190,7 @@ def tomorrow_deliveries():
         active=True
     ).order_by(Employee.name.asc()).all()
     
-    # Convert deliveries to JSON-serializable format for JavaScript
+    # Convert deliveries to JSON-serializable format for JavaScript (for the specific date)
     deliveries_json = []
     for d in active_deliveries:
         deliveries_json.append({
@@ -211,6 +211,33 @@ def tomorrow_deliveries():
     # Convert employees to JSON-serializable format
     employees_json = [{'id': e.id, 'name': e.name} for e in employees]
     
+    # Get ALL customers with active subscriptions (for bulk assignment tool - not date-filtered)
+    all_active_customers = db.session.query(Customer).join(
+        CustomerSubscription
+    ).filter(
+        Customer.tenant_id == tenant_id,
+        CustomerSubscription.status == 'active'
+    ).distinct().order_by(Customer.name.asc()).all()
+    
+    # Convert ALL customers to JSON for bulk assignment
+    all_customers_json = []
+    for customer in all_active_customers:
+        # Get their active subscription plans
+        active_subs = CustomerSubscription.query.filter_by(
+            customer_id=customer.id,
+            status='active'
+        ).all()
+        
+        plan_names = [sub.plan.name for sub in active_subs]
+        
+        all_customers_json.append({
+            'id': customer.id,
+            'name': customer.name,
+            'phone': customer.phone or '',
+            'plans': ', '.join(plan_names) if plan_names else 'N/A',
+            'default_employee_id': customer.default_delivery_employee
+        })
+    
     return render_template('admin/subscriptions/tomorrow_deliveries.html',
                          target_date=target_date,
                          active_deliveries=active_deliveries,
@@ -221,6 +248,7 @@ def tomorrow_deliveries():
                          employees=employees,
                          deliveries_json=deliveries_json,
                          employees_json=employees_json,
+                         all_customers_json=all_customers_json,
                          tenant=g.tenant)
 
 
