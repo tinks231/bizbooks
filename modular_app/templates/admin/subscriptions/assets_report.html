@@ -4,6 +4,7 @@
 
 {% block extra_css %}
 <style>
+    /* Asset Tracking Styles - v2.0 - Button Alignment Fix */
     body {
         background: #f5f7fa;
     }
@@ -87,14 +88,15 @@
     
     /* special layout for blue card: simple flex row */
     .inventory-form {
-        display: flex;
-        gap: 10px;
-        align-items: flex-end;
+        display: flex !important;
+        grid-template-columns: none !important;
+        gap: 10px !important;
+        align-items: flex-end !important;
     }
     
     /* make sure input in blue card doesn't shrink too hard */
     .inventory-form .form-group {
-        flex: 1;
+        flex: 1 !important;
     }
     
     .form-group {
