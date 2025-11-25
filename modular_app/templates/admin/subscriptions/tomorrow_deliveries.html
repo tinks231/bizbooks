@@ -765,22 +765,15 @@
     <div class="date-selector-card">
         <div class="date-selector-left">
             <div class="date-selector-label">
-                Select Date
+                📅 Select Date
             </div>
             <div class="date-input-wrapper">
                 <input type="date" 
                        id="delivery-date" 
                        value="{{ target_date.strftime('%Y-%m-%d') }}"
-                       onchange="loadDate()">
+                       onchange="loadDate()"
+                       style="cursor: pointer;">
             </div>
-        </div>
-        <div class="date-selector-buttons">
-            <button class="btn-date primary" onclick="loadDate()">
-                View Deliveries
-            </button>
-            <button class="btn-date secondary" onclick="window.location.href='{{ url_for('subscriptions.tomorrow_deliveries') }}'">
-                Tomorrow
-            </button>
         </div>
     </div>
     
