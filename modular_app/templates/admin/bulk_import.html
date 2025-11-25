@@ -2,6 +2,250 @@
 
 {% block page_title %}📥 Bulk Import{% endblock %}
 
+{% block extra_css %}
+<style>
+    .bulk-import-container {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 30px;
+    }
+    
+    .hero-section {
+        text-align: center;
+        margin-bottom: 40px;
+        padding: 40px 20px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 16px;
+        box-shadow: 0 8px 24px rgba(102, 126, 234, 0.3);
+    }
+    
+    .hero-section h1 {
+        font-size: 36px;
+        margin: 0 0 15px 0;
+        font-weight: 700;
+    }
+    
+    .hero-section p {
+        font-size: 18px;
+        margin: 0;
+        opacity: 0.95;
+    }
+    
+    .import-cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+        gap: 30px;
+        margin-bottom: 40px;
+    }
+    
+    .import-card {
+        background: white;
+        border-radius: 16px;
+        padding: 30px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+        border: 2px solid transparent;
+    }
+    
+    .import-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 30px rgba(0,0,0,0.15);
+    }
+    
+    .import-card.employees {
+        border-color: #4CAF50;
+    }
+    
+    .import-card.inventory {
+        border-color: #FF9800;
+    }
+    
+    .import-card.customers {
+        border-color: #2196F3;
+    }
+    
+    .card-icon {
+        font-size: 48px;
+        display: block;
+        margin-bottom: 15px;
+    }
+    
+    .feature-badge {
+        position: absolute;
+        top: 15px;
+        right: 15px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+    }
+    
+    .card-title {
+        font-size: 24px;
+        font-weight: 700;
+        margin: 0 0 12px 0;
+        color: #2c3e50;
+    }
+    
+    .card-description {
+        color: #666;
+        font-size: 14px;
+        line-height: 1.6;
+        margin-bottom: 20px;
+        min-height: 60px;
+    }
+    
+    .current-count {
+        background: #f5f7fa;
+        padding: 12px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        font-size: 14px;
+        color: #555;
+    }
+    
+    .current-count span {
+        font-weight: 700;
+        color: #667eea;
+        font-size: 16px;
+    }
+    
+    .btn-download {
+        display: block;
+        width: 100%;
+        padding: 12px;
+        background: #f5f7fa;
+        color: #667eea;
+        text-align: center;
+        text-decoration: none;
+        border-radius: 8px;
+        margin-bottom: 15px;
+        font-weight: 600;
+        border: 2px solid #e0e4ea;
+        transition: all 0.2s;
+    }
+    
+    .btn-download:hover {
+        background: #667eea;
+        color: white;
+        border-color: #667eea;
+    }
+    
+    .upload-form {
+        margin-top: 15px;
+    }
+    
+    .file-input-wrapper {
+        margin-bottom: 12px;
+    }
+    
+    .file-input-wrapper input[type="file"] {
+        display: none;
+    }
+    
+    .file-input-label,
+    .field-label {
+        display: block;
+        width: 100%;
+        padding: 12px;
+        background: white;
+        border: 2px dashed #ccc;
+        border-radius: 8px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.2s;
+        color: #666;
+        font-weight: 500;
+    }
+    
+    .file-input-label:hover,
+    .field-label:hover {
+        border-color: #667eea;
+        background: #f5f7fa;
+        color: #667eea;
+    }
+    
+    .file-input-label.has-file,
+    .field-label.has-file {
+        border-color: #4CAF50;
+        background: #E8F5E9;
+        color: #2e7d32;
+        border-style: solid;
+    }
+    
+    .btn-upload {
+        width: 100%;
+        padding: 14px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+    
+    .btn-upload:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+    }
+    
+    .instructions-section {
+        background: white;
+        border-radius: 16px;
+        padding: 30px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    }
+    
+    .instructions-section h3 {
+        color: #2c3e50;
+        font-size: 20px;
+        margin: 0 0 15px 0;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    .instructions-section ol,
+    .instructions-section ul {
+        color: #555;
+        line-height: 1.8;
+        padding-left: 25px;
+    }
+    
+    .instructions-section ol li,
+    .instructions-section ul li {
+        margin-bottom: 10px;
+    }
+    
+    .instructions-section strong {
+        color: #2c3e50;
+        font-weight: 600;
+    }
+    
+    @media (max-width: 768px) {
+        .import-cards {
+            grid-template-columns: 1fr;
+        }
+        
+        .hero-section h1 {
+            font-size: 28px;
+        }
+        
+        .hero-section p {
+            font-size: 16px;
+        }
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 
 <div class="bulk-import-container">
