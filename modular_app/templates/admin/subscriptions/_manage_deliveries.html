@@ -17,46 +17,74 @@
 
 {% if ready_for_billing %}
 <div class="billing-ready-card">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-        <div>
-            <h2 style="margin: 0 0 8px 0;">💰 Ready for Monthly Billing</h2>
-            <p style="margin: 0; color: #666; font-size: 15px;">{{ ready_for_billing|length }} subscription(s) ending soon. Generate invoices to bill customers</p>
+    <!-- Collapsible Header -->
+    <div class="collapsible-header" onclick="toggleSection('billing')" style="cursor: pointer; display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+        <div style="display: flex; align-items: center; gap: 15px;">
+            <span id="billing-arrow" class="collapse-arrow">▶</span>
+            <div>
+                <h2 style="margin: 0 0 5px 0;">💰 Ready for Monthly Billing ({{ ready_for_billing|length }})</h2>
+                <p style="margin: 0; color: #666; font-size: 14px;">Click to expand • Generate invoices to bill customers</p>
+            </div>
         </div>
-        <form method="POST" action="{{ url_for('subscriptions.generate_all_invoices') }}" style="display: inline;" onsubmit="return confirm('Generate invoices for all {{ ready_for_billing|length }} customer(s)? This cannot be undone.')">
+        <form method="POST" action="{{ url_for('subscriptions.generate_all_invoices') }}" style="display: inline;" onsubmit="event.stopPropagation(); return confirm('Generate invoices for all {{ ready_for_billing|length }} customer(s)? This cannot be undone.');">
             <button type="submit" class="btn-primary" style="padding: 12px 24px; font-size: 16px;">
-                💰 Generate All Invoices ({{ ready_for_billing|length }})
+                💰 Generate All ({{ ready_for_billing|length }})
             </button>
         </form>
     </div>
-    {% for sub in ready_for_billing %}
-    <div class="billing-customer-card">
-        <div>
-            <strong style="font-size: 16px; color: #2c3e50;">{{ sub.customer.name }}</strong> - {{ sub.plan.name }}<br>
-            <small style="color: #666;">Period: {{ sub.current_period_start.strftime('%b %d') }} - {{ sub.current_period_end.strftime('%b %d, %Y') }} ({{ (sub.current_period_end - sub.current_period_start).days + 1 }} days)</small>
+    
+    <!-- Collapsible Content -->
+    <div id="billing-content" style="display: none;">
+        <!-- Search Box -->
+        <div style="margin-bottom: 15px;">
+            <input type="text" 
+                   id="billing-search" 
+                   placeholder="🔍 Search customers by name..."
+                   onkeyup="filterBillingCustomers()"
+                   style="width: 100%; max-width: 400px; padding: 10px 15px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 14px;">
         </div>
-        <div style="display: flex; gap: 10px;">
-            <a href="{{ url_for('subscriptions.generate_invoice_metered', subscription_id=sub.id) }}" class="btn-outline">
-                👁️ Preview
-            </a>
-            <form method="POST" action="{{ url_for('subscriptions.generate_invoice_metered', subscription_id=sub.id) }}" style="display: inline;">
-                <button type="submit" class="btn-primary">
-                    💰 Generate
-                </button>
-            </form>
+        
+        <!-- Customer List (Scrollable) -->
+        <div style="max-height: 400px; overflow-y: auto;">
+            {% for sub in ready_for_billing %}
+            <div class="billing-customer-card billing-customer-item" data-customer-name="{{ sub.customer.name|lower }}">
+                <div>
+                    <strong style="font-size: 16px; color: #2c3e50;">{{ sub.customer.name }}</strong> - {{ sub.plan.name }}<br>
+                    <small style="color: #666;">Period: {{ sub.current_period_start.strftime('%b %d') }} - {{ sub.current_period_end.strftime('%b %d, %Y') }} ({{ (sub.current_period_end - sub.current_period_start).days + 1 }} days)</small>
+                </div>
+                <div style="display: flex; gap: 10px;">
+                    <a href="{{ url_for('subscriptions.generate_invoice_metered', subscription_id=sub.id) }}" class="btn-outline">
+                        👁️ Preview
+                    </a>
+                    <form method="POST" action="{{ url_for('subscriptions.generate_invoice_metered', subscription_id=sub.id) }}" style="display: inline;">
+                        <button type="submit" class="btn-primary">
+                            💰 Generate
+                        </button>
+                    </form>
+                </div>
+            </div>
+            {% endfor %}
         </div>
+        
+        <p id="billing-summary" style="margin-top: 10px; font-size: 13px; color: #666;">
+            Showing <span id="billing-visible-count">{{ ready_for_billing|length }}</span> of {{ ready_for_billing|length }} customers
+        </p>
     </div>
-    {% endfor %}
 </div>
 {% endif %}
 
 <!-- Exceptions Section -->
 <div class="exceptions-section">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-        <div>
-            <h2 style="margin: 0 0 8px 0;">🚨 Exceptions & Changes</h2>
-            <p style="margin: 0; color: #666; font-size: 14px;">Shows only paused, modified, or upcoming changes (99% automated!)</p>
+    <!-- Collapsible Header -->
+    <div class="collapsible-header" onclick="toggleSection('exceptions')" style="cursor: pointer; display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+        <div style="display: flex; align-items: center; gap: 15px;">
+            <span id="exceptions-arrow" class="collapse-arrow">▶</span>
+            <div>
+                <h2 style="margin: 0 0 5px 0;">🚨 Exceptions & Changes ({{ exceptions|length }})</h2>
+                <p style="margin: 0; color: #666; font-size: 13px;">Click to expand • Paused, modified, or upcoming changes (99% automated!)</p>
+            </div>
         </div>
-        <div style="display: flex; gap: 10px;">
+        <div style="display: flex; gap: 10px;" onclick="event.stopPropagation();">
             <button class="btn-primary" onclick="openModifyModal()">
                 ✏️ Modify Delivery
             </button>
@@ -66,10 +94,13 @@
         </div>
     </div>
 
-    <!-- Exceptions Table -->
-    {% if exceptions %}
-    <div style="background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
-        <table class="deliveries-table">
+    <!-- Collapsible Content -->
+    <div id="exceptions-content" style="display: none;">
+        <!-- Exceptions Table -->
+        {% if exceptions %}
+        <div style="max-height: 500px; overflow-y: auto;">
+            <div style="background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
+                <table class="deliveries-table">
             <thead>
                 <tr>
                     <th>Date</th>
@@ -122,15 +153,17 @@
                 {% endfor %}
             </tbody>
         </table>
-    </div>
-    {% else %}
-    <div style="background: white; border-radius: 12px; padding: 60px 20px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
-        <div style="font-size: 64px; margin-bottom: 20px;">🎉</div>
-        <h3 style="color: #2c3e50; margin-bottom: 10px;">No Exceptions - All Good!</h3>
-        <p style="color: #666; font-size: 15px; margin: 0;">All deliveries are running as per default schedule. System is on autopilot! 🚀</p>
-        <p style="color: #999; font-size: 13px; margin-top: 8px;">You'll only see entries here when customers pause, increase, or decrease their orders.</p>
-    </div>
-    {% endif %}
+            </div>
+        </div>
+        {% else %}
+        <div style="background: white; border-radius: 12px; padding: 60px 20px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
+            <div style="font-size: 64px; margin-bottom: 20px;">🎉</div>
+            <h3 style="color: #2c3e50; margin-bottom: 10px;">No Exceptions - All Good!</h3>
+            <p style="color: #666; font-size: 15px; margin: 0;">All deliveries are running as per default schedule. System is on autopilot! 🚀</p>
+            <p style="color: #999; font-size: 13px; margin-top: 8px;">You'll only see entries here when customers pause, increase, or decrease their orders.</p>
+        </div>
+        {% endif %}
+    </div> <!-- End exceptions-content -->
 </div>
 
 <!-- Modify Delivery Modal -->
@@ -266,6 +299,25 @@
     border-left: 5px solid #4CAF50;
 }
 
+.collapse-arrow {
+    font-size: 16px;
+    transition: transform 0.3s ease;
+    color: #666;
+    display: inline-block;
+}
+
+.collapse-arrow.expanded {
+    transform: rotate(90deg);
+}
+
+.collapsible-header {
+    transition: all 0.2s;
+}
+
+.collapsible-header:hover {
+    opacity: 0.8;
+}
+
 .billing-customer-card {
     padding: 15px;
     background: white;
@@ -364,6 +416,43 @@ function updateModifyUnit() {
     const defaultQty = option.getAttribute('data-default') || '-';
     document.getElementById('modify_unit').textContent = unit;
     document.getElementById('modify_default').textContent = defaultQty + ' ' + unit;
+}
+
+// Toggle section collapse/expand
+function toggleSection(sectionName) {
+    const content = document.getElementById(sectionName + '-content');
+    const arrow = document.getElementById(sectionName + '-arrow');
+    
+    if (content.style.display === 'none') {
+        content.style.display = 'block';
+        arrow.classList.add('expanded');
+    } else {
+        content.style.display = 'none';
+        arrow.classList.remove('expanded');
+    }
+}
+
+// Filter billing customers
+function filterBillingCustomers() {
+    const searchInput = document.getElementById('billing-search');
+    const searchText = searchInput.value.toLowerCase().trim();
+    const items = document.querySelectorAll('.billing-customer-item');
+    
+    let visibleCount = 0;
+    
+    items.forEach(item => {
+        const customerName = item.getAttribute('data-customer-name');
+        
+        if (customerName.includes(searchText)) {
+            item.style.display = '';
+            visibleCount++;
+        } else {
+            item.style.display = 'none';
+        }
+    });
+    
+    // Update summary
+    document.getElementById('billing-visible-count').textContent = visibleCount;
 }
 </script>
 
