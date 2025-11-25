@@ -79,18 +79,19 @@
     
     .management-form {
         display: grid;
-        grid-template-columns: 1fr 1fr auto;
+        grid-template-columns: 1fr 1fr auto; /* used by orange card */
         gap: 10px;
         align-items: end;
+    }
+    
+    /* special layout for blue card */
+    .inventory-form {
+        grid-template-columns: 1fr auto; /* input + button on same row */
     }
     
     .form-group {
         display: flex;
         flex-direction: column;
-    }
-    
-    .form-group-wide {
-        grid-column: span 2;
     }
     
     .form-group label {
@@ -506,8 +507,8 @@
         <div class="management-card blue">
             <h3>📦 Set Total Inventory</h3>
             <p>How many bottles/containers does your business own in total?</p>
-            <form method="POST" action="{{ url_for('subscriptions.update_total_inventory') }}" class="management-form">
-                <div class="form-group form-group-wide">
+            <form method="POST" action="{{ url_for('subscriptions.update_total_inventory') }}" class="management-form inventory-form">
+                <div class="form-group">
                     <label>Total Bottles</label>
                     <input type="number" name="total_inventory" value="{{ total_inventory }}" min="0" required>
                 </div>
