@@ -861,6 +861,7 @@
             <input type="hidden" name="date" value="{{ target_date.strftime('%Y-%m-%d') }}">
             
             <div style="margin-bottom: 15px;">
+                <!-- Header with Title and Buttons -->
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
                     <h4 style="margin: 0; font-size: 16px; color: #2c3e50;">
                         Select Customers for <span id="employee-name-display" style="color: #4CAF50;"></span>:
@@ -875,23 +876,46 @@
                     </div>
                 </div>
                 
+                <!-- Search Box and Selection Counter -->
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; gap: 15px;">
+                    <div style="flex: 1; max-width: 400px;">
+                        <input type="text" 
+                               id="customer-search" 
+                               placeholder="🔍 Search customers by name or phone..."
+                               style="width: 100%; padding: 10px 15px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 14px; transition: border-color 0.2s;"
+                               onkeyup="filterCustomers()"
+                               onfocus="this.style.borderColor='#4CAF50'"
+                               onblur="this.style.borderColor='#e0e0e0'">
+                    </div>
+                    <div id="selection-counter" style="font-size: 14px; font-weight: 600; color: #4CAF50; background: #f1f8f4; padding: 10px 20px; border-radius: 8px; white-space: nowrap;">
+                        <span id="selected-count">0</span> customers selected
+                    </div>
+                </div>
+                
                 <!-- Customer Table (Same style as main delivery table) -->
                 <div style="border: 2px solid #e0e0e0; border-radius: 8px; overflow: hidden;">
-                    <table class="deliveries-table" id="customer-table">
-                        <thead>
-                            <tr>
-                                <th style="width: 5%;">☑</th>
-                                <th style="width: 5%;">#</th>
-                                <th style="width: 30%;">Customer</th>
-                                <th style="width: 20%;">Contact</th>
-                                <th style="width: 25%;">Product</th>
-                                <th style="width: 15%;">Status</th>
-                            </tr>
-                        </thead>
-                        <tbody id="customer-table-body">
-                            <!-- Will be populated by JavaScript -->
-                        </tbody>
-                    </table>
+                    <div style="max-height: 500px; overflow-y: auto;">
+                        <table class="deliveries-table" id="customer-table">
+                            <thead style="position: sticky; top: 0; background: white; z-index: 10;">
+                                <tr>
+                                    <th style="width: 5%;">☑</th>
+                                    <th style="width: 5%;">#</th>
+                                    <th style="width: 30%;">Customer</th>
+                                    <th style="width: 20%;">Contact</th>
+                                    <th style="width: 25%;">Product</th>
+                                    <th style="width: 15%;">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="customer-table-body">
+                                <!-- Will be populated by JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <!-- Results Summary -->
+                <div id="search-summary" style="margin-top: 8px; font-size: 13px; color: #666; display: none;">
+                    Showing <span id="visible-count">0</span> of <span id="total-count">0</span> customers
                 </div>
             </div>
             
@@ -1096,10 +1120,12 @@ function populateCustomerList(employeeId) {
         const isAssigned = customer.default_employee_id == employeeId;
         
         html += `
-            <tr style="${isAssigned ? 'background: #f1f8f4;' : ''}">
+            <tr class="customer-row" data-name="${customer.name.toLowerCase()}" data-phone="${customer.phone.toLowerCase()}" style="${isAssigned ? 'background: #f1f8f4;' : ''}">
                 <td style="text-align: center;">
                     <input type="checkbox" name="customer_ids" value="${customer.id}" ${isAssigned ? 'checked' : ''} 
-                           style="width: 18px; height: 18px; cursor: pointer;">
+                           class="customer-checkbox"
+                           style="width: 18px; height: 18px; cursor: pointer;"
+                           onchange="updateSelectionCounter()">
                 </td>
                 <td>${rowNum}</td>
                 <td>
@@ -1133,14 +1159,98 @@ function populateCustomerList(employeeId) {
     }
     
     tableBody.innerHTML = html;
+    
+    // Initialize counters and summary
+    updateSelectionCounter();
+    updateSearchSummary();
+    
+    // Clear search box
+    const searchBox = document.getElementById('customer-search');
+    if (searchBox) searchBox.value = '';
 }
 
 function selectAll() {
-    document.querySelectorAll('#customer-table input[type="checkbox"]').forEach(cb => cb.checked = true);
+    // Only select visible (not filtered out) checkboxes
+    document.querySelectorAll('#customer-table tbody tr:not([style*="display: none"]) input[type="checkbox"]').forEach(cb => {
+        cb.checked = true;
+    });
+    updateSelectionCounter();
 }
 
 function deselectAll() {
-    document.querySelectorAll('#customer-table input[type="checkbox"]').forEach(cb => cb.checked = false);
+    document.querySelectorAll('#customer-table input[type="checkbox"]').forEach(cb => {
+        cb.checked = false;
+    });
+    updateSelectionCounter();
+}
+
+function updateSelectionCounter() {
+    const checkboxes = document.querySelectorAll('#customer-table input.customer-checkbox');
+    const checkedCount = Array.from(checkboxes).filter(cb => cb.checked).length;
+    
+    const counterElement = document.getElementById('selected-count');
+    if (counterElement) {
+        counterElement.textContent = checkedCount;
+        
+        // Change color based on selection
+        const counterContainer = document.getElementById('selection-counter');
+        if (checkedCount > 0) {
+            counterContainer.style.background = '#e8f5e9';
+            counterContainer.style.color = '#2e7d32';
+        } else {
+            counterContainer.style.background = '#f1f8f4';
+            counterContainer.style.color = '#4CAF50';
+        }
+    }
+}
+
+function filterCustomers() {
+    const searchInput = document.getElementById('customer-search');
+    const searchText = searchInput.value.toLowerCase().trim();
+    const rows = document.querySelectorAll('#customer-table tbody .customer-row');
+    
+    let visibleCount = 0;
+    
+    rows.forEach(row => {
+        const name = row.getAttribute('data-name') || '';
+        const phone = row.getAttribute('data-phone') || '';
+        
+        if (name.includes(searchText) || phone.includes(searchText)) {
+            row.style.display = '';
+            visibleCount++;
+        } else {
+            row.style.display = 'none';
+        }
+    });
+    
+    updateSearchSummary(visibleCount, rows.length);
+}
+
+function updateSearchSummary(visibleCount = null, totalCount = null) {
+    const summaryElement = document.getElementById('search-summary');
+    const visibleCountElement = document.getElementById('visible-count');
+    const totalCountElement = document.getElementById('total-count');
+    
+    if (!summaryElement) return;
+    
+    // Calculate counts if not provided
+    if (visibleCount === null) {
+        const allRows = document.querySelectorAll('#customer-table tbody .customer-row');
+        totalCount = allRows.length;
+        visibleCount = Array.from(allRows).filter(row => row.style.display !== 'none').length;
+    }
+    
+    // Show/hide summary based on search
+    const searchInput = document.getElementById('customer-search');
+    const isSearching = searchInput && searchInput.value.trim() !== '';
+    
+    if (isSearching && totalCount > 0) {
+        summaryElement.style.display = 'block';
+        visibleCountElement.textContent = visibleCount;
+        totalCountElement.textContent = totalCount;
+    } else {
+        summaryElement.style.display = 'none';
+    }
 }
 </script>
 
