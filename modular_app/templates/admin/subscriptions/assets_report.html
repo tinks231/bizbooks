@@ -78,15 +78,23 @@
     }
     
     .management-form {
+        /* used by the orange card only */
         display: grid;
-        grid-template-columns: 1fr 1fr auto; /* used by orange card */
+        grid-template-columns: 1fr 1fr auto;
         gap: 10px;
         align-items: end;
     }
     
-    /* special layout for blue card */
+    /* special layout for blue card: simple flex row */
     .inventory-form {
-        grid-template-columns: 1fr auto; /* input + button on same row */
+        display: flex;
+        gap: 10px;
+        align-items: flex-end;
+    }
+    
+    /* make sure input in blue card doesn't shrink too hard */
+    .inventory-form .form-group {
+        flex: 1;
     }
     
     .form-group {
@@ -478,6 +486,11 @@
     @media (max-width: 768px) {
         .management-form {
             grid-template-columns: 1fr;
+        }
+        
+        .inventory-form {
+            flex-direction: column;
+            align-items: stretch;
         }
         
         .management-section {
