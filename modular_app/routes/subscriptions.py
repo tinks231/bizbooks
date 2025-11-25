@@ -316,6 +316,79 @@ def bulk_assign_deliveries():
     return redirect(url_for('subscriptions.tomorrow_deliveries'))
 
 
+@subscriptions_bp.route('/assets/report', methods=['GET'], strict_slashes=False)
+@require_tenant
+@login_required
+def assets_report():
+    """Asset/Bottle Tracking Report - See which customer has how many returnable containers"""
+    tenant_id = get_current_tenant_id()
+    
+    # Get all customers with their bottle counts
+    customers = Customer.query.filter_by(
+        tenant_id=tenant_id
+    ).order_by(Customer.name.asc()).all()
+    
+    # Calculate summary stats
+    total_bottles_with_customers = sum(c.bottles_in_possession or 0 for c in customers)
+    
+    # Get recent bottle transactions (last 30 days)
+    thirty_days_ago = datetime.now() - timedelta(days=30)
+    recent_transactions = SubscriptionDelivery.query.join(
+        CustomerSubscription
+    ).join(
+        CustomerSubscription.customer
+    ).filter(
+        SubscriptionDelivery.tenant_id == tenant_id,
+        SubscriptionDelivery.delivered_at.isnot(None),
+        SubscriptionDelivery.delivered_at >= thirty_days_ago,
+        or_(
+            SubscriptionDelivery.bottles_delivered > 0,
+            SubscriptionDelivery.bottles_collected > 0
+        )
+    ).options(
+        joinedload(SubscriptionDelivery.subscription).joinedload(CustomerSubscription.customer),
+        joinedload(SubscriptionDelivery.delivered_by_employee)
+    ).order_by(SubscriptionDelivery.delivered_at.desc()).limit(100).all()
+    
+    return render_template('admin/subscriptions/assets_report.html',
+                         customers=customers,
+                         total_bottles_with_customers=total_bottles_with_customers,
+                         recent_transactions=recent_transactions,
+                         tenant=g.tenant)
+
+
+@subscriptions_bp.route('/assets/adjust', methods=['POST'], strict_slashes=False)
+@require_tenant
+@login_required
+def adjust_customer_assets():
+    """Manually adjust bottle count for a customer"""
+    tenant_id = get_current_tenant_id()
+    
+    try:
+        customer_id = int(request.form['customer_id'])
+        new_count = int(request.form['bottle_count'])
+        reason = request.form.get('reason', 'Manual adjustment by owner')
+        
+        # Verify customer belongs to tenant
+        customer = Customer.query.filter_by(
+            id=customer_id,
+            tenant_id=tenant_id
+        ).first_or_404()
+        
+        old_count = customer.bottles_in_possession or 0
+        customer.bottles_in_possession = new_count
+        
+        db.session.commit()
+        
+        flash(f'✅ Updated {customer.name}: {old_count} → {new_count} bottles. {reason}', 'success')
+        
+    except Exception as e:
+        db.session.rollback()
+        flash(f'❌ Error adjusting bottle count: {str(e)}', 'error')
+    
+    return redirect(url_for('subscriptions.assets_report'))
+
+
 @subscriptions_bp.route('/deliveries/modify', methods=['POST'], strict_slashes=False)
 @require_tenant
 @login_required
