@@ -4,7 +4,7 @@
 
 {% block extra_css %}
 <style>
-    /* Asset Tracking Styles - v3.0 - Button Alignment FINAL FIX */
+    /* Asset Tracking Styles - v4.0 - Vertical Alignment Fix (Center + Fixed Heights) */
     body {
         background: #f5f7fa;
     }
@@ -83,14 +83,14 @@
         display: grid;
         grid-template-columns: 1fr 1fr auto;
         gap: 10px;
-        align-items: end;
+        align-items: center; /* Center alignment for vertical consistency */
     }
     
     /* special layout for blue card: simple flex row */
     .inventory-form {
         display: flex;
         gap: 10px;
-        align-items: flex-end;
+        align-items: center; /* Center alignment for vertical consistency */
     }
     
     /* make sure input in blue card doesn't shrink too hard */
@@ -120,6 +120,8 @@
         border-radius: 8px;
         font-size: 14px;
         font-weight: 600;
+        height: 42px; /* Fixed height for vertical alignment */
+        box-sizing: border-box;
     }
     
     .form-group input:focus {
@@ -138,7 +140,8 @@
         cursor: pointer;
         transition: all 0.3s;
         white-space: nowrap;
-        height: 42px;
+        height: 42px; /* Match input height */
+        box-sizing: border-box;
     }
     
     .btn-primary:hover {
@@ -157,6 +160,8 @@
         cursor: pointer;
         transition: all 0.3s;
         white-space: nowrap;
+        height: 42px; /* Match primary button height */
+        box-sizing: border-box;
     }
     
     .btn-danger:hover {
