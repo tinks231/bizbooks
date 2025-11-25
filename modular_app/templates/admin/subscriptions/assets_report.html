@@ -89,6 +89,10 @@
         flex-direction: column;
     }
     
+    .form-group-wide {
+        grid-column: span 2;
+    }
+    
     .form-group label {
         display: block;
         font-size: 12px;
@@ -503,12 +507,9 @@
             <h3>📦 Set Total Inventory</h3>
             <p>How many bottles/containers does your business own in total?</p>
             <form method="POST" action="{{ url_for('subscriptions.update_total_inventory') }}" class="management-form">
-                <div class="form-group">
+                <div class="form-group form-group-wide">
                     <label>Total Bottles</label>
                     <input type="number" name="total_inventory" value="{{ total_inventory }}" min="0" required>
-                </div>
-                <div class="form-group">
-                    <!-- Empty for alignment -->
                 </div>
                 <div>
                     <button type="submit" class="btn-primary">💾 Update Total</button>
