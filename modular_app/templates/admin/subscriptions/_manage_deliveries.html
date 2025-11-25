@@ -169,13 +169,15 @@
 <!-- Bulk Assignment Tool - Permanent Employee-Customer Mapping -->
 {% if employees %}
 <div class="bulk-assign-card">
-    <h3>👥 Permanent Employee-Customer Assignment</h3>
-    <p style="font-size: 13px; color: #666; margin-bottom: 8px;">
-        <strong>Step 1:</strong> Select employee → <strong>Step 2:</strong> Select their customers → <strong>Step 3:</strong> Save
-    </p>
-    <p style="font-size: 12px; color: #ff6b00; margin-bottom: 15px; font-style: italic;">
-        💡 This sets the default employee for each customer (applies to ALL future deliveries, not just the selected date)
-    </p>
+    <div style="margin-bottom: 15px;">
+        <h2 style="margin: 0 0 5px 0;">👥 Permanent Employee-Customer Assignment</h2>
+        <p style="margin: 0; color: #666; font-size: 13px;">
+            <strong>Step 1:</strong> Select employee → <strong>Step 2:</strong> Select their customers → <strong>Step 3:</strong> Save
+        </p>
+        <p style="margin: 5px 0 0 0; color: #ff6b00; font-size: 12px; font-style: italic;">
+            💡 This sets the default employee for each customer (applies to ALL future deliveries, not just the selected date)
+        </p>
+    </div>
     
     <!-- Employee Selector -->
     <div style="margin-bottom: 20px; display: flex; align-items: center; gap: 15px;">
@@ -493,16 +495,6 @@
     margin-bottom: 25px;
     box-shadow: 0 2px 8px rgba(0,0,0,0.08);
     border-left: 5px solid #2196F3;
-}
-
-.bulk-assign-card h3 {
-    color: #2c3e50;
-    margin: 0 0 15px 0;
-    font-size: 16px;
-    font-weight: 700;
-    display: flex;
-    align-items: center;
-    gap: 8px;
 }
 
 .assign-select {
