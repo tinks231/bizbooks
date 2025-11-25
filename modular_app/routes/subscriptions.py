@@ -6,7 +6,7 @@ payment collection, and recurring billing.
 """
 
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, g
-from models import db, SubscriptionPlan, CustomerSubscription, SubscriptionPayment, SubscriptionDelivery, Customer, Invoice, InvoiceItem
+from models import db, SubscriptionPlan, CustomerSubscription, SubscriptionPayment, SubscriptionDelivery, Customer, Invoice, InvoiceItem, Employee
 from utils.tenant_middleware import require_tenant, get_current_tenant, get_current_tenant_id
 from utils.license_check import check_license
 from datetime import datetime, timedelta
