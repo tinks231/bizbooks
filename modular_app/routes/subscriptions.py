@@ -236,7 +236,6 @@ def delivery_schedule():
         product_summary[product_name]['customers'] += 1
     
     # Get all employees for assignment dropdown
-    from models.employee import Employee
     employees = Employee.query.filter_by(
         tenant_id=tenant_id,
         active=True
@@ -340,7 +339,6 @@ def assign_delivery():
         
         # Verify employee belongs to tenant (if assigning)
         if employee_id:
-            from models.employee import Employee
             employee = Employee.query.filter_by(
                 id=int(employee_id),
                 tenant_id=tenant_id,
@@ -380,7 +378,6 @@ def bulk_assign_deliveries():
             return redirect(url_for('subscriptions.delivery_schedule'))
         
         # Verify employee
-        from models.employee import Employee
         employee = Employee.query.filter_by(
             id=int(employee_id),
             tenant_id=tenant_id,
