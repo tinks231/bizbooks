@@ -78,15 +78,15 @@
     }
     
     .management-form {
-        display: flex;
+        display: grid;
+        grid-template-columns: 1fr 1fr auto;
         gap: 10px;
-        align-items: flex-end;
-        flex-wrap: wrap;
+        align-items: end;
     }
     
     .form-group {
-        flex: 1;
-        min-width: 120px;
+        display: flex;
+        flex-direction: column;
     }
     
     .form-group label {
@@ -124,6 +124,7 @@
         cursor: pointer;
         transition: all 0.3s;
         white-space: nowrap;
+        height: 42px;
     }
     
     .btn-primary:hover {
@@ -306,16 +307,9 @@
         color: #FF9800;
     }
     
-    /* PROMINENT Edit Form */
-    .edit-bottle-form {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        flex-wrap: wrap;
-    }
-    
+    /* Compact Edit Inputs - Separate Columns */
     .edit-bottle-input {
-        width: 70px;
+        width: 80px;
         padding: 8px 10px;
         border: 2px solid #667eea;
         border-radius: 6px;
@@ -332,7 +326,8 @@
     }
     
     .edit-reason-input {
-        width: 180px;
+        width: 100%;
+        max-width: 200px;
         padding: 8px 12px;
         border: 2px solid #e0e0e0;
         border-radius: 6px;
@@ -475,8 +470,18 @@
         opacity: 0.5;
     }
     
+    @media (max-width: 768px) {
+        .management-form {
+            grid-template-columns: 1fr;
+        }
+        
+        .management-section {
+            grid-template-columns: 1fr;
+        }
+    }
+    
     @media print {
-        .management-section, .btn-update, .edit-bottle-form, .tab-buttons {
+        .management-section, .btn-update, .tab-buttons {
             display: none !important;
         }
     }
@@ -502,7 +507,12 @@
                     <label>Total Bottles</label>
                     <input type="number" name="total_inventory" value="{{ total_inventory }}" min="0" required>
                 </div>
-                <button type="submit" class="btn-primary">💾 Update Total</button>
+                <div class="form-group">
+                    <!-- Empty for alignment -->
+                </div>
+                <div>
+                    <button type="submit" class="btn-primary">💾 Update Total</button>
+                </div>
             </form>
         </div>
         
@@ -519,11 +529,13 @@
                     <label>Reason</label>
                     <input type="text" name="reason" placeholder="e.g., Broken, Lost">
                 </div>
-                <button type="submit" class="btn-primary">📝 Log Damage</button>
+                <div>
+                    <button type="submit" class="btn-primary">📝 Log Damage</button>
+                </div>
             </form>
             {% if damaged_count > 0 %}
             <form method="POST" action="{{ url_for('subscriptions.reset_damaged_count') }}" style="margin-top: 10px;">
-                <button type="submit" class="btn-danger" onclick="return confirm('Reset damaged count to 0?')">
+                <button type="submit" class="btn-danger" style="height: 42px;" onclick="return confirm('Reset damaged count to 0?')">
                     🔄 Reset Damage Count
                 </button>
             </form>
@@ -586,10 +598,12 @@
                 <thead>
                     <tr>
                         <th style="width: 5%;">#</th>
-                        <th style="width: 25%;">Customer</th>
-                        <th style="width: 18%;">Contact</th>
-                        <th style="width: 15%;">Current Count</th>
-                        <th style="width: 37%;">Update Count</th>
+                        <th style="width: 22%;">Customer</th>
+                        <th style="width: 15%;">Contact</th>
+                        <th style="width: 12%;">Current</th>
+                        <th style="width: 12%;">New Count</th>
+                        <th style="width: 22%;">Reason</th>
+                        <th style="width: 12%;">Action</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -609,22 +623,26 @@
                                 {{ customer.bottles_in_possession or 0 }}
                             </span>
                         </td>
-                        <td>
-                            <form method="POST" action="{{ url_for('subscriptions.adjust_customer_assets') }}" class="edit-bottle-form">
-                                <input type="hidden" name="customer_id" value="{{ customer.id }}">
+                        <form method="POST" action="{{ url_for('subscriptions.adjust_customer_assets') }}" style="display: contents;">
+                            <input type="hidden" name="customer_id" value="{{ customer.id }}">
+                            <td>
                                 <input type="number" 
                                        name="bottle_count" 
                                        value="{{ customer.bottles_in_possession or 0 }}"
                                        min="0"
                                        class="edit-bottle-input"
                                        required>
+                            </td>
+                            <td>
                                 <input type="text" 
                                        name="reason" 
-                                       placeholder="Reason (optional)"
+                                       placeholder="e.g., Initial count"
                                        class="edit-reason-input">
+                            </td>
+                            <td>
                                 <button type="submit" class="btn-update">💾 Update</button>
-                            </form>
-                        </td>
+                            </td>
+                        </form>
                     </tr>
                     {% endfor %}
                 </tbody>
