@@ -246,68 +246,79 @@ def assign_delivery():
 @require_tenant
 @login_required
 def bulk_assign_deliveries():
-    """Bulk assign all deliveries for a customer to an employee"""
+    """Bulk assign deliveries for MULTIPLE customers to an employee"""
     tenant_id = get_current_tenant_id()
     
     try:
-        customer_id = int(request.form['customer_id'])
-        employee_id = request.form.get('employee_id')  # Can be None to unassign
-        date_str = request.form.get('date')  # Optional: specific date or all future
+        # Get list of customer IDs from checkboxes
+        customer_ids = request.form.getlist('customer_ids')
+        employee_id = request.form.get('employee_id')
+        date_str = request.form.get('date')
         
-        # Verify customer belongs to tenant
-        customer = Customer.query.filter_by(
-            id=customer_id,
-            tenant_id=tenant_id
+        if not customer_ids:
+            flash('⚠️ Please select at least one customer', 'warning')
+            return redirect(url_for('subscriptions.tomorrow_deliveries'))
+        
+        # Verify employee
+        from models.employee import Employee
+        employee = Employee.query.filter_by(
+            id=int(employee_id),
+            tenant_id=tenant_id,
+            active=True
         ).first_or_404()
         
-        # Build query for deliveries to assign
-        query = SubscriptionDelivery.query.join(
-            CustomerSubscription
-        ).filter(
-            CustomerSubscription.customer_id == customer_id,
-            CustomerSubscription.tenant_id == tenant_id
-        )
-        
-        # If specific date, only assign that date
+        # Date handling
         if date_str:
             from datetime import datetime
             target_date = datetime.strptime(date_str, '%Y-%m-%d').date()
-            query = query.filter(SubscriptionDelivery.delivery_date == target_date)
+            date_filter = SubscriptionDelivery.delivery_date == target_date
             date_desc = f" for {target_date.strftime('%b %d')}"
         else:
-            # Otherwise, assign all future deliveries
             from datetime import datetime
             today = datetime.now().date()
-            query = query.filter(SubscriptionDelivery.delivery_date >= today)
-            date_desc = " (all future deliveries)"
+            date_filter = SubscriptionDelivery.delivery_date >= today
+            date_desc = " (all future)"
         
-        deliveries = query.all()
+        # Process each customer
+        total_deliveries = 0
+        customer_names = []
         
-        # Verify employee (if assigning)
-        if employee_id:
-            from models.employee import Employee
-            employee = Employee.query.filter_by(
-                id=int(employee_id),
-                tenant_id=tenant_id,
-                active=True
-            ).first_or_404()
+        for customer_id in customer_ids:
+            customer = Customer.query.filter_by(
+                id=int(customer_id),
+                tenant_id=tenant_id
+            ).first()
             
-            # Update all deliveries
+            if not customer:
+                continue
+            
+            customer_names.append(customer.name)
+            
+            # Get all future deliveries for this customer
+            deliveries = SubscriptionDelivery.query.join(
+                CustomerSubscription
+            ).filter(
+                CustomerSubscription.customer_id == customer.id,
+                CustomerSubscription.tenant_id == tenant_id,
+                date_filter
+            ).all()
+            
+            # Assign all deliveries to employee
             for delivery in deliveries:
                 delivery.assigned_to = employee.id
+                total_deliveries += 1
             
-            # Also update customer's default
+            # Update customer's default employee
             customer.default_delivery_employee = employee.id
-            
-            flash(f'✅ Assigned {len(deliveries)} deliveries for {customer.name} to {employee.name}{date_desc}', 'success')
-        else:
-            # Unassign
-            for delivery in deliveries:
-                delivery.assigned_to = None
-            customer.default_delivery_employee = None
-            flash(f'✅ Unassigned {len(deliveries)} deliveries for {customer.name}{date_desc}', 'success')
         
         db.session.commit()
+        
+        # Success message
+        customer_summary = ', '.join(customer_names[:3])
+        if len(customer_names) > 3:
+            customer_summary += f" and {len(customer_names) - 3} more"
+        
+        flash(f'✅ Assigned {total_deliveries} deliveries for {len(customer_names)} customers ({customer_summary}) to {employee.name}{date_desc}', 'success')
         
     except Exception as e:
         db.session.rollback()

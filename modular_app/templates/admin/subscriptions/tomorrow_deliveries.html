@@ -831,41 +831,63 @@
     </div>
     {% endif %}
     
-    <!-- Bulk Assignment Tool -->
+    <!-- Bulk Assignment Tool - Redesigned -->
     {% if employees %}
     <div class="bulk-assign-card">
-        <h3>Bulk Assignment Tool</h3>
+        <h3>👥 Bulk Assignment Tool</h3>
         <p style="font-size: 13px; color: #666; margin-bottom: 15px;">
-            Quickly assign all future deliveries for a customer to a delivery employee
+            <strong>Step 1:</strong> Select employee → <strong>Step 2:</strong> Select their customers → <strong>Step 3:</strong> Save
         </p>
-        <form method="POST" action="{{ url_for('subscriptions.bulk_assign_deliveries') }}" class="bulk-assign-form">
-            <div>
-                <label style="display: block; font-size: 13px; color: #666; margin-bottom: 6px; font-weight: 600;">Customer</label>
-                <select name="customer_id" class="assign-select" required>
-                    <option value="">Select customer...</option>
-                    {% for delivery in active_deliveries %}
-                        <option value="{{ delivery.subscription.customer.id }}">
-                            {{ delivery.subscription.customer.name }}
-                        </option>
-                    {% endfor %}
-                </select>
-            </div>
-            <div>
-                <label style="display: block; font-size: 13px; color: #666; margin-bottom: 6px; font-weight: 600;">Assign To</label>
-                <select name="employee_id" class="assign-select" required>
-                    <option value="">Select employee...</option>
-                    {% for emp in employees %}
-                        <option value="{{ emp.id }}">{{ emp.name }}</option>
-                    {% endfor %}
-                </select>
-            </div>
+        
+        <!-- Employee Selector -->
+        <div style="margin-bottom: 20px;">
+            <label style="display: block; font-size: 14px; font-weight: 700; color: #2c3e50; margin-bottom: 10px;">
+                Select Delivery Employee:
+            </label>
+            <select id="employee-selector" class="assign-select" style="width: 100%; max-width: 400px; font-size: 15px; padding: 12px;">
+                <option value="">-- Choose employee first --</option>
+                {% for emp in employees %}
+                    <option value="{{ emp.id }}">{{ emp.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        
+        <!-- Customer Selection Form -->
+        <form id="bulk-assign-form" method="POST" action="{{ url_for('subscriptions.bulk_assign_deliveries') }}" style="display: none;">
+            <input type="hidden" name="employee_id" id="selected-employee-id">
             <input type="hidden" name="date" value="{{ target_date.strftime('%Y-%m-%d') }}">
-            <div>
-                <button type="submit" class="btn-date primary" style="margin: 0; width: 100%;">
-                    Assign All Future
-                </button>
+            
+            <div style="margin-bottom: 15px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                    <label style="font-size: 14px; font-weight: 700; color: #2c3e50;">
+                        Select Customers for <span id="employee-name-display" style="color: #4CAF50;"></span>:
+                    </label>
+                    <div>
+                        <button type="button" onclick="selectAll()" style="background: none; border: none; color: #2196F3; font-size: 13px; font-weight: 600; cursor: pointer; margin-right: 10px;">
+                            ✓ Select All
+                        </button>
+                        <button type="button" onclick="deselectAll()" style="background: none; border: none; color: #FF5722; font-size: 13px; font-weight: 600; cursor: pointer;">
+                            ✗ Deselect All
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Customer List -->
+                <div id="customer-list" style="max-height: 400px; overflow-y: auto; border: 2px solid #e0e0e0; border-radius: 8px; padding: 15px; background: #f9f9f9;">
+                    <!-- Will be populated by JavaScript -->
+                </div>
             </div>
+            
+            <button type="submit" class="btn-date primary" style="margin: 0; width: 100%; padding: 14px; font-size: 16px;">
+                💾 Assign Selected Customers
+            </button>
         </form>
+        
+        <!-- Current Assignments Summary -->
+        <div id="assignment-summary" style="margin-top: 20px; padding: 15px; background: #e3f2fd; border-left: 4px solid #2196F3; border-radius: 6px; display: none;">
+            <h4 style="margin: 0 0 10px 0; font-size: 14px; color: #1976d2;">📋 Current Assignments:</h4>
+            <div id="summary-content" style="font-size: 13px; color: #666;"></div>
+        </div>
     </div>
     {% endif %}
     
@@ -1012,6 +1034,107 @@
 function loadDate() {
     const date = document.getElementById('delivery-date').value;
     window.location.href = '{{ url_for("subscriptions.tomorrow_deliveries") }}?date=' + date;
+}
+
+// Bulk Assignment Tool Functions
+const customers = {{ active_deliveries | tojson }};
+const employees = {{ employees | tojson }};
+
+document.addEventListener('DOMContentLoaded', function() {
+    const employeeSelector = document.getElementById('employee-selector');
+    const bulkAssignForm = document.getElementById('bulk-assign-form');
+    const customerList = document.getElementById('customer-list');
+    const employeeNameDisplay = document.getElementById('employee-name-display');
+    const selectedEmployeeIdInput = document.getElementById('selected-employee-id');
+    const assignmentSummary = document.getElementById('assignment-summary');
+    
+    employeeSelector.addEventListener('change', function() {
+        const employeeId = this.value;
+        
+        if (!employeeId) {
+            bulkAssignForm.style.display = 'none';
+            assignmentSummary.style.display = 'none';
+            return;
+        }
+        
+        // Find employee name
+        const employee = employees.find(e => e.id == employeeId);
+        const employeeName = employee ? employee.name : '';
+        
+        // Show form and update employee name
+        bulkAssignForm.style.display = 'block';
+        employeeNameDisplay.textContent = employeeName;
+        selectedEmployeeIdInput.value = employeeId;
+        
+        // Populate customer list
+        populateCustomerList(employeeId);
+    });
+});
+
+function populateCustomerList(employeeId) {
+    const customerList = document.getElementById('customer-list');
+    const assignmentSummary = document.getElementById('assignment-summary');
+    const summaryContent = document.getElementById('summary-content');
+    
+    // Get unique customers
+    const uniqueCustomers = {};
+    customers.forEach(delivery => {
+        const custId = delivery.subscription.customer.id;
+        if (!uniqueCustomers[custId]) {
+            uniqueCustomers[custId] = {
+                id: custId,
+                name: delivery.subscription.customer.name,
+                phone: delivery.subscription.customer.phone || '',
+                assigned_to: delivery.assigned_to
+            };
+        }
+    });
+    
+    // Build customer checkboxes
+    let html = '';
+    let assignedCount = 0;
+    let assignedNames = [];
+    
+    Object.values(uniqueCustomers).forEach(customer => {
+        const isAssigned = customer.assigned_to == employeeId;
+        if (isAssigned) {
+            assignedCount++;
+            assignedNames.push(customer.name);
+        }
+        
+        html += `
+            <div style="padding: 10px; margin-bottom: 8px; background: white; border-radius: 6px; border-left: 3px solid ${isAssigned ? '#4CAF50' : '#e0e0e0'};">
+                <label style="display: flex; align-items: center; cursor: pointer;">
+                    <input type="checkbox" name="customer_ids" value="${customer.id}" ${isAssigned ? 'checked' : ''} 
+                           style="width: 18px; height: 18px; margin-right: 12px; cursor: pointer;">
+                    <div style="flex: 1;">
+                        <div style="font-weight: 700; color: #2c3e50; font-size: 14px;">${customer.name}</div>
+                        ${customer.phone ? `<div style="font-size: 12px; color: #666; margin-top: 2px;">📞 ${customer.phone}</div>` : ''}
+                        ${isAssigned ? '<div style="font-size: 11px; color: #4CAF50; margin-top: 2px;">✓ Currently Assigned</div>' : ''}
+                    </div>
+                </label>
+            </div>
+        `;
+    });
+    
+    customerList.innerHTML = html;
+    
+    // Show summary
+    if (assignedCount > 0) {
+        assignmentSummary.style.display = 'block';
+        summaryContent.innerHTML = `<strong>${assignedCount} customers</strong> currently assigned: ${assignedNames.join(', ')}`;
+    } else {
+        assignmentSummary.style.display = 'block';
+        summaryContent.innerHTML = `<em>No customers currently assigned to this employee.</em>`;
+    }
+}
+
+function selectAll() {
+    document.querySelectorAll('#customer-list input[type="checkbox"]').forEach(cb => cb.checked = true);
+}
+
+function deselectAll() {
+    document.querySelectorAll('#customer-list input[type="checkbox"]').forEach(cb => cb.checked = false);
 }
 </script>
 
