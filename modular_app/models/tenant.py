@@ -38,6 +38,10 @@ class Tenant(db.Model):
     # Settings
     settings = db.Column(db.Text)  # JSON string of tenant-specific settings
     
+    # Asset/Inventory Management (for returnable containers)
+    total_bottles_inventory = db.Column(db.Integer, default=0)  # Total assets owned by business
+    damaged_bottles_count = db.Column(db.Integer, default=0)  # Damaged/lost/broken assets
+    
     # Email Verification
     email_verified = db.Column(db.Boolean, default=False)  # New accounts require verification
     verification_token = db.Column(db.String(100))

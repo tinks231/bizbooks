@@ -36,10 +36,122 @@
         opacity: 0.95;
     }
     
-    /* Summary Cards */
+    /* Management Cards */
+    .management-section {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+        gap: 20px;
+        margin-bottom: 25px;
+    }
+    
+    .management-card {
+        background: white;
+        border-radius: 12px;
+        padding: 25px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        border-left: 5px solid;
+    }
+    
+    .management-card.blue {
+        border-left-color: #2196F3;
+    }
+    
+    .management-card.orange {
+        border-left-color: #FF5722;
+    }
+    
+    .management-card h3 {
+        margin: 0 0 15px 0;
+        font-size: 16px;
+        font-weight: 700;
+        color: #2c3e50;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    .management-card p {
+        font-size: 13px;
+        color: #666;
+        margin-bottom: 15px;
+        line-height: 1.5;
+    }
+    
+    .management-form {
+        display: flex;
+        gap: 10px;
+        align-items: flex-end;
+        flex-wrap: wrap;
+    }
+    
+    .form-group {
+        flex: 1;
+        min-width: 120px;
+    }
+    
+    .form-group label {
+        display: block;
+        font-size: 12px;
+        font-weight: 600;
+        color: #666;
+        margin-bottom: 6px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .form-group input {
+        width: 100%;
+        padding: 10px 12px;
+        border: 2px solid #e0e0e0;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 600;
+    }
+    
+    .form-group input:focus {
+        outline: none;
+        border-color: #667eea;
+    }
+    
+    .btn-primary {
+        padding: 10px 24px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.3s;
+        white-space: nowrap;
+    }
+    
+    .btn-primary:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    }
+    
+    .btn-danger {
+        padding: 10px 24px;
+        background: #dc3545;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.3s;
+        white-space: nowrap;
+    }
+    
+    .btn-danger:hover {
+        background: #c82333;
+    }
+    
+    /* Summary Cards - 4 CARDS */
     .summary-cards {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
         gap: 20px;
         margin-bottom: 25px;
     }
@@ -58,8 +170,8 @@
         box-shadow: 0 6px 16px rgba(0,0,0,0.12);
     }
     
-    .summary-card.purple {
-        border-left-color: #667eea;
+    .summary-card.blue {
+        border-left-color: #2196F3;
     }
     
     .summary-card.green {
@@ -68,6 +180,10 @@
     
     .summary-card.orange {
         border-left-color: #FF9800;
+    }
+    
+    .summary-card.red {
+        border-left-color: #f44336;
     }
     
     .summary-card-header {
@@ -79,7 +195,7 @@
     
     .summary-card h3 {
         margin: 0;
-        font-size: 13px;
+        font-size: 12px;
         color: #666;
         font-weight: 600;
         text-transform: uppercase;
@@ -99,58 +215,30 @@
     }
     
     .summary-card .description {
-        font-size: 13px;
+        font-size: 12px;
         color: #999;
         margin-top: 8px;
     }
     
-    /* Tabs */
-    .tabs {
+    /* Customer Table */
+    .table-section {
         background: white;
         border-radius: 12px;
-        padding: 20px;
+        padding: 25px;
         margin-bottom: 25px;
         box-shadow: 0 2px 8px rgba(0,0,0,0.08);
     }
     
-    .tab-buttons {
+    .table-section h3 {
+        margin: 0 0 20px 0;
+        font-size: 18px;
+        font-weight: 700;
+        color: #2c3e50;
         display: flex;
-        gap: 10px;
-        border-bottom: 2px solid #e0e0e0;
-        margin-bottom: 20px;
+        align-items: center;
+        gap: 8px;
     }
     
-    .tab-button {
-        padding: 12px 24px;
-        border: none;
-        background: none;
-        font-size: 15px;
-        font-weight: 600;
-        color: #666;
-        cursor: pointer;
-        border-bottom: 3px solid transparent;
-        transition: all 0.3s;
-        margin-bottom: -2px;
-    }
-    
-    .tab-button:hover {
-        color: #667eea;
-    }
-    
-    .tab-button.active {
-        color: #667eea;
-        border-bottom-color: #667eea;
-    }
-    
-    .tab-content {
-        display: none;
-    }
-    
-    .tab-content.active {
-        display: block;
-    }
-    
-    /* Customer Table */
     .customers-table {
         width: 100%;
         border-collapse: collapse;
@@ -190,6 +278,7 @@
     .customers-table td {
         padding: 15px 12px;
         font-size: 14px;
+        vertical-align: middle;
     }
     
     .customer-name {
@@ -217,58 +306,99 @@
         color: #FF9800;
     }
     
-    /* Inline Edit */
+    /* PROMINENT Edit Form */
     .edit-bottle-form {
-        display: inline-flex;
+        display: flex;
         align-items: center;
         gap: 8px;
+        flex-wrap: wrap;
     }
     
     .edit-bottle-input {
-        width: 80px;
-        padding: 6px 10px;
-        border: 2px solid #e0e0e0;
+        width: 70px;
+        padding: 8px 10px;
+        border: 2px solid #667eea;
         border-radius: 6px;
-        font-size: 14px;
-        font-weight: 600;
+        font-size: 16px;
+        font-weight: 700;
         text-align: center;
+        color: #667eea;
     }
     
     .edit-bottle-input:focus {
         outline: none;
+        border-color: #5568d3;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+    
+    .edit-reason-input {
+        width: 180px;
+        padding: 8px 12px;
+        border: 2px solid #e0e0e0;
+        border-radius: 6px;
+        font-size: 13px;
+    }
+    
+    .edit-reason-input:focus {
+        outline: none;
         border-color: #667eea;
     }
     
-    .btn-save {
-        padding: 6px 12px;
+    .btn-update {
+        padding: 8px 20px;
         background: #4CAF50;
         color: white;
         border: none;
         border-radius: 6px;
-        font-size: 12px;
-        font-weight: 600;
+        font-size: 13px;
+        font-weight: 700;
         cursor: pointer;
         transition: all 0.3s;
+        white-space: nowrap;
     }
     
-    .btn-save:hover {
+    .btn-update:hover {
         background: #45a049;
+        transform: translateY(-1px);
+        box-shadow: 0 2px 8px rgba(76, 175, 80, 0.3);
     }
     
-    .btn-edit {
-        padding: 6px 12px;
-        background: #667eea;
-        color: white;
+    /* Tabs */
+    .tab-buttons {
+        display: flex;
+        gap: 10px;
+        border-bottom: 2px solid #e0e0e0;
+        margin-bottom: 20px;
+    }
+    
+    .tab-button {
+        padding: 12px 24px;
         border: none;
-        border-radius: 6px;
-        font-size: 12px;
+        background: none;
+        font-size: 15px;
         font-weight: 600;
+        color: #666;
         cursor: pointer;
+        border-bottom: 3px solid transparent;
         transition: all 0.3s;
+        margin-bottom: -2px;
     }
     
-    .btn-edit:hover {
-        background: #5568d3;
+    .tab-button:hover {
+        color: #667eea;
+    }
+    
+    .tab-button.active {
+        color: #667eea;
+        border-bottom-color: #667eea;
+    }
+    
+    .tab-content {
+        display: none;
+    }
+    
+    .tab-content.active {
+        display: block;
     }
     
     /* Transactions */
@@ -345,42 +475,8 @@
         opacity: 0.5;
     }
     
-    /* Info Box */
-    .info-box {
-        background: #e3f2fd;
-        border-left: 4px solid #2196F3;
-        border-radius: 8px;
-        padding: 15px;
-        margin-bottom: 20px;
-    }
-    
-    .info-box h4 {
-        margin: 0 0 8px 0;
-        color: #1976d2;
-        font-size: 14px;
-        font-weight: 700;
-    }
-    
-    .info-box p {
-        margin: 0;
-        font-size: 13px;
-        color: #666;
-        line-height: 1.6;
-    }
-    
-    .info-box ul {
-        margin: 8px 0 0 0;
-        padding-left: 20px;
-        font-size: 13px;
-        color: #666;
-    }
-    
-    .info-box li {
-        margin-bottom: 4px;
-    }
-    
     @media print {
-        .btn-edit, .btn-save, .edit-bottle-form {
+        .management-section, .btn-update, .edit-bottle-form, .tab-buttons {
             display: none !important;
         }
     }
@@ -392,70 +488,108 @@
     <!-- Header -->
     <div class="report-header">
         <h1>🗃️ Asset Tracking Report</h1>
-        <p class="report-subtitle">Track returnable containers (bottles, jars, containers, cylinders, etc.)</p>
+        <p class="report-subtitle">Manage returnable containers (bottles, jars, containers, cylinders, etc.)</p>
     </div>
     
-    <!-- Info Box -->
-    <div class="info-box">
-        <h4>💡 How This Works</h4>
-        <p>This system tracks returnable assets (bottles, jars, containers) across your customers:</p>
-        <ul>
-            <li><strong>Manual Adjustment:</strong> Set initial counts or correct any discrepancies using the "Edit" button</li>
-            <li><strong>Auto-Update:</strong> When employees mark deliveries complete, bottle counts update automatically</li>
-            <li><strong>Transaction History:</strong> See all recent bottle movements (delivered/collected)</li>
-        </ul>
+    <!-- Management Section -->
+    <div class="management-section">
+        <!-- Set Total Inventory -->
+        <div class="management-card blue">
+            <h3>📦 Set Total Inventory</h3>
+            <p>How many bottles/containers does your business own in total?</p>
+            <form method="POST" action="{{ url_for('subscriptions.update_total_inventory') }}" class="management-form">
+                <div class="form-group">
+                    <label>Total Bottles</label>
+                    <input type="number" name="total_inventory" value="{{ total_inventory }}" min="0" required>
+                </div>
+                <button type="submit" class="btn-primary">💾 Update Total</button>
+            </form>
+        </div>
+        
+        <!-- Log Damage/Loss -->
+        <div class="management-card orange">
+            <h3>⚠️ Log Damaged/Lost Assets</h3>
+            <p>Report bottles that are broken, lost, or unusable.</p>
+            <form method="POST" action="{{ url_for('subscriptions.log_damaged_assets') }}" class="management-form">
+                <div class="form-group">
+                    <label>Damage Count</label>
+                    <input type="number" name="damage_count" min="1" placeholder="0" required>
+                </div>
+                <div class="form-group">
+                    <label>Reason</label>
+                    <input type="text" name="reason" placeholder="e.g., Broken, Lost">
+                </div>
+                <button type="submit" class="btn-primary">📝 Log Damage</button>
+            </form>
+            {% if damaged_count > 0 %}
+            <form method="POST" action="{{ url_for('subscriptions.reset_damaged_count') }}" style="margin-top: 10px;">
+                <button type="submit" class="btn-danger" onclick="return confirm('Reset damaged count to 0?')">
+                    🔄 Reset Damage Count
+                </button>
+            </form>
+            {% endif %}
+        </div>
     </div>
     
-    <!-- Summary Cards -->
+    <!-- Summary Cards - 4 CARDS -->
     <div class="summary-cards">
-        <div class="summary-card purple">
+        <div class="summary-card blue">
             <div class="summary-card-header">
-                <h3>Total Customers</h3>
-                <div class="summary-card-icon">👥</div>
+                <h3>Total Owned</h3>
+                <div class="summary-card-icon">📦</div>
             </div>
-            <p class="value">{{ customers|length }}</p>
-            <p class="description">Active customer accounts</p>
+            <p class="value">{{ total_inventory }}</p>
+            <p class="description">Total bottles in inventory</p>
         </div>
         <div class="summary-card green">
             <div class="summary-card-header">
-                <h3>Total Assets Out</h3>
-                <div class="summary-card-icon">🍾</div>
+                <h3>With Customers</h3>
+                <div class="summary-card-icon">👥</div>
             </div>
             <p class="value">{{ total_bottles_with_customers }}</p>
-            <p class="description">Bottles/containers with customers</p>
+            <p class="description">Out for delivery/use</p>
+        </div>
+        <div class="summary-card red">
+            <div class="summary-card-header">
+                <h3>Damaged/Lost</h3>
+                <div class="summary-card-icon">⚠️</div>
+            </div>
+            <p class="value">{{ damaged_count }}</p>
+            <p class="description">Broken or lost bottles</p>
         </div>
         <div class="summary-card orange">
             <div class="summary-card-header">
-                <h3>Recent Transactions</h3>
-                <div class="summary-card-icon">📊</div>
+                <h3>Available</h3>
+                <div class="summary-card-icon">✅</div>
             </div>
-            <p class="value">{{ recent_transactions|length }}</p>
-            <p class="description">Last 30 days movements</p>
+            <p class="value">{{ available_bottles }}</p>
+            <p class="description">Ready to distribute</p>
         </div>
     </div>
     
     <!-- Tabs -->
-    <div class="tabs">
+    <div class="table-section">
         <div class="tab-buttons">
             <button class="tab-button active" onclick="switchTab('customers')">
-                👥 Customer Assets
+                👥 Customer Assets ({{ customers|length }})
             </button>
             <button class="tab-button" onclick="switchTab('transactions')">
-                📊 Recent Transactions
+                📊 Recent Transactions ({{ recent_transactions|length }})
             </button>
         </div>
         
         <!-- Tab 1: Customer Assets -->
         <div id="customers-tab" class="tab-content active">
+            <h3>📋 Customer Bottle Distribution</h3>
             {% if customers %}
             <table class="customers-table">
                 <thead>
                     <tr>
                         <th style="width: 5%;">#</th>
-                        <th style="width: 30%;">Customer</th>
-                        <th style="width: 20%;">Contact</th>
-                        <th style="width: 20%;">Assets in Possession</th>
-                        <th style="width: 25%;">Action</th>
+                        <th style="width: 25%;">Customer</th>
+                        <th style="width: 18%;">Contact</th>
+                        <th style="width: 15%;">Current Count</th>
+                        <th style="width: 37%;">Update Count</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -472,7 +606,7 @@
                         </td>
                         <td>
                             <span class="bottle-count {% if customer.bottles_in_possession == 0 %}zero{% elif customer.bottles_in_possession > 5 %}warning{% endif %}">
-                                {{ customer.bottles_in_possession or 0 }} bottles
+                                {{ customer.bottles_in_possession or 0 }}
                             </span>
                         </td>
                         <td>
@@ -487,8 +621,8 @@
                                 <input type="text" 
                                        name="reason" 
                                        placeholder="Reason (optional)"
-                                       style="width: 200px; padding: 6px 10px; border: 2px solid #e0e0e0; border-radius: 6px; font-size: 13px;">
-                                <button type="submit" class="btn-save">💾 Update</button>
+                                       class="edit-reason-input">
+                                <button type="submit" class="btn-update">💾 Update</button>
                             </form>
                         </td>
                     </tr>
@@ -504,6 +638,7 @@
         
         <!-- Tab 2: Recent Transactions -->
         <div id="transactions-tab" class="tab-content">
+            <h3>📊 Last 30 Days Activity</h3>
             {% if recent_transactions %}
                 {% for txn in recent_transactions %}
                 <div class="transaction-item">
@@ -557,4 +692,3 @@ function switchTab(tabName) {
 }
 </script>
 {% endblock %}
-

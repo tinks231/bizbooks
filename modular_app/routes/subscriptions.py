@@ -330,6 +330,9 @@ def assets_report():
     
     # Calculate summary stats
     total_bottles_with_customers = sum(c.bottles_in_possession or 0 for c in customers)
+    total_inventory = g.tenant.total_bottles_inventory or 0
+    damaged_count = g.tenant.damaged_bottles_count or 0
+    available_bottles = total_inventory - total_bottles_with_customers - damaged_count
     
     # Get recent bottle transactions (last 30 days)
     thirty_days_ago = datetime.now() - timedelta(days=30)
@@ -352,7 +355,10 @@ def assets_report():
     
     return render_template('admin/subscriptions/assets_report.html',
                          customers=customers,
+                         total_inventory=total_inventory,
                          total_bottles_with_customers=total_bottles_with_customers,
+                         damaged_count=damaged_count,
+                         available_bottles=available_bottles,
                          recent_transactions=recent_transactions,
                          tenant=g.tenant)
 
@@ -385,6 +391,83 @@ def adjust_customer_assets():
     except Exception as e:
         db.session.rollback()
         flash(f'❌ Error adjusting bottle count: {str(e)}', 'error')
+    
+    return redirect(url_for('subscriptions.assets_report'))
+
+
+@subscriptions_bp.route('/assets/update-inventory', methods=['POST'], strict_slashes=False)
+@require_tenant
+@login_required
+def update_total_inventory():
+    """Update total inventory count (how many bottles business owns)"""
+    tenant_id = get_current_tenant_id()
+    
+    try:
+        new_total = int(request.form['total_inventory'])
+        
+        from models.tenant import Tenant
+        tenant = Tenant.query.get(tenant_id)
+        old_total = tenant.total_bottles_inventory or 0
+        tenant.total_bottles_inventory = new_total
+        
+        db.session.commit()
+        
+        flash(f'✅ Total inventory updated: {old_total} → {new_total} bottles', 'success')
+        
+    except Exception as e:
+        db.session.rollback()
+        flash(f'❌ Error updating inventory: {str(e)}', 'error')
+    
+    return redirect(url_for('subscriptions.assets_report'))
+
+
+@subscriptions_bp.route('/assets/log-damage', methods=['POST'], strict_slashes=False)
+@require_tenant
+@login_required
+def log_damaged_assets():
+    """Log damaged/lost/broken bottles"""
+    tenant_id = get_current_tenant_id()
+    
+    try:
+        damage_count = int(request.form['damage_count'])
+        reason = request.form.get('reason', 'Damaged/Lost')
+        
+        from models.tenant import Tenant
+        tenant = Tenant.query.get(tenant_id)
+        old_damage = tenant.damaged_bottles_count or 0
+        tenant.damaged_bottles_count = old_damage + damage_count
+        
+        db.session.commit()
+        
+        flash(f'✅ Logged {damage_count} damaged/lost bottles. Reason: {reason}', 'warning')
+        
+    except Exception as e:
+        db.session.rollback()
+        flash(f'❌ Error logging damage: {str(e)}', 'error')
+    
+    return redirect(url_for('subscriptions.assets_report'))
+
+
+@subscriptions_bp.route('/assets/reset-damage', methods=['POST'], strict_slashes=False)
+@require_tenant
+@login_required
+def reset_damaged_count():
+    """Reset damaged bottle count (after purchasing replacements)"""
+    tenant_id = get_current_tenant_id()
+    
+    try:
+        from models.tenant import Tenant
+        tenant = Tenant.query.get(tenant_id)
+        old_damage = tenant.damaged_bottles_count or 0
+        tenant.damaged_bottles_count = 0
+        
+        db.session.commit()
+        
+        flash(f'✅ Reset damaged count from {old_damage} to 0', 'success')
+        
+    except Exception as e:
+        db.session.rollback()
+        flash(f'❌ Error resetting damage count: {str(e)}', 'error')
     
     return redirect(url_for('subscriptions.assets_report'))
 
