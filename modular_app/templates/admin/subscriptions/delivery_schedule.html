@@ -1239,6 +1239,97 @@ function updateSearchSummary(visibleCount = null, totalCount = null) {
         summaryElement.style.display = 'none';
     }
 }
+
+// ===== MANAGE VIEW FUNCTIONS =====
+// Toggle section collapse/expand
+function toggleSection(sectionName) {
+    const content = document.getElementById(sectionName + '-content');
+    const arrow = document.getElementById(sectionName + '-arrow');
+    
+    if (!content || !arrow) {
+        console.error('Section not found:', sectionName);
+        return;
+    }
+    
+    if (content.style.display === 'none' || content.style.display === '') {
+        content.style.display = 'block';
+        arrow.classList.add('expanded');
+    } else {
+        content.style.display = 'none';
+        arrow.classList.remove('expanded');
+    }
+}
+
+// Filter billing customers
+function filterBillingCustomers() {
+    const searchInput = document.getElementById('billing-search');
+    if (!searchInput) return;
+    
+    const searchText = searchInput.value.toLowerCase().trim();
+    const items = document.querySelectorAll('.billing-customer-item');
+    
+    let visibleCount = 0;
+    
+    items.forEach(item => {
+        const customerName = item.getAttribute('data-customer-name');
+        
+        if (customerName.includes(searchText)) {
+            item.style.display = '';
+            visibleCount++;
+        } else {
+            item.style.display = 'none';
+        }
+    });
+    
+    // Update summary
+    const visibleCountElem = document.getElementById('billing-visible-count');
+    if (visibleCountElem) {
+        visibleCountElem.textContent = visibleCount;
+    }
+}
+
+// Modal functions for manage view
+function openModifyModal() {
+    $('#modifyModal').modal('show');
+}
+
+function openPauseModal() {
+    $('#pauseModal').modal('show');
+}
+
+function openEditDeliveryModal(deliveryId, date, subscriptionId, quantity, unit) {
+    // Set form action with delivery_id in URL
+    const form = document.getElementById('editDeliveryForm');
+    if (form) {
+        form.action = `/admin/subscriptions/deliveries/edit/${deliveryId}`;
+    }
+    
+    // Populate form fields
+    const dateField = document.getElementById('edit_delivery_date');
+    const qtyField = document.getElementById('edit_quantity');
+    const unitField = document.getElementById('edit_unit');
+    
+    if (dateField) dateField.value = date;
+    if (qtyField) qtyField.value = quantity;
+    if (unitField) unitField.textContent = unit;
+    
+    $('#editDeliveryModal').modal('show');
+}
+
+function updateModifyUnit() {
+    const select = document.getElementById('modify_subscription');
+    if (!select) return;
+    
+    const option = select.options[select.selectedIndex];
+    const unit = option.getAttribute('data-unit') || 'units';
+    const defaultQty = option.getAttribute('data-default') || '-';
+    
+    const unitField = document.getElementById('modify_unit');
+    const defaultField = document.getElementById('modify_default');
+    
+    if (unitField) unitField.textContent = unit;
+    if (defaultField) defaultField.textContent = defaultQty + ' ' + unit;
+}
 </script>
 
 {% endif %} <!-- End of date-based views -->
