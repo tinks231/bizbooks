@@ -853,6 +853,123 @@
         if (unitField) unitField.textContent = unit;
         if (defaultField) defaultField.textContent = defaultQty + ' ' + unit;
     }
+
+    // BULK ASSIGNMENT JAVASCRIPT
+    const allCustomersData = {{ all_customers_json | tojson | safe }};
+    const employeesData = {{ employees_json | tojson | safe }};
+
+    // Employee selector change handler
+    document.getElementById('employee-selector')?.addEventListener('change', function() {
+        const employeeId = this.value;
+        const form = document.getElementById('bulk-assign-form');
+        const tbody = document.getElementById('customer-table-body');
+        const employeeNameDisplay = document.getElementById('employee-name-display');
+        
+        if (!employeeId) {
+            form.style.display = 'none';
+            return;
+        }
+        
+        // Show form
+        form.style.display = 'block';
+        
+        // Find employee name
+        const employee = employeesData.find(e => e.id == employeeId);
+        if (employee && employeeNameDisplay) {
+            employeeNameDisplay.textContent = employee.name;
+        }
+        
+        // Set hidden field
+        document.getElementById('selected-employee-id').value = employeeId;
+        
+        // Clear search
+        document.getElementById('customer-search').value = '';
+        
+        // Populate customer table
+        tbody.innerHTML = '';
+        allCustomersData.forEach((customer, index) => {
+            const isAssigned = customer.assigned_to == employeeId;
+            const row = document.createElement('tr');
+            row.className = 'customer-row';
+            row.setAttribute('data-customer-name', customer.name.toLowerCase());
+            row.setAttribute('data-customer-phone', customer.phone.toLowerCase());
+            
+            row.innerHTML = `
+                <td style="text-align: center;">
+                    <input type="checkbox" 
+                           name="customer_ids" 
+                           value="${customer.id}" 
+                           class="customer-checkbox"
+                           ${isAssigned ? 'checked' : ''}
+                           onchange="updateSelectionCount()">
+                </td>
+                <td>${index + 1}</td>
+                <td>
+                    <strong>${customer.name}</strong>
+                    ${isAssigned ? '<span class="assigned-badge">✓ Assigned</span>' : '<span class="unassigned-badge">Unassigned</span>'}
+                </td>
+                <td>${customer.phone || '-'}</td>
+                <td>${customer.plan_name}</td>
+                <td>
+                    ${isAssigned ? '<span style="color: #4CAF50; font-weight: 600;">✓ Currently Assigned</span>' : '<span style="color: #999;">-</span>'}
+                </td>
+            `;
+            tbody.appendChild(row);
+        });
+        
+        // Update counts
+        updateSelectionCount();
+        document.getElementById('total-count').textContent = allCustomersData.length;
+        document.getElementById('visible-count').textContent = allCustomersData.length;
+        document.getElementById('search-summary').style.display = 'block';
+    });
+
+    function selectAll() {
+        const checkboxes = document.querySelectorAll('.customer-checkbox');
+        const visibleRows = document.querySelectorAll('.customer-row');
+        
+        visibleRows.forEach((row, index) => {
+            if (row.style.display !== 'none') {
+                checkboxes[index].checked = true;
+            }
+        });
+        updateSelectionCount();
+    }
+
+    function deselectAll() {
+        const checkboxes = document.querySelectorAll('.customer-checkbox');
+        checkboxes.forEach(cb => cb.checked = false);
+        updateSelectionCount();
+    }
+
+    function filterCustomers() {
+        const searchInput = document.getElementById('customer-search');
+        if (!searchInput) return;
+        
+        const searchText = searchInput.value.toLowerCase().trim();
+        const rows = document.querySelectorAll('.customer-row');
+        
+        let visibleCount = 0;
+        
+        rows.forEach(row => {
+            const customerName = row.getAttribute('data-customer-name');
+            const customerPhone = row.getAttribute('data-customer-phone');
+            
+            if (customerName.includes(searchText) || customerPhone.includes(searchText)) {
+                row.style.display = '';
+                visibleCount++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+        
+        document.getElementById('visible-count').textContent = visibleCount;
+    }
+
+    function updateSelectionCount() {
+        const checkboxes = document.querySelectorAll('.customer-checkbox:checked');
+        document.getElementById('selected-count').textContent = checkboxes.length;
+    }
     </script>
     
     <!-- DATE-BASED VIEWS (Today/Tomorrow/Custom) -->

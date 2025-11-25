@@ -133,10 +133,51 @@ def delivery_schedule():
             joinedload(CustomerSubscription.plan)
         ).all()
         
+        # Get employees for bulk assignment tool (needed in Manage view now)
+        employees = Employee.query.filter_by(
+            tenant_id=tenant_id,
+            active=True
+        ).all()
+        
+        # Get ALL active customers (not date-filtered) for bulk assignment
+        all_customers = db.session.query(Customer).distinct().join(
+            CustomerSubscription,
+            Customer.id == CustomerSubscription.customer_id
+        ).filter(
+            Customer.tenant_id == tenant_id,
+            CustomerSubscription.status == 'active'
+        ).options(
+            joinedload(Customer.subscriptions).joinedload(CustomerSubscription.plan)
+        ).all()
+        
+        # Convert to JSON-serializable format for JavaScript
+        all_customers_json = []
+        for customer in all_customers:
+            active_subs = [s for s in customer.subscriptions if s.status == 'active']
+            if active_subs:
+                all_customers_json.append({
+                    'id': customer.id,
+                    'name': customer.name,
+                    'phone': customer.phone or '',
+                    'assigned_to': customer.default_delivery_employee if customer.default_delivery_employee else None,
+                    'plan_name': ', '.join([s.plan.name for s in active_subs])
+                })
+        
+        # Convert employees to JSON format
+        employees_json = [{
+            'id': emp.id,
+            'name': emp.name,
+            'phone': emp.phone or ''
+        } for emp in employees]
+        
         return render_template('admin/subscriptions/delivery_schedule.html',
                              current_view=view,
                              exceptions=exceptions,
                              active_subscriptions=active_subscriptions,
+                             employees=employees,
+                             employees_json=employees_json,
+                             all_customers_json=all_customers_json,
+                             target_date=today,  # Needed for form hidden field
                              now=datetime.now,
                              timedelta=timedelta,
                              tenant=g.tenant)
