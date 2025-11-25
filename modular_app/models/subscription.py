@@ -298,6 +298,7 @@ class SubscriptionDelivery(db.Model):
     modification_reason = db.Column(db.String(200))  # "Party", "Vacation", "Reduced quantity", etc.
     
     # Delivery tracking (for employee portal)
+    assigned_to = db.Column(db.Integer, db.ForeignKey('employees.id'))  # Employee assigned to deliver
     delivered_by = db.Column(db.Integer, db.ForeignKey('employees.id'))  # Employee who delivered
     delivered_at = db.Column(db.DateTime)  # When marked as delivered
     
@@ -318,6 +319,7 @@ class SubscriptionDelivery(db.Model):
     )
     
     # Relationships
+    assigned_to_employee = db.relationship('Employee', foreign_keys=[assigned_to], backref='assigned_deliveries')
     delivered_by_employee = db.relationship('Employee', foreign_keys=[delivered_by], backref='deliveries_made')
     
     def __repr__(self):

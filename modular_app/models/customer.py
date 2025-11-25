@@ -32,6 +32,9 @@ class Customer(db.Model):
     # Bottle Tracking (for milk/beverage subscriptions)
     bottles_in_possession = db.Column(db.Integer, default=0)  # Total bottles with customer
     
+    # Delivery Assignment (for multi-employee businesses)
+    default_delivery_employee = db.Column(db.Integer, db.ForeignKey('employees.id'))  # Default delivery person
+    
     # Additional Info
     notes = db.Column(db.Text)
     is_active = db.Column(db.Boolean, default=True)

@@ -441,6 +441,102 @@
         font-weight: 600;
     }
     
+    /* Assignment Dropdown */
+    .assign-select {
+        width: 100%;
+        padding: 8px 12px;
+        border: 2px solid #e0e0e0;
+        border-radius: 8px;
+        font-size: 13px;
+        font-weight: 600;
+        color: #2c3e50;
+        background: white;
+        cursor: pointer;
+        transition: all 0.3s;
+        appearance: none;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%232c3e50' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 10px center;
+        padding-right: 35px;
+    }
+    
+    .assign-select:focus {
+        outline: none;
+        border-color: #4CAF50;
+        box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.1);
+    }
+    
+    .assign-select.assigned {
+        border-color: #4CAF50;
+        background-color: #f1f8f4;
+        color: #2e7d32;
+    }
+    
+    .assign-select.unassigned {
+        border-color: #FF9800;
+        background-color: #fff8f0;
+        color: #f57c00;
+    }
+    
+    .assigned-badge {
+        display: inline-block;
+        padding: 4px 10px;
+        border-radius: 12px;
+        font-size: 11px;
+        font-weight: 700;
+        background: #e8f5e9;
+        color: #2e7d32;
+        border: 1px solid #a5d6a7;
+    }
+    
+    .unassigned-badge {
+        display: inline-block;
+        padding: 4px 10px;
+        border-radius: 12px;
+        font-size: 11px;
+        font-weight: 700;
+        background: #fff3e0;
+        color: #f57c00;
+        border: 1px solid #ffb74d;
+    }
+    
+    .bulk-assign-card {
+        background: white;
+        border-radius: 12px;
+        padding: 20px;
+        margin-bottom: 25px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        border-left: 5px solid #2196F3;
+    }
+    
+    .bulk-assign-card h3 {
+        color: #2c3e50;
+        margin: 0 0 15px 0;
+        font-size: 16px;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    .bulk-assign-card h3::before {
+        content: '👥';
+        font-size: 20px;
+    }
+    
+    .bulk-assign-form {
+        display: grid;
+        grid-template-columns: 1fr 1fr auto;
+        gap: 15px;
+        align-items: end;
+    }
+    
+    @media (max-width: 768px) {
+        .bulk-assign-form {
+            grid-template-columns: 1fr;
+        }
+    }
+    
     .total-row {
         background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
         font-weight: 700;
@@ -735,18 +831,57 @@
     </div>
     {% endif %}
     
+    <!-- Bulk Assignment Tool -->
+    {% if employees %}
+    <div class="bulk-assign-card">
+        <h3>Bulk Assignment Tool</h3>
+        <p style="font-size: 13px; color: #666; margin-bottom: 15px;">
+            Quickly assign all future deliveries for a customer to a delivery employee
+        </p>
+        <form method="POST" action="{{ url_for('subscriptions.bulk_assign_deliveries') }}" class="bulk-assign-form">
+            <div>
+                <label style="display: block; font-size: 13px; color: #666; margin-bottom: 6px; font-weight: 600;">Customer</label>
+                <select name="customer_id" class="assign-select" required>
+                    <option value="">Select customer...</option>
+                    {% for delivery in active_deliveries %}
+                        <option value="{{ delivery.subscription.customer.id }}">
+                            {{ delivery.subscription.customer.name }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label style="display: block; font-size: 13px; color: #666; margin-bottom: 6px; font-weight: 600;">Assign To</label>
+                <select name="employee_id" class="assign-select" required>
+                    <option value="">Select employee...</option>
+                    {% for emp in employees %}
+                        <option value="{{ emp.id }}">{{ emp.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <input type="hidden" name="date" value="{{ target_date.strftime('%Y-%m-%d') }}">
+            <div>
+                <button type="submit" class="btn-date primary" style="margin: 0; width: 100%;">
+                    Assign All Future
+                </button>
+            </div>
+        </form>
+    </div>
+    {% endif %}
+    
     <!-- Deliveries Table -->
     <div class="table-container">
         <table class="deliveries-table">
             <thead>
                 <tr>
-                    <th style="width: 5%;">#</th>
-                    <th style="width: 20%;">Customer</th>
-                    <th style="width: 12%;">Contact</th>
-                    <th style="width: 18%;">Product</th>
-                    <th style="width: 12%;">Quantity</th>
-                    <th style="width: 18%;">Status</th>
-                    <th style="width: 15%;">Amount</th>
+                    <th style="width: 4%;">#</th>
+                    <th style="width: 16%;">Customer</th>
+                    <th style="width: 10%;">Contact</th>
+                    <th style="width: 14%;">Product</th>
+                    <th style="width: 10%;">Quantity</th>
+                    <th style="width: 14%;">Assigned To</th>
+                    <th style="width: 16%;">Status</th>
+                    <th style="width: 12%;">Amount</th>
                 </tr>
             </thead>
             <tbody>
@@ -785,6 +920,22 @@
                             </span>
                         </td>
                         <td>
+                            <!-- Assignment Dropdown -->
+                            <form method="POST" action="{{ url_for('subscriptions.assign_delivery') }}" style="margin: 0;">
+                                <input type="hidden" name="delivery_id" value="{{ delivery.id }}">
+                                <select name="employee_id" 
+                                        class="assign-select {% if delivery.assigned_to %}assigned{% else %}unassigned{% endif %}"
+                                        onchange="this.form.submit()">
+                                    <option value="">🚫 Unassigned</option>
+                                    {% for emp in employees %}
+                                        <option value="{{ emp.id }}" {% if delivery.assigned_to == emp.id %}selected{% endif %}>
+                                            👤 {{ emp.name }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </form>
+                        </td>
+                        <td>
                             {% if delivery.delivered_at %}
                             <span class="status-badge completed">✅ Delivered</span>
                             <div class="delivery-details">
@@ -812,7 +963,7 @@
                     
                     <!-- Total Row -->
                     <tr class="total-row">
-                        <td colspan="6" class="total-label">
+                        <td colspan="7" class="total-label">
                             TOTAL
                         </td>
                         <td class="total-amount">
@@ -821,7 +972,7 @@
                     </tr>
                 {% else %}
                     <tr>
-                        <td colspan="7">
+                        <td colspan="8">
                             <div class="no-data">
                                 <p>No deliveries scheduled for {{ target_date.strftime('%d %B %Y') }}</p>
                             </div>

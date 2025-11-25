@@ -160,6 +160,7 @@ def tomorrow_deliveries():
     ).options(
         joinedload(SubscriptionDelivery.subscription).joinedload(CustomerSubscription.customer),
         joinedload(SubscriptionDelivery.subscription).joinedload(CustomerSubscription.plan),
+        joinedload(SubscriptionDelivery.assigned_to_employee),
         joinedload(SubscriptionDelivery.delivered_by_employee)
     ).order_by(
         Customer.name.asc()  # Sort by customer name (already joined)
@@ -182,6 +183,13 @@ def tomorrow_deliveries():
         product_summary[product_name]['amount'] += float(delivery.amount)
         product_summary[product_name]['customers'] += 1
     
+    # Get all employees for assignment dropdown
+    from models.employee import Employee
+    employees = Employee.query.filter_by(
+        tenant_id=tenant_id,
+        is_active=True
+    ).order_by(Employee.name.asc()).all()
+    
     return render_template('admin/subscriptions/tomorrow_deliveries.html',
                          target_date=target_date,
                          active_deliveries=active_deliveries,
@@ -189,7 +197,123 @@ def tomorrow_deliveries():
                          total_customers=total_customers,
                          total_amount=total_amount,
                          product_summary=dict(product_summary),
+                         employees=employees,
                          tenant=g.tenant)
+
+
+@subscriptions_bp.route('/deliveries/assign', methods=['POST'], strict_slashes=False)
+@require_tenant
+@login_required
+def assign_delivery():
+    """Assign a delivery to a specific employee"""
+    tenant_id = get_current_tenant_id()
+    
+    try:
+        delivery_id = int(request.form['delivery_id'])
+        employee_id = request.form.get('employee_id')  # Can be None to unassign
+        
+        # Verify delivery belongs to tenant
+        delivery = SubscriptionDelivery.query.filter_by(
+            id=delivery_id,
+            tenant_id=tenant_id
+        ).first_or_404()
+        
+        # Verify employee belongs to tenant (if assigning)
+        if employee_id:
+            from models.employee import Employee
+            employee = Employee.query.filter_by(
+                id=int(employee_id),
+                tenant_id=tenant_id,
+                is_active=True
+            ).first_or_404()
+            delivery.assigned_to = employee.id
+            flash(f'✅ Delivery assigned to {employee.name}', 'success')
+        else:
+            delivery.assigned_to = None
+            flash('✅ Delivery unassigned', 'success')
+        
+        db.session.commit()
+        
+    except Exception as e:
+        db.session.rollback()
+        flash(f'❌ Error assigning delivery: {str(e)}', 'error')
+    
+    # Redirect back to tomorrow's deliveries
+    return redirect(url_for('subscriptions.tomorrow_deliveries'))
+
+
+@subscriptions_bp.route('/deliveries/bulk-assign', methods=['POST'], strict_slashes=False)
+@require_tenant
+@login_required
+def bulk_assign_deliveries():
+    """Bulk assign all deliveries for a customer to an employee"""
+    tenant_id = get_current_tenant_id()
+    
+    try:
+        customer_id = int(request.form['customer_id'])
+        employee_id = request.form.get('employee_id')  # Can be None to unassign
+        date_str = request.form.get('date')  # Optional: specific date or all future
+        
+        # Verify customer belongs to tenant
+        customer = Customer.query.filter_by(
+            id=customer_id,
+            tenant_id=tenant_id
+        ).first_or_404()
+        
+        # Build query for deliveries to assign
+        query = SubscriptionDelivery.query.join(
+            CustomerSubscription
+        ).filter(
+            CustomerSubscription.customer_id == customer_id,
+            CustomerSubscription.tenant_id == tenant_id
+        )
+        
+        # If specific date, only assign that date
+        if date_str:
+            from datetime import datetime
+            target_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+            query = query.filter(SubscriptionDelivery.delivery_date == target_date)
+            date_desc = f" for {target_date.strftime('%b %d')}"
+        else:
+            # Otherwise, assign all future deliveries
+            from datetime import datetime
+            today = datetime.now().date()
+            query = query.filter(SubscriptionDelivery.delivery_date >= today)
+            date_desc = " (all future deliveries)"
+        
+        deliveries = query.all()
+        
+        # Verify employee (if assigning)
+        if employee_id:
+            from models.employee import Employee
+            employee = Employee.query.filter_by(
+                id=int(employee_id),
+                tenant_id=tenant_id,
+                is_active=True
+            ).first_or_404()
+            
+            # Update all deliveries
+            for delivery in deliveries:
+                delivery.assigned_to = employee.id
+            
+            # Also update customer's default
+            customer.default_delivery_employee = employee.id
+            
+            flash(f'✅ Assigned {len(deliveries)} deliveries for {customer.name} to {employee.name}{date_desc}', 'success')
+        else:
+            # Unassign
+            for delivery in deliveries:
+                delivery.assigned_to = None
+            customer.default_delivery_employee = None
+            flash(f'✅ Unassigned {len(deliveries)} deliveries for {customer.name}{date_desc}', 'success')
+        
+        db.session.commit()
+        
+    except Exception as e:
+        db.session.rollback()
+        flash(f'❌ Error bulk assigning: {str(e)}', 'error')
+    
+    return redirect(url_for('subscriptions.tomorrow_deliveries'))
 
 
 @subscriptions_bp.route('/deliveries/modify', methods=['POST'], strict_slashes=False)
@@ -716,6 +840,9 @@ def enroll_member():
             while current_date <= period_end:
                 # Check if delivery should occur on this date based on schedule
                 if should_deliver_on_date(current_date, delivery_pattern, custom_days, start_date):
+                    # Get customer to check for default delivery employee
+                    customer = Customer.query.get(customer_id)
+                    
                     delivery = SubscriptionDelivery(
                         tenant_id=tenant_id,
                         subscription_id=subscription.id,
@@ -724,7 +851,8 @@ def enroll_member():
                         rate=plan.unit_rate,
                         amount=subscription.default_quantity * plan.unit_rate,
                         status='delivered',  # Will be updated only if exception occurs
-                        is_modified=False
+                        is_modified=False,
+                        assigned_to=customer.default_delivery_employee if customer else None  # Auto-assign
                     )
                     db.session.add(delivery)
                     deliveries_created += 1

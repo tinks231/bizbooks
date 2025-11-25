@@ -78,7 +78,7 @@ def today_deliveries():
     ist = pytz.timezone('Asia/Kolkata')
     today = datetime.now(ist).date()
     
-    # Get all deliveries for today
+    # Get all deliveries for today ASSIGNED TO THIS EMPLOYEE
     deliveries = SubscriptionDelivery.query.join(
         CustomerSubscription
     ).join(
@@ -90,7 +90,8 @@ def today_deliveries():
         SubscriptionDelivery.delivery_date == today,
         CustomerSubscription.status == 'active',
         SubscriptionDelivery.status != 'paused',
-        SubscriptionDelivery.quantity > 0
+        SubscriptionDelivery.quantity > 0,
+        SubscriptionDelivery.assigned_to == employee_id  # ONLY ASSIGNED DELIVERIES
     ).options(
         joinedload(SubscriptionDelivery.subscription).joinedload(CustomerSubscription.customer),
         joinedload(SubscriptionDelivery.subscription).joinedload(CustomerSubscription.plan)
