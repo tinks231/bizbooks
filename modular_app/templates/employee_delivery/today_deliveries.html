@@ -63,6 +63,32 @@
             opacity: 0.9;
         }
         
+        .header-right {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        
+        .lang-toggle {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .lang-toggle:active {
+            background: rgba(255,255,255,0.3);
+            transform: scale(0.95);
+        }
+        
         .logout-btn {
             background: rgba(255,255,255,0.2);
             color: white;
@@ -75,8 +101,9 @@
             transition: all 0.3s;
         }
         
-        .logout-btn:hover {
+        .logout-btn:active {
             background: rgba(255,255,255,0.3);
+            transform: scale(0.95);
         }
         
         /* Stats Cards - Modern Mobile App Style */
@@ -466,6 +493,15 @@
                 font-size: 13px;
             }
             
+            .lang-toggle {
+                padding: 6px 12px;
+                font-size: 13px;
+            }
+            
+            .header-right {
+                gap: 8px;
+            }
+            
             .bottle-input-group {
                 flex-direction: column;
                 align-items: stretch;
@@ -493,9 +529,15 @@
                 <h1>🚚 {{ tenant.company_name }}</h1>
                 <p>👋 {{ employee_name }} • {{ today.strftime('%d %B %Y') }}</p>
             </div>
-            <form method="GET" action="{{ url_for('employee_delivery.logout') }}" style="display: inline;">
-                <button type="submit" class="logout-btn">Logout</button>
-            </form>
+            <div class="header-right">
+                <button class="lang-toggle" onclick="toggleLanguage()">
+                    <span id="langIcon">🌐</span>
+                    <span id="langText">हिंदी</span>
+                </button>
+                <form method="GET" action="{{ url_for('employee_delivery.logout') }}" style="display: inline;">
+                    <button type="submit" class="logout-btn" data-en="Logout" data-hi="बाहर निकलें">Logout</button>
+                </form>
+            </div>
         </div>
     </div>
     
@@ -505,11 +547,11 @@
         <div id="installPrompt" class="install-prompt" style="display: none;">
             <div class="install-prompt-icon">📱</div>
             <div class="install-prompt-content">
-                <div class="install-prompt-title">Add to Home Screen</div>
+                <div class="install-prompt-title" data-en="Add to Home Screen" data-hi="होम स्क्रीन पर जोड़ें">Add to Home Screen</div>
                 <div class="install-prompt-text">
-                    Install this app for quick access! Tap 
+                    <span data-en="Install this app for quick access! Tap" data-hi="तेज़ पहुंच के लिए इंस्टॉल करें! दबाएं">Install this app for quick access! Tap</span> 
                     <strong>Share <svg width="12" height="12" viewBox="0 0 24 24" fill="white" style="display:inline-block;vertical-align:middle;"><path d="M16 5l-1.42 1.42-1.59-1.59V16h-1.98V4.83L9.42 6.42 8 5l4-4 4 4zm4 5v11c0 1.1-.9 2-2 2H6c-1.11 0-2-.9-2-2V10c0-1.11.89-2 2-2h3v2H6v11h12V10h-3V8h3c1.1 0 2 .89 2 2z"/></svg></strong> → 
-                    <strong>"Add to Home Screen"</strong>
+                    <strong data-en='"Add to Home Screen"' data-hi='"होम स्क्रीन पर जोड़ें"'>"Add to Home Screen"</strong>
                 </div>
             </div>
             <button class="install-prompt-close" onclick="closeInstallPrompt()">✕</button>
@@ -527,15 +569,15 @@
         
         <div class="stats-grid">
             <div class="stat-card total">
-                <div class="stat-label">Total</div>
+                <div class="stat-label" data-en="Total" data-hi="कुल">Total</div>
                 <div class="stat-value">{{ total_deliveries }}</div>
             </div>
             <div class="stat-card completed">
-                <div class="stat-label">Completed</div>
+                <div class="stat-label" data-en="Completed" data-hi="पूर्ण">Completed</div>
                 <div class="stat-value">{{ completed_count }}</div>
             </div>
             <div class="stat-card pending">
-                <div class="stat-label">Pending</div>
+                <div class="stat-label" data-en="Pending" data-hi="बाकी">Pending</div>
                 <div class="stat-value">{{ pending_count }}</div>
             </div>
         </div>
@@ -546,7 +588,7 @@
         <!-- Pending Deliveries -->
         {% if pending_deliveries %}
         <h2 class="section-title">
-            📦 Pending Deliveries
+            <span data-en="📦 Pending Deliveries" data-hi="📦 बाकी डिलीवरी">📦 Pending Deliveries</span>
             <span class="badge">{{ pending_count }}</span>
         </h2>
         
@@ -582,7 +624,7 @@
                 {% if delivery.subscription.customer.bottles_in_possession > 0 %}
                 <div class="info-row">
                     <span class="info-icon">🍾</span>
-                    <span><strong>{{ delivery.subscription.customer.bottles_in_possession }} bottles</strong> with customer</span>
+                    <span><strong>{{ delivery.subscription.customer.bottles_in_possession }} <span data-en="bottles" data-hi="बोतलें">bottles</span></strong> <span data-en="with customer" data-hi="ग्राहक के पास">with customer</span></span>
                 </div>
                 {% endif %}
             </div>
@@ -590,7 +632,7 @@
             <form method="POST" action="{{ url_for('employee_delivery.mark_delivery', delivery_id=delivery.id) }}">
                 <div class="delivery-actions">
                     <div class="bottle-input-group">
-                        <label class="bottle-label">🔄 Collect bottles:</label>
+                        <label class="bottle-label" data-en="🔄 Collect bottles:" data-hi="🔄 बोतलें इकट्ठा करें:">🔄 Collect bottles:</label>
                         <input type="number" 
                                name="bottles_collected" 
                                class="bottle-input" 
@@ -598,8 +640,8 @@
                                min="0" 
                                max="99">
                     </div>
-                    <button type="submit" class="mark-btn">
-                        ✅ Mark Delivered
+                    <button type="submit" class="mark-btn" data-en="✅ MARK DELIVERED" data-hi="✅ डिलीवर किया">
+                        ✅ MARK DELIVERED
                     </button>
                 </div>
             </form>
@@ -608,14 +650,14 @@
         {% else %}
         <div class="empty-state">
             <div class="empty-state-icon">🎉</div>
-            <p>All deliveries completed!</p>
+            <p data-en="All deliveries completed!" data-hi="सभी डिलीवरी पूर्ण!">All deliveries completed!</p>
         </div>
         {% endif %}
         
         <!-- Completed Deliveries -->
         {% if completed_deliveries %}
         <h2 class="section-title" style="margin-top: 40px;">
-            ✅ Completed Deliveries
+            <span data-en="✅ Completed Deliveries" data-hi="✅ पूर्ण डिलीवरी">✅ Completed Deliveries</span>
             <span class="badge completed">{{ completed_count }}</span>
         </h2>
         
@@ -631,21 +673,21 @@
             <div class="delivery-info">
                 <div class="info-row">
                     <span class="info-icon">✅</span>
-                    <span>Delivered at {{ delivery.delivered_at.strftime('%I:%M %p') }}</span>
+                    <span><span data-en="Delivered at" data-hi="डिलीवर किया">Delivered at</span> {{ delivery.delivered_at.strftime('%I:%M %p') }}</span>
                 </div>
                 <div class="info-row">
                     <span class="info-icon">🔄</span>
-                    <span>Collected {{ delivery.bottles_collected }} bottles</span>
+                    <span><span data-en="Collected" data-hi="इकट्ठा किया">Collected</span> {{ delivery.bottles_collected }} <span data-en="bottles" data-hi="बोतलें">bottles</span></span>
                 </div>
             </div>
             
             <div class="delivery-actions">
                 <div class="completed-badge">
                     <span>✅</span>
-                    <span>Completed</span>
+                    <span data-en="Completed" data-hi="पूर्ण">Completed</span>
                 </div>
                 <form method="POST" action="{{ url_for('employee_delivery.undo_delivery', delivery_id=delivery.id) }}" style="margin-left: auto;">
-                    <button type="submit" class="undo-btn" onclick="return confirm('Undo this delivery?')">
+                    <button type="submit" class="undo-btn" onclick="return confirm('Undo this delivery?')" data-en="↩️ Undo" data-hi="↩️ वापस करें">
                         ↩️ Undo
                     </button>
                 </form>
@@ -656,14 +698,43 @@
     </div>
     
     <script>
-        // Install Prompt Logic
-        function closeInstallPrompt() {
-            document.getElementById('installPrompt').style.display = 'none';
-            localStorage.setItem('installPromptClosed', 'true');
+        // Language Toggle Logic
+        let currentLang = localStorage.getItem('deliveryLang') || 'en';
+        
+        function toggleLanguage() {
+            currentLang = currentLang === 'en' ? 'hi' : 'en';
+            localStorage.setItem('deliveryLang', currentLang);
+            applyLanguage();
         }
         
-        // Show install prompt if not closed before and not standalone
+        function applyLanguage() {
+            // Update all elements with data-en and data-hi attributes
+            const elements = document.querySelectorAll('[data-en][data-hi]');
+            elements.forEach(function(el) {
+                if (currentLang === 'hi') {
+                    el.textContent = el.getAttribute('data-hi');
+                } else {
+                    el.textContent = el.getAttribute('data-en');
+                }
+            });
+            
+            // Update language toggle button
+            const langText = document.getElementById('langText');
+            const langIcon = document.getElementById('langIcon');
+            if (currentLang === 'hi') {
+                langText.textContent = 'English';
+                langIcon.textContent = '🇮🇳';
+            } else {
+                langText.textContent = 'हिंदी';
+                langIcon.textContent = '🌐';
+            }
+        }
+        
+        // Apply saved language on load
         window.addEventListener('load', function() {
+            applyLanguage();
+            
+            // Install Prompt Logic
             const isStandalone = window.matchMedia('(display-mode: standalone)').matches 
                                || window.navigator.standalone 
                                || document.referrer.includes('android-app://');
@@ -677,6 +748,11 @@
                 }, 1000); // Show after 1 second
             }
         });
+        
+        function closeInstallPrompt() {
+            document.getElementById('installPrompt').style.display = 'none';
+            localStorage.setItem('installPromptClosed', 'true');
+        }
     </script>
 </body>
 </html>
