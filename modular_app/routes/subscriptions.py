@@ -107,10 +107,13 @@ def delivery_schedule():
     
     # Get view type and target date
     from datetime import datetime, timedelta
+    import pytz
     view = request.args.get('view', 'manage')  # manage, today, tomorrow, or custom
     date_param = request.args.get('date')
     
-    today = datetime.now().date()
+    # Get today's date in IST timezone
+    ist = pytz.timezone('Asia/Kolkata')
+    today = datetime.now(ist).date()
     
     # Handle "Manage" view (exceptions & billing)
     if view == 'manage':

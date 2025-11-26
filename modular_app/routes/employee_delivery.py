@@ -10,6 +10,7 @@ from sqlalchemy import and_
 from sqlalchemy.orm import joinedload
 from functools import wraps
 import pytz
+import math
 
 employee_delivery_bp = Blueprint('employee_delivery', __name__, url_prefix='/employee/delivery')
 
@@ -140,7 +141,9 @@ def mark_delivery(delivery_id):
         ist = pytz.timezone('Asia/Kolkata')
         delivery.delivered_by = employee_id
         delivery.delivered_at = datetime.now(ist)
-        delivery.bottles_delivered = int(delivery.quantity)  # Assume 1 bottle per unit
+        
+        # Calculate bottles delivered: Round UP for decimals (2.5L = 3 bottles)
+        delivery.bottles_delivered = math.ceil(delivery.quantity)
         delivery.bottles_collected = bottles_collected
         
         # Update customer bottle balance
