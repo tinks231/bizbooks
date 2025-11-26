@@ -2,8 +2,21 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Today's Deliveries - {{ tenant.company_name }}</title>
+    
+    <!-- PWA Meta Tags -->
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Deliveries">
+    <meta name="theme-color" content="#667eea">
+    <meta name="description" content="Delivery tracking portal for {{ tenant.company_name }}">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚚</text></svg>">
+    <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚚</text></svg>">
+    
     <style>
         * {
             margin: 0;
@@ -363,6 +376,58 @@
             border-left: 4px solid #3c3;
         }
         
+        /* Install Prompt Banner */
+        .install-prompt {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 16px;
+            margin-bottom: 20px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+        
+        .install-prompt-icon {
+            font-size: 32px;
+            flex-shrink: 0;
+        }
+        
+        .install-prompt-content {
+            flex: 1;
+        }
+        
+        .install-prompt-title {
+            font-size: 15px;
+            font-weight: 800;
+            margin-bottom: 4px;
+        }
+        
+        .install-prompt-text {
+            font-size: 13px;
+            opacity: 0.95;
+            line-height: 1.4;
+        }
+        
+        .install-prompt-close {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            font-size: 16px;
+            cursor: pointer;
+            flex-shrink: 0;
+            transition: all 0.2s;
+        }
+        
+        .install-prompt-close:active {
+            background: rgba(255, 255, 255, 0.3);
+            transform: scale(0.9);
+        }
+        
         /* Mobile Responsive - KEEP CARDS HORIZONTAL! */
         @media (max-width: 600px) {
             /* Keep horizontal layout but make cards more compact */
@@ -436,6 +501,20 @@
     
     <!-- Stats Section -->
     <div class="stats-section">
+        <!-- Install Prompt -->
+        <div id="installPrompt" class="install-prompt" style="display: none;">
+            <div class="install-prompt-icon">📱</div>
+            <div class="install-prompt-content">
+                <div class="install-prompt-title">Add to Home Screen</div>
+                <div class="install-prompt-text">
+                    Install this app for quick access! Tap 
+                    <strong>Share <svg width="12" height="12" viewBox="0 0 24 24" fill="white" style="display:inline-block;vertical-align:middle;"><path d="M16 5l-1.42 1.42-1.59-1.59V16h-1.98V4.83L9.42 6.42 8 5l4-4 4 4zm4 5v11c0 1.1-.9 2-2 2H6c-1.11 0-2-.9-2-2V10c0-1.11.89-2 2-2h3v2H6v11h12V10h-3V8h3c1.1 0 2 .89 2 2z"/></svg></strong> → 
+                    <strong>"Add to Home Screen"</strong>
+                </div>
+            </div>
+            <button class="install-prompt-close" onclick="closeInstallPrompt()">✕</button>
+        </div>
+        
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
                 {% for category, message in messages %}
@@ -575,6 +654,30 @@
         {% endfor %}
         {% endif %}
     </div>
+    
+    <script>
+        // Install Prompt Logic
+        function closeInstallPrompt() {
+            document.getElementById('installPrompt').style.display = 'none';
+            localStorage.setItem('installPromptClosed', 'true');
+        }
+        
+        // Show install prompt if not closed before and not standalone
+        window.addEventListener('load', function() {
+            const isStandalone = window.matchMedia('(display-mode: standalone)').matches 
+                               || window.navigator.standalone 
+                               || document.referrer.includes('android-app://');
+            
+            const promptClosed = localStorage.getItem('installPromptClosed');
+            
+            // Show prompt if: not installed, not closed before, and on mobile
+            if (!isStandalone && !promptClosed && window.innerWidth <= 768) {
+                setTimeout(function() {
+                    document.getElementById('installPrompt').style.display = 'flex';
+                }, 1000); // Show after 1 second
+            }
+        });
+    </script>
 </body>
 </html>
 
