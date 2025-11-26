@@ -394,8 +394,11 @@ def bulk_assign_deliveries():
             date_filter = SubscriptionDelivery.delivery_date == target_date
             date_desc = f" for {target_date.strftime('%b %d')}"
         else:
+            # All future deliveries if no date specified (use IST timezone)
             from datetime import datetime
-            today = datetime.now().date()
+            import pytz
+            ist = pytz.timezone('Asia/Kolkata')
+            today = datetime.now(ist).date()
             date_filter = SubscriptionDelivery.delivery_date >= today
             date_desc = " (all future)"
         

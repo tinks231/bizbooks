@@ -195,7 +195,7 @@
     <!-- Customer Selection Form -->
     <form id="bulk-assign-form" method="POST" action="{{ url_for('subscriptions.bulk_assign_deliveries') }}" style="display: none;">
         <input type="hidden" name="employee_id" id="selected-employee-id">
-        <input type="hidden" name="date" value="{{ target_date.strftime('%Y-%m-%d') if target_date else '' }}">
+        <!-- NO date for permanent assignment = assigns ALL FUTURE deliveries -->
         
         <div style="margin-bottom: 15px;">
             <!-- Header with Title and Buttons -->
