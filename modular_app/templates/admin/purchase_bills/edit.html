@@ -184,7 +184,16 @@
                                 <input type="number" name="quantity[]" class="form-control qty-input" step="0.001" min="0" value="1" oninput="calculateRow(this)">
                             </td>
                             <td>
-                                <input type="text" name="unit[]" class="form-control unit-input" value="pcs">
+                                <select name="unit[]" class="form-control unit-input">
+                                    <option value="Pcs" selected>Pcs</option>
+                                    <option value="Nos">Nos</option>
+                                    <option value="Kg">Kg</option>
+                                    <option value="Qtl">Qtl</option>
+                                    <option value="Ltr">Ltr</option>
+                                    <option value="Mtr">Mtr</option>
+                                    <option value="Box">Box</option>
+                                    <option value="Bag">Bag</option>
+                                </select>
                             </td>
                             <td>
                                 <input type="number" name="rate[]" class="form-control rate-input" step="0.01" min="0" oninput="calculateRow(this)">
@@ -606,7 +615,16 @@ function addRow() {
             <input type="number" name="quantity[]" class="form-control qty-input" step="0.001" min="0" value="1" oninput="calculateRow(this)">
         </td>
         <td>
-            <input type="text" name="unit[]" class="form-control unit-input" value="pcs">
+            <select name="unit[]" class="form-control unit-input">
+                <option value="Pcs" selected>Pcs</option>
+                <option value="Nos">Nos</option>
+                <option value="Kg">Kg</option>
+                <option value="Qtl">Qtl</option>
+                <option value="Ltr">Ltr</option>
+                <option value="Mtr">Mtr</option>
+                <option value="Box">Box</option>
+                <option value="Bag">Bag</option>
+            </select>
         </td>
         <td>
             <input type="number" name="rate[]" class="form-control rate-input" step="0.01" min="0" placeholder="0.00" oninput="calculateRow(this)">
