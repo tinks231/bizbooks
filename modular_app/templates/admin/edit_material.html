@@ -30,6 +30,7 @@
             <label class="field-label">Unit: *</label>
             <select name="unit" required>
                 <option value="tons" {% if material.unit == 'tons' %}selected{% endif %}>Tons</option>
+                <option value="qtl" {% if material.unit == 'qtl' %}selected{% endif %}>Quintal (qtl)</option>
                 <option value="bags" {% if material.unit == 'bags' %}selected{% endif %}>Bags</option>
                 <option value="kg" {% if material.unit == 'kg' %}selected{% endif %}>Kg (Kilograms)</option>
                 <option value="liters" {% if material.unit == 'liters' %}selected{% endif %}>Liters</option>
