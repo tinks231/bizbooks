@@ -43,19 +43,25 @@
             <div class="form-group">
                 <label class="field-label field-label--required">Unit</label>
                 <select name="unit" required>
-                    <option value="nos" {% if item.unit == 'nos' %}selected{% endif %}>Pieces (nos)</option>
-                    <option value="kg" {% if item.unit == 'kg' %}selected{% endif %}>Kilogram (kg)</option>
-                    <option value="qtl" {% if item.unit == 'qtl' %}selected{% endif %}>Quintal (qtl)</option>
-                    <option value="g" {% if item.unit == 'g' %}selected{% endif %}>Gram (g)</option>
-                    <option value="ltr" {% if item.unit == 'ltr' %}selected{% endif %}>Liter (ltr)</option>
-                    <option value="ml" {% if item.unit == 'ml' %}selected{% endif %}>Milliliter (ml)</option>
-                    <option value="mtr" {% if item.unit == 'mtr' %}selected{% endif %}>Meter (mtr)</option>
-                    <option value="cm" {% if item.unit == 'cm' %}selected{% endif %}>Centimeter (cm)</option>
+                    <option value="nos" {% if item.unit == 'nos' %}selected{% endif %}>Nos (Numbers)</option>
+                    <option value="pcs" {% if item.unit == 'pcs' %}selected{% endif %}>Pcs (Pieces)</option>
+                    <option value="dozen" {% if item.unit == 'dozen' %}selected{% endif %}>Dozen</option>
+                    <option value="kg" {% if item.unit == 'kg' %}selected{% endif %}>Kg (Kilogram)</option>
+                    <option value="qtl" {% if item.unit == 'qtl' %}selected{% endif %}>Qtl (Quintal)</option>
+                    <option value="ton" {% if item.unit == 'ton' or item.unit == 'tons' %}selected{% endif %}>Ton</option>
+                    <option value="g" {% if item.unit == 'g' %}selected{% endif %}>G (Gram)</option>
+                    <option value="ltr" {% if item.unit == 'ltr' %}selected{% endif %}>Ltr (Liter)</option>
+                    <option value="ml" {% if item.unit == 'ml' %}selected{% endif %}>Ml (Milliliter)</option>
+                    <option value="mtr" {% if item.unit == 'mtr' %}selected{% endif %}>Mtr (Meter)</option>
+                    <option value="cm" {% if item.unit == 'cm' %}selected{% endif %}>Cm (Centimeter)</option>
+                    <option value="ft" {% if item.unit == 'ft' %}selected{% endif %}>Ft (Foot)</option>
+                    <option value="sqm" {% if item.unit == 'sqm' %}selected{% endif %}>Sqm (Square Meter)</option>
+                    <option value="cum" {% if item.unit == 'cum' or item.unit == 'cubic_meter' %}selected{% endif %}>Cum (Cubic Meter)</option>
+                    <option value="cft" {% if item.unit == 'cft' %}selected{% endif %}>Cft (Cubic Feet)</option>
                     <option value="box" {% if item.unit == 'box' %}selected{% endif %}>Box</option>
                     <option value="bag" {% if item.unit == 'bag' %}selected{% endif %}>Bag</option>
                     <option value="packet" {% if item.unit == 'packet' %}selected{% endif %}>Packet</option>
                     <option value="bundle" {% if item.unit == 'bundle' %}selected{% endif %}>Bundle</option>
-                    <option value="dozen" {% if item.unit == 'dozen' %}selected{% endif %}>Dozen</option>
                 </select>
             </div>
         </div>

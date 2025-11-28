@@ -622,12 +622,24 @@
             <td>
                 <select name="unit[]" class="form-control">
                     <option value="Nos">Nos</option>
+                    <option value="Pcs">Pcs</option>
+                    <option value="Dozen">Dozen</option>
                     <option value="Kg">Kg</option>
                     <option value="Qtl">Qtl</option>
+                    <option value="Ton">Ton</option>
+                    <option value="G">G</option>
                     <option value="Ltr">Ltr</option>
+                    <option value="Ml">Ml</option>
                     <option value="Mtr">Mtr</option>
+                    <option value="Cm">Cm</option>
+                    <option value="Ft">Ft</option>
+                    <option value="Sqm">Sqm</option>
+                    <option value="Cum">Cum</option>
+                    <option value="Cft">Cft</option>
                     <option value="Box">Box</option>
-                    <option value="Pcs">Pcs</option>
+                    <option value="Bag">Bag</option>
+                    <option value="Packet">Packet</option>
+                    <option value="Bundle">Bundle</option>
                 </select>
             </td>
             <td>
@@ -1047,13 +1059,25 @@
             </td>
             <td>
                 <select name="unit[]" class="form-control">
-                    <option value="Nos" ${itemData.unit === 'Nos' ? 'selected' : ''}>Nos</option>
-                    <option value="Kg" ${itemData.unit === 'Kg' ? 'selected' : ''}>Kg</option>
-                    <option value="Qtl" ${itemData.unit === 'Qtl' ? 'selected' : ''}>Qtl</option>
-                    <option value="Ltr" ${itemData.unit === 'Ltr' ? 'selected' : ''}>Ltr</option>
-                    <option value="Mtr" ${itemData.unit === 'Mtr' ? 'selected' : ''}>Mtr</option>
-                    <option value="Box" ${itemData.unit === 'Box' ? 'selected' : ''}>Box</option>
-                    <option value="Pcs" ${itemData.unit === 'Pcs' ? 'selected' : ''}>Pcs</option>
+                    <option value="Nos" ${itemData.unit === 'Nos' || itemData.unit === 'nos' ? 'selected' : ''}>Nos</option>
+                    <option value="Pcs" ${itemData.unit === 'Pcs' || itemData.unit === 'pcs' ? 'selected' : ''}>Pcs</option>
+                    <option value="Dozen" ${itemData.unit === 'Dozen' || itemData.unit === 'dozen' ? 'selected' : ''}>Dozen</option>
+                    <option value="Kg" ${itemData.unit === 'Kg' || itemData.unit === 'kg' ? 'selected' : ''}>Kg</option>
+                    <option value="Qtl" ${itemData.unit === 'Qtl' || itemData.unit === 'qtl' ? 'selected' : ''}>Qtl</option>
+                    <option value="Ton" ${itemData.unit === 'Ton' || itemData.unit === 'ton' || itemData.unit === 'tons' ? 'selected' : ''}>Ton</option>
+                    <option value="G" ${itemData.unit === 'G' || itemData.unit === 'g' ? 'selected' : ''}>G</option>
+                    <option value="Ltr" ${itemData.unit === 'Ltr' || itemData.unit === 'ltr' ? 'selected' : ''}>Ltr</option>
+                    <option value="Ml" ${itemData.unit === 'Ml' || itemData.unit === 'ml' ? 'selected' : ''}>Ml</option>
+                    <option value="Mtr" ${itemData.unit === 'Mtr' || itemData.unit === 'mtr' ? 'selected' : ''}>Mtr</option>
+                    <option value="Cm" ${itemData.unit === 'Cm' || itemData.unit === 'cm' ? 'selected' : ''}>Cm</option>
+                    <option value="Ft" ${itemData.unit === 'Ft' || itemData.unit === 'ft' ? 'selected' : ''}>Ft</option>
+                    <option value="Sqm" ${itemData.unit === 'Sqm' || itemData.unit === 'sqm' ? 'selected' : ''}>Sqm</option>
+                    <option value="Cum" ${itemData.unit === 'Cum' || itemData.unit === 'cum' ? 'selected' : ''}>Cum</option>
+                    <option value="Cft" ${itemData.unit === 'Cft' || itemData.unit === 'cft' ? 'selected' : ''}>Cft</option>
+                    <option value="Box" ${itemData.unit === 'Box' || itemData.unit === 'box' ? 'selected' : ''}>Box</option>
+                    <option value="Bag" ${itemData.unit === 'Bag' || itemData.unit === 'bag' ? 'selected' : ''}>Bag</option>
+                    <option value="Packet" ${itemData.unit === 'Packet' || itemData.unit === 'packet' ? 'selected' : ''}>Packet</option>
+                    <option value="Bundle" ${itemData.unit === 'Bundle' || itemData.unit === 'bundle' ? 'selected' : ''}>Bundle</option>
                 </select>
             </td>
             <td>
@@ -1217,13 +1241,25 @@
                     </td>
                     <td>
                         <select name="unit[]" class="form-control">
-                            <option value="Nos" ${orderItem.unit === 'Nos' ? 'selected' : ''}>Nos</option>
-                            <option value="Kg" ${orderItem.unit === 'Kg' ? 'selected' : ''}>Kg</option>
-                            <option value="Qtl" ${orderItem.unit === 'Qtl' ? 'selected' : ''}>Qtl</option>
-                            <option value="Ltr" ${orderItem.unit === 'Ltr' ? 'selected' : ''}>Ltr</option>
-                            <option value="Mtr" ${orderItem.unit === 'Mtr' ? 'selected' : ''}>Mtr</option>
-                            <option value="Box" ${orderItem.unit === 'Box' ? 'selected' : ''}>Box</option>
-                            <option value="Pcs" ${orderItem.unit === 'Pcs' ? 'selected' : ''}>Pcs</option>
+                            <option value="Nos" ${orderItem.unit === 'Nos' || orderItem.unit === 'nos' ? 'selected' : ''}>Nos</option>
+                            <option value="Pcs" ${orderItem.unit === 'Pcs' || orderItem.unit === 'pcs' ? 'selected' : ''}>Pcs</option>
+                            <option value="Dozen" ${orderItem.unit === 'Dozen' || orderItem.unit === 'dozen' ? 'selected' : ''}>Dozen</option>
+                            <option value="Kg" ${orderItem.unit === 'Kg' || orderItem.unit === 'kg' ? 'selected' : ''}>Kg</option>
+                            <option value="Qtl" ${orderItem.unit === 'Qtl' || orderItem.unit === 'qtl' ? 'selected' : ''}>Qtl</option>
+                            <option value="Ton" ${orderItem.unit === 'Ton' || orderItem.unit === 'ton' || orderItem.unit === 'tons' ? 'selected' : ''}>Ton</option>
+                            <option value="G" ${orderItem.unit === 'G' || orderItem.unit === 'g' ? 'selected' : ''}>G</option>
+                            <option value="Ltr" ${orderItem.unit === 'Ltr' || orderItem.unit === 'ltr' ? 'selected' : ''}>Ltr</option>
+                            <option value="Ml" ${orderItem.unit === 'Ml' || orderItem.unit === 'ml' ? 'selected' : ''}>Ml</option>
+                            <option value="Mtr" ${orderItem.unit === 'Mtr' || orderItem.unit === 'mtr' ? 'selected' : ''}>Mtr</option>
+                            <option value="Cm" ${orderItem.unit === 'Cm' || orderItem.unit === 'cm' ? 'selected' : ''}>Cm</option>
+                            <option value="Ft" ${orderItem.unit === 'Ft' || orderItem.unit === 'ft' ? 'selected' : ''}>Ft</option>
+                            <option value="Sqm" ${orderItem.unit === 'Sqm' || orderItem.unit === 'sqm' ? 'selected' : ''}>Sqm</option>
+                            <option value="Cum" ${orderItem.unit === 'Cum' || orderItem.unit === 'cum' ? 'selected' : ''}>Cum</option>
+                            <option value="Cft" ${orderItem.unit === 'Cft' || orderItem.unit === 'cft' ? 'selected' : ''}>Cft</option>
+                            <option value="Box" ${orderItem.unit === 'Box' || orderItem.unit === 'box' ? 'selected' : ''}>Box</option>
+                            <option value="Bag" ${orderItem.unit === 'Bag' || orderItem.unit === 'bag' ? 'selected' : ''}>Bag</option>
+                            <option value="Packet" ${orderItem.unit === 'Packet' || orderItem.unit === 'packet' ? 'selected' : ''}>Packet</option>
+                            <option value="Bundle" ${orderItem.unit === 'Bundle' || orderItem.unit === 'bundle' ? 'selected' : ''}>Bundle</option>
                         </select>
                     </td>
                     <td>
@@ -1343,13 +1379,25 @@
                     </td>
                     <td>
                         <select name="unit[]" class="form-control">
-                            <option value="Nos" ${challanItem.unit === 'Nos' ? 'selected' : ''}>Nos</option>
-                            <option value="Kg" ${challanItem.unit === 'Kg' ? 'selected' : ''}>Kg</option>
-                            <option value="Qtl" ${challanItem.unit === 'Qtl' ? 'selected' : ''}>Qtl</option>
-                            <option value="Ltr" ${challanItem.unit === 'Ltr' ? 'selected' : ''}>Ltr</option>
-                            <option value="Mtr" ${challanItem.unit === 'Mtr' ? 'selected' : ''}>Mtr</option>
-                            <option value="Box" ${challanItem.unit === 'Box' ? 'selected' : ''}>Box</option>
-                            <option value="Pcs" ${challanItem.unit === 'Pcs' ? 'selected' : ''}>Pcs</option>
+                            <option value="Nos" ${challanItem.unit === 'Nos' || challanItem.unit === 'nos' ? 'selected' : ''}>Nos</option>
+                            <option value="Pcs" ${challanItem.unit === 'Pcs' || challanItem.unit === 'pcs' ? 'selected' : ''}>Pcs</option>
+                            <option value="Dozen" ${challanItem.unit === 'Dozen' || challanItem.unit === 'dozen' ? 'selected' : ''}>Dozen</option>
+                            <option value="Kg" ${challanItem.unit === 'Kg' || challanItem.unit === 'kg' ? 'selected' : ''}>Kg</option>
+                            <option value="Qtl" ${challanItem.unit === 'Qtl' || challanItem.unit === 'qtl' ? 'selected' : ''}>Qtl</option>
+                            <option value="Ton" ${challanItem.unit === 'Ton' || challanItem.unit === 'ton' || challanItem.unit === 'tons' ? 'selected' : ''}>Ton</option>
+                            <option value="G" ${challanItem.unit === 'G' || challanItem.unit === 'g' ? 'selected' : ''}>G</option>
+                            <option value="Ltr" ${challanItem.unit === 'Ltr' || challanItem.unit === 'ltr' ? 'selected' : ''}>Ltr</option>
+                            <option value="Ml" ${challanItem.unit === 'Ml' || challanItem.unit === 'ml' ? 'selected' : ''}>Ml</option>
+                            <option value="Mtr" ${challanItem.unit === 'Mtr' || challanItem.unit === 'mtr' ? 'selected' : ''}>Mtr</option>
+                            <option value="Cm" ${challanItem.unit === 'Cm' || challanItem.unit === 'cm' ? 'selected' : ''}>Cm</option>
+                            <option value="Ft" ${challanItem.unit === 'Ft' || challanItem.unit === 'ft' ? 'selected' : ''}>Ft</option>
+                            <option value="Sqm" ${challanItem.unit === 'Sqm' || challanItem.unit === 'sqm' ? 'selected' : ''}>Sqm</option>
+                            <option value="Cum" ${challanItem.unit === 'Cum' || challanItem.unit === 'cum' ? 'selected' : ''}>Cum</option>
+                            <option value="Cft" ${challanItem.unit === 'Cft' || challanItem.unit === 'cft' ? 'selected' : ''}>Cft</option>
+                            <option value="Box" ${challanItem.unit === 'Box' || challanItem.unit === 'box' ? 'selected' : ''}>Box</option>
+                            <option value="Bag" ${challanItem.unit === 'Bag' || challanItem.unit === 'bag' ? 'selected' : ''}>Bag</option>
+                            <option value="Packet" ${challanItem.unit === 'Packet' || challanItem.unit === 'packet' ? 'selected' : ''}>Packet</option>
+                            <option value="Bundle" ${challanItem.unit === 'Bundle' || challanItem.unit === 'bundle' ? 'selected' : ''}>Bundle</option>
                         </select>
                     </td>
                     <td>
