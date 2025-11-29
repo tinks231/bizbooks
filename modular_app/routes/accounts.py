@@ -767,7 +767,8 @@ def employee_cash_give():
         # Calculate new balance
         new_account_balance = Decimal(str(from_account[1])) - amount
         
-        # Transaction 1: Credit FROM account (money leaving)
+        # Transaction 1: Credit FROM account (money leaving company)
+        # This appears in company's bank/cash ledger, NOT in employee ledger
         db.session.execute(text("""
             INSERT INTO account_transactions
             (tenant_id, account_id, transaction_date, transaction_type,
@@ -779,7 +780,8 @@ def employee_cash_give():
         """), {
             'tenant_id': tenant_id, 'account_id': from_account_id, 'transaction_date': txn_date,
             'transaction_type': 'employee_advance', 'debit_amount': 0.00, 'credit_amount': amount,
-            'balance_after': new_account_balance, 'reference_type': 'employee', 'reference_id': employee_id,
+            'balance_after': new_account_balance, 'reference_type': 'employee_advance_given', 
+            'reference_id': employee_id,
             'voucher_number': voucher_number,
             'narration': narration or f'Cash advance to {employee.name}',
             'created_at': now
@@ -796,6 +798,7 @@ def employee_cash_give():
         })
         
         # Transaction 2: Track employee received cash (debit - employee now has cash)
+        # This appears ONLY in employee ledger
         db.session.execute(text("""
             INSERT INTO account_transactions
             (tenant_id, account_id, transaction_date, transaction_type,
@@ -805,11 +808,11 @@ def employee_cash_give():
                     :debit_amount, :credit_amount, :balance_after, :reference_type, :reference_id,
                     :voucher_number, :narration, :created_at)
         """), {
-            'tenant_id': tenant_id, 'account_id': from_account_id, 'transaction_date': txn_date,
+            'tenant_id': tenant_id, 'account_id': None, 'transaction_date': txn_date,
             'transaction_type': 'employee_advance', 'debit_amount': amount, 'credit_amount': 0.00,
             'balance_after': amount, 'reference_type': 'employee', 'reference_id': employee_id,
             'voucher_number': voucher_number,
-            'narration': narration or f'Cash advance received from {from_account[0]}',
+            'narration': narration or f'Cash advance received',
             'created_at': now
         })
         
