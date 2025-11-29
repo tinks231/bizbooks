@@ -2710,32 +2710,31 @@ def clean_duplicate_employee_transactions():
     """
     CLEANUP: Remove duplicate employee transactions from old data
     
-    Problem: Old cash advances created 2 transactions:
-    - One for company account (money leaving company)
-    - One for employee (money received by employee)
+    Problem: Old cash advances created 2 transactions with SAME voucher:
+    - One with CREDIT (company giving money - the duplicate)
+    - One with DEBIT (employee receiving money - the real one)
     
-    BOTH had reference_type='employee' so BOTH appeared in employee ledger!
-    
-    Solution: Delete company-side duplicates, keep only employee-side
+    Solution: Keep DEBIT transactions, delete CREDIT transactions
     
     Access this URL once: /migrate/clean-duplicate-employee-transactions
     """
     try:
         print("=" * 60)
-        print("🧹 CLEANUP: Removing duplicate employee transactions")
+        print("🧹 CLEANUP: Removing duplicate employee transactions (v2)")
         print("=" * 60)
         
-        # Count duplicates before cleanup
+        # Count duplicates before cleanup (CREDIT = company side = duplicate)
         print("\n🔍 Counting duplicate transactions...")
         duplicate_count = db.session.execute(text("""
             SELECT COUNT(*)
             FROM account_transactions
-            WHERE transaction_type IN ('employee_advance', 'employee_expense', 'employee_return')
+            WHERE transaction_type = 'employee_advance'
             AND reference_type = 'employee'
-            AND account_id IS NOT NULL
+            AND credit_amount > 0
+            AND debit_amount = 0
         """)).fetchone()[0]
         
-        print(f"  Found {duplicate_count} duplicate transactions")
+        print(f"  Found {duplicate_count} duplicate cash advance transactions (CREDIT side)")
         
         if duplicate_count == 0:
             print("  ✅ No duplicates found! System is clean.")
@@ -2745,30 +2744,30 @@ def clean_duplicate_employee_transactions():
                 'details': 'Employee ledgers are already clean'
             })
         
-        # Delete company-side duplicates
-        print(f"\n🗑️  Deleting {duplicate_count} company-side duplicates...")
+        # Delete company-side duplicates (CREDIT transactions for employee_advance)
+        print(f"\n🗑️  Deleting {duplicate_count} company-side duplicates (CREDIT)...")
         db.session.execute(text("""
             DELETE FROM account_transactions
-            WHERE transaction_type IN ('employee_advance', 'employee_expense', 'employee_return')
+            WHERE transaction_type = 'employee_advance'
             AND reference_type = 'employee'
-            AND account_id IS NOT NULL
+            AND credit_amount > 0
+            AND debit_amount = 0
         """))
         
         db.session.commit()
         print(f"  ✅ Deleted {duplicate_count} duplicate transactions")
         
-        # Verify cleanup
-        remaining = db.session.execute(text("""
+        # Count what remains (should be DEBIT = employee receiving money)
+        remaining_advances = db.session.execute(text("""
             SELECT COUNT(*)
             FROM account_transactions
-            WHERE transaction_type IN ('employee_advance', 'employee_expense', 'employee_return')
+            WHERE transaction_type = 'employee_advance'
             AND reference_type = 'employee'
-            AND account_id IS NOT NULL
         """)).fetchone()[0]
         
         print("\n" + "=" * 60)
         print(f"✅ CLEANUP COMPLETED! Removed {duplicate_count} duplicates")
-        print(f"   Remaining clean transactions: {remaining} (should be 0)")
+        print(f"   Remaining employee advances: {remaining_advances} (clean data)")
         print("=" * 60)
         
         return jsonify({
@@ -2776,10 +2775,9 @@ def clean_duplicate_employee_transactions():
             'message': f'✅ Cleanup complete! Removed {duplicate_count} duplicate transactions',
             'details': {
                 'duplicates_removed': int(duplicate_count),
-                'remaining_duplicates': int(remaining),
-                'kept': 'Employee-side transactions (account_id IS NULL)',
-                'removed': 'Company-side duplicates (account_id IS NOT NULL)',
-                'why': 'Employee ledger should only show employee transactions, not company account movements'
+                'remaining_clean_transactions': int(remaining_advances),
+                'logic': 'Kept DEBIT (employee receiving), deleted CREDIT (company giving - duplicate)',
+                'why': 'Employee ledger should only show employee side, not company side'
             },
             'next_steps': [
                 'Employee ledgers are now clean!',
