@@ -2874,3 +2874,244 @@ def fix_account_balances():
             'traceback': traceback.format_exc(),
             'help': 'Contact support if this persists'
         }), 500
+
+
+@migration_bp.route('/find-orphaned-transactions')
+def find_orphaned_transactions():
+    """Find invoice payments not linked to any bank/cash account"""
+    try:
+        tenant_id = get_current_tenant_id()
+        
+        print("=" * 60)
+        print("🔍 DIAGNOSTIC: Finding orphaned invoice transactions")
+        print("=" * 60)
+        
+        # Find invoice payment transactions with NULL or invalid account_id
+        orphaned = db.session.execute(text("""
+            SELECT 
+                at.id,
+                at.transaction_date,
+                at.transaction_type,
+                at.debit_amount,
+                at.credit_amount,
+                at.account_id,
+                at.voucher_number,
+                at.narration,
+                at.reference_id,
+                ba.account_name
+            FROM account_transactions at
+            LEFT JOIN bank_accounts ba ON at.account_id = ba.id AND at.tenant_id = ba.tenant_id
+            WHERE at.tenant_id = :tenant_id 
+            AND at.transaction_type = 'invoice_payment'
+            AND (at.account_id IS NULL OR ba.id IS NULL)
+            ORDER BY at.transaction_date DESC
+        """), {'tenant_id': tenant_id}).fetchall()
+        
+        orphaned_list = []
+        for txn in orphaned:
+            orphaned_list.append({
+                'transaction_id': txn[0],
+                'date': str(txn[1]),
+                'type': txn[2],
+                'debit': float(txn[3]),
+                'credit': float(txn[4]),
+                'account_id': txn[5],
+                'voucher_number': txn[6],
+                'narration': txn[7],
+                'invoice_id': txn[8]
+            })
+        
+        return jsonify({
+            'status': 'success',
+            'message': f'Found {len(orphaned_list)} orphaned transaction(s)',
+            'orphaned_transactions': orphaned_list,
+            'explanation': 'These transactions are not linked to any bank/cash account',
+            'next_step': 'Use /migrate/fix-orphaned-transactions to fix them'
+        })
+        
+    except Exception as e:
+        import traceback
+        return jsonify({
+            'status': 'error',
+            'message': f'Diagnostic failed: {str(e)}',
+            'traceback': traceback.format_exc()
+        }), 500
+
+
+@migration_bp.route('/fix-orphaned-transactions')
+def fix_orphaned_transactions():
+    """Fix orphaned invoice payment transactions by linking to Cash in Hand"""
+    try:
+        tenant_id = get_current_tenant_id()
+        
+        print("=" * 60)
+        print("🔧 FIX: Linking orphaned transactions to Cash in Hand")
+        print("=" * 60)
+        
+        # Get Cash in Hand account
+        cash_account = db.session.execute(text("""
+            SELECT id, account_name
+            FROM bank_accounts
+            WHERE tenant_id = :tenant_id AND account_type = 'cash'
+            ORDER BY is_default DESC, id ASC
+            LIMIT 1
+        """), {'tenant_id': tenant_id}).fetchone()
+        
+        if not cash_account:
+            return jsonify({
+                'status': 'error',
+                'message': 'No cash account found!'
+            }), 400
+        
+        cash_account_id = cash_account[0]
+        cash_account_name = cash_account[1]
+        
+        # Find orphaned invoice payment transactions
+        orphaned = db.session.execute(text("""
+            SELECT 
+                at.id,
+                at.voucher_number,
+                at.debit_amount,
+                at.transaction_date
+            FROM account_transactions at
+            LEFT JOIN bank_accounts ba ON at.account_id = ba.id AND at.tenant_id = ba.tenant_id
+            WHERE at.tenant_id = :tenant_id 
+            AND at.transaction_type = 'invoice_payment'
+            AND (at.account_id IS NULL OR ba.id IS NULL)
+        """), {'tenant_id': tenant_id}).fetchall()
+        
+        fixed_transactions = []
+        
+        for txn in orphaned:
+            txn_id = txn[0]
+            voucher = txn[1]
+            amount = txn[2]
+            
+            # Update the transaction to link to Cash in Hand
+            db.session.execute(text("""
+                UPDATE account_transactions
+                SET account_id = :account_id
+                WHERE id = :txn_id AND tenant_id = :tenant_id
+            """), {'account_id': cash_account_id, 'txn_id': txn_id, 'tenant_id': tenant_id})
+            
+            fixed_transactions.append({
+                'voucher': voucher,
+                'amount': float(amount),
+                'linked_to': cash_account_name
+            })
+            
+            print(f"✅ Fixed {voucher}: ₹{amount:,.2f} → {cash_account_name}")
+        
+        db.session.commit()
+        
+        return jsonify({
+            'status': 'success',
+            'message': f'✅ Fixed {len(fixed_transactions)} orphaned transaction(s)!',
+            'fixed_transactions': fixed_transactions,
+            'linked_to_account': cash_account_name,
+            'next_steps': [
+                'Now run /migrate/recalculate-account-balances to fix all balances',
+                'Then refresh Cash in Hand statement',
+                'Missing transactions will now appear!'
+            ]
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        import traceback
+        return jsonify({
+            'status': 'error',
+            'message': f'Fix failed: {str(e)}',
+            'traceback': traceback.format_exc()
+        }), 500
+
+
+@migration_bp.route('/recalculate-account-balances')
+def recalculate_account_balances():
+    """Recalculate ALL balance_after values for all transactions in sequence"""
+    try:
+        tenant_id = get_current_tenant_id()
+        
+        print("=" * 60)
+        print("🔧 RECALCULATING: All transaction balances from scratch")
+        print("=" * 60)
+        
+        # Get all accounts
+        accounts = db.session.execute(text("""
+            SELECT id, account_name, opening_balance
+            FROM bank_accounts
+            WHERE tenant_id = :tenant_id AND is_active = TRUE
+        """), {'tenant_id': tenant_id}).fetchall()
+        
+        recalculated_accounts = []
+        
+        for account in accounts:
+            account_id = account[0]
+            account_name = account[1]
+            opening_balance = float(account[2])
+            
+            # Get all transactions for this account in chronological order
+            transactions = db.session.execute(text("""
+                SELECT id, debit_amount, credit_amount
+                FROM account_transactions
+                WHERE tenant_id = :tenant_id AND account_id = :account_id
+                ORDER BY transaction_date ASC, created_at ASC, id ASC
+            """), {'tenant_id': tenant_id, 'account_id': account_id}).fetchall()
+            
+            running_balance = opening_balance
+            updated_count = 0
+            
+            for txn in transactions:
+                txn_id = txn[0]
+                debit = float(txn[1])
+                credit = float(txn[2])
+                
+                # Calculate correct balance
+                running_balance = running_balance + debit - credit
+                
+                # Update the transaction
+                db.session.execute(text("""
+                    UPDATE account_transactions
+                    SET balance_after = :balance
+                    WHERE id = :txn_id
+                """), {'balance': running_balance, 'txn_id': txn_id})
+                
+                updated_count += 1
+            
+            # Update account's current_balance
+            db.session.execute(text("""
+                UPDATE bank_accounts
+                SET current_balance = :balance, updated_at = CURRENT_TIMESTAMP
+                WHERE id = :account_id AND tenant_id = :tenant_id
+            """), {'balance': running_balance, 'account_id': account_id, 'tenant_id': tenant_id})
+            
+            recalculated_accounts.append({
+                'account_name': account_name,
+                'transactions_updated': updated_count,
+                'final_balance': running_balance
+            })
+            
+            print(f"✅ {account_name}: {updated_count} transactions, Final: ₹{running_balance:,.2f}")
+        
+        db.session.commit()
+        
+        return jsonify({
+            'status': 'success',
+            'message': f'✅ Recalculated balances for {len(recalculated_accounts)} account(s)!',
+            'recalculated_accounts': recalculated_accounts,
+            'next_steps': [
+                'All transaction balances are now correct',
+                'All account current_balance values are accurate',
+                'Refresh all reports and statements',
+                'Everything should now match!'
+            ]
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        import traceback
+        return jsonify({
+            'status': 'error',
+            'message': f'Recalculation failed: {str(e)}',
+            'traceback': traceback.format_exc()
+        }), 500
