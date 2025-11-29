@@ -3131,7 +3131,7 @@ def diagnose_invoice_payment(invoice_number):
         invoice = db.session.execute(text("""
             SELECT 
                 id, invoice_number, customer_name, total_amount, 
-                payment_status, payment_received, invoice_date
+                payment_status, invoice_date
             FROM invoices
             WHERE tenant_id = :tenant_id AND invoice_number = :invoice_number
         """), {'tenant_id': tenant_id, 'invoice_number': invoice_number}).fetchone()
@@ -3148,8 +3148,7 @@ def diagnose_invoice_payment(invoice_number):
             'customer_name': invoice[2],
             'total_amount': float(invoice[3]),
             'payment_status': invoice[4],
-            'payment_received': invoice[5],
-            'invoice_date': str(invoice[6])
+            'invoice_date': str(invoice[5])
         }
         
         # 2. Check if account_transactions exists for this invoice
@@ -3191,7 +3190,7 @@ def diagnose_invoice_payment(invoice_number):
         # 3. Check if payment_received is 'yes' but no transaction
         diagnosis = []
         
-        if invoice[5] == 'yes' and len(transactions) == 0:
+        if invoice[4] == 'paid' and len(transactions) == 0:
             diagnosis.append('⚠️ Invoice marked as PAID but NO account_transaction found!')
             diagnosis.append('This invoice payment was never recorded to any account')
             diagnosis.append('Need to manually create the transaction')
@@ -3200,7 +3199,7 @@ def diagnose_invoice_payment(invoice_number):
             diagnosis.append('⚠️ Transaction exists but account_id is NULL!')
             diagnosis.append('Run /migrate/fix-orphaned-transactions to fix')
         
-        if len(transactions) == 0 and invoice[5] != 'yes':
+        if len(transactions) == 0 and invoice[4] != 'paid':
             diagnosis.append('✅ Invoice is unpaid - no transaction expected')
         
         if len(transactions) > 0 and transactions[0][6] is not None:
