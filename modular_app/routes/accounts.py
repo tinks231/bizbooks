@@ -4,8 +4,8 @@ Phase 1 of Accounting Module
 """
 
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, g
-from modular_app.models.database import db
-from modular_app.utils.auth import login_required, require_tenant, get_current_tenant_id
+from models import db, BankAccount, AccountTransaction
+from utils.auth import login_required, require_tenant, get_current_tenant_id
 from datetime import datetime
 import pytz
 from decimal import Decimal

@@ -2569,7 +2569,7 @@ def add_bank_accounts():
         
         # Create default "Cash in Hand" account for all existing tenants
         print("\n💵 Creating default 'Cash in Hand' accounts...")
-        from modular_app.models.tenant import Tenant
+        from models.tenant import Tenant
         import pytz
         
         tenants = Tenant.query.all()
