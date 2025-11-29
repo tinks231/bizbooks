@@ -3221,3 +3221,148 @@ def diagnose_invoice_payment(invoice_number):
             'message': f'Diagnostic failed: {str(e)}',
             'traceback': traceback.format_exc()
         }), 500
+
+
+@migration_bp.route('/create-missing-invoice-payment/<invoice_number>')
+def create_missing_invoice_payment(invoice_number):
+    """Manually create missing account_transaction for a paid invoice"""
+    try:
+        tenant_id = get_current_tenant_id()
+        
+        print("=" * 60)
+        print(f"🔧 CREATING: Missing payment transaction for {invoice_number}")
+        print("=" * 60)
+        
+        # Get invoice details
+        invoice = db.session.execute(text("""
+            SELECT id, total_amount, invoice_date, customer_name
+            FROM invoices
+            WHERE tenant_id = :tenant_id AND invoice_number = :invoice_number
+        """), {'tenant_id': tenant_id, 'invoice_number': invoice_number}).fetchone()
+        
+        if not invoice:
+            return jsonify({
+                'status': 'error',
+                'message': f'Invoice {invoice_number} not found!'
+            }), 404
+        
+        invoice_id = invoice[0]
+        amount = invoice[1]
+        invoice_date = invoice[2]
+        customer_name = invoice[3]
+        
+        # Check if transaction already exists
+        existing = db.session.execute(text("""
+            SELECT COUNT(*) FROM account_transactions
+            WHERE tenant_id = :tenant_id 
+            AND reference_type = 'invoice'
+            AND reference_id = :invoice_id
+        """), {'tenant_id': tenant_id, 'invoice_id': invoice_id}).fetchone()[0]
+        
+        if existing > 0:
+            return jsonify({
+                'status': 'error',
+                'message': 'Transaction already exists for this invoice!'
+            }), 400
+        
+        # Get Cash in Hand account
+        cash_account = db.session.execute(text("""
+            SELECT id, account_name, current_balance
+            FROM bank_accounts
+            WHERE tenant_id = :tenant_id AND account_type = 'cash'
+            ORDER BY is_default DESC, id ASC
+            LIMIT 1
+        """), {'tenant_id': tenant_id}).fetchone()
+        
+        if not cash_account:
+            return jsonify({
+                'status': 'error',
+                'message': 'No cash account found!'
+            }), 400
+        
+        account_id = cash_account[0]
+        account_name = cash_account[1]
+        current_balance = cash_account[2]
+        
+        # Get the last transaction before this invoice date to calculate correct balance
+        last_txn = db.session.execute(text("""
+            SELECT balance_after
+            FROM account_transactions
+            WHERE tenant_id = :tenant_id 
+            AND account_id = :account_id
+            AND transaction_date <= :invoice_date
+            ORDER BY transaction_date DESC, created_at DESC, id DESC
+            LIMIT 1
+        """), {'tenant_id': tenant_id, 'account_id': account_id, 'invoice_date': invoice_date}).fetchone()
+        
+        # Calculate balance_after for this transaction
+        if last_txn:
+            balance_after = float(last_txn[0]) + float(amount)
+        else:
+            # No transactions before this date, use opening balance
+            opening = db.session.execute(text("""
+                SELECT opening_balance FROM bank_accounts
+                WHERE id = :account_id AND tenant_id = :tenant_id
+            """), {'account_id': account_id, 'tenant_id': tenant_id}).fetchone()[0]
+            balance_after = float(opening) + float(amount)
+        
+        # Create the missing transaction
+        from datetime import datetime
+        import pytz
+        ist = pytz.timezone('Asia/Kolkata')
+        now = datetime.now(ist)
+        
+        db.session.execute(text("""
+            INSERT INTO account_transactions
+            (tenant_id, account_id, transaction_date, transaction_type,
+             debit_amount, credit_amount, balance_after, reference_type, reference_id,
+             voucher_number, narration, created_at, created_by)
+            VALUES (:tenant_id, :account_id, :transaction_date, :transaction_type,
+                    :debit_amount, :credit_amount, :balance_after, :reference_type, :reference_id,
+                    :voucher_number, :narration, :created_at, :created_by)
+        """), {
+            'tenant_id': tenant_id,
+            'account_id': account_id,
+            'transaction_date': invoice_date,
+            'transaction_type': 'invoice_payment',
+            'debit_amount': amount,
+            'credit_amount': 0,
+            'balance_after': balance_after,
+            'reference_type': 'invoice',
+            'reference_id': invoice_id,
+            'voucher_number': invoice_number,
+            'narration': f'Payment received for {invoice_number} from {customer_name}',
+            'created_at': now,
+            'created_by': None
+        })
+        
+        db.session.commit()
+        
+        print(f"✅ Created transaction: {invoice_number} → ₹{amount:,.2f} → {account_name}")
+        
+        return jsonify({
+            'status': 'success',
+            'message': f'✅ Created missing transaction for {invoice_number}!',
+            'transaction_created': {
+                'invoice_number': invoice_number,
+                'amount': float(amount),
+                'date': str(invoice_date),
+                'account': account_name,
+                'balance_after': balance_after
+            },
+            'next_steps': [
+                'Now run: /migrate/recalculate-account-balances',
+                'This will fix all subsequent transaction balances',
+                'Then refresh Cash in Hand statement',
+                f'{invoice_number} will appear in the ledger!'
+            ]
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        import traceback
+        return jsonify({
+            'status': 'error',
+            'message': f'Failed to create transaction: {str(e)}',
+            'traceback': traceback.format_exc()
+        }), 500
