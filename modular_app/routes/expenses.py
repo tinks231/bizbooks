@@ -95,12 +95,23 @@ def index():
     # Get categories
     categories = ExpenseCategory.query.filter_by(tenant_id=tenant_id, is_active=True).all()
     
+    # Get active bank/cash accounts for expense payment
+    from models import BankAccount
+    bank_accounts = BankAccount.query.filter_by(
+        tenant_id=tenant_id,
+        is_active=True
+    ).order_by(
+        BankAccount.account_type,
+        BankAccount.account_name
+    ).all()
+    
     return render_template('admin/expenses/list.html',
                          expenses=expenses,
                          page=page,
                          total_pages=pagination.pages,
                          total_items=pagination.total,
                          categories=categories,
+                         bank_accounts=bank_accounts,
                          total_amount=total_amount,
                          monthly_data=monthly_data,
                          selected_category=category_id,
@@ -118,11 +129,39 @@ def add():
     ist = pytz.timezone('Asia/Kolkata')
     
     try:
+        from models import BankAccount
+        from decimal import Decimal
+        from sqlalchemy import text
+        
+        expense_date = datetime.strptime(request.form.get('expense_date'), '%Y-%m-%d').date()
+        amount = Decimal(str(request.form.get('amount')))
+        account_id = request.form.get('account_id')
+        
+        # Validate account
+        if not account_id:
+            flash('⚠️ Please select a bank/cash account', 'warning')
+            return redirect(url_for('expenses.index'))
+        
+        account = BankAccount.query.filter_by(
+            id=account_id,
+            tenant_id=tenant_id,
+            is_active=True
+        ).first()
+        
+        if not account:
+            flash('⚠️ Invalid bank/cash account selected', 'error')
+            return redirect(url_for('expenses.index'))
+        
+        # Check sufficient balance
+        if account.current_balance < amount:
+            flash(f'⚠️ Insufficient balance in {account.account_name}. Current: ₹{account.current_balance:,.2f}', 'warning')
+            return redirect(url_for('expenses.index'))
+        
         expense = Expense(
             tenant_id=tenant_id,
-            expense_date=datetime.strptime(request.form.get('expense_date'), '%Y-%m-%d').date(),
+            expense_date=expense_date,
             category_id=int(request.form.get('category_id')),
-            amount=float(request.form.get('amount')),
+            amount=float(amount),
             description=request.form.get('description'),
             payment_method=request.form.get('payment_method'),
             reference_number=request.form.get('reference_number'),
@@ -131,11 +170,55 @@ def add():
         )
         
         db.session.add(expense)
+        db.session.flush()  # Get expense ID
+        
+        # Create account transaction (Money OUT - Credit account)
+        now = datetime.now(ist)
+        new_balance = Decimal(str(account.current_balance)) - amount
+        
+        db.session.execute(text("""
+            INSERT INTO account_transactions
+            (tenant_id, account_id, transaction_date, transaction_type,
+             debit_amount, credit_amount, balance_after, reference_type, reference_id,
+             voucher_number, narration, created_at, created_by)
+            VALUES (:tenant_id, :account_id, :txn_date, :txn_type,
+                    :debit, :credit, :balance, :ref_type, :ref_id,
+                    :voucher, :narration, :created_at, :created_by)
+        """), {
+            'tenant_id': tenant_id,
+            'account_id': account_id,
+            'txn_date': expense_date,
+            'txn_type': 'expense',
+            'debit': Decimal('0.00'),
+            'credit': amount,  # Money spent = Credit
+            'balance': new_balance,
+            'ref_type': 'expense',
+            'ref_id': expense.id,
+            'voucher': f'EXP-{expense.id}',
+            'narration': f'{expense.description[:100]} - {expense.vendor_name or "Business Expense"}',
+            'created_at': now,
+            'created_by': session.get('tenant_admin_id')
+        })
+        
+        # Update account balance
+        db.session.execute(text("""
+            UPDATE bank_accounts 
+            SET current_balance = :new_balance, updated_at = :updated_at
+            WHERE id = :account_id AND tenant_id = :tenant_id
+        """), {
+            'new_balance': new_balance,
+            'updated_at': now,
+            'account_id': account_id,
+            'tenant_id': tenant_id
+        })
+        
         db.session.commit()
-        flash('✅ Expense added successfully!', 'success')
+        flash(f'✅ Expense recorded! ₹{amount:,.2f} paid from {account.account_name}', 'success')
     except Exception as e:
         db.session.rollback()
         flash(f'❌ Error adding expense: {str(e)}', 'error')
+        import traceback
+        traceback.print_exc()
     
     return redirect(url_for('expenses.index'))
 

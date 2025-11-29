@@ -39,6 +39,27 @@
                 <input type="number" name="amount" step="0.01" required>
             </div>
             <div class="form-group">
+                <label class="field-label">💰 Pay From Account *</label>
+                <select name="account_id" required>
+                    <option value="">-- Select Account --</option>
+                    {% if bank_accounts %}
+                        {% for account in bank_accounts %}
+                            <option value="{{ account.id }}" 
+                                    {% if account.is_default %}selected{% endif %}>
+                                {% if account.account_type == 'cash' %}💵{% elif account.account_type == 'bank' %}🏦{% else %}💰{% endif %}
+                                {{ account.account_name }}
+                                {% if account.bank_name %}({{ account.bank_name }}){% endif %}
+                                - ₹{{ "{:,.2f}".format(account.current_balance) }}
+                            </option>
+                        {% endfor %}
+                    {% else %}
+                        <option value="" disabled>No accounts found</option>
+                    {% endif %}
+                </select>
+            </div>
+        </div>
+        <div class="form-row">
+            <div class="form-group">
                 <label class="field-label">Payment Method</label>
                 <select name="payment_method">
                     <option value="Cash">Cash</option>
@@ -47,6 +68,9 @@
                     <option value="Card">Card</option>
                     <option value="Cheque">Cheque</option>
                 </select>
+            </div>
+            <div class="form-group">
+                <!-- Empty for spacing -->
             </div>
         </div>
         <div class="form-row">
