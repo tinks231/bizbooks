@@ -171,6 +171,7 @@ def edit_account(account_id):
         ifsc_code = request.form.get('ifsc_code')
         branch = request.form.get('branch')
         description = request.form.get('description')
+        new_balance = Decimal(request.form.get('current_balance', '0.00'))
         is_active = 1 if request.form.get('is_active') == 'on' else 0
         is_default = 1 if request.form.get('is_default') == 'on' else 0
         
@@ -179,11 +180,13 @@ def edit_account(account_id):
             flash('❌ Account name is required', 'error')
             return redirect(url_for('accounts.list_accounts'))
         
-        # Get account type
-        account_type = db.session.execute(
-            text("SELECT account_type FROM bank_accounts WHERE id = :account_id AND tenant_id = :tenant_id"),
+        # Get current account details (type and balance)
+        account_info = db.session.execute(
+            text("SELECT account_type, current_balance FROM bank_accounts WHERE id = :account_id AND tenant_id = :tenant_id"),
             {'account_id': account_id, 'tenant_id': tenant_id}
-        ).fetchone()[0]
+        ).fetchone()
+        account_type = account_info[0]
+        old_balance = Decimal(str(account_info[1]))
         
         # If marking as default, unmark others of same type
         if is_default:
@@ -201,18 +204,47 @@ def edit_account(account_id):
             UPDATE bank_accounts
             SET account_name = :account_name, bank_name = :bank_name, account_number = :account_number,
                 ifsc_code = :ifsc_code, branch = :branch, description = :description,
-                is_active = :is_active, is_default = :is_default, updated_at = :updated_at
+                current_balance = :current_balance, is_active = :is_active, is_default = :is_default, 
+                updated_at = :updated_at
             WHERE id = :account_id AND tenant_id = :tenant_id
         """), {
             'account_name': account_name, 'bank_name': bank_name, 'account_number': account_number,
             'ifsc_code': ifsc_code, 'branch': branch, 'description': description,
-            'is_active': is_active, 'is_default': is_default, 'updated_at': now,
-            'account_id': account_id, 'tenant_id': tenant_id
+            'current_balance': new_balance, 'is_active': is_active, 'is_default': is_default, 
+            'updated_at': now, 'account_id': account_id, 'tenant_id': tenant_id
         })
+        
+        # If balance changed, create adjustment transaction
+        if new_balance != old_balance:
+            adjustment = new_balance - old_balance
+            if adjustment > 0:
+                # Balance increased (debit)
+                debit_amt = adjustment
+                credit_amt = Decimal('0.00')
+                narration = f'Balance adjustment: ₹{adjustment:,.2f} added'
+            else:
+                # Balance decreased (credit)
+                debit_amt = Decimal('0.00')
+                credit_amt = abs(adjustment)
+                narration = f'Balance adjustment: ₹{abs(adjustment):,.2f} deducted'
+            
+            db.session.execute(text("""
+                INSERT INTO account_transactions
+                (tenant_id, account_id, transaction_date, transaction_type,
+                 debit_amount, credit_amount, balance_after, narration, created_at)
+                VALUES (:tenant_id, :account_id, :transaction_date, :transaction_type,
+                        :debit_amount, :credit_amount, :balance_after, :narration, :created_at)
+            """), {
+                'tenant_id': tenant_id, 'account_id': account_id, 'transaction_date': now.date(),
+                'transaction_type': 'balance_adjustment', 'debit_amount': debit_amt,
+                'credit_amount': credit_amt, 'balance_after': new_balance,
+                'narration': narration, 'created_at': now
+            })
         
         db.session.commit()
         
-        flash(f'✅ Account "{account_name}" updated successfully!', 'success')
+        balance_msg = f' Balance updated to ₹{new_balance:,.2f}.' if new_balance != old_balance else ''
+        flash(f'✅ Account "{account_name}" updated successfully!{balance_msg}', 'success')
         
     except Exception as e:
         db.session.rollback()

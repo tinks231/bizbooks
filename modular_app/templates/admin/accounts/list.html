@@ -251,6 +251,14 @@
                 </div>
                 
                 <div class="form-group">
+                    <label class="field-label field-label--required">Current Balance (₹)</label>
+                    <input type="number" name="current_balance" id="edit_current_balance" class="form-control" step="0.01" required>
+                    <small style="color: #666; font-size: 12px; margin-top: 5px; display: block;">
+                        💡 This will update your account balance. An adjustment transaction will be created automatically.
+                    </small>
+                </div>
+                
+                <div class="form-group">
                     <label class="inline-checkbox">
                         <input type="checkbox" name="is_active" id="edit_is_active">
                         <span>Account is active</span>
@@ -391,6 +399,7 @@ function openEditAccountModal(accountId) {
             document.getElementById('edit_ifsc_code').value = data.ifsc_code;
             document.getElementById('edit_branch').value = data.branch;
             document.getElementById('edit_description').value = data.description;
+            document.getElementById('edit_current_balance').value = data.current_balance;
             document.getElementById('edit_is_active').checked = data.is_active;
             document.getElementById('edit_is_default').checked = data.is_default;
             
