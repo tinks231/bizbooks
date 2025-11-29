@@ -869,7 +869,7 @@ def record_payment_form(bill_id):
             payment.amount = amount
             payment.payment_method = payment_method
             payment.reference_number = reference_number
-            payment.bank_account = bank_account
+            payment.bank_account = account.account_name  # NEW: Use selected account name
             payment.notes = notes
             payment.created_by = session.get('tenant_name', 'Admin')
             
