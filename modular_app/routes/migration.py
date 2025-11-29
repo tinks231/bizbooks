@@ -3115,3 +3115,110 @@ def recalculate_account_balances():
             'message': f'Recalculation failed: {str(e)}',
             'traceback': traceback.format_exc()
         }), 500
+
+
+@migration_bp.route('/diagnose-invoice-payment/<invoice_number>')
+def diagnose_invoice_payment(invoice_number):
+    """Deep diagnostic for a specific invoice payment"""
+    try:
+        tenant_id = get_current_tenant_id()
+        
+        print("=" * 60)
+        print(f"🔍 DEEP DIAGNOSTIC: Invoice {invoice_number}")
+        print("=" * 60)
+        
+        # 1. Check if invoice exists
+        invoice = db.session.execute(text("""
+            SELECT 
+                id, invoice_number, customer_name, total_amount, 
+                payment_status, payment_received, invoice_date
+            FROM invoices
+            WHERE tenant_id = :tenant_id AND invoice_number = :invoice_number
+        """), {'tenant_id': tenant_id, 'invoice_number': invoice_number}).fetchone()
+        
+        if not invoice:
+            return jsonify({
+                'status': 'error',
+                'message': f'Invoice {invoice_number} not found!'
+            }), 404
+        
+        invoice_info = {
+            'id': invoice[0],
+            'invoice_number': invoice[1],
+            'customer_name': invoice[2],
+            'total_amount': float(invoice[3]),
+            'payment_status': invoice[4],
+            'payment_received': invoice[5],
+            'invoice_date': str(invoice[6])
+        }
+        
+        # 2. Check if account_transactions exists for this invoice
+        transactions = db.session.execute(text("""
+            SELECT 
+                id, transaction_date, transaction_type, 
+                debit_amount, credit_amount, balance_after,
+                account_id, voucher_number, narration
+            FROM account_transactions
+            WHERE tenant_id = :tenant_id 
+            AND reference_type = 'invoice'
+            AND reference_id = :invoice_id
+        """), {'tenant_id': tenant_id, 'invoice_id': invoice[0]}).fetchall()
+        
+        transaction_list = []
+        for txn in transactions:
+            # Get account name if account_id exists
+            account_name = None
+            if txn[6]:
+                acc = db.session.execute(text("""
+                    SELECT account_name FROM bank_accounts 
+                    WHERE id = :account_id AND tenant_id = :tenant_id
+                """), {'account_id': txn[6], 'tenant_id': tenant_id}).fetchone()
+                account_name = acc[0] if acc else 'Account Not Found!'
+            
+            transaction_list.append({
+                'transaction_id': txn[0],
+                'date': str(txn[1]),
+                'type': txn[2],
+                'debit': float(txn[3]),
+                'credit': float(txn[4]),
+                'balance_after': float(txn[5]),
+                'account_id': txn[6],
+                'account_name': account_name,
+                'voucher_number': txn[7],
+                'narration': txn[8]
+            })
+        
+        # 3. Check if payment_received is 'yes' but no transaction
+        diagnosis = []
+        
+        if invoice[5] == 'yes' and len(transactions) == 0:
+            diagnosis.append('⚠️ Invoice marked as PAID but NO account_transaction found!')
+            diagnosis.append('This invoice payment was never recorded to any account')
+            diagnosis.append('Need to manually create the transaction')
+        
+        if len(transactions) > 0 and transactions[0][6] is None:
+            diagnosis.append('⚠️ Transaction exists but account_id is NULL!')
+            diagnosis.append('Run /migrate/fix-orphaned-transactions to fix')
+        
+        if len(transactions) == 0 and invoice[5] != 'yes':
+            diagnosis.append('✅ Invoice is unpaid - no transaction expected')
+        
+        if len(transactions) > 0 and transactions[0][6] is not None:
+            diagnosis.append('✅ Transaction exists and is linked to an account')
+            diagnosis.append(f'Linked to: {transaction_list[0]["account_name"]}')
+        
+        return jsonify({
+            'status': 'success',
+            'invoice': invoice_info,
+            'transactions_found': len(transactions),
+            'transactions': transaction_list,
+            'diagnosis': diagnosis
+        })
+        
+    except Exception as e:
+        import traceback
+        return jsonify({
+            'status': 'error',
+            'message': f'Diagnostic failed: {str(e)}',
+            'traceback': traceback.format_exc()
+        }), 500
