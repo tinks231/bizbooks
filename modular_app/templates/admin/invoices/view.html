@@ -10,18 +10,22 @@
         🖨️ Print Invoice
     </button>
     
-    {% if invoice.status == 'draft' %}
-    <a href="{{ url_for('invoices.mark_sent', invoice_id=invoice.id) }}" class="btn btn-success" 
-       onclick="return confirm('Mark this invoice as sent?')">
-        ✉️ Mark as Sent
-    </a>
-    <a href="{{ url_for('invoices.edit', invoice_id=invoice.id) }}" class="btn btn-secondary">
-        ✏️ Edit
-    </a>
-    {% elif invoice.payment_status == 'unpaid' %}
+    {% if invoice.payment_status in ['unpaid', 'partial'] %}
     <button onclick="document.getElementById('paymentModal').style.display='block'" class="btn btn-success">
         💰 Record Payment
     </button>
+    {% endif %}
+    
+    {% if invoice.status == 'draft' %}
+    <form method="POST" action="{{ url_for('invoices.mark_sent', invoice_id=invoice.id) }}" style="display: inline;">
+        <button type="submit" class="btn btn-primary" 
+                onclick="return confirm('Mark this invoice as sent to customer?')">
+            ✉️ Mark as Sent
+        </button>
+    </form>
+    <a href="{{ url_for('invoices.edit', invoice_id=invoice.id) }}" class="btn btn-secondary">
+        ✏️ Edit
+    </a>
     {% endif %}
     
     <a href="{{ url_for('invoices.index') }}" class="btn btn-secondary">
