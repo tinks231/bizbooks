@@ -72,12 +72,27 @@
                 <div class="help-text">Optional: Enter cheque number, transaction ID, or payment reference</div>
             </div>
 
-            <!-- Bank Account -->
+            <!-- Bank/Cash Account -->
             <div>
-                <label class="form-label">Bank Account</label>
-                <input type="text" name="bank_account" class="form-control" 
-                       placeholder="From which account payment was made">
-                <div class="help-text">Optional: Your bank account from which payment was made</div>
+                <label class="form-label">💰 Pay From Account <span style="color: red;">*</span></label>
+                <select name="account_id" class="form-select" required>
+                    <option value="">-- Select Bank/Cash Account --</option>
+                    {% if bank_accounts %}
+                        {% for account in bank_accounts %}
+                            <option value="{{ account.id }}" 
+                                    {% if account.is_default %}selected{% endif %}
+                                    data-balance="{{ account.current_balance }}">
+                                {% if account.account_type == 'cash' %}💵{% elif account.account_type == 'bank' %}🏦{% else %}💰{% endif %}
+                                {{ account.account_name }}
+                                {% if account.bank_name %}({{ account.bank_name }}){% endif %}
+                                - Balance: ₹{{ "{:,.2f}".format(account.current_balance) }}
+                            </option>
+                        {% endfor %}
+                    {% else %}
+                        <option value="" disabled>No accounts found - Please add a bank/cash account first</option>
+                    {% endif %}
+                </select>
+                <div class="help-text">💡 Payment will be debited from this account. Ensure sufficient balance!</div>
             </div>
 
             <!-- Notes -->

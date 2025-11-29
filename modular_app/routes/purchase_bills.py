@@ -763,13 +763,17 @@ def record_payment_form(bill_id):
     
     if request.method == 'POST':
         try:
+            from models import BankAccount
+            import pytz
+            from sqlalchemy import text
+            
             # Get payment details
             payment_date_str = request.form.get('payment_date')
             payment_date = datetime.strptime(payment_date_str, '%Y-%m-%d').date()
             amount = Decimal(request.form.get('amount', '0'))
             payment_method = request.form.get('payment_method', 'cash')
             reference_number = request.form.get('reference_number', '')
-            bank_account = request.form.get('bank_account', '')
+            account_id = request.form.get('account_id')  # NEW: Bank/Cash account
             notes = request.form.get('notes', '')
             
             # Validate amount
@@ -779,6 +783,26 @@ def record_payment_form(bill_id):
             
             if amount > bill.balance_due:
                 flash('⚠️ Payment amount cannot exceed balance due', 'warning')
+                return redirect(url_for('purchase_bills.record_payment_form', bill_id=bill.id))
+            
+            # Validate account
+            if not account_id:
+                flash('⚠️ Please select a bank/cash account', 'warning')
+                return redirect(url_for('purchase_bills.record_payment_form', bill_id=bill.id))
+            
+            account = BankAccount.query.filter_by(
+                id=account_id,
+                tenant_id=tenant_id,
+                is_active=True
+            ).first()
+            
+            if not account:
+                flash('⚠️ Invalid bank/cash account selected', 'error')
+                return redirect(url_for('purchase_bills.record_payment_form', bill_id=bill.id))
+            
+            # Check if account has sufficient balance
+            if account.current_balance < amount:
+                flash(f'⚠️ Insufficient balance in {account.account_name}. Current: ₹{account.current_balance:,.2f}', 'warning')
                 return redirect(url_for('purchase_bills.record_payment_form', bill_id=bill.id))
             
             # AUTO-CREATE VENDOR if bill doesn't have vendor_id (manual entry)
@@ -870,9 +894,51 @@ def record_payment_form(bill_id):
             elif bill.paid_amount > 0:
                 bill.payment_status = 'partial'
             
+            # Create account transaction (Money OUT - Credit account)
+            ist = pytz.timezone('Asia/Kolkata')
+            now = datetime.now(ist)
+            
+            new_balance = Decimal(str(account.current_balance)) - amount
+            
+            db.session.execute(text("""
+                INSERT INTO account_transactions
+                (tenant_id, account_id, transaction_date, transaction_type,
+                 debit_amount, credit_amount, balance_after, reference_type, reference_id,
+                 voucher_number, narration, created_at, created_by)
+                VALUES (:tenant_id, :account_id, :txn_date, :txn_type,
+                        :debit, :credit, :balance, :ref_type, :ref_id,
+                        :voucher, :narration, :created_at, :created_by)
+            """), {
+                'tenant_id': tenant_id,
+                'account_id': account_id,
+                'txn_date': payment_date,
+                'txn_type': 'bill_payment',
+                'debit': Decimal('0.00'),
+                'credit': amount,  # Money paid = Credit
+                'balance': new_balance,
+                'ref_type': 'purchase_bill',
+                'ref_id': bill.id,
+                'voucher': payment.payment_number,
+                'narration': f'Payment to {bill.vendor_name} for {bill.bill_number}',
+                'created_at': now,
+                'created_by': session.get('tenant_admin_id')
+            })
+            
+            # Update account balance
+            db.session.execute(text("""
+                UPDATE bank_accounts 
+                SET current_balance = :new_balance, updated_at = :updated_at
+                WHERE id = :account_id AND tenant_id = :tenant_id
+            """), {
+                'new_balance': new_balance,
+                'updated_at': now,
+                'account_id': account_id,
+                'tenant_id': tenant_id
+            })
+            
             db.session.commit()
             
-            flash(f'✅ Payment of ₹{amount:,.2f} recorded successfully!', 'success')
+            flash(f'✅ Payment of ₹{amount:,.2f} made from {account.account_name}!', 'success')
             return redirect(url_for('purchase_bills.view_bill', bill_id=bill.id))
             
         except ValueError as e:
@@ -886,9 +952,20 @@ def record_payment_form(bill_id):
             traceback.print_exc()
     
     # GET - show form
+    # Get active bank/cash accounts
+    from models import BankAccount
+    bank_accounts = BankAccount.query.filter_by(
+        tenant_id=tenant_id,
+        is_active=True
+    ).order_by(
+        BankAccount.account_type,
+        BankAccount.account_name
+    ).all()
+    
     return render_template('admin/purchase_bills/record_payment.html',
                          tenant=g.tenant,
                          bill=bill,
+                         bank_accounts=bank_accounts,
                          today=date.today().strftime('%Y-%m-%d'))
 
 # API Endpoints
