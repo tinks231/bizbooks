@@ -5,6 +5,7 @@ Access these URLs once after deployment to migrate the database
 from flask import Blueprint, jsonify
 from models import db
 from sqlalchemy import text
+from datetime import datetime
 import os
 
 migration_bp = Blueprint('migration', __name__, url_prefix='/migrate')
