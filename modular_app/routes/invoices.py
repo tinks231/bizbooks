@@ -362,6 +362,67 @@ def create():
             
             # Save
             db.session.add(invoice)
+            db.session.flush()  # Get invoice ID before commit
+            
+            # NEW: Create account transaction if payment received
+            if payment_received == 'yes':
+                from models import BankAccount
+                from decimal import Decimal
+                from sqlalchemy import text
+                import pytz
+                
+                account_id = request.form.get('payment_account_id')
+                
+                if account_id:
+                    account = BankAccount.query.filter_by(
+                        id=account_id,
+                        tenant_id=tenant_id,
+                        is_active=True
+                    ).first()
+                    
+                    if account:
+                        # Create account transaction (Money IN - Debit account)
+                        ist = pytz.timezone('Asia/Kolkata')
+                        now = datetime.now(ist)
+                        amount = Decimal(str(invoice.total_amount))
+                        new_balance = Decimal(str(account.current_balance)) + amount
+                        
+                        db.session.execute(text("""
+                            INSERT INTO account_transactions
+                            (tenant_id, account_id, transaction_date, transaction_type,
+                             debit_amount, credit_amount, balance_after, reference_type, reference_id,
+                             voucher_number, narration, created_at, created_by)
+                            VALUES (:tenant_id, :account_id, :txn_date, :txn_type,
+                                    :debit, :credit, :balance, :ref_type, :ref_id,
+                                    :voucher, :narration, :created_at, :created_by)
+                        """), {
+                            'tenant_id': tenant_id,
+                            'account_id': account_id,
+                            'txn_date': invoice_date,
+                            'txn_type': 'invoice_payment',
+                            'debit': amount,  # Money received = Debit
+                            'credit': Decimal('0.00'),
+                            'balance': new_balance,
+                            'ref_type': 'invoice',
+                            'ref_id': invoice.id,
+                            'voucher': invoice.invoice_number,
+                            'narration': f'Payment received for {invoice.invoice_number} from {invoice.customer_name}',
+                            'created_at': now,
+                            'created_by': session.get('tenant_admin_id')
+                        })
+                        
+                        # Update account balance
+                        db.session.execute(text("""
+                            UPDATE bank_accounts 
+                            SET current_balance = :new_balance, updated_at = :updated_at
+                            WHERE id = :account_id AND tenant_id = :tenant_id
+                        """), {
+                            'new_balance': new_balance,
+                            'updated_at': now,
+                            'account_id': account_id,
+                            'tenant_id': tenant_id
+                        })
+            
             db.session.commit()
             
             # Save Commission Data (if agent selected)
@@ -508,6 +569,16 @@ def create():
         is_active=True
     ).all()
     
+    # Get active bank/cash accounts for payment recording
+    from models import BankAccount
+    bank_accounts = BankAccount.query.filter_by(
+        tenant_id=tenant_id,
+        is_active=True
+    ).order_by(
+        BankAccount.account_type,
+        BankAccount.account_name
+    ).all()
+    
     return render_template('admin/invoices/create.html',
                          tenant=g.tenant,
                          items=items_json,
@@ -516,7 +587,8 @@ def create():
                          sales_order=sales_order,
                          delivery_challan=delivery_challan,
                          commission_agents_employee=commission_agents_employee,
-                         commission_agents_external=commission_agents_external)
+                         commission_agents_external=commission_agents_external,
+                         bank_accounts=bank_accounts)
 
 
 @invoices_bp.route('/<int:invoice_id>')

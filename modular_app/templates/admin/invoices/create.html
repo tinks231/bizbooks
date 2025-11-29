@@ -320,6 +320,29 @@
                            value="{% if invoice and invoice.internal_notes %}{{ invoice.internal_notes.replace('Payment Reference: ', '') }}{% endif %}">
                 </div>
             </div>
+            
+            <div class="form-group" style="margin-top: 15px;">
+                <label class="field-label field-label--required" for="payment_account_id">💰 Deposit To Account</label>
+                <select id="payment_account_id" name="payment_account_id" class="form-control" required>
+                    <option value="">-- Select Bank/Cash Account --</option>
+                    {% if bank_accounts %}
+                        {% for account in bank_accounts %}
+                            <option value="{{ account.id }}" 
+                                    {% if account.is_default %}selected{% endif %}>
+                                {% if account.account_type == 'cash' %}💵{% elif account.account_type == 'bank' %}🏦{% else %}💰{% endif %}
+                                {{ account.account_name }}
+                                {% if account.bank_name %}({{ account.bank_name }}){% endif %}
+                                - ₹{{ "{:,.2f}".format(account.current_balance) }}
+                            </option>
+                        {% endfor %}
+                    {% else %}
+                        <option value="" disabled>No accounts found - Please add a bank/cash account first</option>
+                    {% endif %}
+                </select>
+                <small style="display: block; margin-top: 5px; color: #666;">
+                    💡 Payment will be credited to this account
+                </small>
+            </div>
         </div>
         
         <div class="form-group">
