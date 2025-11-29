@@ -3,14 +3,34 @@ Bank/Cash Account Management Routes
 Phase 1 of Accounting Module
 """
 
-from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, g
+from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, g, session
 from models import db, BankAccount, AccountTransaction
-from utils.auth import login_required, require_tenant, get_current_tenant_id
+from utils.tenant_middleware import require_tenant, get_current_tenant_id
 from datetime import datetime
 import pytz
 from decimal import Decimal
 
 accounts_bp = Blueprint('accounts', __name__, url_prefix='/admin/accounts')
+
+
+# ============================================================
+# DECORATORS
+# ============================================================
+def login_required(f):
+    """Require login to access route"""
+    from functools import wraps
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'tenant_admin_id' not in session:
+            flash('⚠️ Please login first', 'warning')
+            return redirect(url_for('admin.login'))
+        # Verify session tenant matches current tenant
+        if session.get('tenant_admin_id') != get_current_tenant_id():
+            flash('⚠️ Session mismatch. Please login again.', 'warning')
+            session.clear()
+            return redirect(url_for('admin.login'))
+        return f(*args, **kwargs)
+    return decorated_function
 
 @accounts_bp.route('/', methods=['GET'])
 @require_tenant
