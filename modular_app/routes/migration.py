@@ -6,6 +6,7 @@ from flask import Blueprint, jsonify
 from models import db
 from sqlalchemy import text
 from datetime import datetime
+from utils.tenant_middleware import get_current_tenant_id
 import os
 
 migration_bp = Blueprint('migration', __name__, url_prefix='/migrate')
