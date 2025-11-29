@@ -387,3 +387,234 @@ def get_account(account_id):
         'description': account[10] or ''
     })
 
+
+# ============================================================
+# CONTRA VOUCHERS (PHASE 2) - Fund Transfers
+# ============================================================
+
+@accounts_bp.route('/contra', methods=['GET'])
+@require_tenant
+@login_required
+def contra_list():
+    """List all contra vouchers (fund transfers)"""
+    tenant_id = get_current_tenant_id()
+    
+    # Get all active accounts for dropdowns
+    accounts = db.session.execute(text("""
+        SELECT id, account_name, account_type, current_balance
+        FROM bank_accounts
+        WHERE tenant_id = :tenant_id AND is_active = TRUE
+        ORDER BY account_type, account_name
+    """), {'tenant_id': tenant_id}).fetchall()
+    
+    # Get date filters
+    from_date = request.args.get('from_date')
+    to_date = request.args.get('to_date')
+    
+    # Build query for contra transactions
+    query = """
+        SELECT 
+            t.transaction_date,
+            t.voucher_number,
+            t.narration,
+            t.debit_amount,
+            t.credit_amount,
+            t.id,
+            ba.account_name,
+            ba.account_type
+        FROM account_transactions t
+        JOIN bank_accounts ba ON t.account_id = ba.id
+        WHERE t.tenant_id = :tenant_id 
+        AND t.transaction_type = 'contra'
+    """
+    params = {'tenant_id': tenant_id}
+    
+    if from_date:
+        query += " AND t.transaction_date >= :from_date"
+        params['from_date'] = from_date
+    if to_date:
+        query += " AND t.transaction_date <= :to_date"
+        params['to_date'] = to_date
+    
+    query += " ORDER BY t.transaction_date DESC, t.voucher_number DESC"
+    
+    transactions = db.session.execute(text(query), params).fetchall()
+    
+    # Group by voucher number (each contra has 2 transactions)
+    contras = {}
+    for txn in transactions:
+        voucher_no = txn[1]
+        if voucher_no not in contras:
+            contras[voucher_no] = {
+                'date': txn[0],
+                'voucher_number': voucher_no,
+                'narration': txn[2],
+                'amount': 0,
+                'from_account': None,
+                'to_account': None
+            }
+        
+        # Credit transaction = money leaving (FROM account)
+        if txn[4] > 0:  # credit_amount
+            contras[voucher_no]['from_account'] = txn[6]  # account_name
+            contras[voucher_no]['amount'] = float(txn[4])
+        # Debit transaction = money entering (TO account)
+        else:  # debit_amount
+            contras[voucher_no]['to_account'] = txn[6]  # account_name
+            if contras[voucher_no]['amount'] == 0:
+                contras[voucher_no]['amount'] = float(txn[3])
+    
+    contra_list = list(contras.values())
+    
+    return render_template('admin/accounts/contra_list.html',
+                         accounts=accounts,
+                         contras=contra_list,
+                         from_date=from_date,
+                         to_date=to_date,
+                         tenant=g.tenant)
+
+
+@accounts_bp.route('/contra/create', methods=['POST'])
+@require_tenant
+@login_required
+def contra_create():
+    """Create new contra voucher (fund transfer)"""
+    tenant_id = get_current_tenant_id()
+    
+    try:
+        # Get form data
+        from_account_id = int(request.form.get('from_account_id'))
+        to_account_id = int(request.form.get('to_account_id'))
+        amount = Decimal(request.form.get('amount'))
+        transaction_date = request.form.get('transaction_date')
+        narration = request.form.get('narration', '').strip()
+        
+        # Validation
+        if from_account_id == to_account_id:
+            flash('❌ Cannot transfer to the same account!', 'error')
+            return redirect(url_for('accounts.contra_list'))
+        
+        if amount <= 0:
+            flash('❌ Amount must be greater than zero!', 'error')
+            return redirect(url_for('accounts.contra_list'))
+        
+        # Get FROM account details and check balance
+        from_account = db.session.execute(text("""
+            SELECT account_name, current_balance 
+            FROM bank_accounts 
+            WHERE id = :account_id AND tenant_id = :tenant_id AND is_active = TRUE
+        """), {'account_id': from_account_id, 'tenant_id': tenant_id}).fetchone()
+        
+        if not from_account:
+            flash('❌ Invalid FROM account!', 'error')
+            return redirect(url_for('accounts.contra_list'))
+        
+        if Decimal(str(from_account[1])) < amount:
+            flash(f'❌ Insufficient balance in {from_account[0]}! Available: ₹{from_account[1]:,.2f}', 'error')
+            return redirect(url_for('accounts.contra_list'))
+        
+        # Get TO account details
+        to_account = db.session.execute(text("""
+            SELECT account_name, current_balance 
+            FROM bank_accounts 
+            WHERE id = :account_id AND tenant_id = :tenant_id AND is_active = TRUE
+        """), {'account_id': to_account_id, 'tenant_id': tenant_id}).fetchone()
+        
+        if not to_account:
+            flash('❌ Invalid TO account!', 'error')
+            return redirect(url_for('accounts.contra_list'))
+        
+        # Generate voucher number
+        last_voucher = db.session.execute(text("""
+            SELECT voucher_number FROM account_transactions
+            WHERE tenant_id = :tenant_id AND transaction_type = 'contra'
+            AND voucher_number LIKE 'CONTRA-%'
+            ORDER BY id DESC LIMIT 1
+        """), {'tenant_id': tenant_id}).fetchone()
+        
+        if last_voucher and last_voucher[0]:
+            last_num = int(last_voucher[0].split('-')[1])
+            voucher_number = f'CONTRA-{last_num + 1:04d}'
+        else:
+            voucher_number = 'CONTRA-0001'
+        
+        ist = pytz.timezone('Asia/Kolkata')
+        now = datetime.now(ist)
+        
+        # Parse transaction date
+        if transaction_date:
+            from datetime import datetime as dt
+            txn_date = dt.strptime(transaction_date, '%Y-%m-%d').date()
+        else:
+            txn_date = now.date()
+        
+        # Calculate new balances
+        new_from_balance = Decimal(str(from_account[1])) - amount
+        new_to_balance = Decimal(str(to_account[1])) + amount
+        
+        # Transaction 1: Credit FROM account (money leaving)
+        db.session.execute(text("""
+            INSERT INTO account_transactions
+            (tenant_id, account_id, transaction_date, transaction_type,
+             debit_amount, credit_amount, balance_after, reference_type,
+             voucher_number, narration, created_at)
+            VALUES (:tenant_id, :account_id, :transaction_date, :transaction_type,
+                    :debit_amount, :credit_amount, :balance_after, :reference_type,
+                    :voucher_number, :narration, :created_at)
+        """), {
+            'tenant_id': tenant_id, 'account_id': from_account_id, 'transaction_date': txn_date,
+            'transaction_type': 'contra', 'debit_amount': 0.00, 'credit_amount': amount,
+            'balance_after': new_from_balance, 'reference_type': 'contra',
+            'voucher_number': voucher_number, 
+            'narration': narration or f'Transfer to {to_account[0]}',
+            'created_at': now
+        })
+        
+        # Update FROM account balance
+        db.session.execute(text("""
+            UPDATE bank_accounts 
+            SET current_balance = :new_balance, updated_at = :updated_at
+            WHERE id = :account_id AND tenant_id = :tenant_id
+        """), {
+            'new_balance': new_from_balance, 'updated_at': now,
+            'account_id': from_account_id, 'tenant_id': tenant_id
+        })
+        
+        # Transaction 2: Debit TO account (money entering)
+        db.session.execute(text("""
+            INSERT INTO account_transactions
+            (tenant_id, account_id, transaction_date, transaction_type,
+             debit_amount, credit_amount, balance_after, reference_type,
+             voucher_number, narration, created_at)
+            VALUES (:tenant_id, :account_id, :transaction_date, :transaction_type,
+                    :debit_amount, :credit_amount, :balance_after, :reference_type,
+                    :voucher_number, :narration, :created_at)
+        """), {
+            'tenant_id': tenant_id, 'account_id': to_account_id, 'transaction_date': txn_date,
+            'transaction_type': 'contra', 'debit_amount': amount, 'credit_amount': 0.00,
+            'balance_after': new_to_balance, 'reference_type': 'contra',
+            'voucher_number': voucher_number,
+            'narration': narration or f'Transfer from {from_account[0]}',
+            'created_at': now
+        })
+        
+        # Update TO account balance
+        db.session.execute(text("""
+            UPDATE bank_accounts 
+            SET current_balance = :new_balance, updated_at = :updated_at
+            WHERE id = :account_id AND tenant_id = :tenant_id
+        """), {
+            'new_balance': new_to_balance, 'updated_at': now,
+            'account_id': to_account_id, 'tenant_id': tenant_id
+        })
+        
+        db.session.commit()
+        
+        flash(f'✅ Contra voucher {voucher_number} created! ₹{amount:,.2f} transferred from {from_account[0]} to {to_account[0]}', 'success')
+        
+    except Exception as e:
+        db.session.rollback()
+        flash(f'❌ Error creating contra voucher: {str(e)}', 'error')
+    
+    return redirect(url_for('accounts.contra_list'))
+

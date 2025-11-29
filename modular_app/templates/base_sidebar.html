@@ -936,10 +936,12 @@
                     <span class="nav-section-arrow">▶</span>
                 </div>
                 <div class="nav-section-content" id="section-accounts">
-                    <a href="/admin/accounts" class="nav-item {% if '/admin/accounts' in request.path %}active{% endif %}">
+                    <a href="/admin/accounts" class="nav-item {% if '/admin/accounts' in request.path and '/contra' not in request.path %}active{% endif %}">
                         <i>🏦</i> Bank & Cash Accounts
                     </a>
-                    <!-- Phase 2: Contra will be added here -->
+                    <a href="/admin/accounts/contra" class="nav-item {% if '/admin/accounts/contra' in request.path %}active{% endif %}">
+                        <i>🔄</i> Contra Vouchers
+                    </a>
                     <!-- Phase 3: Employee Cash will be added here -->
                     <!-- Phase 6: Receivables will be added here -->
                 </div>

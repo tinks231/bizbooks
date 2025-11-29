@@ -1,0 +1,357 @@
+{% extends "base_sidebar.html" %}
+
+{% block title %}Contra Vouchers{% endblock %}
+
+{% block page_title %}🔄 Contra Vouchers - Fund Transfers{% endblock %}
+
+{% block header_actions %}
+<button onclick="openContraModal()" class="btn btn-primary">
+    ➕ New Contra Voucher
+</button>
+{% endblock %}
+
+{% block content %}
+
+<div class="container-fluid" style="padding: 30px;">
+    
+    <!-- Filters -->
+    <div class="filter-bar" style="background: white; border-radius: 12px; padding: 20px; margin-bottom: 25px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
+        <form method="GET" style="display: grid; grid-template-columns: 1fr 1fr auto; gap: 15px; align-items: end;">
+            <div>
+                <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #333;">From Date</label>
+                <input type="date" name="from_date" class="form-control" value="{{ from_date or '' }}">
+            </div>
+            <div>
+                <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #333;">To Date</label>
+                <input type="date" name="to_date" class="form-control" value="{{ to_date or '' }}">
+            </div>
+            <div>
+                <button type="submit" class="btn btn-primary" style="width: 100%; padding: 10px;">
+                    <i class="fas fa-filter"></i> Filter
+                </button>
+            </div>
+        </form>
+    </div>
+    
+    <!-- Contra Table -->
+    <div class="contra-table" style="background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); overflow: hidden;">
+        {% if contras %}
+        <table style="width: 100%; border-collapse: collapse;">
+            <thead style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                <tr>
+                    <th style="padding: 15px; text-align: left; font-weight: 600; font-size: 13px; text-transform: uppercase;">Date</th>
+                    <th style="padding: 15px; text-align: left; font-weight: 600; font-size: 13px; text-transform: uppercase;">Voucher No</th>
+                    <th style="padding: 15px; text-align: left; font-weight: 600; font-size: 13px; text-transform: uppercase;">Transfer Details</th>
+                    <th style="padding: 15px; text-align: right; font-weight: 600; font-size: 13px; text-transform: uppercase;">Amount (₹)</th>
+                    <th style="padding: 15px; text-align: left; font-weight: 600; font-size: 13px; text-transform: uppercase;">Narration</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for contra in contras %}
+                <tr style="border-bottom: 1px solid #f0f0f0;">
+                    <td style="padding: 15px;">
+                        {{ contra.date.strftime('%d %b %Y') }}
+                    </td>
+                    <td style="padding: 15px;">
+                        <span style="background: #e3f2fd; color: #1976d2; padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 600;">
+                            {{ contra.voucher_number }}
+                        </span>
+                    </td>
+                    <td style="padding: 15px;">
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <span style="font-weight: 600; color: #dc3545;">{{ contra.from_account }}</span>
+                            <span style="font-size: 18px; color: #666;">→</span>
+                            <span style="font-weight: 600; color: #28a745;">{{ contra.to_account }}</span>
+                        </div>
+                    </td>
+                    <td style="padding: 15px; text-align: right;">
+                        <span style="font-size: 16px; font-weight: 700; color: #2c3e50;">
+                            {{ "{:,.2f}".format(contra.amount) }}
+                        </span>
+                    </td>
+                    <td style="padding: 15px;">
+                        <span style="font-size: 13px; color: #666;">{{ contra.narration }}</span>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div style="text-align: center; padding: 60px 20px; color: #999;">
+            <i class="fas fa-exchange-alt" style="font-size: 64px; margin-bottom: 20px; opacity: 0.3;"></i>
+            <h3 style="color: #666;">No contra vouchers found</h3>
+            <p>{% if from_date or to_date %}
+                Try adjusting your date filters
+            {% else %}
+                Click "New Contra Voucher" to create your first fund transfer
+            {% endif %}</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Create Contra Modal -->
+<div id="contraModal" class="modal" style="display: none;">
+    <div class="modal-content" style="max-width: 600px;">
+        <div class="modal-header">
+            <h3 style="margin: 0; font-size: 20px; font-weight: 600;">🔄 New Contra Voucher</h3>
+            <button onclick="closeContraModal()" class="modal-close" style="background: none; border: none; font-size: 24px; cursor: pointer;">&times;</button>
+        </div>
+        <form method="POST" action="{{ url_for('accounts.contra_create') }}">
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="field-label field-label--required">Transfer FROM Account</label>
+                    <select name="from_account_id" id="from_account_id" class="form-control" required onchange="updateAvailableBalance()">
+                        <option value="">Select account...</option>
+                        {% for acc in accounts %}
+                        <option value="{{ acc[0] }}" data-balance="{{ acc[3] }}">
+                            {% if acc[2] == 'cash' %}💵{% else %}🏦{% endif %} {{ acc[1] }} (₹{{ "{:,.2f}".format(acc[3]) }})
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <small id="available_balance" style="color: #666; font-size: 12px; margin-top: 5px; display: none;">
+                        Available: ₹<span id="balance_amount">0.00</span>
+                    </small>
+                </div>
+                
+                <div class="form-group">
+                    <label class="field-label field-label--required">Transfer TO Account</label>
+                    <select name="to_account_id" class="form-control" required>
+                        <option value="">Select account...</option>
+                        {% for acc in accounts %}
+                        <option value="{{ acc[0] }}">
+                            {% if acc[2] == 'cash' %}💵{% else %}🏦{% endif %} {{ acc[1] }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label class="field-label field-label--required">Amount (₹)</label>
+                    <input type="number" name="amount" class="form-control" step="0.01" min="0.01" required placeholder="Enter amount">
+                </div>
+                
+                <div class="form-group">
+                    <label class="field-label field-label--required">Transaction Date</label>
+                    <input type="date" name="transaction_date" class="form-control" value="{{ today or '' }}" required>
+                </div>
+                
+                <div class="form-group">
+                    <label class="field-label">Narration / Description</label>
+                    <textarea name="narration" class="form-control" rows="2" placeholder="Reason for transfer (optional)"></textarea>
+                </div>
+                
+                <div style="background: #fff3cd; border-left: 4px solid #ffc107; padding: 12px; margin-top: 15px; border-radius: 4px;">
+                    <strong style="color: #856404;">💡 Note:</strong>
+                    <p style="margin: 5px 0 0 0; font-size: 13px; color: #856404;">
+                        This will transfer money from one account to another. Both accounts will be updated automatically.
+                    </p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" onclick="closeContraModal()" class="btn btn-secondary">Cancel</button>
+                <button type="submit" class="btn btn-primary">💾 Create Contra</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<style>
+/* Modal Styles */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 10000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.5);
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-content {
+    background-color: #fefefe;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    width: 90%;
+    max-width: 600px;
+    max-height: 90vh;
+    overflow-y: auto;
+    animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateY(-50px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.modal-header {
+    padding: 20px 25px;
+    border-bottom: 1px solid #e0e0e0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.modal-body {
+    padding: 25px;
+}
+
+.modal-footer {
+    padding: 15px 25px;
+    border-top: 1px solid #e0e0e0;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+.modal-close {
+    cursor: pointer;
+    color: #999;
+}
+
+.modal-close:hover {
+    color: #333;
+}
+
+/* Form Styles */
+.form-group {
+    margin-bottom: 20px;
+}
+
+.field-label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: #333;
+    font-size: 14px;
+}
+
+.field-label--required::after {
+    content: ' *';
+    color: #dc3545;
+}
+
+.form-control {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 14px;
+    transition: border-color 0.2s;
+}
+
+.form-control:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+/* Button Styles */
+.btn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.btn-secondary {
+    background: #6c757d;
+    color: white;
+}
+
+.btn-secondary:hover {
+    background: #5a6268;
+}
+
+/* Table Hover Effects */
+.contra-table tbody tr {
+    transition: background 0.2s ease;
+}
+
+.contra-table tbody tr:hover {
+    background: #f8f9ff !important;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .contra-table {
+        overflow-x: auto;
+    }
+    
+    .contra-table table {
+        min-width: 800px;
+    }
+}
+</style>
+
+<script>
+// Modal Functions
+function openContraModal() {
+    document.getElementById('contraModal').style.display = 'flex';
+    // Set today's date
+    const today = new Date().toISOString().split('T')[0];
+    document.querySelector('input[name="transaction_date"]').value = today;
+}
+
+function closeContraModal() {
+    document.getElementById('contraModal').style.display = 'none';
+    document.querySelector('#contraModal form').reset();
+    document.getElementById('available_balance').style.display = 'none';
+}
+
+// Update available balance when FROM account is selected
+function updateAvailableBalance() {
+    const select = document.getElementById('from_account_id');
+    const selectedOption = select.options[select.selectedIndex];
+    const balance = selectedOption.getAttribute('data-balance');
+    
+    if (balance) {
+        document.getElementById('balance_amount').textContent = parseFloat(balance).toLocaleString('en-IN', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        });
+        document.getElementById('available_balance').style.display = 'block';
+    } else {
+        document.getElementById('available_balance').style.display = 'none';
+    }
+}
+
+// Close modal on Escape key
+document.addEventListener('keydown', function(event) {
+    if (event.key === 'Escape') {
+        closeContraModal();
+    }
+});
+
+// Close modal on outside click
+document.getElementById('contraModal').addEventListener('click', function(event) {
+    if (event.target === this) {
+        closeContraModal();
+    }
+});
+</script>
+
+{% endblock %}
+
