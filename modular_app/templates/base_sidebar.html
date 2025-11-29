@@ -926,6 +926,25 @@
                 </div>
             </div>
             
+            <!-- Accounts & Banking (NEW - Phase 1) -->
+            <div class="nav-section-collapsible">
+                <div class="nav-section-header" onclick="toggleSection('section-accounts')">
+                    <div class="nav-section-label">
+                        <span class="nav-section-icon">💰</span>
+                        <span>Accounts & Banking</span>
+                    </div>
+                    <span class="nav-section-arrow">▶</span>
+                </div>
+                <div class="nav-section-content" id="section-accounts">
+                    <a href="/admin/accounts" class="nav-item {% if '/admin/accounts' in request.path %}active{% endif %}">
+                        <i>🏦</i> Bank & Cash Accounts
+                    </a>
+                    <!-- Phase 2: Contra will be added here -->
+                    <!-- Phase 3: Employee Cash will be added here -->
+                    <!-- Phase 6: Receivables will be added here -->
+                </div>
+            </div>
+            
             <!-- Customer Orders (NEW) -->
             <a href="/admin/customer-orders" class="nav-item {% if '/admin/customer-orders' in request.path %}active{% endif %}" style="background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%); color: white; font-weight: 600; position: relative;">
                 <i>🛒</i> Customer Orders

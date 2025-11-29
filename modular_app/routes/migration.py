@@ -2424,3 +2424,225 @@ def add_commission_tables():
             'details': str(e),
             'help': 'Check if tables already exist or contact support'
         }), 500
+
+
+@migration_bp.route('/add-bank-accounts')
+def add_bank_accounts():
+    """
+    PHASE 1: Add Bank/Cash Account Management
+    
+    Creates:
+    - bank_accounts table (manage cash & bank accounts)
+    - account_transactions table (track all money movements)
+    
+    Access this URL once: /migrate/add-bank-accounts
+    """
+    try:
+        print("=" * 60)
+        print("🚀 PHASE 1: Bank/Cash Account Management")
+        print("=" * 60)
+        
+        # Create bank_accounts table
+        print("\n📊 Creating bank_accounts table...")
+        db.session.execute("""
+            CREATE TABLE IF NOT EXISTS bank_accounts (
+                id SERIAL PRIMARY KEY,
+                tenant_id INTEGER NOT NULL,
+                
+                -- Account Details
+                account_name VARCHAR(100) NOT NULL,
+                account_type VARCHAR(20) NOT NULL DEFAULT 'bank',
+                -- Types: 'cash', 'bank', 'petty_cash'
+                
+                -- Bank Details (NULL for cash accounts)
+                bank_name VARCHAR(100),
+                account_number VARCHAR(50),
+                ifsc_code VARCHAR(20),
+                branch VARCHAR(100),
+                
+                -- Balance
+                opening_balance DECIMAL(15, 2) DEFAULT 0.00,
+                current_balance DECIMAL(15, 2) DEFAULT 0.00,
+                
+                -- Status
+                is_active BOOLEAN DEFAULT TRUE,
+                is_default BOOLEAN DEFAULT FALSE,
+                
+                -- Notes
+                description TEXT,
+                
+                -- Timestamps
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                
+                -- Foreign Keys
+                CONSTRAINT fk_bank_account_tenant 
+                    FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE
+            )
+        """)
+        
+        # Add indexes for performance
+        print("📌 Adding indexes to bank_accounts...")
+        db.session.execute("""
+            CREATE INDEX IF NOT EXISTS idx_bank_accounts_tenant 
+            ON bank_accounts(tenant_id, is_active)
+        """)
+        
+        db.session.execute("""
+            CREATE INDEX IF NOT EXISTS idx_bank_accounts_type 
+            ON bank_accounts(tenant_id, account_type, is_active)
+        """)
+        
+        db.session.execute("""
+            CREATE INDEX IF NOT EXISTS idx_bank_accounts_default 
+            ON bank_accounts(tenant_id, is_default)
+        """)
+        
+        # Create account_transactions table
+        print("\n📊 Creating account_transactions table...")
+        db.session.execute("""
+            CREATE TABLE IF NOT EXISTS account_transactions (
+                id SERIAL PRIMARY KEY,
+                tenant_id INTEGER NOT NULL,
+                
+                -- Account Reference
+                account_id INTEGER NOT NULL,
+                
+                -- Transaction Details
+                transaction_date DATE NOT NULL,
+                transaction_type VARCHAR(50) NOT NULL,
+                -- Types: 'invoice_payment', 'bill_payment', 'expense', 
+                --        'contra', 'employee_advance', 'opening_balance'
+                
+                -- Amount
+                debit_amount DECIMAL(15, 2) DEFAULT 0.00,
+                credit_amount DECIMAL(15, 2) DEFAULT 0.00,
+                balance_after DECIMAL(15, 2) DEFAULT 0.00,
+                
+                -- Reference
+                reference_type VARCHAR(50),
+                -- Types: 'invoice', 'purchase_bill', 'expense', 'contra'
+                reference_id INTEGER,
+                voucher_number VARCHAR(50),
+                
+                -- Description
+                narration TEXT,
+                
+                -- Timestamps
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                created_by INTEGER,
+                
+                -- Foreign Keys
+                CONSTRAINT fk_account_transaction_tenant 
+                    FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE,
+                CONSTRAINT fk_account_transaction_account 
+                    FOREIGN KEY (account_id) REFERENCES bank_accounts(id) ON DELETE CASCADE,
+                CONSTRAINT fk_account_transaction_user 
+                    FOREIGN KEY (created_by) REFERENCES users(id)
+            )
+        """)
+        
+        # Add indexes for performance
+        print("📌 Adding indexes to account_transactions...")
+        db.session.execute("""
+            CREATE INDEX IF NOT EXISTS idx_account_transactions_tenant 
+            ON account_transactions(tenant_id, transaction_date DESC)
+        """)
+        
+        db.session.execute("""
+            CREATE INDEX IF NOT EXISTS idx_account_transactions_account 
+            ON account_transactions(account_id, transaction_date DESC)
+        """)
+        
+        db.session.execute("""
+            CREATE INDEX IF NOT EXISTS idx_account_transactions_reference 
+            ON account_transactions(reference_type, reference_id)
+        """)
+        
+        db.session.execute("""
+            CREATE INDEX IF NOT EXISTS idx_account_transactions_type 
+            ON account_transactions(tenant_id, transaction_type)
+        """)
+        
+        db.session.commit()
+        print("\n✅ Tables created successfully!")
+        
+        # Create default "Cash in Hand" account for all existing tenants
+        print("\n💵 Creating default 'Cash in Hand' accounts...")
+        from modular_app.models.tenant import Tenant
+        import pytz
+        
+        tenants = Tenant.query.all()
+        ist = pytz.timezone('Asia/Kolkata')
+        now = datetime.now(ist)
+        
+        for tenant in tenants:
+            # Check if cash account already exists
+            existing = db.session.execute(
+                "SELECT id FROM bank_accounts WHERE tenant_id = :tenant_id AND account_type = 'cash'",
+                {'tenant_id': tenant.id}
+            ).fetchone()
+            
+            if not existing:
+                db.session.execute("""
+                    INSERT INTO bank_accounts 
+                    (tenant_id, account_name, account_type, opening_balance, 
+                     current_balance, is_active, is_default, description, created_at, updated_at)
+                    VALUES (:tenant_id, :name, :type, :opening, :current, :active, :default, :desc, :created, :updated)
+                """, {
+                    'tenant_id': tenant.id,
+                    'name': 'Cash in Hand',
+                    'type': 'cash',
+                    'opening': 0.00,
+                    'current': 0.00,
+                    'active': True,
+                    'default': True,
+                    'desc': 'Default cash account for daily transactions',
+                    'created': now,
+                    'updated': now
+                })
+                print(f"  ✅ Created cash account for: {tenant.company_name}")
+        
+        db.session.commit()
+        
+        print("\n" + "=" * 60)
+        print("✅ PHASE 1 DATABASE MIGRATION COMPLETED!")
+        print("=" * 60)
+        
+        return jsonify({
+            'status': 'success',
+            'message': '✅ Phase 1: Bank/Cash Account Management - Database Created!',
+            'details': {
+                'tables_created': [
+                    'bank_accounts (Manage cash & bank accounts)',
+                    'account_transactions (Track all money movements)'
+                ],
+                'indexes_created': [
+                    'idx_bank_accounts_tenant',
+                    'idx_bank_accounts_type',
+                    'idx_bank_accounts_default',
+                    'idx_account_transactions_tenant',
+                    'idx_account_transactions_account',
+                    'idx_account_transactions_reference',
+                    'idx_account_transactions_type'
+                ],
+                'default_accounts': f'Created "Cash in Hand" for {len(tenants)} tenants'
+            },
+            'next_steps': [
+                '1. Go to Admin Dashboard',
+                '2. New menu: 💰 Bank & Cash Accounts',
+                '3. View your default "Cash in Hand" account',
+                '4. Add your bank accounts (HDFC, ICICI, etc.)',
+                '5. Ready for Phase 2: Contra Vouchers!'
+            ]
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        import traceback
+        return jsonify({
+            'status': 'error',
+            'message': f'Bank accounts migration failed: {str(e)}',
+            'traceback': traceback.format_exc(),
+            'help': 'Check if tables already exist or contact support'
+        }), 500

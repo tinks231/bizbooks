@@ -1,0 +1,174 @@
+{% extends "base_sidebar.html" %}
+
+{% block title %}{{ account[1] }} - Statement{% endblock %}
+
+{% block page_title %}
+    <span style="font-size: 24px;">
+        {% if account[2] == 'cash' %}💵{% elif account[2] == 'petty_cash' %}💳{% else %}🏦{% endif %}
+    </span>
+    {{ account[1] }} - Statement
+{% endblock %}
+
+{% block header_actions %}
+<a href="{{ url_for('accounts.list_accounts') }}" class="btn btn-secondary">
+    ← Back to Accounts
+</a>
+{% endblock %}
+
+{% block content %}
+
+<div class="container-fluid" style="padding: 30px;">
+    
+    <!-- Account Summary Card -->
+    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 12px; padding: 30px; margin-bottom: 30px; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;">
+            <div>
+                <div style="font-size: 13px; opacity: 0.9; margin-bottom: 5px;">Account Name</div>
+                <div style="font-size: 24px; font-weight: 700;">{{ account[1] }}</div>
+                {% if account[3] %}
+                <div style="font-size: 13px; opacity: 0.8; margin-top: 5px;">{{ account[3] }}</div>
+                {% endif %}
+                {% if account[4] %}
+                <div style="font-size: 12px; opacity: 0.7; margin-top: 2px;">A/c: {{ account[4] }}</div>
+                {% endif %}
+            </div>
+            <div>
+                <div style="font-size: 13px; opacity: 0.9; margin-bottom: 5px;">Current Balance</div>
+                <div style="font-size: 32px; font-weight: 700;">₹{{ "{:,.2f}".format(account[6]) }}</div>
+            </div>
+            <div>
+                <div style="font-size: 13px; opacity: 0.9; margin-bottom: 5px;">Status</div>
+                <div style="font-size: 18px; font-weight: 600;">
+                    {% if account[7] %}✅ Active{% else %}❌ Inactive{% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Filters -->
+    <div class="filter-bar" style="background: white; border-radius: 12px; padding: 20px; margin-bottom: 25px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
+        <form method="GET" style="display: grid; grid-template-columns: 1fr 1fr auto; gap: 15px; align-items: end;">
+            <div>
+                <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #333;">From Date</label>
+                <input type="date" name="from_date" class="form-control" value="{{ from_date or '' }}">
+            </div>
+            <div>
+                <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #333;">To Date</label>
+                <input type="date" name="to_date" class="form-control" value="{{ to_date or '' }}">
+            </div>
+            <div>
+                <button type="submit" class="btn btn-primary" style="width: 100%; padding: 10px;">
+                    <i class="fas fa-filter"></i> Filter
+                </button>
+            </div>
+        </form>
+    </div>
+    
+    <!-- Transactions Table -->
+    <div class="statement-table" style="background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); overflow: hidden;">
+        {% if transactions %}
+        <table style="width: 100%; border-collapse: collapse;">
+            <thead style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                <tr>
+                    <th style="padding: 15px; text-align: left; font-weight: 600; font-size: 13px; text-transform: uppercase;">Date</th>
+                    <th style="padding: 15px; text-align: left; font-weight: 600; font-size: 13px; text-transform: uppercase;">Particulars</th>
+                    <th style="padding: 15px; text-align: left; font-weight: 600; font-size: 13px; text-transform: uppercase;">Voucher</th>
+                    <th style="padding: 15px; text-align: right; font-weight: 600; font-size: 13px; text-transform: uppercase;">Debit (₹)</th>
+                    <th style="padding: 15px; text-align: right; font-weight: 600; font-size: 13px; text-transform: uppercase;">Credit (₹)</th>
+                    <th style="padding: 15px; text-align: right; font-weight: 600; font-size: 13px; text-transform: uppercase;">Balance (₹)</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for txn in transactions %}
+                <tr style="border-bottom: 1px solid #f0f0f0;">
+                    <td style="padding: 15px;">
+                        {{ txn[0].strftime('%d %b %Y') }}
+                    </td>
+                    <td style="padding: 15px;">
+                        <div style="font-weight: 600; color: #2c3e50;">
+                            {% if txn[1] == 'opening_balance' %}💰 Opening Balance
+                            {% elif txn[1] == 'invoice_payment' %}📄 Invoice Payment
+                            {% elif txn[1] == 'bill_payment' %}📋 Bill Payment
+                            {% elif txn[1] == 'expense' %}💸 Expense
+                            {% elif txn[1] == 'contra' %}🔄 Contra
+                            {% elif txn[1] == 'employee_advance' %}👷 Employee Advance
+                            {% else %}{{ txn[1]|title }}{% endif %}
+                        </div>
+                        {% if txn[5] %}
+                        <div style="font-size: 12px; color: #666; margin-top: 4px;">{{ txn[5] }}</div>
+                        {% endif %}
+                    </td>
+                    <td style="padding: 15px;">
+                        {% if txn[6] %}
+                        <span style="background: #e3f2fd; color: #1976d2; padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 600;">
+                            {{ txn[6] }}
+                        </span>
+                        {% else %}-{% endif %}
+                    </td>
+                    <td style="padding: 15px; text-align: right;">
+                        {% if txn[2] > 0 %}
+                        <span style="color: #28a745; font-weight: 600;">{{ "{:,.2f}".format(txn[2]) }}</span>
+                        {% else %}-{% endif %}
+                    </td>
+                    <td style="padding: 15px; text-align: right;">
+                        {% if txn[3] > 0 %}
+                        <span style="color: #dc3545; font-weight: 600;">{{ "{:,.2f}".format(txn[3]) }}</span>
+                        {% else %}-{% endif %}
+                    </td>
+                    <td style="padding: 15px; text-align: right;">
+                        <span style="font-size: 16px; font-weight: 700; color: {% if txn[4] > 0 %}#28a745{% elif txn[4] < 0 %}#dc3545{% else %}#6c757d{% endif %};">
+                            {{ "{:,.2f}".format(txn[4]) }}
+                        </span>
+                    </td>
+                </tr>
+                {% endfor %}
+                
+                <!-- Summary Row -->
+                <tr style="background: #f8f9fa; font-weight: 700;">
+                    <td colspan="3" style="padding: 15px; text-align: right;">TOTAL:</td>
+                    <td style="padding: 15px; text-align: right; color: #28a745;">{{ "{:,.2f}".format(total_debit) }}</td>
+                    <td style="padding: 15px; text-align: right; color: #dc3545;">{{ "{:,.2f}".format(total_credit) }}</td>
+                    <td style="padding: 15px; text-align: right; font-size: 18px;">
+                        ₹{{ "{:,.2f}".format(account[6]) }}
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+        {% else %}
+        <div style="text-align: center; padding: 60px 20px; color: #999;">
+            <i class="fas fa-file-invoice" style="font-size: 64px; margin-bottom: 20px; opacity: 0.3;"></i>
+            <h3 style="color: #666;">No transactions found</h3>
+            <p>{% if from_date or to_date %}
+                Try adjusting your date filters
+            {% else %}
+                No transactions recorded yet for this account
+            {% endif %}</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+/* Table Hover Effects */
+.statement-table tbody tr {
+    transition: background 0.2s ease;
+}
+
+.statement-table tbody tr:hover {
+    background: #f8f9ff !important;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .statement-table {
+        overflow-x: auto;
+    }
+    
+    .statement-table table {
+        min-width: 600px;
+    }
+}
+</style>
+
+{% endblock %}
+
