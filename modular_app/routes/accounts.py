@@ -111,7 +111,7 @@ def create_account():
         now = datetime.now(ist)
         
         # Insert account
-        cursor = db.session.execute(text("""
+        result = db.session.execute(text("""
             INSERT INTO bank_accounts 
             (tenant_id, account_name, account_type, bank_name, account_number,
              ifsc_code, branch, opening_balance, current_balance, is_active,
@@ -119,6 +119,7 @@ def create_account():
             VALUES (:tenant_id, :account_name, :account_type, :bank_name, :account_number,
                     :ifsc_code, :branch, :opening_balance, :current_balance, :is_active,
                     :is_default, :description, :created_at, :updated_at)
+            RETURNING id
         """), {
             'tenant_id': tenant_id, 'account_name': account_name, 'account_type': account_type,
             'bank_name': bank_name, 'account_number': account_number, 'ifsc_code': ifsc_code,
@@ -127,7 +128,7 @@ def create_account():
             'created_at': now, 'updated_at': now
         })
         
-        account_id = cursor.lastrowid
+        account_id = result.fetchone()[0]  # Get the returned ID (PostgreSQL way)
         
         # If opening balance > 0, create opening balance transaction
         if opening_balance > 0:
