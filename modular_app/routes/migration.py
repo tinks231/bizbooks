@@ -2795,3 +2795,81 @@ def clean_duplicate_employee_transactions():
             'traceback': traceback.format_exc(),
             'help': 'Contact support if this persists'
         }), 500
+
+
+@migration_bp.route('/fix-account-balances')
+def fix_account_balances():
+    """Fix account balances by recalculating from last transaction"""
+    try:
+        tenant_id = get_current_tenant_id()
+        
+        print("=" * 60)
+        print("🔧 FIX: Recalculating account balances from transactions")
+        print("=" * 60)
+        
+        # Get all active accounts for this tenant
+        accounts = db.session.execute(text("""
+            SELECT id, account_name, current_balance
+            FROM bank_accounts
+            WHERE tenant_id = :tenant_id AND is_active = TRUE
+        """), {'tenant_id': tenant_id}).fetchall()
+        
+        fixed_accounts = []
+        
+        for account in accounts:
+            account_id = account[0]
+            account_name = account[1]
+            old_balance = account[2]
+            
+            # Get the last transaction for this account
+            last_txn = db.session.execute(text("""
+                SELECT balance_after
+                FROM account_transactions
+                WHERE tenant_id = :tenant_id AND account_id = :account_id
+                ORDER BY transaction_date DESC, created_at DESC, id DESC
+                LIMIT 1
+            """), {'tenant_id': tenant_id, 'account_id': account_id}).fetchone()
+            
+            if last_txn:
+                correct_balance = last_txn[0]
+                
+                if float(old_balance) != float(correct_balance):
+                    # Update the account balance
+                    db.session.execute(text("""
+                        UPDATE bank_accounts
+                        SET current_balance = :correct_balance, updated_at = CURRENT_TIMESTAMP
+                        WHERE id = :account_id AND tenant_id = :tenant_id
+                    """), {'correct_balance': correct_balance, 'account_id': account_id, 'tenant_id': tenant_id})
+                    
+                    fixed_accounts.append({
+                        'account_name': account_name,
+                        'old_balance': float(old_balance),
+                        'new_balance': float(correct_balance),
+                        'difference': float(correct_balance) - float(old_balance)
+                    })
+                    
+                    print(f"✅ Fixed {account_name}: ₹{old_balance:,.2f} → ₹{correct_balance:,.2f}")
+        
+        db.session.commit()
+        
+        return jsonify({
+            'status': 'success',
+            'message': f'✅ Fixed {len(fixed_accounts)} account balance(s)!',
+            'fixed_accounts': fixed_accounts,
+            'total_fixed': len(fixed_accounts),
+            'next_steps': [
+                'Account balances now match transaction ledgers',
+                'Refresh Bank & Cash Accounts page',
+                'Refresh Cash Book report - closing balance will be correct'
+            ]
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        import traceback
+        return jsonify({
+            'status': 'error',
+            'message': f'Fix failed: {str(e)}',
+            'traceback': traceback.format_exc(),
+            'help': 'Contact support if this persists'
+        }), 500
