@@ -6,6 +6,7 @@ Phase 1 of Accounting Module
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, g, session
 from models import db, BankAccount, AccountTransaction
 from utils.tenant_middleware import require_tenant, get_current_tenant_id
+from sqlalchemy import text
 from datetime import datetime
 import pytz
 from decimal import Decimal
@@ -40,12 +41,12 @@ def list_accounts():
     tenant_id = get_current_tenant_id()
     
     # Get all accounts
-    accounts = db.session.execute("""
+    accounts = db.session.execute(text("""
         SELECT 
             id, account_name, account_type, bank_name, account_number,
             current_balance, is_active, is_default, description
         FROM bank_accounts
-        WHERE tenant_id = ?
+        WHERE tenant_id = :tenant_id
         ORDER BY 
             CASE account_type 
                 WHEN 'cash' THEN 1 
@@ -53,7 +54,7 @@ def list_accounts():
                 WHEN 'petty_cash' THEN 3 
             END,
             account_name
-    """, (tenant_id,)).fetchall()
+    """), {'tenant_id': tenant_id}).fetchall()
     
     # Calculate totals
     total_cash = sum(acc[5] for acc in accounts if acc[2] == 'cash' and acc[6])
@@ -100,42 +101,48 @@ def create_account():
         
         # If marking as default, unmark others of same type
         if is_default:
-            db.session.execute("""
+            db.session.execute(text("""
                 UPDATE bank_accounts 
                 SET is_default = 0 
-                WHERE tenant_id = ? AND account_type = ?
-            """, (tenant_id, account_type))
+                WHERE tenant_id = :tenant_id AND account_type = :account_type
+            """), {'tenant_id': tenant_id, 'account_type': account_type})
         
         ist = pytz.timezone('Asia/Kolkata')
         now = datetime.now(ist)
         
         # Insert account
-        cursor = db.session.execute("""
+        cursor = db.session.execute(text("""
             INSERT INTO bank_accounts 
             (tenant_id, account_name, account_type, bank_name, account_number,
              ifsc_code, branch, opening_balance, current_balance, is_active,
              is_default, description, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """, (
-            tenant_id, account_name, account_type, bank_name, account_number,
-            ifsc_code, branch, opening_balance, opening_balance, 1,
-            is_default, description, now, now
-        ))
+            VALUES (:tenant_id, :account_name, :account_type, :bank_name, :account_number,
+                    :ifsc_code, :branch, :opening_balance, :current_balance, :is_active,
+                    :is_default, :description, :created_at, :updated_at)
+        """), {
+            'tenant_id': tenant_id, 'account_name': account_name, 'account_type': account_type,
+            'bank_name': bank_name, 'account_number': account_number, 'ifsc_code': ifsc_code,
+            'branch': branch, 'opening_balance': opening_balance, 'current_balance': opening_balance,
+            'is_active': 1, 'is_default': is_default, 'description': description,
+            'created_at': now, 'updated_at': now
+        })
         
         account_id = cursor.lastrowid
         
         # If opening balance > 0, create opening balance transaction
         if opening_balance > 0:
-            db.session.execute("""
+            db.session.execute(text("""
                 INSERT INTO account_transactions
                 (tenant_id, account_id, transaction_date, transaction_type,
                  debit_amount, credit_amount, balance_after, narration, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """, (
-                tenant_id, account_id, now.date(), 'opening_balance',
-                opening_balance, 0.00, opening_balance,
-                'Opening balance', now
-            ))
+                VALUES (:tenant_id, :account_id, :transaction_date, :transaction_type,
+                        :debit_amount, :credit_amount, :balance_after, :narration, :created_at)
+            """), {
+                'tenant_id': tenant_id, 'account_id': account_id, 'transaction_date': now.date(),
+                'transaction_type': 'opening_balance', 'debit_amount': opening_balance,
+                'credit_amount': 0.00, 'balance_after': opening_balance,
+                'narration': 'Opening balance', 'created_at': now
+            })
         
         db.session.commit()
         
@@ -174,32 +181,34 @@ def edit_account(account_id):
         
         # Get account type
         account_type = db.session.execute(
-            "SELECT account_type FROM bank_accounts WHERE id = ? AND tenant_id = ?",
-            (account_id, tenant_id)
+            text("SELECT account_type FROM bank_accounts WHERE id = :account_id AND tenant_id = :tenant_id"),
+            {'account_id': account_id, 'tenant_id': tenant_id}
         ).fetchone()[0]
         
         # If marking as default, unmark others of same type
         if is_default:
-            db.session.execute("""
+            db.session.execute(text("""
                 UPDATE bank_accounts 
                 SET is_default = 0 
-                WHERE tenant_id = ? AND account_type = ? AND id != ?
-            """, (tenant_id, account_type, account_id))
+                WHERE tenant_id = :tenant_id AND account_type = :account_type AND id != :account_id
+            """), {'tenant_id': tenant_id, 'account_type': account_type, 'account_id': account_id})
         
         ist = pytz.timezone('Asia/Kolkata')
         now = datetime.now(ist)
         
         # Update account
-        db.session.execute("""
+        db.session.execute(text("""
             UPDATE bank_accounts
-            SET account_name = ?, bank_name = ?, account_number = ?,
-                ifsc_code = ?, branch = ?, description = ?,
-                is_active = ?, is_default = ?, updated_at = ?
-            WHERE id = ? AND tenant_id = ?
-        """, (
-            account_name, bank_name, account_number, ifsc_code, branch,
-            description, is_active, is_default, now, account_id, tenant_id
-        ))
+            SET account_name = :account_name, bank_name = :bank_name, account_number = :account_number,
+                ifsc_code = :ifsc_code, branch = :branch, description = :description,
+                is_active = :is_active, is_default = :is_default, updated_at = :updated_at
+            WHERE id = :account_id AND tenant_id = :tenant_id
+        """), {
+            'account_name': account_name, 'bank_name': bank_name, 'account_number': account_number,
+            'ifsc_code': ifsc_code, 'branch': branch, 'description': description,
+            'is_active': is_active, 'is_default': is_default, 'updated_at': now,
+            'account_id': account_id, 'tenant_id': tenant_id
+        })
         
         db.session.commit()
         
@@ -221,10 +230,10 @@ def delete_account(account_id):
     
     try:
         # Check if account has transactions
-        txn_count = db.session.execute("""
+        txn_count = db.session.execute(text("""
             SELECT COUNT(*) FROM account_transactions
-            WHERE account_id = ? AND tenant_id = ?
-        """, (account_id, tenant_id)).fetchone()[0]
+            WHERE account_id = :account_id AND tenant_id = :tenant_id
+        """), {'account_id': account_id, 'tenant_id': tenant_id}).fetchone()[0]
         
         if txn_count > 0:
             flash(f'❌ Cannot delete account with {txn_count} transactions. Deactivate it instead.', 'error')
@@ -232,14 +241,14 @@ def delete_account(account_id):
         
         # Get account name
         account_name = db.session.execute(
-            "SELECT account_name FROM bank_accounts WHERE id = ? AND tenant_id = ?",
-            (account_id, tenant_id)
+            text("SELECT account_name FROM bank_accounts WHERE id = :account_id AND tenant_id = :tenant_id"),
+            {'account_id': account_id, 'tenant_id': tenant_id}
         ).fetchone()[0]
         
         # Delete account
         db.session.execute(
-            "DELETE FROM bank_accounts WHERE id = ? AND tenant_id = ?",
-            (account_id, tenant_id)
+            text("DELETE FROM bank_accounts WHERE id = :account_id AND tenant_id = :tenant_id"),
+            {'account_id': account_id, 'tenant_id': tenant_id}
         )
         
         db.session.commit()
@@ -261,13 +270,13 @@ def account_statement(account_id):
     tenant_id = get_current_tenant_id()
     
     # Get account details
-    account = db.session.execute("""
+    account = db.session.execute(text("""
         SELECT 
             id, account_name, account_type, bank_name, account_number,
             opening_balance, current_balance, is_active
         FROM bank_accounts
-        WHERE id = ? AND tenant_id = ?
-    """, (account_id, tenant_id)).fetchone()
+        WHERE id = :account_id AND tenant_id = :tenant_id
+    """), {'account_id': account_id, 'tenant_id': tenant_id}).fetchone()
     
     if not account:
         flash('❌ Account not found', 'error')
@@ -320,13 +329,13 @@ def get_account(account_id):
     """Get account details (AJAX for modal edit)"""
     tenant_id = get_current_tenant_id()
     
-    account = db.session.execute("""
+    account = db.session.execute(text("""
         SELECT 
             id, account_name, account_type, bank_name, account_number,
             ifsc_code, branch, current_balance, is_active, is_default, description
         FROM bank_accounts
-        WHERE id = ? AND tenant_id = ?
-    """, (account_id, tenant_id)).fetchone()
+        WHERE id = :account_id AND tenant_id = :tenant_id
+    """), {'account_id': account_id, 'tenant_id': tenant_id}).fetchone()
     
     if not account:
         return jsonify({'error': 'Account not found'}), 404
