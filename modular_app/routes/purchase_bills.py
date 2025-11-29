@@ -921,7 +921,7 @@ def record_payment_form(bill_id):
                 'voucher': payment.payment_number,
                 'narration': f'Payment to {bill.vendor_name} for {bill.bill_number}',
                 'created_at': now,
-                'created_by': session.get('tenant_admin_id')
+                'created_by': None  # FIX: Set to NULL instead of tenant_admin_id
             })
             
             # Update account balance

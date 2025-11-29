@@ -197,7 +197,7 @@ def add():
             'voucher': f'EXP-{expense.id}',
             'narration': f'{expense.description[:100]} - {expense.vendor_name or "Business Expense"}',
             'created_at': now,
-            'created_by': session.get('tenant_admin_id')
+            'created_by': None  # FIX: Set to NULL instead of tenant_admin_id
         })
         
         # Update account balance
