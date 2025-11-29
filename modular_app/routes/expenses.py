@@ -163,7 +163,7 @@ def add():
             category_id=int(request.form.get('category_id')),
             amount=float(amount),
             description=request.form.get('description'),
-            payment_method=request.form.get('payment_method'),
+            payment_method=request.form.get('payment_method', 'Cash'),  # Default to Cash
             reference_number=request.form.get('reference_number'),
             vendor_name=request.form.get('vendor_name'),
             created_by=g.tenant.company_name
@@ -237,7 +237,7 @@ def edit(expense_id):
             expense.category_id = int(request.form.get('category_id'))
             expense.amount = float(request.form.get('amount'))
             expense.description = request.form.get('description')
-            expense.payment_method = request.form.get('payment_method')
+            expense.payment_method = request.form.get('payment_method', 'Cash')  # Default to Cash
             expense.reference_number = request.form.get('reference_number')
             expense.vendor_name = request.form.get('vendor_name')
             

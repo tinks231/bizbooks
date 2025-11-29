@@ -51,19 +51,6 @@
                 <div class="help-text">Maximum: ₹{{ "{:,.2f}".format(bill.balance_due) }}</div>
             </div>
 
-            <!-- Payment Method -->
-            <div>
-                <label class="form-label">Payment Method <span style="color: red;">*</span></label>
-                <select name="payment_method" class="form-select" required>
-                    <option value="cash">Cash</option>
-                    <option value="bank_transfer">Bank Transfer</option>
-                    <option value="cheque">Cheque</option>
-                    <option value="upi">UPI</option>
-                    <option value="card">Card</option>
-                    <option value="online">Online Payment</option>
-                </select>
-            </div>
-
             <!-- Reference Number -->
             <div>
                 <label class="form-label">Reference Number</label>
@@ -114,35 +101,6 @@
         </form>
     </div>
 </div>
-
-<script>
-// Auto-fill reference number field label based on payment method
-document.querySelector('select[name="payment_method"]').addEventListener('change', function() {
-    const referenceLabel = document.querySelector('label[for="reference_number"]');
-    const referenceInput = document.querySelector('input[name="reference_number"]');
-    const helpText = document.querySelectorAll('.help-text')[2];
-    
-    switch(this.value) {
-        case 'cheque':
-            referenceInput.placeholder = 'Enter cheque number';
-            helpText.textContent = 'Enter the cheque number';
-            break;
-        case 'bank_transfer':
-        case 'upi':
-        case 'online':
-            referenceInput.placeholder = 'Enter transaction ID';
-            helpText.textContent = 'Enter the transaction ID or reference number';
-            break;
-        case 'cash':
-            referenceInput.placeholder = 'Receipt number (optional)';
-            helpText.textContent = 'Optional: Enter receipt number if applicable';
-            break;
-        default:
-            referenceInput.placeholder = 'Enter reference number';
-            helpText.textContent = 'Optional: Enter payment reference';
-    }
-});
-</script>
 {% endblock %}
 
 {% block extra_css %}
