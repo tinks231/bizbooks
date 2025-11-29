@@ -300,25 +300,14 @@
         </div>
         
         <div id="paymentDetails" style="{% if invoice and invoice.payment_status == 'paid' %}display: block;{% else %}display: none;{% endif %}">
-            <div class="form-row">
-                <div class="form-group">
-                    <label class="field-label" for="payment_method">Payment Method</label>
-                    {% set selected_method = invoice.payment_method if invoice else 'Cash' %}
-                    <select id="payment_method" name="payment_method" class="form-control">
-                        <option value="Cash" {% if selected_method == 'Cash' %}selected{% endif %}>Cash</option>
-                        <option value="UPI" {% if selected_method == 'UPI' %}selected{% endif %}>UPI</option>
-                        <option value="Card" {% if selected_method == 'Card' %}selected{% endif %}>Card</option>
-                        <option value="Cheque" {% if selected_method == 'Cheque' %}selected{% endif %}>Cheque</option>
-                        <option value="Bank Transfer" {% if selected_method == 'Bank Transfer' %}selected{% endif %}>Bank Transfer</option>
-                    </select>
-                </div>
-                
-                <div class="form-group">
-                    <label class="field-label" for="payment_reference">Payment Reference (Optional)</label>
-                    <input type="text" id="payment_reference" name="payment_reference" class="form-control" 
-                           placeholder="Transaction ID, Cheque No, etc."
-                           value="{% if invoice and invoice.internal_notes %}{{ invoice.internal_notes.replace('Payment Reference: ', '') }}{% endif %}">
-                </div>
+            <!-- Hidden: Payment Method (redundant - account selection handles this) -->
+            <input type="hidden" id="payment_method" name="payment_method" value="Cash">
+            
+            <div class="form-group">
+                <label class="field-label" for="payment_reference">Payment Reference (Optional)</label>
+                <input type="text" id="payment_reference" name="payment_reference" class="form-control" 
+                       placeholder="Transaction ID, Cheque No, etc."
+                       value="{% if invoice and invoice.internal_notes %}{{ invoice.internal_notes.replace('Payment Reference: ', '') }}{% endif %}">
             </div>
             
             <div class="form-group" style="margin-top: 15px;">

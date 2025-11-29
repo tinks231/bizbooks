@@ -408,7 +408,7 @@ def create():
                             'voucher': invoice.invoice_number,
                             'narration': f'Payment received for {invoice.invoice_number} from {invoice.customer_name}',
                             'created_at': now,
-                            'created_by': session.get('tenant_admin_id')
+                            'created_by': None  # FIX: Set to NULL instead of tenant_admin_id
                         })
                         
                         # Update account balance
