@@ -2444,7 +2444,7 @@ def add_bank_accounts():
         
         # Create bank_accounts table
         print("\n📊 Creating bank_accounts table...")
-        db.session.execute("""
+        db.session.execute(text("""
             CREATE TABLE IF NOT EXISTS bank_accounts (
                 id SERIAL PRIMARY KEY,
                 tenant_id INTEGER NOT NULL,
@@ -2479,28 +2479,28 @@ def add_bank_accounts():
                 CONSTRAINT fk_bank_account_tenant 
                     FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE
             )
-        """)
+        """))
         
         # Add indexes for performance
         print("📌 Adding indexes to bank_accounts...")
-        db.session.execute("""
+        db.session.execute(text("""
             CREATE INDEX IF NOT EXISTS idx_bank_accounts_tenant 
             ON bank_accounts(tenant_id, is_active)
-        """)
+        """))
         
-        db.session.execute("""
+        db.session.execute(text("""
             CREATE INDEX IF NOT EXISTS idx_bank_accounts_type 
             ON bank_accounts(tenant_id, account_type, is_active)
-        """)
+        """))
         
-        db.session.execute("""
+        db.session.execute(text("""
             CREATE INDEX IF NOT EXISTS idx_bank_accounts_default 
             ON bank_accounts(tenant_id, is_default)
-        """)
+        """))
         
         # Create account_transactions table
         print("\n📊 Creating account_transactions table...")
-        db.session.execute("""
+        db.session.execute(text("""
             CREATE TABLE IF NOT EXISTS account_transactions (
                 id SERIAL PRIMARY KEY,
                 tenant_id INTEGER NOT NULL,
@@ -2540,29 +2540,29 @@ def add_bank_accounts():
                 CONSTRAINT fk_account_transaction_user 
                     FOREIGN KEY (created_by) REFERENCES users(id)
             )
-        """)
+        """))
         
         # Add indexes for performance
         print("📌 Adding indexes to account_transactions...")
-        db.session.execute("""
+        db.session.execute(text("""
             CREATE INDEX IF NOT EXISTS idx_account_transactions_tenant 
             ON account_transactions(tenant_id, transaction_date DESC)
-        """)
+        """))
         
-        db.session.execute("""
+        db.session.execute(text("""
             CREATE INDEX IF NOT EXISTS idx_account_transactions_account 
             ON account_transactions(account_id, transaction_date DESC)
-        """)
+        """))
         
-        db.session.execute("""
+        db.session.execute(text("""
             CREATE INDEX IF NOT EXISTS idx_account_transactions_reference 
             ON account_transactions(reference_type, reference_id)
-        """)
+        """))
         
-        db.session.execute("""
+        db.session.execute(text("""
             CREATE INDEX IF NOT EXISTS idx_account_transactions_type 
             ON account_transactions(tenant_id, transaction_type)
-        """)
+        """))
         
         db.session.commit()
         print("\n✅ Tables created successfully!")
@@ -2579,17 +2579,17 @@ def add_bank_accounts():
         for tenant in tenants:
             # Check if cash account already exists
             existing = db.session.execute(
-                "SELECT id FROM bank_accounts WHERE tenant_id = :tenant_id AND account_type = 'cash'",
+                text("SELECT id FROM bank_accounts WHERE tenant_id = :tenant_id AND account_type = 'cash'"),
                 {'tenant_id': tenant.id}
             ).fetchone()
             
             if not existing:
-                db.session.execute("""
+                db.session.execute(text("""
                     INSERT INTO bank_accounts 
                     (tenant_id, account_name, account_type, opening_balance, 
                      current_balance, is_active, is_default, description, created_at, updated_at)
                     VALUES (:tenant_id, :name, :type, :opening, :current, :active, :default, :desc, :created, :updated)
-                """, {
+                """), {
                     'tenant_id': tenant.id,
                     'name': 'Cash in Hand',
                     'type': 'cash',
