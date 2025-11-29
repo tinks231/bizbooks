@@ -367,9 +367,7 @@ def create():
             # NEW: Create account transaction if payment received
             if payment_received == 'yes':
                 from models import BankAccount
-                from decimal import Decimal
                 from sqlalchemy import text
-                import pytz
                 
                 account_id = request.form.get('payment_account_id')
                 
