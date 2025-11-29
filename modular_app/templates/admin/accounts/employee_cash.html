@@ -69,6 +69,10 @@
                                     class="btn-icon" style="background: #ffc107; color: #333; padding: 8px 12px; border-radius: 6px; border: none; cursor: pointer; font-size: 12px;">
                                 💸 Expense
                             </button>
+                            <button onclick="openReturnCashModal({{ emp.id }}, '{{ emp.name }}', {{ emp.current_balance }})" 
+                                    class="btn-icon" style="background: #28a745; color: white; padding: 8px 12px; border-radius: 6px; border: none; cursor: pointer; font-size: 12px;">
+                                💰 Return
+                            </button>
                             {% endif %}
                         </div>
                     </td>
@@ -185,6 +189,62 @@
             <div class="modal-footer">
                 <button type="button" onclick="closeRecordExpenseModal()" class="btn btn-secondary">Cancel</button>
                 <button type="submit" class="btn btn-primary">💾 Record Expense</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Return Cash Modal -->
+<div id="returnCashModal" class="modal" style="display: none;">
+    <div class="modal-content" style="max-width: 600px;">
+        <div class="modal-header">
+            <h3 style="margin: 0; font-size: 20px; font-weight: 600;">💰 Return Cash from Employee</h3>
+            <button onclick="closeReturnCashModal()" class="modal-close">&times;</button>
+        </div>
+        <form method="POST" action="{{ url_for('accounts.employee_cash_return') }}">
+            <div class="modal-body">
+                <input type="hidden" name="employee_id" id="return_employee_id">
+                
+                <div style="background: #d4edda; padding: 12px; border-radius: 6px; margin-bottom: 20px; border: 1px solid #c3e6cb;">
+                    <div style="font-size: 13px; color: #155724;">Receiving cash back from:</div>
+                    <div style="font-size: 16px; font-weight: 600; color: #155724;" id="return_employee_name"></div>
+                    <div style="font-size: 13px; color: #155724; margin-top: 5px;">
+                        Current Balance: <strong id="return_available_cash">₹0.00</strong>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label class="field-label field-label--required">Return To Account</label>
+                    <select name="to_account_id" id="return_to_account" class="form-control" required>
+                        <option value="">Select account...</option>
+                        {% for acc in accounts %}
+                        <option value="{{ acc[0] }}">
+                            {% if acc[2] == 'cash' %}💵{% else %}🏦{% endif %} {{ acc[1] }} (₹{{ "{:,.2f}".format(acc[3]) }})
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <small style="color: #666; font-size: 12px; margin-top: 5px;">Select which company account to deposit the returned cash</small>
+                </div>
+                
+                <div class="form-group">
+                    <label class="field-label field-label--required">Amount (₹)</label>
+                    <input type="number" name="amount" id="return_amount" class="form-control" step="0.01" min="0.01" required placeholder="Enter amount being returned">
+                    <small style="color: #666; font-size: 12px; margin-top: 5px;">Maximum: <span id="return_max_amount">₹0.00</span></small>
+                </div>
+                
+                <div class="form-group">
+                    <label class="field-label field-label--required">Date</label>
+                    <input type="date" name="transaction_date" class="form-control" required>
+                </div>
+                
+                <div class="form-group">
+                    <label class="field-label">Notes</label>
+                    <textarea name="narration" class="form-control" rows="2" placeholder="Any notes about this return (optional)"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" onclick="closeReturnCashModal()" class="btn btn-secondary">Cancel</button>
+                <button type="submit" class="btn btn-primary">💰 Receive Cash</button>
             </div>
         </form>
     </div>
@@ -388,11 +448,38 @@ function closeRecordExpenseModal() {
     document.querySelector('#recordExpenseModal form').reset();
 }
 
+// Return Cash Modal
+function openReturnCashModal(employeeId, employeeName, availableCash) {
+    document.getElementById('returnCashModal').style.display = 'flex';
+    document.getElementById('return_employee_id').value = employeeId;
+    document.getElementById('return_employee_name').textContent = employeeName;
+    document.getElementById('return_available_cash').textContent = '₹' + availableCash.toLocaleString('en-IN', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    });
+    document.getElementById('return_max_amount').textContent = '₹' + availableCash.toLocaleString('en-IN', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    });
+    
+    // Set max attribute on amount input
+    document.querySelector('#returnCashModal input[name="amount"]').setAttribute('max', availableCash);
+    
+    const today = new Date().toISOString().split('T')[0];
+    document.querySelector('#returnCashModal input[name="transaction_date"]').value = today;
+}
+
+function closeReturnCashModal() {
+    document.getElementById('returnCashModal').style.display = 'none';
+    document.querySelector('#returnCashModal form').reset();
+}
+
 // Close modals on Escape key
 document.addEventListener('keydown', function(event) {
     if (event.key === 'Escape') {
         closeGiveCashModal();
         closeRecordExpenseModal();
+        closeReturnCashModal();
     }
 });
 
@@ -406,6 +493,12 @@ document.getElementById('giveCashModal').addEventListener('click', function(even
 document.getElementById('recordExpenseModal').addEventListener('click', function(event) {
     if (event.target === this) {
         closeRecordExpenseModal();
+    }
+});
+
+document.getElementById('returnCashModal').addEventListener('click', function(event) {
+    if (event.target === this) {
+        closeReturnCashModal();
     }
 });
 </script>
