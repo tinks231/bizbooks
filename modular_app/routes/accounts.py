@@ -1112,6 +1112,346 @@ def employee_cash_ledger(employee_id):
                          total_received=float(total_received),
                          total_spent=float(total_spent),
                          total_returned=float(total_returned),
-                         current_balance=float(current_balance),
+                        current_balance=float(current_balance),
+                        tenant=g.tenant)
+
+
+# ===========================
+# PHASE 5: ACCOUNTING REPORTS
+# ===========================
+
+@accounts_bp.route('/reports/cash-book', methods=['GET'])
+@require_tenant
+@login_required
+def cash_book():
+    """Cash Book Report - All cash account transactions"""
+    tenant_id = get_current_tenant_id()
+    
+    # Get date filters
+    from datetime import datetime, timedelta
+    ist = pytz.timezone('Asia/Kolkata')
+    today = datetime.now(ist).date()
+    
+    start_date_str = request.args.get('start_date')
+    end_date_str = request.args.get('end_date')
+    
+    if start_date_str:
+        start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
+    else:
+        start_date = today - timedelta(days=30)  # Default: Last 30 days
+    
+    if end_date_str:
+        end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
+    else:
+        end_date = today
+    
+    # Get all cash accounts
+    cash_accounts = db.session.execute(text("""
+        SELECT id, account_name, opening_balance, current_balance
+        FROM bank_accounts
+        WHERE tenant_id = :tenant_id 
+        AND account_type = 'cash'
+        AND is_active = TRUE
+        ORDER BY account_name
+    """), {'tenant_id': tenant_id}).fetchall()
+    
+    if not cash_accounts:
+        return render_template('admin/accounts/reports/cash_book.html',
+                             transactions=[],
+                             opening_balance=0,
+                             closing_balance=0,
+                             total_receipts=0,
+                             total_payments=0,
+                             start_date=start_date,
+                             end_date=end_date,
+                             tenant=g.tenant)
+    
+    # For simplicity, show first cash account (usually "Cash in Hand")
+    cash_account = cash_accounts[0]
+    account_id = cash_account[0]
+    account_name = cash_account[1]
+    
+    # Calculate opening balance (balance at start_date)
+    opening_balance_result = db.session.execute(text("""
+        SELECT balance_after
+        FROM account_transactions
+        WHERE tenant_id = :tenant_id 
+        AND account_id = :account_id
+        AND transaction_date < :start_date
+        ORDER BY transaction_date DESC, created_at DESC
+        LIMIT 1
+    """), {'tenant_id': tenant_id, 'account_id': account_id, 'start_date': start_date}).fetchone()
+    
+    opening_balance = Decimal(str(opening_balance_result[0])) if opening_balance_result else Decimal(str(cash_account[2]))
+    
+    # Get all transactions for date range
+    transactions = db.session.execute(text("""
+        SELECT 
+            transaction_date,
+            transaction_type,
+            debit_amount,
+            credit_amount,
+            balance_after,
+            voucher_number,
+            narration,
+            reference_type,
+            reference_id
+        FROM account_transactions
+        WHERE tenant_id = :tenant_id 
+        AND account_id = :account_id
+        AND transaction_date BETWEEN :start_date AND :end_date
+        ORDER BY transaction_date ASC, created_at ASC
+    """), {'tenant_id': tenant_id, 'account_id': account_id, 'start_date': start_date, 'end_date': end_date}).fetchall()
+    
+    # Calculate totals
+    total_receipts = sum(Decimal(str(txn[2])) for txn in transactions)  # Sum of debits
+    total_payments = sum(Decimal(str(txn[3])) for txn in transactions)  # Sum of credits
+    closing_balance = opening_balance + total_receipts - total_payments
+    
+    return render_template('admin/accounts/reports/cash_book.html',
+                         transactions=transactions,
+                         account_name=account_name,
+                         opening_balance=float(opening_balance),
+                         closing_balance=float(closing_balance),
+                         total_receipts=float(total_receipts),
+                         total_payments=float(total_payments),
+                         start_date=start_date,
+                         end_date=end_date,
+                         tenant=g.tenant)
+
+
+@accounts_bp.route('/reports/bank-book', methods=['GET'])
+@require_tenant
+@login_required
+def bank_book():
+    """Bank Book Report - Bank account-wise transactions"""
+    tenant_id = get_current_tenant_id()
+    
+    # Get date filters
+    from datetime import datetime, timedelta
+    ist = pytz.timezone('Asia/Kolkata')
+    today = datetime.now(ist).date()
+    
+    start_date_str = request.args.get('start_date')
+    end_date_str = request.args.get('end_date')
+    account_id_str = request.args.get('account_id')
+    
+    if start_date_str:
+        start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
+    else:
+        start_date = today - timedelta(days=30)
+    
+    if end_date_str:
+        end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
+    else:
+        end_date = today
+    
+    # Get all bank accounts
+    bank_accounts = db.session.execute(text("""
+        SELECT id, account_name, bank_name, account_number, opening_balance, current_balance
+        FROM bank_accounts
+        WHERE tenant_id = :tenant_id 
+        AND account_type = 'bank'
+        AND is_active = TRUE
+        ORDER BY account_name
+    """), {'tenant_id': tenant_id}).fetchall()
+    
+    if not bank_accounts:
+        return render_template('admin/accounts/reports/bank_book.html',
+                             transactions=[],
+                             bank_accounts=[],
+                             selected_account=None,
+                             opening_balance=0,
+                             closing_balance=0,
+                             total_deposits=0,
+                             total_withdrawals=0,
+                             start_date=start_date,
+                             end_date=end_date,
+                             tenant=g.tenant)
+    
+    # Select account (default to first if not specified)
+    if account_id_str:
+        account_id = int(account_id_str)
+        selected_account = next((acc for acc in bank_accounts if acc[0] == account_id), bank_accounts[0])
+    else:
+        selected_account = bank_accounts[0]
+        account_id = selected_account[0]
+    
+    account_name = selected_account[1]
+    
+    # Calculate opening balance
+    opening_balance_result = db.session.execute(text("""
+        SELECT balance_after
+        FROM account_transactions
+        WHERE tenant_id = :tenant_id 
+        AND account_id = :account_id
+        AND transaction_date < :start_date
+        ORDER BY transaction_date DESC, created_at DESC
+        LIMIT 1
+    """), {'tenant_id': tenant_id, 'account_id': account_id, 'start_date': start_date}).fetchone()
+    
+    opening_balance = Decimal(str(opening_balance_result[0])) if opening_balance_result else Decimal(str(selected_account[4]))
+    
+    # Get transactions
+    transactions = db.session.execute(text("""
+        SELECT 
+            transaction_date,
+            transaction_type,
+            debit_amount,
+            credit_amount,
+            balance_after,
+            voucher_number,
+            narration,
+            reference_type,
+            reference_id
+        FROM account_transactions
+        WHERE tenant_id = :tenant_id 
+        AND account_id = :account_id
+        AND transaction_date BETWEEN :start_date AND :end_date
+        ORDER BY transaction_date ASC, created_at ASC
+    """), {'tenant_id': tenant_id, 'account_id': account_id, 'start_date': start_date, 'end_date': end_date}).fetchall()
+    
+    # Calculate totals
+    total_deposits = sum(Decimal(str(txn[2])) for txn in transactions)
+    total_withdrawals = sum(Decimal(str(txn[3])) for txn in transactions)
+    closing_balance = opening_balance + total_deposits - total_withdrawals
+    
+    return render_template('admin/accounts/reports/bank_book.html',
+                         transactions=transactions,
+                         bank_accounts=bank_accounts,
+                         selected_account=selected_account,
+                         account_name=account_name,
+                         opening_balance=float(opening_balance),
+                         closing_balance=float(closing_balance),
+                         total_deposits=float(total_deposits),
+                         total_withdrawals=float(total_withdrawals),
+                         start_date=start_date,
+                         end_date=end_date,
+                         tenant=g.tenant)
+
+
+@accounts_bp.route('/reports/day-book', methods=['GET'])
+@require_tenant
+@login_required
+def day_book():
+    """Day Book Report - All transactions for a date range"""
+    tenant_id = get_current_tenant_id()
+    
+    # Get date filters
+    from datetime import datetime, timedelta
+    ist = pytz.timezone('Asia/Kolkata')
+    today = datetime.now(ist).date()
+    
+    start_date_str = request.args.get('start_date')
+    end_date_str = request.args.get('end_date')
+    
+    if start_date_str:
+        start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
+    else:
+        start_date = today
+    
+    if end_date_str:
+        end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
+    else:
+        end_date = today
+    
+    # Get all transactions for date range (all accounts)
+    transactions = db.session.execute(text("""
+        SELECT 
+            at.transaction_date,
+            at.transaction_type,
+            at.debit_amount,
+            at.credit_amount,
+            at.voucher_number,
+            at.narration,
+            at.reference_type,
+            at.reference_id,
+            ba.account_name,
+            ba.account_type
+        FROM account_transactions at
+        LEFT JOIN bank_accounts ba ON at.account_id = ba.id AND at.tenant_id = ba.tenant_id
+        WHERE at.tenant_id = :tenant_id 
+        AND at.transaction_date BETWEEN :start_date AND :end_date
+        ORDER BY at.transaction_date ASC, at.created_at ASC
+    """), {'tenant_id': tenant_id, 'start_date': start_date, 'end_date': end_date}).fetchall()
+    
+    # Calculate totals
+    total_debits = sum(Decimal(str(txn[2])) for txn in transactions)
+    total_credits = sum(Decimal(str(txn[3])) for txn in transactions)
+    
+    # Group by transaction type
+    from collections import defaultdict
+    grouped_transactions = defaultdict(list)
+    for txn in transactions:
+        grouped_transactions[txn[1]].append(txn)
+    
+    return render_template('admin/accounts/reports/day_book.html',
+                         transactions=transactions,
+                         grouped_transactions=dict(grouped_transactions),
+                         total_debits=float(total_debits),
+                         total_credits=float(total_credits),
+                         start_date=start_date,
+                         end_date=end_date,
+                         tenant=g.tenant)
+
+
+@accounts_bp.route('/reports/account-summary', methods=['GET'])
+@require_tenant
+@login_required
+def account_summary():
+    """Account Summary - Overview of all accounts and balances"""
+    tenant_id = get_current_tenant_id()
+    
+    # Get all accounts with balances
+    accounts = db.session.execute(text("""
+        SELECT 
+            id,
+            account_name,
+            account_type,
+            bank_name,
+            account_number,
+            opening_balance,
+            current_balance,
+            is_default
+        FROM bank_accounts
+        WHERE tenant_id = :tenant_id 
+        AND is_active = TRUE
+        ORDER BY 
+            CASE account_type 
+                WHEN 'cash' THEN 1 
+                WHEN 'bank' THEN 2 
+                WHEN 'petty_cash' THEN 3 
+            END,
+            account_name
+    """), {'tenant_id': tenant_id}).fetchall()
+    
+    # Calculate category-wise totals
+    cash_total = sum(Decimal(str(acc[6])) for acc in accounts if acc[2] == 'cash')
+    bank_total = sum(Decimal(str(acc[6])) for acc in accounts if acc[2] == 'bank')
+    petty_cash_total = sum(Decimal(str(acc[6])) for acc in accounts if acc[2] == 'petty_cash')
+    
+    # Get employee cash total
+    employee_cash_total = db.session.execute(text("""
+        SELECT COALESCE(SUM(
+            CASE 
+                WHEN transaction_type = 'employee_advance' THEN debit_amount
+                WHEN transaction_type IN ('employee_expense', 'employee_return') THEN -credit_amount
+                ELSE 0
+            END
+        ), 0) as total
+        FROM account_transactions
+        WHERE tenant_id = :tenant_id 
+        AND reference_type = 'employee'
+    """), {'tenant_id': tenant_id}).fetchone()[0]
+    
+    total_balance = cash_total + bank_total + petty_cash_total
+    
+    return render_template('admin/accounts/reports/account_summary.html',
+                         accounts=accounts,
+                         cash_total=float(cash_total),
+                         bank_total=float(bank_total),
+                         petty_cash_total=float(petty_cash_total),
+                         employee_cash_total=float(employee_cash_total or 0),
+                         total_balance=float(total_balance),
                          tenant=g.tenant)
 

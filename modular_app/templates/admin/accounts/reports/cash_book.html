@@ -1,0 +1,153 @@
+{% extends "base_sidebar.html" %}
+
+{% block title %}Cash Book{% endblock %}
+
+{% block page_title %}📖 Cash Book{% endblock %}
+
+{% block header_actions %}
+<button onclick="window.print()" class="btn btn-secondary">
+    🖨️ Print
+</button>
+{% endblock %}
+
+{% block content %}
+
+<div class="container-fluid" style="padding: 30px;">
+    
+    <!-- Date Filter Card -->
+    <div style="background: white; border-radius: 12px; padding: 25px; margin-bottom: 25px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
+        <form method="GET" action="{{ url_for('accounts.cash_book') }}" style="display: flex; gap: 20px; align-items: end; flex-wrap: wrap;">
+            <div style="flex: 1; min-width: 200px;">
+                <label style="display: block; font-size: 13px; font-weight: 600; color: #666; margin-bottom: 8px;">From Date</label>
+                <input type="date" name="start_date" value="{{ start_date.strftime('%Y-%m-%d') }}" 
+                       style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 14px;">
+            </div>
+            <div style="flex: 1; min-width: 200px;">
+                <label style="display: block; font-size: 13px; font-weight: 600; color: #666; margin-bottom: 8px;">To Date</label>
+                <input type="date" name="end_date" value="{{ end_date.strftime('%Y-%m-%d') }}" 
+                       style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 14px;">
+            </div>
+            <button type="submit" style="padding: 10px 25px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">
+                🔍 View Report
+            </button>
+        </form>
+    </div>
+
+    <!-- Report Header -->
+    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 12px; padding: 25px; margin-bottom: 25px; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);">
+        <h2 style="margin: 0 0 10px 0; font-size: 24px;">📖 Cash Book</h2>
+        <div style="font-size: 14px; opacity: 0.9;">
+            {{ account_name or 'Cash in Hand' }} | Period: {{ start_date.strftime('%d %b %Y') }} to {{ end_date.strftime('%d %b %Y') }}
+        </div>
+    </div>
+
+    <!-- Ledger Table -->
+    <div style="background: white; border-radius: 12px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); overflow: hidden;">
+        <table class="ledger-table" style="width: 100%; border-collapse: collapse;">
+            <thead style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                <tr>
+                    <th style="padding: 15px; text-align: left; width: 12%; font-weight: 600; font-size: 12px; text-transform: uppercase;">Date</th>
+                    <th style="padding: 15px; text-align: left; width: 40%; font-weight: 600; font-size: 12px; text-transform: uppercase;">Particulars</th>
+                    <th style="padding: 15px; text-align: left; width: 12%; font-weight: 600; font-size: 12px; text-transform: uppercase;">Vch Type</th>
+                    <th style="padding: 15px; text-align: left; width: 12%; font-weight: 600; font-size: 12px; text-transform: uppercase;">Vch No.</th>
+                    <th style="padding: 15px; text-align: right; width: 12%; font-weight: 600; font-size: 12px; text-transform: uppercase;">Receipts (₹)</th>
+                    <th style="padding: 15px; text-align: right; width: 12%; font-weight: 600; font-size: 12px; text-transform: uppercase;">Payments (₹)</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Opening Balance -->
+                <tr style="background: #f8f9fa;">
+                    <td style="padding: 12px 15px; border-bottom: 1px solid #e9ecef;"></td>
+                    <td style="padding: 12px 15px; border-bottom: 1px solid #e9ecef; font-weight: 600;">Opening Balance</td>
+                    <td style="padding: 12px 15px; border-bottom: 1px solid #e9ecef;"></td>
+                    <td style="padding: 12px 15px; border-bottom: 1px solid #e9ecef;"></td>
+                    <td style="padding: 12px 15px; border-bottom: 1px solid #e9ecef; text-align: right; font-weight: 600; color: #28a745;">{{ "%.2f"|format(opening_balance) }}</td>
+                    <td style="padding: 12px 15px; border-bottom: 1px solid #e9ecef;"></td>
+                </tr>
+                
+                <!-- Transactions -->
+                {% if transactions %}
+                    {% for txn in transactions %}
+                    <tr style="border-bottom: 1px solid #e9ecef;">
+                        <td style="padding: 12px 15px;">{{ txn[0].strftime('%d-%b-%y') }}</td>
+                        <td style="padding: 12px 15px;">
+                            <div style="font-weight: 600; color: #2c3e50;">{{ txn[5] }}</div>
+                            {% if txn[6] %}
+                            <div style="font-size: 12px; color: #666; margin-top: 2px;">{{ txn[6] }}</div>
+                            {% endif %}
+                        </td>
+                        <td style="padding: 12px 15px;">
+                            {% if txn[1] == 'invoice_payment' %}Sales
+                            {% elif txn[1] == 'bill_payment' %}Purchase
+                            {% elif txn[1] == 'expense' %}Expense
+                            {% elif txn[1] == 'contra_in' %}Contra
+                            {% elif txn[1] == 'contra_out' %}Contra
+                            {% elif txn[1] == 'employee_advance' %}Payment
+                            {% elif txn[1] == 'employee_return' %}Receipt
+                            {% else %}{{ txn[1]|title }}{% endif %}
+                        </td>
+                        <td style="padding: 12px 15px;">{{ txn[5] }}</td>
+                        <td style="padding: 12px 15px; text-align: right; {% if txn[2] > 0 %}color: #28a745; font-weight: 600;{% endif %}">
+                            {% if txn[2] > 0 %}{{ "%.2f"|format(txn[2]) }}{% endif %}
+                        </td>
+                        <td style="padding: 12px 15px; text-align: right; {% if txn[3] > 0 %}color: #dc3545; font-weight: 600;{% endif %}">
+                            {% if txn[3] > 0 %}{{ "%.2f"|format(txn[3]) }}{% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="6" style="padding: 40px; text-align: center; color: #999;">
+                            No transactions found for this period
+                        </td>
+                    </tr>
+                {% endif %}
+                
+                <!-- Totals -->
+                <tr style="background: #f8f9fa; font-weight: 700;">
+                    <td style="padding: 15px; border-top: 2px solid #667eea;"></td>
+                    <td style="padding: 15px; border-top: 2px solid #667eea;">Current Totals</td>
+                    <td style="padding: 15px; border-top: 2px solid #667eea;"></td>
+                    <td style="padding: 15px; border-top: 2px solid #667eea;"></td>
+                    <td style="padding: 15px; border-top: 2px solid #667eea; text-align: right; color: #28a745;">{{ "%.2f"|format(total_receipts) }}</td>
+                    <td style="padding: 15px; border-top: 2px solid #667eea; text-align: right; color: #dc3545;">{{ "%.2f"|format(total_payments) }}</td>
+                </tr>
+                
+                <!-- Closing Balance -->
+                <tr style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); font-weight: 700;">
+                    <td style="padding: 15px; border-top: 2px solid #667eea;"></td>
+                    <td style="padding: 15px; border-top: 2px solid #667eea;">Closing Balance</td>
+                    <td style="padding: 15px; border-top: 2px solid #667eea;"></td>
+                    <td style="padding: 15px; border-top: 2px solid #667eea;"></td>
+                    <td style="padding: 15px; border-top: 2px solid #667eea; text-align: right; {% if closing_balance >= 0 %}color: #28a745;{% else %}color: #dc3545;{% endif %} font-size: 16px;">
+                        {{ "%.2f"|format(closing_balance) }}
+                    </td>
+                    <td style="padding: 15px; border-top: 2px solid #667eea;"></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<style>
+@media print {
+    .sidebar, .btn, .nav-header, button, form {
+        display: none !important;
+    }
+    
+    body {
+        background: white !important;
+    }
+    
+    .container-fluid {
+        padding: 20px !important;
+    }
+}
+
+.ledger-table tbody tr:hover {
+    background: #f8f9ff !important;
+}
+</style>
+
+{% endblock %}
+

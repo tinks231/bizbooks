@@ -883,6 +883,24 @@
                     <a href="/admin/gst-reports" class="nav-item {% if '/admin/gst-reports' in request.path %}active{% endif %}">
                         <i>📋</i> GST Reports
                     </a>
+                    
+                    <!-- Accounting Reports (Phase 5) -->
+                    <div style="margin: 10px 0 5px 20px; padding: 5px 0; border-top: 1px solid rgba(255,255,255,0.1);">
+                        <div style="font-size: 11px; color: rgba(255,255,255,0.5); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 5px;">Accounting Reports</div>
+                    </div>
+                    <a href="/admin/accounts/reports/cash-book" class="nav-item {% if '/admin/accounts/reports/cash-book' in request.path %}active{% endif %}">
+                        <i>📖</i> Cash Book
+                    </a>
+                    <a href="/admin/accounts/reports/bank-book" class="nav-item {% if '/admin/accounts/reports/bank-book' in request.path %}active{% endif %}">
+                        <i>🏦</i> Bank Book
+                    </a>
+                    <a href="/admin/accounts/reports/day-book" class="nav-item {% if '/admin/accounts/reports/day-book' in request.path %}active{% endif %}">
+                        <i>📊</i> Day Book
+                    </a>
+                    <a href="/admin/accounts/reports/account-summary" class="nav-item {% if '/admin/accounts/reports/account-summary' in request.path %}active{% endif %}">
+                        <i>💰</i> Account Summary
+                    </a>
+                    
                     <!-- Future Reports -->
                     <!--
                     <a href="/admin/reports/sales" class="nav-item">
