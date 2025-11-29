@@ -530,10 +530,21 @@ def view(invoice_id):
     # Get tenant settings for invoice header
     tenant_settings = json.loads(g.tenant.settings) if g.tenant.settings else {}
     
+    # Get active bank/cash accounts for payment recording
+    from models import BankAccount
+    bank_accounts = BankAccount.query.filter_by(
+        tenant_id=tenant_id,
+        is_active=True
+    ).order_by(
+        BankAccount.account_type,
+        BankAccount.account_name
+    ).all()
+    
     return render_template('admin/invoices/view.html',
                          tenant=g.tenant,
                          invoice=invoice,
                          tenant_settings=tenant_settings,
+                         bank_accounts=bank_accounts,
                          today=date.today())
 
 
@@ -830,11 +841,33 @@ def record_payment(invoice_id):
     invoice = Invoice.query.filter_by(id=invoice_id, tenant_id=tenant_id).first_or_404()
     
     try:
-        amount = float(request.form.get('amount', 0))
-        payment_method = request.form.get('payment_method', 'Cash')
+        from decimal import Decimal
+        from datetime import datetime
+        import pytz
+        from sqlalchemy import text
+        from models import BankAccount
         
-        # Update paid amount
-        invoice.paid_amount += amount
+        amount = Decimal(str(request.form.get('amount_paid', 0)))
+        payment_method = request.form.get('payment_method', 'Cash')
+        account_id = request.form.get('account_id')  # NEW: Bank/Cash account
+        
+        # Validate account
+        if not account_id:
+            flash('⚠️ Please select a bank/cash account', 'warning')
+            return redirect(url_for('invoices.view', invoice_id=invoice_id))
+        
+        account = BankAccount.query.filter_by(
+            id=account_id, 
+            tenant_id=tenant_id, 
+            is_active=True
+        ).first()
+        
+        if not account:
+            flash('⚠️ Invalid bank/cash account selected', 'error')
+            return redirect(url_for('invoices.view', invoice_id=invoice_id))
+        
+        # Update invoice paid amount
+        invoice.paid_amount = (invoice.paid_amount or 0) + float(amount)
         invoice.payment_method = payment_method
         
         # Update payment status
@@ -845,12 +878,55 @@ def record_payment(invoice_id):
         else:
             invoice.payment_status = 'unpaid'
         
+        # Create account transaction (Money IN - Debit account)
+        ist = pytz.timezone('Asia/Kolkata')
+        now = datetime.now(ist)
+        today = now.date()
+        
+        new_balance = Decimal(str(account.current_balance)) + amount
+        
+        db.session.execute(text("""
+            INSERT INTO account_transactions
+            (tenant_id, account_id, transaction_date, transaction_type,
+             debit_amount, credit_amount, balance_after, reference_type, reference_id,
+             voucher_number, narration, created_at, created_by)
+            VALUES (:tenant_id, :account_id, :txn_date, :txn_type,
+                    :debit, :credit, :balance, :ref_type, :ref_id,
+                    :voucher, :narration, :created_at, :created_by)
+        """), {
+            'tenant_id': tenant_id,
+            'account_id': account_id,
+            'txn_date': today,
+            'txn_type': 'invoice_payment',
+            'debit': amount,  # Money received = Debit
+            'credit': Decimal('0.00'),
+            'balance': new_balance,
+            'ref_type': 'invoice',
+            'ref_id': invoice_id,
+            'voucher': invoice.invoice_number,
+            'narration': f'Payment received for {invoice.invoice_number} from {invoice.customer_name}',
+            'created_at': now,
+            'created_by': session.get('tenant_admin_id')
+        })
+        
+        # Update account balance
+        db.session.execute(text("""
+            UPDATE bank_accounts 
+            SET current_balance = :new_balance, updated_at = :updated_at
+            WHERE id = :account_id AND tenant_id = :tenant_id
+        """), {
+            'new_balance': new_balance,
+            'updated_at': now,
+            'account_id': account_id,
+            'tenant_id': tenant_id
+        })
+        
         db.session.commit()
-        flash(f'Payment of ₹{amount} recorded successfully!', 'success')
+        flash(f'✅ Payment of ₹{amount:,.2f} recorded in {account.account_name}!', 'success')
         
     except Exception as e:
         db.session.rollback()
-        flash(f'Error recording payment: {str(e)}', 'error')
+        flash(f'❌ Error recording payment: {str(e)}', 'error')
     
     return redirect(url_for('invoices.view', invoice_id=invoice_id))
 
