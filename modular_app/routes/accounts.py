@@ -319,27 +319,27 @@ def account_statement(account_id):
     from_date = request.args.get('from_date')
     to_date = request.args.get('to_date')
     
-    # Build query
+    # Build query with named parameters
     query = """
         SELECT 
             transaction_date, transaction_type, debit_amount, credit_amount,
             balance_after, narration, voucher_number, reference_type, reference_id
         FROM account_transactions
-        WHERE account_id = ? AND tenant_id = ?
+        WHERE account_id = :account_id AND tenant_id = :tenant_id
     """
-    params = [account_id, tenant_id]
+    params = {'account_id': account_id, 'tenant_id': tenant_id}
     
     if from_date:
-        query += " AND transaction_date >= ?"
-        params.append(from_date)
+        query += " AND transaction_date >= :from_date"
+        params['from_date'] = from_date
     
     if to_date:
-        query += " AND transaction_date <= ?"
-        params.append(to_date)
+        query += " AND transaction_date <= :to_date"
+        params['to_date'] = to_date
     
     query += " ORDER BY transaction_date DESC, id DESC"
     
-    transactions = db.session.execute(query, params).fetchall()
+    transactions = db.session.execute(text(query), params).fetchall()
     
     # Calculate summary
     total_debit = sum(txn[2] for txn in transactions)
