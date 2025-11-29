@@ -899,6 +899,7 @@ def employee_cash_expense():
         new_balance = available_cash - amount
         
         # Create expense transaction (credit - employee spent cash)
+        # Note: account_id is NULL for employee expenses (they don't affect bank/cash accounts)
         db.session.execute(text("""
             INSERT INTO account_transactions
             (tenant_id, account_id, transaction_date, transaction_type,
@@ -908,7 +909,7 @@ def employee_cash_expense():
                     :debit_amount, :credit_amount, :balance_after, :reference_type, :reference_id,
                     :voucher_number, :narration, :created_at)
         """), {
-            'tenant_id': tenant_id, 'account_id': 0, 'transaction_date': txn_date,
+            'tenant_id': tenant_id, 'account_id': None, 'transaction_date': txn_date,
             'transaction_type': 'employee_expense', 'debit_amount': 0.00, 'credit_amount': amount,
             'balance_after': new_balance, 'reference_type': 'employee', 'reference_id': employee_id,
             'voucher_number': expense_head or 'Expense',

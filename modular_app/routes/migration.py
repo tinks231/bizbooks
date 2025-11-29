@@ -2647,3 +2647,59 @@ def add_bank_accounts():
             'traceback': traceback.format_exc(),
             'help': 'Check if tables already exist or contact support'
         }), 500
+
+
+@migration_bp.route('/fix-employee-transactions')
+def fix_employee_transactions():
+    """
+    Make account_id nullable in account_transactions for employee expenses
+    Phase 3 Fix: Employee expenses don't need a bank account reference
+    
+    Access this URL once: /migrate/fix-employee-transactions
+    """
+    try:
+        print("=" * 60)
+        print("🔧 FIX: Make account_id nullable for employee transactions")
+        print("=" * 60)
+        
+        # Check if column is already nullable
+        inspector = db.inspect(db.engine)
+        columns = inspector.get_columns('account_transactions')
+        account_id_col = next((col for col in columns if col['name'] == 'account_id'), None)
+        
+        if account_id_col and not account_id_col['nullable']:
+            print("\n📝 Making account_id nullable...")
+            db.session.execute(text("""
+                ALTER TABLE account_transactions 
+                ALTER COLUMN account_id DROP NOT NULL
+            """))
+            db.session.commit()
+            print("✅ account_id is now nullable!")
+        else:
+            print("✅ account_id is already nullable!")
+        
+        print("\n" + "=" * 60)
+        print("✅ EMPLOYEE TRANSACTION FIX COMPLETED!")
+        print("=" * 60)
+        
+        return jsonify({
+            'status': 'success',
+            'message': '✅ Employee transaction fix complete!',
+            'details': {
+                'change': 'account_id column in account_transactions is now nullable',
+                'reason': 'Employee expenses do not require a bank/cash account reference'
+            },
+            'next_steps': [
+                'Now you can record employee expenses without errors!',
+                'Employee expenses will have account_id = NULL'
+            ]
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        import traceback
+        return jsonify({
+            'status': 'error',
+            'message': f'Employee transaction fix failed: {str(e)}',
+            'traceback': traceback.format_exc()
+        }), 500
