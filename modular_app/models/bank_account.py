@@ -1,7 +1,7 @@
 """
 Bank Account and Transaction models for accounting module
 """
-from modular_app.models.database import db
+from .database import db
 from datetime import datetime
 import pytz
 
