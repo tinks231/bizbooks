@@ -92,7 +92,7 @@ def create_account():
         branch = request.form.get('branch')
         opening_balance = Decimal(request.form.get('opening_balance', '0.00'))
         description = request.form.get('description')
-        is_default = 1 if request.form.get('is_default') == 'on' else 0
+        is_default = True if request.form.get('is_default') == 'on' else False
         
         # Validation
         if not account_name:
@@ -103,7 +103,7 @@ def create_account():
         if is_default:
             db.session.execute(text("""
                 UPDATE bank_accounts 
-                SET is_default = 0 
+                SET is_default = FALSE 
                 WHERE tenant_id = :tenant_id AND account_type = :account_type
             """), {'tenant_id': tenant_id, 'account_type': account_type})
         
@@ -123,7 +123,7 @@ def create_account():
             'tenant_id': tenant_id, 'account_name': account_name, 'account_type': account_type,
             'bank_name': bank_name, 'account_number': account_number, 'ifsc_code': ifsc_code,
             'branch': branch, 'opening_balance': opening_balance, 'current_balance': opening_balance,
-            'is_active': 1, 'is_default': is_default, 'description': description,
+            'is_active': True, 'is_default': is_default, 'description': description,
             'created_at': now, 'updated_at': now
         })
         
@@ -172,8 +172,8 @@ def edit_account(account_id):
         branch = request.form.get('branch')
         description = request.form.get('description')
         new_balance = Decimal(request.form.get('current_balance', '0.00'))
-        is_active = 1 if request.form.get('is_active') == 'on' else 0
-        is_default = 1 if request.form.get('is_default') == 'on' else 0
+        is_active = True if request.form.get('is_active') == 'on' else False
+        is_default = True if request.form.get('is_default') == 'on' else False
         
         # Validation
         if not account_name:
@@ -192,7 +192,7 @@ def edit_account(account_id):
         if is_default:
             db.session.execute(text("""
                 UPDATE bank_accounts 
-                SET is_default = 0 
+                SET is_default = FALSE 
                 WHERE tenant_id = :tenant_id AND account_type = :account_type AND id != :account_id
             """), {'tenant_id': tenant_id, 'account_type': account_type, 'account_id': account_id})
         
