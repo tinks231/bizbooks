@@ -2703,3 +2703,97 @@ def fix_employee_transactions():
             'message': f'Employee transaction fix failed: {str(e)}',
             'traceback': traceback.format_exc()
         }), 500
+
+
+@migration_bp.route('/clean-duplicate-employee-transactions')
+def clean_duplicate_employee_transactions():
+    """
+    CLEANUP: Remove duplicate employee transactions from old data
+    
+    Problem: Old cash advances created 2 transactions:
+    - One for company account (money leaving company)
+    - One for employee (money received by employee)
+    
+    BOTH had reference_type='employee' so BOTH appeared in employee ledger!
+    
+    Solution: Delete company-side duplicates, keep only employee-side
+    
+    Access this URL once: /migrate/clean-duplicate-employee-transactions
+    """
+    try:
+        print("=" * 60)
+        print("🧹 CLEANUP: Removing duplicate employee transactions")
+        print("=" * 60)
+        
+        # Count duplicates before cleanup
+        print("\n🔍 Counting duplicate transactions...")
+        duplicate_count = db.session.execute(text("""
+            SELECT COUNT(*)
+            FROM account_transactions
+            WHERE transaction_type IN ('employee_advance', 'employee_expense', 'employee_return')
+            AND reference_type = 'employee'
+            AND account_id IS NOT NULL
+        """)).fetchone()[0]
+        
+        print(f"  Found {duplicate_count} duplicate transactions")
+        
+        if duplicate_count == 0:
+            print("  ✅ No duplicates found! System is clean.")
+            return jsonify({
+                'status': 'success',
+                'message': '✅ No duplicate transactions found!',
+                'details': 'Employee ledgers are already clean'
+            })
+        
+        # Delete company-side duplicates
+        print(f"\n🗑️  Deleting {duplicate_count} company-side duplicates...")
+        db.session.execute(text("""
+            DELETE FROM account_transactions
+            WHERE transaction_type IN ('employee_advance', 'employee_expense', 'employee_return')
+            AND reference_type = 'employee'
+            AND account_id IS NOT NULL
+        """))
+        
+        db.session.commit()
+        print(f"  ✅ Deleted {duplicate_count} duplicate transactions")
+        
+        # Verify cleanup
+        remaining = db.session.execute(text("""
+            SELECT COUNT(*)
+            FROM account_transactions
+            WHERE transaction_type IN ('employee_advance', 'employee_expense', 'employee_return')
+            AND reference_type = 'employee'
+            AND account_id IS NOT NULL
+        """)).fetchone()[0]
+        
+        print("\n" + "=" * 60)
+        print(f"✅ CLEANUP COMPLETED! Removed {duplicate_count} duplicates")
+        print(f"   Remaining clean transactions: {remaining} (should be 0)")
+        print("=" * 60)
+        
+        return jsonify({
+            'status': 'success',
+            'message': f'✅ Cleanup complete! Removed {duplicate_count} duplicate transactions',
+            'details': {
+                'duplicates_removed': int(duplicate_count),
+                'remaining_duplicates': int(remaining),
+                'kept': 'Employee-side transactions (account_id IS NULL)',
+                'removed': 'Company-side duplicates (account_id IS NOT NULL)',
+                'why': 'Employee ledger should only show employee transactions, not company account movements'
+            },
+            'next_steps': [
+                'Employee ledgers are now clean!',
+                'No more duplicate voucher numbers',
+                'Refresh any open employee ledger page to see clean data'
+            ]
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        import traceback
+        return jsonify({
+            'status': 'error',
+            'message': f'Cleanup failed: {str(e)}',
+            'traceback': traceback.format_exc(),
+            'help': 'Contact support if this persists'
+        }), 500
