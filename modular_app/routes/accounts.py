@@ -1206,7 +1206,16 @@ def cash_book():
     # Calculate totals
     total_receipts = sum(Decimal(str(txn[2])) for txn in transactions)  # Sum of debits
     total_payments = sum(Decimal(str(txn[3])) for txn in transactions)  # Sum of credits
-    closing_balance = opening_balance + total_receipts - total_payments
+    
+    # Calculate closing balance
+    # If end_date is today or later, use actual current_balance from bank_accounts
+    # Otherwise, use the balance_after from last transaction in period
+    if end_date >= today:
+        closing_balance = Decimal(str(cash_account[3]))  # current_balance
+    elif transactions:
+        closing_balance = Decimal(str(transactions[-1][4]))  # balance_after of last transaction
+    else:
+        closing_balance = opening_balance
     
     return render_template('admin/accounts/reports/cash_book.html',
                          transactions=transactions,
@@ -1314,7 +1323,16 @@ def bank_book():
     # Calculate totals
     total_deposits = sum(Decimal(str(txn[2])) for txn in transactions)
     total_withdrawals = sum(Decimal(str(txn[3])) for txn in transactions)
-    closing_balance = opening_balance + total_deposits - total_withdrawals
+    
+    # Calculate closing balance
+    # If end_date is today or later, use actual current_balance from bank_accounts
+    # Otherwise, use the balance_after from last transaction in period
+    if end_date >= today:
+        closing_balance = Decimal(str(selected_account[5]))  # current_balance
+    elif transactions:
+        closing_balance = Decimal(str(transactions[-1][4]))  # balance_after of last transaction
+    else:
+        closing_balance = opening_balance
     
     return render_template('admin/accounts/reports/bank_book.html',
                          transactions=transactions,
