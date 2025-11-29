@@ -1,0 +1,414 @@
+{% extends "base_sidebar.html" %}
+
+{% block title %}Employee Cash{% endblock %}
+
+{% block page_title %}👷 Employee Cash - Advances & Expenses{% endblock %}
+
+{% block header_actions %}
+<button onclick="openGiveCashModal()" class="btn btn-primary">
+    ➕ Give Cash to Employee
+</button>
+{% endblock %}
+
+{% block content %}
+
+<div class="container-fluid" style="padding: 30px;">
+    
+    <!-- Summary Card -->
+    <div style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; border-radius: 12px; padding: 30px; margin-bottom: 30px; box-shadow: 0 4px 15px rgba(245, 87, 108, 0.4);">
+        <div style="font-size: 13px; opacity: 0.9; margin-bottom: 5px;">TOTAL CASH WITH EMPLOYEES</div>
+        <div style="font-size: 36px; font-weight: 700;">₹{{ "{:,.2f}".format(total_cash_with_employees) }}</div>
+        <div style="font-size: 13px; opacity: 0.8; margin-top: 10px;">Across {{ employees|length }} employees</div>
+    </div>
+    
+    <!-- Employee List -->
+    <div class="employee-cash-table" style="background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); overflow: hidden;">
+        {% if employees %}
+        <table style="width: 100%; border-collapse: collapse;">
+            <thead style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                <tr>
+                    <th style="padding: 15px; text-align: left; font-weight: 600; font-size: 13px; text-transform: uppercase;">Employee</th>
+                    <th style="padding: 15px; text-align: right; font-weight: 600; font-size: 13px; text-transform: uppercase;">Cash Given (₹)</th>
+                    <th style="padding: 15px; text-align: right; font-weight: 600; font-size: 13px; text-transform: uppercase;">Expenses (₹)</th>
+                    <th style="padding: 15px; text-align: right; font-weight: 600; font-size: 13px; text-transform: uppercase;">Returned (₹)</th>
+                    <th style="padding: 15px; text-align: right; font-weight: 600; font-size: 13px; text-transform: uppercase;">Balance (₹)</th>
+                    <th style="padding: 15px; text-align: center; font-weight: 600; font-size: 13px; text-transform: uppercase;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for emp in employees %}
+                <tr style="border-bottom: 1px solid #f0f0f0;">
+                    <td style="padding: 15px;">
+                        <div style="font-weight: 600; color: #2c3e50;">{{ emp.name }}</div>
+                        {% if emp.phone %}
+                        <div style="font-size: 12px; color: #666; margin-top: 2px;">📱 {{ emp.phone }}</div>
+                        {% endif %}
+                    </td>
+                    <td style="padding: 15px; text-align: right;">
+                        <span style="color: #28a745; font-weight: 600;">{{ "{:,.2f}".format(emp.cash_given) }}</span>
+                    </td>
+                    <td style="padding: 15px; text-align: right;">
+                        <span style="color: #dc3545; font-weight: 600;">{{ "{:,.2f}".format(emp.expenses_made) }}</span>
+                    </td>
+                    <td style="padding: 15px; text-align: right;">
+                        <span style="color: #6c757d; font-weight: 600;">{{ "{:,.2f}".format(emp.cash_returned) }}</span>
+                    </td>
+                    <td style="padding: 15px; text-align: right;">
+                        <span style="font-size: 16px; font-weight: 700; {% if emp.current_balance > 0 %}color: #28a745;{% elif emp.current_balance < 0 %}color: #dc3545;{% else %}color: #6c757d;{% endif %}">
+                            {{ "{:,.2f}".format(emp.current_balance) }}
+                        </span>
+                    </td>
+                    <td style="padding: 15px; text-align: center;">
+                        <div style="display: flex; gap: 5px; justify-content: center;">
+                            <a href="{{ url_for('accounts.employee_cash_ledger', employee_id=emp.id) }}" 
+                               class="btn-icon" style="background: #17a2b8; color: white; padding: 8px 12px; border-radius: 6px; text-decoration: none; font-size: 12px;">
+                                👁️ Ledger
+                            </a>
+                            {% if emp.current_balance > 0 %}
+                            <button onclick="openRecordExpenseModal({{ emp.id }}, '{{ emp.name }}', {{ emp.current_balance }})" 
+                                    class="btn-icon" style="background: #ffc107; color: #333; padding: 8px 12px; border-radius: 6px; border: none; cursor: pointer; font-size: 12px;">
+                                💸 Expense
+                            </button>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div style="text-align: center; padding: 60px 20px; color: #999;">
+            <i class="fas fa-users" style="font-size: 64px; margin-bottom: 20px; opacity: 0.3;"></i>
+            <h3 style="color: #666;">No employees found</h3>
+            <p>Add employees first to give them cash advances</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Give Cash Modal -->
+<div id="giveCashModal" class="modal" style="display: none;">
+    <div class="modal-content" style="max-width: 600px;">
+        <div class="modal-header">
+            <h3 style="margin: 0; font-size: 20px; font-weight: 600;">💵 Give Cash to Employee</h3>
+            <button onclick="closeGiveCashModal()" class="modal-close">&times;</button>
+        </div>
+        <form method="POST" action="{{ url_for('accounts.employee_cash_give') }}">
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="field-label field-label--required">Select Employee</label>
+                    <select name="employee_id" class="form-control" required>
+                        <option value="">Choose employee...</option>
+                        {% for emp in employees %}
+                        <option value="{{ emp.id }}">{{ emp.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label class="field-label field-label--required">From Account</label>
+                    <select name="from_account_id" id="give_from_account" class="form-control" required onchange="updateGiveBalance()">
+                        <option value="">Select account...</option>
+                        {% for acc in accounts %}
+                        <option value="{{ acc[0] }}" data-balance="{{ acc[3] }}">
+                            {% if acc[2] == 'cash' %}💵{% else %}🏦{% endif %} {{ acc[1] }} (₹{{ "{:,.2f}".format(acc[3]) }})
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <small id="give_available_balance" style="color: #666; font-size: 12px; margin-top: 5px; display: none;">
+                        Available: ₹<span id="give_balance_amount">0.00</span>
+                    </small>
+                </div>
+                
+                <div class="form-group">
+                    <label class="field-label field-label--required">Amount (₹)</label>
+                    <input type="number" name="amount" class="form-control" step="0.01" min="0.01" required placeholder="Enter amount">
+                </div>
+                
+                <div class="form-group">
+                    <label class="field-label field-label--required">Date</label>
+                    <input type="date" name="transaction_date" class="form-control" required>
+                </div>
+                
+                <div class="form-group">
+                    <label class="field-label">Narration / Purpose</label>
+                    <textarea name="narration" class="form-control" rows="2" placeholder="Purpose of cash advance (optional)"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" onclick="closeGiveCashModal()" class="btn btn-secondary">Cancel</button>
+                <button type="submit" class="btn btn-primary">💰 Give Cash</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Record Expense Modal -->
+<div id="recordExpenseModal" class="modal" style="display: none;">
+    <div class="modal-content" style="max-width: 600px;">
+        <div class="modal-header">
+            <h3 style="margin: 0; font-size: 20px; font-weight: 600;">💸 Record Expense</h3>
+            <button onclick="closeRecordExpenseModal()" class="modal-close">&times;</button>
+        </div>
+        <form method="POST" action="{{ url_for('accounts.employee_cash_expense') }}">
+            <div class="modal-body">
+                <input type="hidden" name="employee_id" id="expense_employee_id">
+                
+                <div style="background: #e3f2fd; padding: 12px; border-radius: 6px; margin-bottom: 20px;">
+                    <div style="font-size: 13px; color: #666;">Recording expense for:</div>
+                    <div style="font-size: 16px; font-weight: 600; color: #2c3e50;" id="expense_employee_name"></div>
+                    <div style="font-size: 13px; color: #666; margin-top: 5px;">
+                        Available Cash: <strong id="expense_available_cash">₹0.00</strong>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label class="field-label field-label--required">Expense Head / Category</label>
+                    <input type="text" name="expense_head" class="form-control" required placeholder="e.g., Labour Charge, JCB Driver, JCB Rent">
+                </div>
+                
+                <div class="form-group">
+                    <label class="field-label field-label--required">Amount (₹)</label>
+                    <input type="number" name="amount" class="form-control" step="0.01" min="0.01" required placeholder="Enter amount spent">
+                </div>
+                
+                <div class="form-group">
+                    <label class="field-label field-label--required">Date</label>
+                    <input type="date" name="transaction_date" class="form-control" required>
+                </div>
+                
+                <div class="form-group">
+                    <label class="field-label">Additional Details</label>
+                    <textarea name="narration" class="form-control" rows="2" placeholder="Any additional notes (optional)"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" onclick="closeRecordExpenseModal()" class="btn btn-secondary">Cancel</button>
+                <button type="submit" class="btn btn-primary">💾 Record Expense</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<style>
+/* Same styles as contra_list.html */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 10000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.5);
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-content {
+    background-color: #fefefe;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    width: 90%;
+    max-width: 600px;
+    max-height: 90vh;
+    overflow-y: auto;
+    animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateY(-50px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.modal-header {
+    padding: 20px 25px;
+    border-bottom: 1px solid #e0e0e0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.modal-body {
+    padding: 25px;
+}
+
+.modal-footer {
+    padding: 15px 25px;
+    border-top: 1px solid #e0e0e0;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    color: #999;
+}
+
+.modal-close:hover {
+    color: #333;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.field-label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: #333;
+    font-size: 14px;
+}
+
+.field-label--required::after {
+    content: ' *';
+    color: #dc3545;
+}
+
+.form-control {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 14px;
+    transition: border-color 0.2s;
+}
+
+.form-control:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.btn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.btn-secondary {
+    background: #6c757d;
+    color: white;
+}
+
+.btn-secondary:hover {
+    background: #5a6268;
+}
+
+.employee-cash-table tbody tr {
+    transition: background 0.2s ease;
+}
+
+.employee-cash-table tbody tr:hover {
+    background: #f8f9ff !important;
+}
+
+@media (max-width: 768px) {
+    .employee-cash-table {
+        overflow-x: auto;
+    }
+    
+    .employee-cash-table table {
+        min-width: 900px;
+    }
+}
+</style>
+
+<script>
+// Give Cash Modal
+function openGiveCashModal() {
+    document.getElementById('giveCashModal').style.display = 'flex';
+    const today = new Date().toISOString().split('T')[0];
+    document.querySelector('#giveCashModal input[name="transaction_date"]').value = today;
+}
+
+function closeGiveCashModal() {
+    document.getElementById('giveCashModal').style.display = 'none';
+    document.querySelector('#giveCashModal form').reset();
+    document.getElementById('give_available_balance').style.display = 'none';
+}
+
+function updateGiveBalance() {
+    const select = document.getElementById('give_from_account');
+    const selectedOption = select.options[select.selectedIndex];
+    const balance = selectedOption.getAttribute('data-balance');
+    
+    if (balance) {
+        document.getElementById('give_balance_amount').textContent = parseFloat(balance).toLocaleString('en-IN', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        });
+        document.getElementById('give_available_balance').style.display = 'block';
+    } else {
+        document.getElementById('give_available_balance').style.display = 'none';
+    }
+}
+
+// Record Expense Modal
+function openRecordExpenseModal(employeeId, employeeName, availableCash) {
+    document.getElementById('recordExpenseModal').style.display = 'flex';
+    document.getElementById('expense_employee_id').value = employeeId;
+    document.getElementById('expense_employee_name').textContent = employeeName;
+    document.getElementById('expense_available_cash').textContent = '₹' + availableCash.toLocaleString('en-IN', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    });
+    
+    const today = new Date().toISOString().split('T')[0];
+    document.querySelector('#recordExpenseModal input[name="transaction_date"]').value = today;
+}
+
+function closeRecordExpenseModal() {
+    document.getElementById('recordExpenseModal').style.display = 'none';
+    document.querySelector('#recordExpenseModal form').reset();
+}
+
+// Close modals on Escape key
+document.addEventListener('keydown', function(event) {
+    if (event.key === 'Escape') {
+        closeGiveCashModal();
+        closeRecordExpenseModal();
+    }
+});
+
+// Close modals on outside click
+document.getElementById('giveCashModal').addEventListener('click', function(event) {
+    if (event.target === this) {
+        closeGiveCashModal();
+    }
+});
+
+document.getElementById('recordExpenseModal').addEventListener('click', function(event) {
+    if (event.target === this) {
+        closeRecordExpenseModal();
+    }
+});
+</script>
+
+{% endblock %}
+

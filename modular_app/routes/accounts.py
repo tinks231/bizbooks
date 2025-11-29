@@ -618,3 +618,356 @@ def contra_create():
     
     return redirect(url_for('accounts.contra_list'))
 
+
+# ============================================================
+# EMPLOYEE CASH (PHASE 3) - Cash Advances to Employees
+# ============================================================
+
+@accounts_bp.route('/employee-cash', methods=['GET'])
+@require_tenant
+@login_required
+def employee_cash_list():
+    """List all employees with their cash balances"""
+    tenant_id = get_current_tenant_id()
+    
+    # Get all active employees
+    from models import Employee
+    employees = Employee.query.filter_by(tenant_id=tenant_id, active=True).all()
+    
+    # Get all active accounts for dropdown (giving cash from)
+    accounts = db.session.execute(text("""
+        SELECT id, account_name, account_type, current_balance
+        FROM bank_accounts
+        WHERE tenant_id = :tenant_id AND is_active = TRUE
+        ORDER BY account_type, account_name
+    """), {'tenant_id': tenant_id}).fetchall()
+    
+    # Calculate each employee's cash balance
+    employee_balances = []
+    for emp in employees:
+        # Get total cash given to employee
+        cash_given = db.session.execute(text("""
+            SELECT COALESCE(SUM(debit_amount), 0)
+            FROM account_transactions
+            WHERE tenant_id = :tenant_id 
+            AND transaction_type = 'employee_advance'
+            AND reference_type = 'employee'
+            AND reference_id = :employee_id
+        """), {'tenant_id': tenant_id, 'employee_id': emp.id}).fetchone()[0]
+        
+        # Get total expenses made by employee
+        expenses_made = db.session.execute(text("""
+            SELECT COALESCE(SUM(credit_amount), 0)
+            FROM account_transactions
+            WHERE tenant_id = :tenant_id 
+            AND transaction_type = 'employee_expense'
+            AND reference_type = 'employee'
+            AND reference_id = :employee_id
+        """), {'tenant_id': tenant_id, 'employee_id': emp.id}).fetchone()[0]
+        
+        # Get cash returned by employee
+        cash_returned = db.session.execute(text("""
+            SELECT COALESCE(SUM(credit_amount), 0)
+            FROM account_transactions
+            WHERE tenant_id = :tenant_id 
+            AND transaction_type = 'employee_return'
+            AND reference_type = 'employee'
+            AND reference_id = :employee_id
+        """), {'tenant_id': tenant_id, 'employee_id': emp.id}).fetchone()[0]
+        
+        # Calculate current balance with employee
+        current_balance = Decimal(str(cash_given)) - Decimal(str(expenses_made)) - Decimal(str(cash_returned))
+        
+        employee_balances.append({
+            'id': emp.id,
+            'name': emp.name,
+            'phone': emp.phone,
+            'cash_given': float(cash_given),
+            'expenses_made': float(expenses_made),
+            'cash_returned': float(cash_returned),
+            'current_balance': float(current_balance)
+        })
+    
+    # Calculate totals
+    total_cash_with_employees = sum(emp['current_balance'] for emp in employee_balances)
+    
+    return render_template('admin/accounts/employee_cash.html',
+                         employees=employee_balances,
+                         accounts=accounts,
+                         total_cash_with_employees=total_cash_with_employees,
+                         tenant=g.tenant)
+
+
+@accounts_bp.route('/employee-cash/give', methods=['POST'])
+@require_tenant
+@login_required
+def employee_cash_give():
+    """Give cash advance to employee"""
+    tenant_id = get_current_tenant_id()
+    
+    try:
+        # Get form data
+        employee_id = int(request.form.get('employee_id'))
+        from_account_id = int(request.form.get('from_account_id'))
+        amount = Decimal(request.form.get('amount'))
+        transaction_date = request.form.get('transaction_date')
+        narration = request.form.get('narration', '').strip()
+        
+        # Validation
+        if amount <= 0:
+            flash('❌ Amount must be greater than zero!', 'error')
+            return redirect(url_for('accounts.employee_cash_list'))
+        
+        # Get employee details
+        from models import Employee
+        employee = Employee.query.filter_by(id=employee_id, tenant_id=tenant_id, active=True).first()
+        if not employee:
+            flash('❌ Invalid employee!', 'error')
+            return redirect(url_for('accounts.employee_cash_list'))
+        
+        # Get FROM account details and check balance
+        from_account = db.session.execute(text("""
+            SELECT account_name, current_balance 
+            FROM bank_accounts 
+            WHERE id = :account_id AND tenant_id = :tenant_id AND is_active = TRUE
+        """), {'account_id': from_account_id, 'tenant_id': tenant_id}).fetchone()
+        
+        if not from_account:
+            flash('❌ Invalid account!', 'error')
+            return redirect(url_for('accounts.employee_cash_list'))
+        
+        if Decimal(str(from_account[1])) < amount:
+            flash(f'❌ Insufficient balance in {from_account[0]}! Available: ₹{from_account[1]:,.2f}', 'error')
+            return redirect(url_for('accounts.employee_cash_list'))
+        
+        # Generate voucher number
+        last_voucher = db.session.execute(text("""
+            SELECT voucher_number FROM account_transactions
+            WHERE tenant_id = :tenant_id AND transaction_type = 'employee_advance'
+            AND voucher_number LIKE 'EMP-ADV-%'
+            ORDER BY id DESC LIMIT 1
+        """), {'tenant_id': tenant_id}).fetchone()
+        
+        if last_voucher and last_voucher[0]:
+            last_num = int(last_voucher[0].split('-')[2])
+            voucher_number = f'EMP-ADV-{last_num + 1:04d}'
+        else:
+            voucher_number = 'EMP-ADV-0001'
+        
+        ist = pytz.timezone('Asia/Kolkata')
+        now = datetime.now(ist)
+        
+        # Parse transaction date
+        if transaction_date:
+            from datetime import datetime as dt
+            txn_date = dt.strptime(transaction_date, '%Y-%m-%d').date()
+        else:
+            txn_date = now.date()
+        
+        # Calculate new balance
+        new_account_balance = Decimal(str(from_account[1])) - amount
+        
+        # Transaction 1: Credit FROM account (money leaving)
+        db.session.execute(text("""
+            INSERT INTO account_transactions
+            (tenant_id, account_id, transaction_date, transaction_type,
+             debit_amount, credit_amount, balance_after, reference_type, reference_id,
+             voucher_number, narration, created_at)
+            VALUES (:tenant_id, :account_id, :transaction_date, :transaction_type,
+                    :debit_amount, :credit_amount, :balance_after, :reference_type, :reference_id,
+                    :voucher_number, :narration, :created_at)
+        """), {
+            'tenant_id': tenant_id, 'account_id': from_account_id, 'transaction_date': txn_date,
+            'transaction_type': 'employee_advance', 'debit_amount': 0.00, 'credit_amount': amount,
+            'balance_after': new_account_balance, 'reference_type': 'employee', 'reference_id': employee_id,
+            'voucher_number': voucher_number,
+            'narration': narration or f'Cash advance to {employee.name}',
+            'created_at': now
+        })
+        
+        # Update FROM account balance
+        db.session.execute(text("""
+            UPDATE bank_accounts 
+            SET current_balance = :new_balance, updated_at = :updated_at
+            WHERE id = :account_id AND tenant_id = :tenant_id
+        """), {
+            'new_balance': new_account_balance, 'updated_at': now,
+            'account_id': from_account_id, 'tenant_id': tenant_id
+        })
+        
+        # Transaction 2: Track employee received cash (debit - employee now has cash)
+        db.session.execute(text("""
+            INSERT INTO account_transactions
+            (tenant_id, account_id, transaction_date, transaction_type,
+             debit_amount, credit_amount, balance_after, reference_type, reference_id,
+             voucher_number, narration, created_at)
+            VALUES (:tenant_id, :account_id, :transaction_date, :transaction_type,
+                    :debit_amount, :credit_amount, :balance_after, :reference_type, :reference_id,
+                    :voucher_number, :narration, :created_at)
+        """), {
+            'tenant_id': tenant_id, 'account_id': from_account_id, 'transaction_date': txn_date,
+            'transaction_type': 'employee_advance', 'debit_amount': amount, 'credit_amount': 0.00,
+            'balance_after': amount, 'reference_type': 'employee', 'reference_id': employee_id,
+            'voucher_number': voucher_number,
+            'narration': narration or f'Cash advance received from {from_account[0]}',
+            'created_at': now
+        })
+        
+        db.session.commit()
+        
+        flash(f'✅ Cash advance {voucher_number} created! ₹{amount:,.2f} given to {employee.name}', 'success')
+        
+    except Exception as e:
+        db.session.rollback()
+        flash(f'❌ Error giving cash advance: {str(e)}', 'error')
+    
+    return redirect(url_for('accounts.employee_cash_list'))
+
+
+@accounts_bp.route('/employee-cash/expense', methods=['POST'])
+@require_tenant
+@login_required
+def employee_cash_expense():
+    """Record expense made by employee"""
+    tenant_id = get_current_tenant_id()
+    
+    try:
+        # Get form data
+        employee_id = int(request.form.get('employee_id'))
+        amount = Decimal(request.form.get('amount'))
+        expense_head = request.form.get('expense_head', '').strip()
+        transaction_date = request.form.get('transaction_date')
+        narration = request.form.get('narration', '').strip()
+        
+        # Validation
+        if amount <= 0:
+            flash('❌ Amount must be greater than zero!', 'error')
+            return redirect(url_for('accounts.employee_cash_list'))
+        
+        # Get employee details
+        from models import Employee
+        employee = Employee.query.filter_by(id=employee_id, tenant_id=tenant_id, active=True).first()
+        if not employee:
+            flash('❌ Invalid employee!', 'error')
+            return redirect(url_for('accounts.employee_cash_list'))
+        
+        # Check employee has sufficient cash
+        cash_given = db.session.execute(text("""
+            SELECT COALESCE(SUM(debit_amount), 0)
+            FROM account_transactions
+            WHERE tenant_id = :tenant_id 
+            AND transaction_type = 'employee_advance'
+            AND reference_type = 'employee'
+            AND reference_id = :employee_id
+        """), {'tenant_id': tenant_id, 'employee_id': employee_id}).fetchone()[0]
+        
+        expenses_made = db.session.execute(text("""
+            SELECT COALESCE(SUM(credit_amount), 0)
+            FROM account_transactions
+            WHERE tenant_id = :tenant_id 
+            AND transaction_type = 'employee_expense'
+            AND reference_type = 'employee'
+            AND reference_id = :employee_id
+        """), {'tenant_id': tenant_id, 'employee_id': employee_id}).fetchone()[0]
+        
+        cash_returned = db.session.execute(text("""
+            SELECT COALESCE(SUM(credit_amount), 0)
+            FROM account_transactions
+            WHERE tenant_id = :tenant_id 
+            AND transaction_type = 'employee_return'
+            AND reference_type = 'employee'
+            AND reference_id = :employee_id
+        """), {'tenant_id': tenant_id, 'employee_id': employee_id}).fetchone()[0]
+        
+        available_cash = Decimal(str(cash_given)) - Decimal(str(expenses_made)) - Decimal(str(cash_returned))
+        
+        if available_cash < amount:
+            flash(f'❌ Insufficient cash with {employee.name}! Available: ₹{available_cash:,.2f}', 'error')
+            return redirect(url_for('accounts.employee_cash_list'))
+        
+        ist = pytz.timezone('Asia/Kolkata')
+        now = datetime.now(ist)
+        
+        # Parse transaction date
+        if transaction_date:
+            from datetime import datetime as dt
+            txn_date = dt.strptime(transaction_date, '%Y-%m-%d').date()
+        else:
+            txn_date = now.date()
+        
+        # Calculate new balance
+        new_balance = available_cash - amount
+        
+        # Create expense transaction (credit - employee spent cash)
+        db.session.execute(text("""
+            INSERT INTO account_transactions
+            (tenant_id, account_id, transaction_date, transaction_type,
+             debit_amount, credit_amount, balance_after, reference_type, reference_id,
+             voucher_number, narration, created_at)
+            VALUES (:tenant_id, :account_id, :transaction_date, :transaction_type,
+                    :debit_amount, :credit_amount, :balance_after, :reference_type, :reference_id,
+                    :voucher_number, :narration, :created_at)
+        """), {
+            'tenant_id': tenant_id, 'account_id': 0, 'transaction_date': txn_date,
+            'transaction_type': 'employee_expense', 'debit_amount': 0.00, 'credit_amount': amount,
+            'balance_after': new_balance, 'reference_type': 'employee', 'reference_id': employee_id,
+            'voucher_number': expense_head or 'Expense',
+            'narration': narration or f'{expense_head} by {employee.name}',
+            'created_at': now
+        })
+        
+        db.session.commit()
+        
+        flash(f'✅ Expense recorded! ₹{amount:,.2f} spent by {employee.name} on {expense_head}', 'success')
+        
+    except Exception as e:
+        db.session.rollback()
+        flash(f'❌ Error recording expense: {str(e)}', 'error')
+    
+    return redirect(url_for('accounts.employee_cash_list'))
+
+
+@accounts_bp.route('/employee-cash/ledger/<int:employee_id>', methods=['GET'])
+@require_tenant
+@login_required
+def employee_cash_ledger(employee_id):
+    """View employee cash ledger"""
+    tenant_id = get_current_tenant_id()
+    
+    # Get employee details
+    from models import Employee
+    employee = Employee.query.filter_by(id=employee_id, tenant_id=tenant_id, active=True).first_or_404()
+    
+    # Get all transactions for this employee
+    transactions = db.session.execute(text("""
+        SELECT 
+            transaction_date,
+            transaction_type,
+            debit_amount,
+            credit_amount,
+            balance_after,
+            voucher_number,
+            narration,
+            created_at
+        FROM account_transactions
+        WHERE tenant_id = :tenant_id 
+        AND reference_type = 'employee'
+        AND reference_id = :employee_id
+        ORDER BY transaction_date DESC, created_at DESC
+    """), {'tenant_id': tenant_id, 'employee_id': employee_id}).fetchall()
+    
+    # Calculate totals
+    total_received = sum(txn[2] for txn in transactions if txn[1] == 'employee_advance')
+    total_spent = sum(txn[3] for txn in transactions if txn[1] == 'employee_expense')
+    total_returned = sum(txn[3] for txn in transactions if txn[1] == 'employee_return')
+    current_balance = Decimal(str(total_received)) - Decimal(str(total_spent)) - Decimal(str(total_returned))
+    
+    return render_template('admin/accounts/employee_ledger.html',
+                         employee=employee,
+                         transactions=transactions,
+                         total_received=float(total_received),
+                         total_spent=float(total_spent),
+                         total_returned=float(total_returned),
+                         current_balance=float(current_balance),
+                         tenant=g.tenant)
+
