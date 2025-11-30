@@ -9,18 +9,23 @@ from sqlalchemy import text
 from datetime import datetime
 import pytz
 from decimal import Decimal
-from utils.tenant_middleware import require_tenant
+from utils.tenant_middleware import require_tenant, get_current_tenant_id
 
 payroll_bp = Blueprint('payroll', __name__, url_prefix='/admin/payroll')
 
 
 def login_required(f):
-    """Simple login check decorator"""
+    """Require login to access route"""
     from functools import wraps
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        if 'user_id' not in session:
-            flash('Please log in to access this page', 'error')
+        if 'tenant_admin_id' not in session:
+            flash('⚠️ Please login first', 'warning')
+            return redirect(url_for('admin.login'))
+        # Verify session tenant matches current tenant
+        if session.get('tenant_admin_id') != get_current_tenant_id():
+            flash('⚠️ Session mismatch. Please login again.', 'warning')
+            session.clear()
             return redirect(url_for('admin.login'))
         return f(*args, **kwargs)
     return decorated_function
@@ -94,7 +99,7 @@ def pay_salary():
                 'total': float(total_amount),
                 'account_id': int(account_id) if account_id else None,
                 'created_at': now,
-                'created_by': session.get('user_id')
+                'created_by': session.get('tenant_admin_id')
             })
             payroll_id = result.fetchone()[0]
             
