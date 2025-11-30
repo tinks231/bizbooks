@@ -21,6 +21,11 @@ class Employee(db.Model, TimestampMixin):
     site_id = db.Column(db.Integer, db.ForeignKey('sites.id'))
     active = db.Column(db.Boolean, default=True)
     
+    # PAYROLL FIELDS (added for salary management)
+    monthly_salary = db.Column(db.Numeric(10, 2))  # Fixed monthly salary
+    designation = db.Column(db.String(100))  # Job title
+    date_of_joining = db.Column(db.Date)  # When employee started
+    
     # Relationships
     attendance_records = db.relationship('Attendance', backref='employee', lazy=True)
     
