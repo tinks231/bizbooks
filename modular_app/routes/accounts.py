@@ -2059,7 +2059,8 @@ def receivables_aging():
     Shows which customers owe money and for how long
     Aging buckets: Current, 1-30, 31-60, 61-90, 90+ days overdue
     """
-    tenant_id = session.get('tenant_id')
+    from flask import g
+    tenant_id = g.tenant.id if hasattr(g, 'tenant') and g.tenant else session.get('tenant_id')
     ist = pytz.timezone('Asia/Kolkata')
     today = datetime.now(ist).date()
     
@@ -2079,6 +2080,12 @@ def receivables_aging():
         AND payment_status != 'paid'
         ORDER BY customer_name, invoice_date
     """), {'tenant_id': tenant_id}).fetchall()
+    
+    print(f"[DEBUG] Receivables Aging - Tenant ID: {tenant_id}")
+    print(f"[DEBUG] Found {len(invoices)} unpaid/partial invoices")
+    if invoices:
+        for inv in invoices[:5]:  # Show first 5
+            print(f"  - {inv[1]}: {inv[2]}, Status: {inv[7]}, Outstanding: ₹{float(inv[5]) - float(inv[6]):.2f}")
     
     # Group by customer and aging bucket
     aging_data = {}
@@ -2164,7 +2171,8 @@ def payables_aging():
     Shows which vendors you owe money to and for how long
     Aging buckets: Current, 1-30, 31-60, 61-90, 90+ days overdue
     """
-    tenant_id = session.get('tenant_id')
+    from flask import g
+    tenant_id = g.tenant.id if hasattr(g, 'tenant') and g.tenant else session.get('tenant_id')
     ist = pytz.timezone('Asia/Kolkata')
     today = datetime.now(ist).date()
     
@@ -2184,6 +2192,12 @@ def payables_aging():
         AND payment_status != 'paid'
         ORDER BY vendor_name, bill_date
     """), {'tenant_id': tenant_id}).fetchall()
+    
+    print(f"[DEBUG] Payables Aging - Tenant ID: {tenant_id}")
+    print(f"[DEBUG] Found {len(bills)} unpaid/partial bills")
+    if bills:
+        for bill in bills[:5]:  # Show first 5
+            print(f"  - {bill[1]}: {bill[2]}, Status: {bill[7]}, Outstanding: ₹{float(bill[5]) - float(bill[6]):.2f}")
     
     # Group by vendor and aging bucket
     aging_data = {}
@@ -2269,7 +2283,12 @@ def bank_reconciliation():
     Match your records with bank statement
     Shows transactions that need to be reconciled
     """
-    tenant_id = session.get('tenant_id')
+    from flask import g
+    tenant_id = g.tenant.id if hasattr(g, 'tenant') and g.tenant else session.get('tenant_id')
+    
+    if not tenant_id:
+        flash('Please log in to view this report', 'error')
+        return redirect(url_for('admin.login'))
     ist = pytz.timezone('Asia/Kolkata')
     today = datetime.now(ist).date()
     
@@ -2293,6 +2312,17 @@ def bank_reconciliation():
         WHERE tenant_id = :tenant_id AND is_active = TRUE
         ORDER BY account_name
     """), {'tenant_id': tenant_id}).fetchall()
+    
+    print(f"[DEBUG] Bank Reconciliation - Tenant ID: {tenant_id}")
+    print(f"[DEBUG] Found {len(accounts)} accounts")
+    if accounts:
+        for acc in accounts:
+            print(f"  - {acc[1]} (ID: {acc[0]})")
+    
+    # If no accounts found, show message
+    if not accounts:
+        flash('⚠️ No bank/cash accounts found! Please create an account first.', 'warning')
+        return redirect(url_for('accounts.list_accounts'))
     
     # If no account selected, use first one
     if not account_id and accounts:
