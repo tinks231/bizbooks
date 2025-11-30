@@ -1,0 +1,366 @@
+{% extends "base_sidebar.html" %}
+
+{% block title %}Balance Sheet{% endblock %}
+
+{% block page_title %}💼 Balance Sheet{% endblock %}
+
+{% block header_actions %}
+<button onclick="window.print()" class="btn btn-secondary">
+    🖨️ Print
+</button>
+{% endblock %}
+
+{% block content %}
+
+<div class="container-fluid" style="padding: 30px;">
+    
+    <!-- Date Filter Card -->
+    <div style="background: white; border-radius: 12px; padding: 25px; margin-bottom: 25px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
+        <form method="GET" action="{{ url_for('accounts.balance_sheet') }}" style="display: flex; gap: 20px; align-items: end; flex-wrap: wrap;">
+            <div style="flex: 1; min-width: 250px;">
+                <label style="display: block; font-size: 13px; font-weight: 600; color: #666; margin-bottom: 8px;">As on Date</label>
+                <input type="date" name="as_of_date" value="{{ as_of_date.strftime('%Y-%m-%d') }}" 
+                       style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 14px;">
+            </div>
+            <button type="submit" style="padding: 10px 25px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">
+                🔍 View Balance Sheet
+            </button>
+        </form>
+    </div>
+
+    <!-- Report Header -->
+    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 12px; padding: 25px; margin-bottom: 25px; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);">
+        <h2 style="margin: 0 0 10px 0; font-size: 24px;">💼 Balance Sheet</h2>
+        <div style="font-size: 14px; opacity: 0.9;">
+            {{ tenant.business_name if tenant else 'Business' }} | As on: {{ as_of_date.strftime('%d %b %Y') }}
+        </div>
+    </div>
+
+    <!-- Balance Sheet Layout (Two Columns: Assets | Liabilities + Equity) -->
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 25px; margin-bottom: 25px;">
+        
+        <!-- LEFT SIDE: ASSETS -->
+        <div class="tally-ledger" style="background: white; border: 1px solid #ddd; border-radius: 4px; overflow: hidden;">
+            <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px; font-weight: 600; font-size: 16px; text-align: center;">
+                ASSETS
+            </div>
+            
+            <table style="width: 100%; border-collapse: collapse; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">
+                <thead>
+                    <tr style="background: #f8f9fa; border-bottom: 2px solid #333;">
+                        <th style="padding: 10px; text-align: left; font-weight: 600; font-size: 12px;">PARTICULARS</th>
+                        <th style="padding: 10px; text-align: right; font-weight: 600; font-size: 12px; width: 35%;">AMOUNT (₹)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Current Assets Section -->
+                    <tr style="background: #fffbf0;">
+                        <td colspan="2" style="padding: 8px 10px; font-weight: 700; font-size: 13px; border-bottom: 1px solid #ddd;">
+                            CURRENT ASSETS
+                        </td>
+                    </tr>
+                    
+                    <!-- Cash & Bank Accounts -->
+                    <tr>
+                        <td style="padding: 8px 10px 4px 20px; font-weight: 600; font-size: 12px; color: #666; border-bottom: 1px solid #f0f0f0;">
+                            Cash & Bank:
+                        </td>
+                        <td style="padding: 8px 10px 4px 10px; border-bottom: 1px solid #f0f0f0;"></td>
+                    </tr>
+                    {% for acc in cash_bank_accounts %}
+                    <tr>
+                        <td style="padding: 4px 10px 4px 30px; font-size: 12px; color: #333; border-bottom: 1px solid #f0f0f0;">
+                            {{ acc[0] }} {% if acc[1] == 'bank' %}(Bank){% else %}(Cash){% endif %}
+                        </td>
+                        <td style="padding: 4px 10px; text-align: right; font-size: 12px; font-family: 'Courier New', monospace; border-bottom: 1px solid #f0f0f0;">
+                            {{ "{:,.2f}".format(acc[2]) }}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    <tr style="background: #f8f9fa;">
+                        <td style="padding: 6px 10px; font-weight: 600; font-size: 12px; color: #000; border-bottom: 1px solid #ddd;">
+                            Total Cash & Bank
+                        </td>
+                        <td style="padding: 6px 10px; text-align: right; font-weight: 600; font-size: 13px; font-family: 'Courier New', monospace; border-bottom: 1px solid #ddd;">
+                            {{ "{:,.2f}".format(cash_and_bank_total) }}
+                        </td>
+                    </tr>
+                    
+                    <!-- Accounts Receivable -->
+                    <tr>
+                        <td style="padding: 8px 10px 4px 20px; font-weight: 600; font-size: 12px; color: #666; border-bottom: 1px solid #f0f0f0;">
+                            Accounts Receivable:
+                        </td>
+                        <td style="padding: 8px 10px 4px 10px; border-bottom: 1px solid #f0f0f0;"></td>
+                    </tr>
+                    {% if accounts_receivable %}
+                        {% for cust in accounts_receivable %}
+                        <tr>
+                            <td style="padding: 4px 10px 4px 30px; font-size: 12px; color: #333; border-bottom: 1px solid #f0f0f0;">
+                                {{ cust[0] }}
+                            </td>
+                            <td style="padding: 4px 10px; text-align: right; font-size: 12px; font-family: 'Courier New', monospace; border-bottom: 1px solid #f0f0f0;">
+                                {{ "{:,.2f}".format(cust[1]) }}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="2" style="padding: 8px 10px 8px 30px; font-size: 11px; color: #999; font-style: italic; border-bottom: 1px solid #f0f0f0;">
+                                No outstanding invoices
+                            </td>
+                        </tr>
+                    {% endif %}
+                    <tr style="background: #f8f9fa;">
+                        <td style="padding: 6px 10px; font-weight: 600; font-size: 12px; color: #000; border-bottom: 1px solid #ddd;">
+                            Total Receivables
+                        </td>
+                        <td style="padding: 6px 10px; text-align: right; font-weight: 600; font-size: 13px; font-family: 'Courier New', monospace; border-bottom: 1px solid #ddd;">
+                            {{ "{:,.2f}".format(accounts_receivable_total) }}
+                        </td>
+                    </tr>
+                    
+                    <!-- Inventory/Stock -->
+                    <tr>
+                        <td style="padding: 8px 10px; font-size: 12px; color: #333; border-bottom: 1px solid #ddd;">
+                            Inventory (Stock)
+                        </td>
+                        <td style="padding: 8px 10px; text-align: right; font-size: 13px; font-family: 'Courier New', monospace; border-bottom: 1px solid #ddd;">
+                            {{ "{:,.2f}".format(inventory_value) }}
+                        </td>
+                    </tr>
+                    
+                    <!-- Total Current Assets -->
+                    <tr style="background: #e3f2fd;">
+                        <td style="padding: 10px; font-weight: 700; font-size: 14px; color: #000; border-top: 2px solid #333;">
+                            TOTAL CURRENT ASSETS
+                        </td>
+                        <td style="padding: 10px; text-align: right; font-weight: 700; font-size: 14px; font-family: 'Courier New', monospace; border-top: 2px solid #333;">
+                            {{ "{:,.2f}".format(total_current_assets) }}
+                        </td>
+                    </tr>
+                    
+                    <!-- Fixed Assets (Placeholder for future) -->
+                    <tr style="background: #fffbf0;">
+                        <td colspan="2" style="padding: 8px 10px; font-weight: 700; font-size: 13px; border-bottom: 1px solid #ddd; border-top: 2px solid #333; margin-top: 10px;">
+                            FIXED ASSETS
+                        </td>
+                    </tr>
+                    <tr>
+                        <td colspan="2" style="padding: 8px 10px; font-size: 11px; color: #999; font-style: italic; border-bottom: 1px solid #ddd;">
+                            (Not tracked yet - Future feature)
+                        </td>
+                    </tr>
+                    
+                    <!-- TOTAL ASSETS -->
+                    <tr style="background: #c5e1a5; border-top: 3px solid #000;">
+                        <td style="padding: 12px; font-weight: 700; font-size: 16px; color: #000;">
+                            TOTAL ASSETS
+                        </td>
+                        <td style="padding: 12px; text-align: right; font-weight: 700; font-size: 16px; font-family: 'Courier New', monospace;">
+                            {{ "{:,.2f}".format(total_assets) }}
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- RIGHT SIDE: LIABILITIES + EQUITY -->
+        <div class="tally-ledger" style="background: white; border: 1px solid #ddd; border-radius: 4px; overflow: hidden;">
+            <div style="background: linear-gradient(135deg, #764ba2 0%, #667eea 100%); color: white; padding: 15px; font-weight: 600; font-size: 16px; text-align: center;">
+                LIABILITIES & EQUITY
+            </div>
+            
+            <table style="width: 100%; border-collapse: collapse; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">
+                <thead>
+                    <tr style="background: #f8f9fa; border-bottom: 2px solid #333;">
+                        <th style="padding: 10px; text-align: left; font-weight: 600; font-size: 12px;">PARTICULARS</th>
+                        <th style="padding: 10px; text-align: right; font-weight: 600; font-size: 12px; width: 35%;">AMOUNT (₹)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Current Liabilities Section -->
+                    <tr style="background: #fffbf0;">
+                        <td colspan="2" style="padding: 8px 10px; font-weight: 700; font-size: 13px; border-bottom: 1px solid #ddd;">
+                            CURRENT LIABILITIES
+                        </td>
+                    </tr>
+                    
+                    <!-- Accounts Payable -->
+                    <tr>
+                        <td style="padding: 8px 10px 4px 20px; font-weight: 600; font-size: 12px; color: #666; border-bottom: 1px solid #f0f0f0;">
+                            Accounts Payable:
+                        </td>
+                        <td style="padding: 8px 10px 4px 10px; border-bottom: 1px solid #f0f0f0;"></td>
+                    </tr>
+                    {% if accounts_payable %}
+                        {% for vendor in accounts_payable %}
+                        <tr>
+                            <td style="padding: 4px 10px 4px 30px; font-size: 12px; color: #333; border-bottom: 1px solid #f0f0f0;">
+                                {{ vendor[0] }}
+                            </td>
+                            <td style="padding: 4px 10px; text-align: right; font-size: 12px; font-family: 'Courier New', monospace; border-bottom: 1px solid #f0f0f0;">
+                                {{ "{:,.2f}".format(vendor[1]) }}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="2" style="padding: 8px 10px 8px 30px; font-size: 11px; color: #999; font-style: italic; border-bottom: 1px solid #f0f0f0;">
+                                No outstanding purchase bills
+                            </td>
+                        </tr>
+                    {% endif %}
+                    <tr style="background: #f8f9fa;">
+                        <td style="padding: 6px 10px; font-weight: 600; font-size: 12px; color: #000; border-bottom: 1px solid #ddd;">
+                            Total Payables
+                        </td>
+                        <td style="padding: 6px 10px; text-align: right; font-weight: 600; font-size: 13px; font-family: 'Courier New', monospace; border-bottom: 1px solid #ddd;">
+                            {{ "{:,.2f}".format(accounts_payable_total) }}
+                        </td>
+                    </tr>
+                    
+                    <!-- Employee Advances (if negative) -->
+                    {% if employee_advances_total > 0 %}
+                    <tr>
+                        <td style="padding: 8px 10px 4px 20px; font-weight: 600; font-size: 12px; color: #666; border-bottom: 1px solid #f0f0f0;">
+                            Employee Advances (Owing):
+                        </td>
+                        <td style="padding: 8px 10px 4px 10px; border-bottom: 1px solid #f0f0f0;"></td>
+                    </tr>
+                    {% for emp in employee_advances %}
+                    <tr>
+                        <td style="padding: 4px 10px 4px 30px; font-size: 12px; color: #333; border-bottom: 1px solid #f0f0f0;">
+                            {{ emp[0] }}
+                        </td>
+                        <td style="padding: 4px 10px; text-align: right; font-size: 12px; font-family: 'Courier New', monospace; border-bottom: 1px solid #f0f0f0;">
+                            {{ "{:,.2f}".format(abs(emp[1])) }}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    <tr style="background: #f8f9fa;">
+                        <td style="padding: 6px 10px; font-weight: 600; font-size: 12px; color: #000; border-bottom: 1px solid #ddd;">
+                            Total Employee Owing
+                        </td>
+                        <td style="padding: 6px 10px; text-align: right; font-weight: 600; font-size: 13px; font-family: 'Courier New', monospace; border-bottom: 1px solid #ddd;">
+                            {{ "{:,.2f}".format(employee_advances_total) }}
+                        </td>
+                    </tr>
+                    {% endif %}
+                    
+                    <!-- Total Current Liabilities -->
+                    <tr style="background: #ffccbc;">
+                        <td style="padding: 10px; font-weight: 700; font-size: 14px; color: #000; border-top: 2px solid #333;">
+                            TOTAL CURRENT LIABILITIES
+                        </td>
+                        <td style="padding: 10px; text-align: right; font-weight: 700; font-size: 14px; font-family: 'Courier New', monospace; border-top: 2px solid #333;">
+                            {{ "{:,.2f}".format(total_current_liabilities) }}
+                        </td>
+                    </tr>
+                    
+                    <!-- Long-term Liabilities (Placeholder for future) -->
+                    <tr style="background: #fffbf0;">
+                        <td colspan="2" style="padding: 8px 10px; font-weight: 700; font-size: 13px; border-bottom: 1px solid #ddd; border-top: 2px solid #333; margin-top: 10px;">
+                            LONG-TERM LIABILITIES
+                        </td>
+                    </tr>
+                    <tr>
+                        <td colspan="2" style="padding: 8px 10px; font-size: 11px; color: #999; font-style: italic; border-bottom: 1px solid #ddd;">
+                            (Not tracked yet - Future feature)
+                        </td>
+                    </tr>
+                    
+                    <!-- EQUITY Section -->
+                    <tr style="background: #fffbf0;">
+                        <td colspan="2" style="padding: 8px 10px; font-weight: 700; font-size: 13px; border-bottom: 1px solid #ddd; border-top: 2px solid #333;">
+                            OWNER'S EQUITY
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px 10px; font-size: 12px; color: #333; border-bottom: 1px solid #ddd;">
+                            Capital & Retained Earnings
+                        </td>
+                        <td style="padding: 8px 10px; text-align: right; font-size: 13px; font-family: 'Courier New', monospace; border-bottom: 1px solid #ddd; {% if total_equity < 0 %}color: #dc3545; font-weight: 700;{% endif %}">
+                            {{ "{:,.2f}".format(total_equity) }}
+                        </td>
+                    </tr>
+                    
+                    <!-- TOTAL LIABILITIES + EQUITY -->
+                    <tr style="background: #c5e1a5; border-top: 3px solid #000;">
+                        <td style="padding: 12px; font-weight: 700; font-size: 16px; color: #000;">
+                            TOTAL LIABILITIES + EQUITY
+                        </td>
+                        <td style="padding: 12px; text-align: right; font-weight: 700; font-size: 16px; font-family: 'Courier New', monospace;">
+                            {{ "{:,.2f}".format(total_liabilities + total_equity) }}
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <!-- Balance Check Card -->
+    {% set balance_diff = total_assets - (total_liabilities + total_equity) %}
+    <div style="background: {% if balance_diff == 0 %}linear-gradient(135deg, #11998e 0%, #38ef7d 100%){% else %}linear-gradient(135deg, #fc4a1a 0%, #f7b733 100%){% endif %}; color: white; border-radius: 12px; padding: 20px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.2);">
+        {% if balance_diff == 0 %}
+        <div style="font-size: 20px; font-weight: 700; margin-bottom: 8px;">✅ Balance Sheet is Balanced!</div>
+        <div style="font-size: 14px; opacity: 0.9;">
+            Total Assets (₹{{ "{:,.2f}".format(total_assets) }}) = Total Liabilities + Equity (₹{{ "{:,.2f}".format(total_liabilities + total_equity) }})
+        </div>
+        {% else %}
+        <div style="font-size: 20px; font-weight: 700; margin-bottom: 8px;">⚠️ Balance Sheet Out of Balance!</div>
+        <div style="font-size: 14px; opacity: 0.9;">
+            Difference: ₹{{ "{:,.2f}".format(abs(balance_diff)) }}
+            <br>
+            <small style="font-size: 12px;">(This may indicate data entry errors or missing transactions)</small>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+/* Tally-Style Ledger Formatting */
+.tally-ledger table tbody tr:hover {
+    background: #f0f8ff !important;
+}
+
+.tally-ledger table tbody tr {
+    transition: background 0.2s ease;
+}
+
+@media print {
+    .sidebar, .btn, .nav-header, button, form {
+        display: none !important;
+    }
+    
+    body {
+        background: white !important;
+    }
+    
+    .container-fluid {
+        padding: 20px !important;
+    }
+    
+    .tally-ledger {
+        border: 2px solid #000 !important;
+        page-break-inside: avoid;
+    }
+    
+    .tally-ledger table {
+        border-collapse: collapse !important;
+    }
+    
+    .tally-ledger td, .tally-ledger th {
+        border: 1px solid #000 !important;
+    }
+}
+
+@media screen and (max-width: 1024px) {
+    div[style*="grid-template-columns: 1fr 1fr"] {
+        grid-template-columns: 1fr !important;
+    }
+}
+</style>
+
+{% endblock %}
+

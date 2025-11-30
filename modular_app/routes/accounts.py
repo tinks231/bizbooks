@@ -1503,3 +1503,155 @@ def account_summary():
                          total_balance=float(total_balance),
                          tenant=g.tenant)
 
+
+@accounts_bp.route('/reports/balance-sheet', methods=['GET'])
+@require_tenant
+@login_required
+def balance_sheet():
+    """Balance Sheet - Assets vs. Liabilities as of a specific date"""
+    from datetime import datetime
+    import pytz
+    
+    tenant_id = get_current_tenant_id()
+    ist = pytz.timezone('Asia/Kolkata')
+    
+    # Get as_of_date from query params (default: today)
+    as_of_date_str = request.args.get('as_of_date')
+    if as_of_date_str:
+        as_of_date = datetime.strptime(as_of_date_str, '%Y-%m-%d').date()
+    else:
+        as_of_date = datetime.now(ist).date()
+    
+    # ====================
+    # ASSETS CALCULATION
+    # ====================
+    
+    # 1. Cash & Bank Accounts (Current Assets)
+    cash_bank_accounts = db.session.execute(text("""
+        SELECT 
+            account_name,
+            account_type,
+            current_balance
+        FROM bank_accounts
+        WHERE tenant_id = :tenant_id 
+        AND is_active = TRUE
+        ORDER BY 
+            CASE account_type 
+                WHEN 'cash' THEN 1 
+                WHEN 'bank' THEN 2 
+            END,
+            account_name
+    """), {'tenant_id': tenant_id}).fetchall()
+    
+    cash_and_bank_total = sum(Decimal(str(acc[2])) for acc in cash_bank_accounts)
+    
+    # 2. Accounts Receivable (Unpaid Invoices)
+    accounts_receivable = db.session.execute(text("""
+        SELECT 
+            customer_name,
+            SUM(total_amount - COALESCE(paid_amount, 0)) as outstanding
+        FROM invoices
+        WHERE tenant_id = :tenant_id 
+        AND payment_status != 'paid'
+        AND invoice_date <= :as_of_date
+        GROUP BY customer_name
+        ORDER BY outstanding DESC
+    """), {'tenant_id': tenant_id, 'as_of_date': as_of_date}).fetchall()
+    
+    accounts_receivable_total = sum(Decimal(str(acc[1])) for acc in accounts_receivable) if accounts_receivable else Decimal('0')
+    
+    # 3. Inventory/Stock Value (from materials & items)
+    inventory_value = db.session.execute(text("""
+        SELECT 
+            COALESCE(SUM(quantity * COALESCE(price_per_unit, 0)), 0) as total_value
+        FROM materials
+        WHERE tenant_id = :tenant_id
+    """), {'tenant_id': tenant_id}).fetchone()[0] or Decimal('0')
+    
+    # Total Current Assets
+    total_current_assets = cash_and_bank_total + accounts_receivable_total + Decimal(str(inventory_value))
+    
+    # Total Assets (for now, only current assets - no fixed assets tracking yet)
+    total_assets = total_current_assets
+    
+    # ====================
+    # LIABILITIES CALCULATION
+    # ====================
+    
+    # 1. Accounts Payable (Unpaid Purchase Bills)
+    accounts_payable = db.session.execute(text("""
+        SELECT 
+            vendor_name,
+            SUM(total_amount - COALESCE(paid_amount, 0)) as outstanding
+        FROM purchase_bills
+        WHERE tenant_id = :tenant_id 
+        AND payment_status != 'paid'
+        AND bill_date <= :as_of_date
+        GROUP BY vendor_name
+        ORDER BY outstanding DESC
+    """), {'tenant_id': tenant_id, 'as_of_date': as_of_date}).fetchall()
+    
+    accounts_payable_total = sum(Decimal(str(acc[1])) for acc in accounts_payable) if accounts_payable else Decimal('0')
+    
+    # 2. Employee Advances Outstanding (if employees owe money back)
+    employee_advances = db.session.execute(text("""
+        SELECT 
+            e.name as employee_name,
+            COALESCE(SUM(
+                CASE 
+                    WHEN at.transaction_type = 'employee_advance' THEN at.debit_amount
+                    WHEN at.transaction_type IN ('employee_expense', 'employee_return') THEN -at.credit_amount
+                    ELSE 0
+                END
+            ), 0) as balance
+        FROM account_transactions at
+        JOIN employees e ON CAST(at.reference_id AS INTEGER) = e.id
+        WHERE at.tenant_id = :tenant_id 
+        AND at.reference_type = 'employee'
+        AND at.transaction_date <= :as_of_date
+        GROUP BY e.name
+        HAVING SUM(
+            CASE 
+                WHEN at.transaction_type = 'employee_advance' THEN at.debit_amount
+                WHEN at.transaction_type IN ('employee_expense', 'employee_return') THEN -at.credit_amount
+                ELSE 0
+            END
+        ) < 0
+    """), {'tenant_id': tenant_id, 'as_of_date': as_of_date}).fetchall()
+    
+    employee_advances_total = abs(sum(Decimal(str(emp[1])) for emp in employee_advances)) if employee_advances else Decimal('0')
+    
+    # Total Current Liabilities
+    total_current_liabilities = accounts_payable_total + employee_advances_total
+    
+    # Total Liabilities (for now, only current liabilities)
+    total_liabilities = total_current_liabilities
+    
+    # ====================
+    # EQUITY CALCULATION
+    # ====================
+    
+    # Owner's Equity = Total Assets - Total Liabilities
+    total_equity = total_assets - total_liabilities
+    
+    return render_template('admin/accounts/reports/balance_sheet.html',
+                         as_of_date=as_of_date,
+                         # Assets
+                         cash_bank_accounts=cash_bank_accounts,
+                         cash_and_bank_total=float(cash_and_bank_total),
+                         accounts_receivable=accounts_receivable,
+                         accounts_receivable_total=float(accounts_receivable_total),
+                         inventory_value=float(inventory_value),
+                         total_current_assets=float(total_current_assets),
+                         total_assets=float(total_assets),
+                         # Liabilities
+                         accounts_payable=accounts_payable,
+                         accounts_payable_total=float(accounts_payable_total),
+                         employee_advances=employee_advances,
+                         employee_advances_total=float(employee_advances_total),
+                         total_current_liabilities=float(total_current_liabilities),
+                         total_liabilities=float(total_liabilities),
+                         # Equity
+                         total_equity=float(total_equity),
+                         tenant=g.tenant)
+
