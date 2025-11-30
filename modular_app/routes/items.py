@@ -523,6 +523,33 @@ def delete_group(group_id):
     return redirect(url_for('items.groups'))
 
 
+# ===== JSON APIs for Modal Dropdowns =====
+@items_bp.route('/categories/json', methods=['GET'])
+@require_tenant
+@login_required
+def get_categories_json():
+    """Get categories as JSON (for refreshing dropdown after modal add)"""
+    tenant_id = get_current_tenant_id()
+    categories = ItemCategory.query.filter_by(tenant_id=tenant_id).order_by(ItemCategory.name).all()
+    
+    return jsonify({
+        'categories': [{'id': cat.id, 'name': cat.name} for cat in categories]
+    })
+
+
+@items_bp.route('/groups/json', methods=['GET'])
+@require_tenant
+@login_required
+def get_groups_json():
+    """Get groups as JSON (for refreshing dropdown after modal add)"""
+    tenant_id = get_current_tenant_id()
+    groups = ItemGroup.query.filter_by(tenant_id=tenant_id).order_by(ItemGroup.name).all()
+    
+    return jsonify({
+        'groups': [{'id': grp.id, 'name': grp.name} for grp in groups]
+    })
+
+
 # ===== STOCK SUMMARY =====
 @items_bp.route('/stock-summary')
 @require_tenant

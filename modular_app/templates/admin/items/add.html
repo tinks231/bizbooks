@@ -82,27 +82,27 @@
 
             <div class="form-group">
                 <label class="field-label">Category</label>
-                <select name="category_id">
+                <select name="category_id" id="categorySelect">
                     <option value="">Select Category</option>
                     {% for category in categories %}
                     <option value="{{ category.id }}">{{ category.name }}</option>
                     {% endfor %}
                 </select>
                 <small class="help-text">
-                    Don't see your category? <a href="{{ url_for('items.categories') }}" target="_blank">Add Category</a>
+                    Don't see your category? <a href="javascript:void(0)" onclick="openAddCategoryModal()" style="color: #667eea; font-weight: 600;">➕ Add Category</a>
                 </small>
             </div>
 
             <div class="form-group">
                 <label class="field-label">Item Group</label>
-                <select name="item_group_id">
+                <select name="item_group_id" id="groupSelect">
                     <option value="">Select Group</option>
                     {% for group in groups %}
                     <option value="{{ group.id }}">{{ group.name }}</option>
                     {% endfor %}
                 </select>
                 <small class="help-text">
-                    Don't see your group? <a href="{{ url_for('items.groups') }}" target="_blank">Add Group</a>
+                    Don't see your group? <a href="javascript:void(0)" onclick="openAddGroupModal()" style="color: #667eea; font-weight: 600;">➕ Add Group</a>
                 </small>
             </div>
         </div>
@@ -332,6 +332,124 @@
     </div>
 </form>
 
+<!-- Add Category Modal -->
+<div id="addCategoryModal" class="modal" style="display: none;">
+    <div class="modal-content" style="max-width: 500px;">
+        <div class="modal-header">
+            <h3 style="margin: 0; font-size: 20px; font-weight: 600;">📁 Add New Category</h3>
+            <button onclick="closeAddCategoryModal()" class="modal-close" style="background: none; border: none; font-size: 24px; cursor: pointer; color: #999;">&times;</button>
+        </div>
+        <form id="addCategoryForm" onsubmit="submitCategory(event)">
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="field-label field-label--required">Category Name</label>
+                    <input type="text" name="name" id="categoryName" class="form-control" required placeholder="e.g., Cables, Switches, Lights">
+                </div>
+                <div class="form-group">
+                    <label class="field-label">Description</label>
+                    <textarea name="description" class="form-control" rows="2" placeholder="Optional category description"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" onclick="closeAddCategoryModal()" class="btn btn-secondary">Cancel</button>
+                <button type="submit" class="btn btn-primary">💾 Add Category</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Add Group Modal -->
+<div id="addGroupModal" class="modal" style="display: none;">
+    <div class="modal-content" style="max-width: 500px;">
+        <div class="modal-header">
+            <h3 style="margin: 0; font-size: 20px; font-weight: 600;">🏷️ Add New Group</h3>
+            <button onclick="closeAddGroupModal()" class="modal-close" style="background: none; border: none; font-size: 24px; cursor: pointer; color: #999;">&times;</button>
+        </div>
+        <form id="addGroupForm" onsubmit="submitGroup(event)">
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="field-label field-label--required">Group Name</label>
+                    <input type="text" name="name" id="groupName" class="form-control" required placeholder="e.g., Electrical, Plumbing, Hardware">
+                </div>
+                <div class="form-group">
+                    <label class="field-label">Description</label>
+                    <textarea name="description" class="form-control" rows="2" placeholder="Optional group description"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" onclick="closeAddGroupModal()" class="btn btn-secondary">Cancel</button>
+                <button type="submit" class="btn btn-primary">💾 Add Group</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<style>
+/* Modal Styles */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 9999;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-content {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+    width: 90%;
+    max-width: 500px;
+    animation: modalSlideIn 0.3s ease;
+}
+
+@keyframes modalSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-50px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 25px;
+    border-bottom: 2px solid #f0f0f0;
+}
+
+.modal-body {
+    padding: 25px;
+}
+
+.modal-footer {
+    padding: 15px 25px;
+    border-top: 2px solid #f0f0f0;
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+}
+
+.modal-close {
+    transition: all 0.2s ease;
+}
+
+.modal-close:hover {
+    transform: scale(1.2);
+    color: #dc3545 !important;
+}
+</style>
+
 <script>
     function toggleSKUMode() {
         const autoSkuCheckbox = document.getElementById('autoSkuCheckbox');
@@ -401,5 +519,171 @@
     
     // Initialize on page load
     toggleInventoryFields();
+    
+    // ========================================
+    // CATEGORY MODAL FUNCTIONS
+    // ========================================
+    
+    function openAddCategoryModal() {
+        document.getElementById('addCategoryModal').style.display = 'flex';
+        document.getElementById('categoryName').focus();
+    }
+    
+    function closeAddCategoryModal() {
+        document.getElementById('addCategoryModal').style.display = 'none';
+        document.getElementById('addCategoryForm').reset();
+    }
+    
+    function submitCategory(event) {
+        event.preventDefault();
+        
+        const form = event.target;
+        const formData = new FormData(form);
+        const submitBtn = form.querySelector('button[type="submit"]');
+        
+        // Disable button
+        submitBtn.disabled = true;
+        submitBtn.textContent = '⏳ Adding...';
+        
+        fetch('{{ url_for("items.add_category") }}', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.text())
+        .then(html => {
+            // Success! Refresh the category dropdown
+            const categoryName = formData.get('name');
+            
+            // Parse the new category ID from the response (flash message contains success)
+            if (html.includes('successfully') || html.includes('added')) {
+                // Fetch updated categories list
+                fetch('{{ url_for("items.get_categories_json") }}')
+                    .then(r => r.json())
+                    .then(data => {
+                        const select = document.getElementById('categorySelect');
+                        const currentValue = select.value;
+                        
+                        // Rebuild dropdown
+                        select.innerHTML = '<option value="">Select Category</option>';
+                        data.categories.forEach(cat => {
+                            const option = document.createElement('option');
+                            option.value = cat.id;
+                            option.textContent = cat.name;
+                            if (cat.name === categoryName) {
+                                option.selected = true;  // Auto-select the new category
+                            }
+                            select.appendChild(option);
+                        });
+                        
+                        // Show success message
+                        alert(`✅ Category "${categoryName}" added successfully!`);
+                        closeAddCategoryModal();
+                    });
+            } else {
+                alert('❌ Error adding category. Please try again.');
+                submitBtn.disabled = false;
+                submitBtn.textContent = '💾 Add Category';
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('❌ Error adding category. Please try again.');
+            submitBtn.disabled = false;
+            submitBtn.textContent = '💾 Add Category';
+        });
+    }
+    
+    // ========================================
+    // GROUP MODAL FUNCTIONS
+    // ========================================
+    
+    function openAddGroupModal() {
+        document.getElementById('addGroupModal').style.display = 'flex';
+        document.getElementById('groupName').focus();
+    }
+    
+    function closeAddGroupModal() {
+        document.getElementById('addGroupModal').style.display = 'none';
+        document.getElementById('addGroupForm').reset();
+    }
+    
+    function submitGroup(event) {
+        event.preventDefault();
+        
+        const form = event.target;
+        const formData = new FormData(form);
+        const submitBtn = form.querySelector('button[type="submit"]');
+        
+        // Disable button
+        submitBtn.disabled = true;
+        submitBtn.textContent = '⏳ Adding...';
+        
+        fetch('{{ url_for("items.add_group") }}', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.text())
+        .then(html => {
+            // Success! Refresh the group dropdown
+            const groupName = formData.get('name');
+            
+            // Parse the new group ID from the response
+            if (html.includes('successfully') || html.includes('added')) {
+                // Fetch updated groups list
+                fetch('{{ url_for("items.get_groups_json") }}')
+                    .then(r => r.json())
+                    .then(data => {
+                        const select = document.getElementById('groupSelect');
+                        
+                        // Rebuild dropdown
+                        select.innerHTML = '<option value="">Select Group</option>';
+                        data.groups.forEach(grp => {
+                            const option = document.createElement('option');
+                            option.value = grp.id;
+                            option.textContent = grp.name;
+                            if (grp.name === groupName) {
+                                option.selected = true;  // Auto-select the new group
+                            }
+                            select.appendChild(option);
+                        });
+                        
+                        // Show success message
+                        alert(`✅ Group "${groupName}" added successfully!`);
+                        closeAddGroupModal();
+                    });
+            } else {
+                alert('❌ Error adding group. Please try again.');
+                submitBtn.disabled = false;
+                submitBtn.textContent = '💾 Add Group';
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('❌ Error adding group. Please try again.');
+            submitBtn.disabled = false;
+            submitBtn.textContent = '💾 Add Group';
+        });
+    }
+    
+    // Close modals on Escape key
+    document.addEventListener('keydown', function(event) {
+        if (event.key === 'Escape') {
+            closeAddCategoryModal();
+            closeAddGroupModal();
+        }
+    });
+    
+    // Close modals on outside click
+    document.getElementById('addCategoryModal').addEventListener('click', function(event) {
+        if (event.target === this) {
+            closeAddCategoryModal();
+        }
+    });
+    
+    document.getElementById('addGroupModal').addEventListener('click', function(event) {
+        if (event.target === this) {
+            closeAddGroupModal();
+        }
+    });
 </script>
 {% endblock %}
