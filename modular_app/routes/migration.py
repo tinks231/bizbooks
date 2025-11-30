@@ -3371,6 +3371,98 @@ def create_missing_invoice_payment(invoice_number):
         }), 500
 
 
+@migration_bp.route('/diagnose-opening-balances')
+def diagnose_opening_balances():
+    """
+    DIAGNOSTIC: Check all opening balance transactions
+    Shows what's in the database to help debug Trial Balance issues
+    Access: /migrate/diagnose-opening-balances
+    """
+    try:
+        tenant_id = get_current_tenant_id()
+        from decimal import Decimal
+        
+        print("=" * 80)
+        print("🔍 DIAGNOSTIC: Opening Balance Analysis")
+        print("=" * 80)
+        
+        # Get ALL opening balance transactions
+        opening_txns = db.session.execute(text("""
+            SELECT 
+                at.id,
+                at.account_id,
+                ba.account_name,
+                ba.account_type,
+                at.debit_amount,
+                at.credit_amount,
+                at.transaction_date,
+                at.transaction_type,
+                at.voucher_number
+            FROM account_transactions at
+            LEFT JOIN bank_accounts ba ON at.account_id = ba.id
+            WHERE at.tenant_id = :tenant_id
+            AND (at.transaction_type = 'opening_balance' OR at.transaction_type = 'opening_balance_equity')
+            ORDER BY at.transaction_date, at.id
+        """), {'tenant_id': tenant_id}).fetchall()
+        
+        # Get current Trial Balance totals
+        totals = db.session.execute(text("""
+            SELECT 
+                SUM(debit_amount) as total_debit,
+                SUM(credit_amount) as total_credit
+            FROM account_transactions
+            WHERE tenant_id = :tenant_id
+        """), {'tenant_id': tenant_id}).fetchone()
+        
+        total_debit = Decimal(str(totals[0] or 0))
+        total_credit = Decimal(str(totals[1] or 0))
+        difference = total_debit - total_credit
+        
+        result = {
+            'status': 'info',
+            'message': '🔍 Opening Balance Diagnostic Complete',
+            'opening_balance_transactions': [
+                {
+                    'id': txn[0],
+                    'account_id': txn[1],
+                    'account_name': txn[2] or 'Equity (Virtual)',
+                    'account_type': txn[3] or 'equity',
+                    'debit': float(txn[4]),
+                    'credit': float(txn[5]),
+                    'date': str(txn[6]),
+                    'type': txn[7],
+                    'voucher': txn[8]
+                }
+                for txn in opening_txns
+            ],
+            'trial_balance': {
+                'total_debit': float(total_debit),
+                'total_credit': float(total_credit),
+                'difference': float(difference),
+                'is_balanced': (difference == 0)
+            },
+            'analysis': {
+                'opening_balance_debits': sum(float(t[4]) for t in opening_txns if t[7] == 'opening_balance'),
+                'opening_balance_credits': sum(float(t[5]) for t in opening_txns if t[7] == 'opening_balance_equity'),
+                'count_debit_entries': sum(1 for t in opening_txns if t[7] == 'opening_balance'),
+                'count_credit_entries': sum(1 for t in opening_txns if t[7] == 'opening_balance_equity')
+            }
+        }
+        
+        print(f"\n📊 Found {len(opening_txns)} opening balance transactions")
+        print(f"Trial Balance Difference: ₹{difference:,.2f}")
+        
+        return jsonify(result)
+        
+    except Exception as e:
+        import traceback
+        return jsonify({
+            'status': 'error',
+            'message': f'❌ Diagnostic failed: {str(e)}',
+            'traceback': traceback.format_exc()
+        }), 500
+
+
 @migration_bp.route('/fix-opening-balances')
 def fix_opening_balances():
     """
@@ -3402,19 +3494,22 @@ def fix_opening_balances():
         print("🔧 FIXING OPENING BALANCE ACCOUNTING ISSUE")
         print("=" * 80)
         
-        # Step 1: Check if there's already an opening balance equity entry
+        # Step 1: DELETE any existing opening balance equity entries (for re-run)
+        # This makes the migration truly idempotent - you can run it multiple times
         existing_equity = db.session.execute(text("""
             SELECT id FROM account_transactions
             WHERE tenant_id = :tenant_id
             AND transaction_type = 'opening_balance_equity'
-        """), {'tenant_id': tenant_id}).fetchone()
+        """), {'tenant_id': tenant_id}).fetchall()
         
         if existing_equity:
-            return jsonify({
-                'status': 'info',
-                'message': '✅ Opening balance equity entry already exists!',
-                'details': 'No fix needed - opening balances are already properly recorded with double-entry.'
-            })
+            print(f"🔄 Found {len(existing_equity)} existing equity entries - deleting for fresh calculation...")
+            db.session.execute(text("""
+                DELETE FROM account_transactions
+                WHERE tenant_id = :tenant_id
+                AND transaction_type = 'opening_balance_equity'
+            """), {'tenant_id': tenant_id})
+            print(f"✅ Deleted {len(existing_equity)} old equity entries")
         
         # Step 2: Get all opening balance transactions (the debit side)
         opening_balances = db.session.execute(text("""
