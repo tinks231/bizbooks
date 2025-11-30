@@ -182,7 +182,7 @@
                         ⚠️ DIFFERENCE (Out of Balance)
                     </td>
                     <td colspan="2" style="padding: 10px; text-align: right; font-weight: 700; font-size: 14px; font-family: 'Courier New', monospace; color: #b71c1c; border-left: 2px solid #d32f2f;">
-                        {{ "{:,.2f}".format(abs(difference)) }}
+                        {{ "{:,.2f}".format(difference|abs) }}
                     </td>
                 </tr>
                 {% endif %}
@@ -203,7 +203,7 @@
         {% else %}
         <div style="font-size: 20px; font-weight: 700; margin-bottom: 8px;">⚠️ Trial Balance is Out of Balance!</div>
         <div style="font-size: 14px; opacity: 0.9;">
-            Difference: ₹{{ "{:,.2f}".format(abs(difference)) }}
+            Difference: ₹{{ "{:,.2f}".format(difference|abs) }}
         </div>
         <div style="font-size: 12px; opacity: 0.8; margin-top: 8px;">
             Total Debits (₹{{ "{:,.2f}".format(total_debit) }}) ≠ Total Credits (₹{{ "{:,.2f}".format(total_credit) }})
