@@ -1,0 +1,219 @@
+{% extends "base_sidebar.html" %}
+
+{% block title %}Pay Salary - {{ tenant.company_name }}{% endblock %}
+
+{% block content %}
+<div class="content-header">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div>
+            <h1 style="margin: 0; font-size: 28px; font-weight: 600;">💰 Pay Salary</h1>
+            <p style="margin: 5px 0 0 0; color: #666;">Select employees and pay monthly salary</p>
+        </div>
+        <a href="{{ url_for('payroll.salary_register') }}" class="btn btn-primary" style="padding: 10px 20px;">
+            📊 View Salary Register
+        </a>
+    </div>
+</div>
+
+<!-- Month/Year Selector -->
+<div class="card" style="margin-bottom: 20px;">
+    <div class="card-body" style="padding: 15px;">
+        <form method="GET" action="{{ url_for('payroll.pay_salary') }}" style="display: flex; gap: 15px; align-items: end;">
+            <div>
+                <label style="display: block; margin-bottom: 5px; font-weight: 600; font-size: 14px;">Month</label>
+                <select name="month" class="form-control" style="width: 150px;">
+                    {% for m in range(1, 13) %}
+                    <option value="{{ m }}" {% if m == selected_month %}selected{% endif %}>
+                        {{ ['January', 'February', 'March', 'April', 'May', 'June', 
+                            'July', 'August', 'September', 'October', 'November', 'December'][m-1] }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label style="display: block; margin-bottom: 5px; font-weight: 600; font-size: 14px;">Year</label>
+                <select name="year" class="form-control" style="width: 120px;">
+                    {% for y in range(selected_year-2, selected_year+2) %}
+                    <option value="{{ y }}" {% if y == selected_year %}selected{% endif %}>{{ y }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <button type="submit" class="btn btn-secondary">🔍 Show</button>
+        </form>
+    </div>
+</div>
+
+{% if employees %}
+<!-- Payment Form -->
+<form method="POST" action="{{ url_for('payroll.pay_salary') }}" onsubmit="return confirmPayment()">
+    <div class="card" style="margin-bottom: 20px;">
+        <div class="card-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px 20px;">
+            <h3 style="margin: 0; font-size: 18px; font-weight: 600;">
+                📋 Select Employees to Pay ({{ ['January', 'February', 'March', 'April', 'May', 'June', 
+                'July', 'August', 'September', 'October', 'November', 'December'][selected_month-1] }} {{ selected_year }})
+            </h3>
+        </div>
+        <div class="card-body" style="padding: 20px;">
+            <!-- Payment Details -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 30px;">
+                <div>
+                    <label style="display: block; margin-bottom: 5px; font-weight: 600; font-size: 14px;">
+                        📅 Payment Date *
+                    </label>
+                    <input type="date" name="payment_date" class="form-control" 
+                           value="{{ today.strftime('%Y-%m-%d') }}" required>
+                </div>
+                <div>
+                    <label style="display: block; margin-bottom: 5px; font-weight: 600; font-size: 14px;">
+                        💵 Pay From Account *
+                    </label>
+                    <select name="account_id" class="form-control" required>
+                        {% for account in accounts %}
+                        <option value="{{ account[0] }}">
+                            {{ account[1] }} ({{ account[2]|title }}) - ₹{{ "{:,.2f}".format(account[3]) }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            
+            <!-- Employee List -->
+            <div style="overflow-x: auto;">
+                <table style="width: 100%; border-collapse: collapse;">
+                    <thead>
+                        <tr style="background: #f8f9fa; border-bottom: 2px solid #dee2e6;">
+                            <th style="padding: 12px; text-align: center; width: 50px;">
+                                <input type="checkbox" id="selectAll" onclick="toggleAll(this)" 
+                                       style="width: 18px; height: 18px; cursor: pointer;">
+                            </th>
+                            <th style="padding: 12px; text-align: left; font-weight: 600;">Employee</th>
+                            <th style="padding: 12px; text-align: left; font-weight: 600;">Designation</th>
+                            <th style="padding: 12px; text-align: right; font-weight: 600;">Salary</th>
+                            <th style="padding: 12px; text-align: center; font-weight: 600;">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="employeeTableBody">
+                        {% for emp in employees %}
+                        <tr style="border-bottom: 1px solid #e9ecef;" 
+                            data-salary="{{ emp[2] }}"
+                            {% if emp[4] %}class="already-paid"{% endif %}>
+                            <td style="padding: 12px; text-align: center;">
+                                {% if not emp[4] %}
+                                <input type="checkbox" name="employee_ids" value="{{ emp[0] }}" 
+                                       class="employee-checkbox" data-salary="{{ emp[2] }}"
+                                       style="width: 18px; height: 18px; cursor: pointer;"
+                                       onchange="updateTotal()">
+                                {% else %}
+                                <span style="font-size: 20px;">✅</span>
+                                {% endif %}
+                            </td>
+                            <td style="padding: 12px;">
+                                <strong>{{ emp[1] }}</strong>
+                            </td>
+                            <td style="padding: 12px;">
+                                {{ emp[3] or '-' }}
+                            </td>
+                            <td style="padding: 12px; text-align: right; font-weight: 600; font-size: 16px;">
+                                ₹{{ "{:,.2f}".format(emp[2]) }}
+                            </td>
+                            <td style="padding: 12px; text-align: center;">
+                                {% if emp[4] %}
+                                <span style="background: #d3f9d8; color: #2b8a3e; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600;">
+                                    ✅ Paid {{ emp[4].strftime('%d-%b') }}
+                                </span>
+                                {% else %}
+                                <span style="background: #fff3bf; color: #e67700; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600;">
+                                    ⏳ Not Paid
+                                </span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot>
+                        <tr style="background: #f8f9fa; border-top: 2px solid #495057; font-weight: 700;">
+                            <td colspan="3" style="padding: 15px; text-align: right; font-size: 16px;">
+                                Selected: <span id="selectedCount">0</span> employee(s)
+                            </td>
+                            <td style="padding: 15px; text-align: right; font-size: 18px; color: #667eea;">
+                                ₹<span id="totalAmount">0.00</span>
+                            </td>
+                            <td></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+            
+            <div style="margin-top: 30px; text-align: center;">
+                <button type="submit" class="btn btn-success" id="payButton" style="padding: 15px 50px; font-size: 18px; font-weight: 600;" disabled>
+                    💰 Pay Salary
+                </button>
+            </div>
+        </div>
+    </div>
+</form>
+
+{% else %}
+<div class="card" style="padding: 60px; text-align: center;">
+    <div style="font-size: 64px; opacity: 0.3; margin-bottom: 20px;">👥</div>
+    <h3 style="margin: 0 0 10px 0; color: #666;">No Employees with Salary Set</h3>
+    <p style="margin: 0 0 20px 0; color: #999;">
+        Please add employees and set their monthly salary first
+    </p>
+    <a href="{{ url_for('employees.add') }}" class="btn btn-primary" style="padding: 12px 30px;">
+        ➕ Add Employee
+    </a>
+</div>
+{% endif %}
+
+<script>
+function toggleAll(checkbox) {
+    const checkboxes = document.querySelectorAll('.employee-checkbox');
+    checkboxes.forEach(cb => {
+        cb.checked = checkbox.checked;
+    });
+    updateTotal();
+}
+
+function updateTotal() {
+    const checkboxes = document.querySelectorAll('.employee-checkbox:checked');
+    let total = 0;
+    let count = 0;
+    
+    checkboxes.forEach(cb => {
+        total += parseFloat(cb.dataset.salary);
+        count++;
+    });
+    
+    document.getElementById('selectedCount').textContent = count;
+    document.getElementById('totalAmount').textContent = total.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+    document.getElementById('payButton').disabled = (count === 0);
+}
+
+function confirmPayment() {
+    const count = document.querySelectorAll('.employee-checkbox:checked').length;
+    const total = document.getElementById('totalAmount').textContent;
+    
+    if (count === 0) {
+        alert('⚠️ Please select at least one employee');
+        return false;
+    }
+    
+    return confirm(`💰 Pay salary to ${count} employee(s) for total ₹${total}?\n\nThis will:\n- Deduct amount from selected account\n- Generate salary slips\n- Record in accounting`);
+}
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', function() {
+    updateTotal();
+});
+</script>
+
+<style>
+.already-paid {
+    background: #f8f9fa;
+    opacity: 0.7;
+}
+</style>
+
+{% endblock %}
+

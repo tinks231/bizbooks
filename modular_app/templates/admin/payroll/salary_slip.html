@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Salary Slip - {{ slip_data[0] }}</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: Arial, sans-serif;
+            padding: 40px;
+            background: #f5f5f5;
+        }
+        
+        .salary-slip {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border: 2px solid #333;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .company-name {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+        
+        .slip-title {
+            font-size: 18px;
+            margin-top: 10px;
+            opacity: 0.9;
+        }
+        
+        .content {
+            padding: 30px;
+        }
+        
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 15px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 5px;
+        }
+        
+        .info-label {
+            font-weight: 600;
+            color: #666;
+        }
+        
+        .info-value {
+            font-weight: 700;
+            color: #333;
+            font-size: 16px;
+        }
+        
+        .salary-section {
+            margin-top: 30px;
+            border: 2px solid #dee2e6;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        
+        .salary-header {
+            background: #667eea;
+            color: white;
+            padding: 15px 20px;
+            font-size: 18px;
+            font-weight: 600;
+        }
+        
+        .salary-amount {
+            padding: 40px;
+            text-align: center;
+            background: #f8f9fa;
+        }
+        
+        .amount-label {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 10px;
+        }
+        
+        .amount-value {
+            font-size: 48px;
+            font-weight: 700;
+            color: #667eea;
+        }
+        
+        .footer {
+            margin-top: 50px;
+            padding-top: 30px;
+            border-top: 2px solid #dee2e6;
+            display: flex;
+            justify-content: space-between;
+        }
+        
+        .signature {
+            width: 200px;
+        }
+        
+        .signature-line {
+            border-top: 2px solid #333;
+            margin-top: 60px;
+            padding-top: 10px;
+            text-align: center;
+            font-weight: 600;
+        }
+        
+        .note {
+            margin-top: 30px;
+            padding: 15px;
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            font-size: 13px;
+            color: #856404;
+        }
+        
+        @media print {
+            body {
+                padding: 0;
+                background: white;
+            }
+            
+            .salary-slip {
+                box-shadow: none;
+                border: 2px solid #333;
+            }
+            
+            .no-print {
+                display: none !important;
+            }
+        }
+        
+        .print-button {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 12px 30px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+        
+        .print-button:hover {
+            background: #5568d3;
+        }
+    </style>
+</head>
+<body>
+    <button onclick="window.print()" class="print-button no-print">🖨️ Print Salary Slip</button>
+    
+    <div class="salary-slip">
+        <!-- Header -->
+        <div class="header">
+            <div class="company-name">{{ tenant.company_name }}</div>
+            <div>{{ tenant.address or '' }}</div>
+            <div class="slip-title">SALARY SLIP</div>
+        </div>
+        
+        <!-- Content -->
+        <div class="content">
+            <!-- Employee Info -->
+            <div class="info-row">
+                <div>
+                    <div class="info-label">Employee Name</div>
+                    <div class="info-value">{{ slip_data[0] }}</div>
+                </div>
+                <div style="text-align: right;">
+                    <div class="info-label">Designation</div>
+                    <div class="info-value">{{ slip_data[1] or 'Staff' }}</div>
+                </div>
+            </div>
+            
+            <div class="info-row">
+                <div>
+                    <div class="info-label">Period</div>
+                    <div class="info-value">
+                        {{ ['January', 'February', 'March', 'April', 'May', 'June', 
+                            'July', 'August', 'September', 'October', 'November', 'December'][selected_month-1] }} {{ selected_year }}
+                    </div>
+                </div>
+                <div style="text-align: right;">
+                    <div class="info-label">Payment Date</div>
+                    <div class="info-value">{{ slip_data[3].strftime('%d-%b-%Y') }}</div>
+                </div>
+            </div>
+            
+            <!-- Salary Details -->
+            <div class="salary-section">
+                <div class="salary-header">💰 Salary Details</div>
+                <div class="salary-amount">
+                    <div class="amount-label">SALARY AMOUNT</div>
+                    <div class="amount-value">₹{{ "{:,.2f}".format(slip_data[2]) }}</div>
+                </div>
+            </div>
+            
+            <div class="note">
+                <strong>📌 Note:</strong> This is a computer-generated salary slip and does not require a signature.
+                Payment made via {{ slip_data[4] }}.
+            </div>
+            
+            <!-- Footer with Signatures -->
+            <div class="footer">
+                <div class="signature">
+                    <div class="signature-line">Employee Signature</div>
+                </div>
+                <div class="signature">
+                    <div class="signature-line">Employer Signature</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
+

@@ -1,0 +1,182 @@
+{% extends "base_sidebar.html" %}
+
+{% block title %}Salary Register - {{ tenant.company_name }}{% endblock %}
+
+{% block content %}
+<div class="content-header">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div>
+            <h1 style="margin: 0; font-size: 28px; font-weight: 600;">📊 Salary Register</h1>
+            <p style="margin: 5px 0 0 0; color: #666;">Monthly salary payment report</p>
+        </div>
+        <div style="display: flex; gap: 10px;">
+            <a href="{{ url_for('payroll.pay_salary') }}" class="btn btn-success" style="padding: 10px 20px;">
+                💰 Pay Salary
+            </a>
+            <button onclick="window.print()" class="btn btn-primary" style="padding: 10px 20px;">
+                🖨️ Print
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Month/Year Selector -->
+<div class="card" style="margin-bottom: 20px;">
+    <div class="card-body" style="padding: 15px;">
+        <form method="GET" action="{{ url_for('payroll.salary_register') }}" style="display: flex; gap: 15px; align-items: end;">
+            <div>
+                <label style="display: block; margin-bottom: 5px; font-weight: 600; font-size: 14px;">Month</label>
+                <select name="month" class="form-control" style="width: 150px;">
+                    {% for m in range(1, 13) %}
+                    <option value="{{ m }}" {% if m == selected_month %}selected{% endif %}>
+                        {{ ['January', 'February', 'March', 'April', 'May', 'June', 
+                            'July', 'August', 'September', 'October', 'November', 'December'][m-1] }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label style="display: block; margin-bottom: 5px; font-weight: 600; font-size: 14px;">Year</label>
+                <select name="year" class="form-control" style="width: 120px;">
+                    {% for y in range(selected_year-2, selected_year+2) %}
+                    <option value="{{ y }}" {% if y == selected_year %}selected{% endif %}>{{ y }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <button type="submit" class="btn btn-secondary">🔍 Show</button>
+        </form>
+    </div>
+</div>
+
+{% if salary_data %}
+<!-- Summary Card -->
+<div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; border-radius: 10px; margin-bottom: 30px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
+    <div style="display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 30px;">
+        <div>
+            <div style="font-size: 16px; opacity: 0.9; margin-bottom: 5px;">Period</div>
+            <div style="font-size: 28px; font-weight: 700;">
+                {{ ['January', 'February', 'March', 'April', 'May', 'June', 
+                    'July', 'August', 'September', 'October', 'November', 'December'][selected_month-1] }} {{ selected_year }}
+            </div>
+        </div>
+        <div>
+            <div style="font-size: 16px; opacity: 0.9; margin-bottom: 5px;">Employees Paid</div>
+            <div style="font-size: 32px; font-weight: 700;">
+                {{ salary_data|length }}
+            </div>
+        </div>
+        <div>
+            <div style="font-size: 16px; opacity: 0.9; margin-bottom: 5px;">Total Salary</div>
+            <div style="font-size: 32px; font-weight: 700;">
+                ₹{{ "{:,.2f}".format(total_salary) }}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Salary Table -->
+<div class="card">
+    <div class="card-header" style="background: #f8f9fa; border-bottom: 2px solid #dee2e6; padding: 15px 20px;">
+        <h3 style="margin: 0; font-size: 18px; font-weight: 600;">📋 Salary Details</h3>
+    </div>
+    <div class="card-body" style="padding: 0; overflow-x: auto;">
+        <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+            <thead>
+                <tr style="background: #f1f3f5; border-bottom: 2px solid #dee2e6;">
+                    <th style="padding: 12px; text-align: left; font-weight: 600;">Employee</th>
+                    <th style="padding: 12px; text-align: left; font-weight: 600;">Designation</th>
+                    <th style="padding: 12px; text-align: right; font-weight: 600;">Salary</th>
+                    <th style="padding: 12px; text-align: center; font-weight: 600;">Payment Date</th>
+                    <th style="padding: 12px; text-align: center; font-weight: 600;">Payment Method</th>
+                    <th style="padding: 12px; text-align: center; font-weight: 600;">Paid From</th>
+                    <th style="padding: 12px; text-align: center; font-weight: 600;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in salary_data %}
+                <tr style="border-bottom: 1px solid #f1f3f5;">
+                    <td style="padding: 12px;">
+                        <strong>{{ row[0] }}</strong>
+                    </td>
+                    <td style="padding: 12px;">
+                        {{ row[1] or '-' }}
+                    </td>
+                    <td style="padding: 12px; text-align: right; font-weight: 600; font-size: 16px;">
+                        ₹{{ "{:,.2f}".format(row[2]) }}
+                    </td>
+                    <td style="padding: 12px; text-align: center;">
+                        {{ row[3].strftime('%d-%b-%Y') }}
+                    </td>
+                    <td style="padding: 12px; text-align: center;">
+                        <span style="background: #e3f2fd; color: #1976d2; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600;">
+                            {{ row[4] }}
+                        </span>
+                    </td>
+                    <td style="padding: 12px; text-align: center;">
+                        {{ row[5] or 'Cash' }}
+                    </td>
+                    <td style="padding: 12px; text-align: center;">
+                        <a href="{{ url_for('payroll.salary_slip', employee_id=loop.index, month=selected_month, year=selected_year) }}" 
+                           class="btn btn-sm btn-primary" style="padding: 5px 15px; font-size: 12px;" target="_blank">
+                            📄 View Slip
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+            <tfoot>
+                <tr style="background: #f8f9fa; border-top: 2px solid #495057; font-weight: 700;">
+                    <td colspan="2" style="padding: 15px; text-align: right; font-size: 16px;">
+                        TOTAL ({{ salary_data|length }} employees)
+                    </td>
+                    <td style="padding: 15px; text-align: right; font-size: 18px; color: #667eea;">
+                        ₹{{ "{:,.2f}".format(total_salary) }}
+                    </td>
+                    <td colspan="4"></td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+</div>
+
+<!-- Accounting Note -->
+<div class="card" style="margin-top: 30px; background: #e3f2fd; border-left: 4px solid #1976d2;">
+    <div class="card-body">
+        <h4 style="margin: 0 0 10px 0; font-size: 16px; font-weight: 600; color: #1565c0;">
+            📊 Accounting Impact
+        </h4>
+        <p style="margin: 0; color: #1565c0; font-size: 14px;">
+            This salary expense of <strong>₹{{ "{:,.2f}".format(total_salary) }}</strong> is automatically recorded in:
+        </p>
+        <ul style="margin: 10px 0 0 20px; color: #1565c0; font-size: 14px;">
+            <li><strong>Profit & Loss</strong> → Salary Expenses</li>
+            <li><strong>Cash Book / Bank Book</strong> → Payment entries</li>
+            <li><strong>Trial Balance</strong> → Auto-balanced</li>
+        </ul>
+    </div>
+</div>
+
+{% else %}
+<div class="card" style="padding: 60px; text-align: center;">
+    <div style="font-size: 64px; opacity: 0.3; margin-bottom: 20px;">📊</div>
+    <h3 style="margin: 0 0 10px 0; color: #666;">No Salary Paid for This Month</h3>
+    <p style="margin: 0 0 20px 0; color: #999;">
+        {{ ['January', 'February', 'March', 'April', 'May', 'June', 
+            'July', 'August', 'September', 'October', 'November', 'December'][selected_month-1] }} {{ selected_year }}
+    </p>
+    <a href="{{ url_for('payroll.pay_salary') }}" class="btn btn-primary" style="padding: 12px 30px;">
+        💰 Pay Salary Now
+    </a>
+</div>
+{% endif %}
+
+<style>
+@media print {
+    .sidebar, .content-header button, .content-header a, .nav-item, .card:last-child { display: none !important; }
+    body { padding: 0 !important; }
+    .content-header h1 { font-size: 24px !important; }
+}
+</style>
+
+{% endblock %}
+

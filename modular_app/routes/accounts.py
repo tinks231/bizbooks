@@ -1797,15 +1797,31 @@ def profit_loss():
     
     total_employee_expenses = sum(Decimal(str(emp[1])) for emp in employee_expenses_detail)
     
+    # 4. Salary Expenses (from Payroll)
+    salary_expenses_detail = db.session.execute(text("""
+        SELECT 
+            e.name as employee_name,
+            e.designation,
+            SUM(ss.salary_amount) as total_salary
+        FROM salary_slips ss
+        JOIN employees e ON ss.employee_id = e.id
+        WHERE ss.tenant_id = :tenant_id 
+        AND ss.payment_date BETWEEN :start_date AND :end_date
+        GROUP BY e.id, e.name, e.designation
+        ORDER BY total_salary DESC
+    """), {'tenant_id': tenant_id, 'start_date': start_date, 'end_date': end_date}).fetchall()
+    
+    total_salary_expenses = sum(Decimal(str(emp[2])) for emp in salary_expenses_detail) if salary_expenses_detail else Decimal('0')
+    
     # Total Expenses
-    total_expenses = total_purchases + total_operating_expenses + total_employee_expenses
+    total_expenses = total_purchases + total_operating_expenses + total_employee_expenses + total_salary_expenses
     
     # ====================
     # PROFIT CALCULATION
     # ====================
     
     gross_profit = total_income - total_purchases  # Revenue - COGS
-    net_profit = gross_profit - (total_operating_expenses + total_employee_expenses)  # Gross Profit - Operating Expenses
+    net_profit = gross_profit - (total_operating_expenses + total_employee_expenses + total_salary_expenses)  # Gross Profit - Operating Expenses
     
     # Profit Margin
     profit_margin = (net_profit / total_income * 100) if total_income > 0 else Decimal('0')
@@ -1825,9 +1841,11 @@ def profit_loss():
                          operating_expenses_detail=operating_expenses_detail,
                          operating_expenses_by_category=operating_expenses_by_category,
                          total_operating_expenses=float(total_operating_expenses),
-                         employee_expenses_detail=employee_expenses_detail,
-                         total_employee_expenses=float(total_employee_expenses),
-                         total_expenses=float(total_expenses),
+                        employee_expenses_detail=employee_expenses_detail,
+                        total_employee_expenses=float(total_employee_expenses),
+                        salary_expenses_detail=salary_expenses_detail,
+                        total_salary_expenses=float(total_salary_expenses),
+                        total_expenses=float(total_expenses),
                          # Profit
                          gross_profit=float(gross_profit),
                          net_profit=float(net_profit),

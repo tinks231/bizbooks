@@ -3573,6 +3573,108 @@ def fix_all_accounting_issues():
         }), 500
 
 
+@migration_bp.route('/add-payroll-tables')
+def add_payroll_tables():
+    """
+    Add payroll management tables
+    - Add monthly_salary to employees table
+    - Create payroll_payments table (track salary payments)
+    - Create salary_slips table (generate printable slips)
+    Access: /migrate/add-payroll-tables
+    """
+    try:
+        # Step 1: Add monthly_salary to employees table
+        print("Step 1: Adding monthly_salary column to employees table...")
+        db.session.execute(text("""
+            ALTER TABLE employees 
+            ADD COLUMN IF NOT EXISTS monthly_salary DECIMAL(10, 2) DEFAULT 0,
+            ADD COLUMN IF NOT EXISTS date_of_joining DATE,
+            ADD COLUMN IF NOT EXISTS designation VARCHAR(100)
+        """))
+        db.session.commit()
+        print("✅ Added salary fields to employees table")
+        
+        # Step 2: Create payroll_payments table
+        print("\nStep 2: Creating payroll_payments table...")
+        db.session.execute(text("""
+            CREATE TABLE IF NOT EXISTS payroll_payments (
+                id SERIAL PRIMARY KEY,
+                tenant_id INTEGER NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+                payment_month INTEGER NOT NULL,
+                payment_year INTEGER NOT NULL,
+                payment_date DATE NOT NULL,
+                total_amount DECIMAL(10, 2) NOT NULL,
+                paid_from_account_id INTEGER REFERENCES bank_accounts(id),
+                notes TEXT,
+                created_at TIMESTAMP NOT NULL,
+                created_by INTEGER REFERENCES users(id),
+                CONSTRAINT unique_tenant_payroll UNIQUE(tenant_id, payment_month, payment_year)
+            )
+        """))
+        db.session.commit()
+        print("✅ Created payroll_payments table")
+        
+        # Step 3: Create salary_slips table (individual employee payments)
+        print("\nStep 3: Creating salary_slips table...")
+        db.session.execute(text("""
+            CREATE TABLE IF NOT EXISTS salary_slips (
+                id SERIAL PRIMARY KEY,
+                tenant_id INTEGER NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+                payroll_payment_id INTEGER REFERENCES payroll_payments(id) ON DELETE CASCADE,
+                employee_id INTEGER NOT NULL REFERENCES employees(id) ON DELETE CASCADE,
+                payment_month INTEGER NOT NULL,
+                payment_year INTEGER NOT NULL,
+                salary_amount DECIMAL(10, 2) NOT NULL,
+                payment_date DATE NOT NULL,
+                payment_method VARCHAR(50) DEFAULT 'Cash',
+                notes TEXT,
+                created_at TIMESTAMP NOT NULL
+            )
+        """))
+        db.session.commit()
+        print("✅ Created salary_slips table")
+        
+        # Step 4: Create indexes for performance
+        print("\nStep 4: Creating indexes...")
+        db.session.execute(text("""
+            CREATE INDEX IF NOT EXISTS idx_payroll_payments_tenant 
+            ON payroll_payments(tenant_id, payment_year, payment_month);
+            
+            CREATE INDEX IF NOT EXISTS idx_salary_slips_tenant 
+            ON salary_slips(tenant_id, payment_year, payment_month);
+            
+            CREATE INDEX IF NOT EXISTS idx_salary_slips_employee 
+            ON salary_slips(employee_id, payment_year, payment_month);
+        """))
+        db.session.commit()
+        print("✅ Created indexes")
+        
+        return jsonify({
+            'status': 'success',
+            'message': '✅ Payroll tables created successfully!',
+            'tables_created': [
+                'employees (added monthly_salary, date_of_joining, designation)',
+                'payroll_payments (track monthly salary runs)',
+                'salary_slips (individual employee salary records)'
+            ],
+            'next_steps': [
+                '1. Go to Employees → Edit employee → Set monthly salary',
+                '2. Go to Payroll → Pay Salary',
+                '3. Select employees and pay',
+                '4. View salary slips and reports!'
+            ]
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        import traceback
+        return jsonify({
+            'status': 'error',
+            'message': f'❌ Error creating payroll tables: {str(e)}',
+            'traceback': traceback.format_exc()
+        }), 500
+
+
 @migration_bp.route('/diagnose-trial-balance-detailed')
 def diagnose_trial_balance_detailed():
     """

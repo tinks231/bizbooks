@@ -858,6 +858,25 @@
                 </div>
             </div>
             
+            <!-- PAYROLL Section (Collapsible) -->
+            <div class="nav-section-collapsible">
+                <div class="nav-section-header" onclick="toggleSection('section-payroll', this)">
+                    <div class="nav-section-title">
+                        <i>💰</i>
+                        <span>Payroll</span>
+                    </div>
+                    <span class="nav-section-arrow">▶</span>
+                </div>
+                <div class="nav-section-content" id="section-payroll">
+                    <a href="/admin/payroll/pay-salary" class="nav-item {% if '/admin/payroll/pay-salary' in request.path %}active{% endif %}">
+                        <i>💵</i> Pay Salary
+                    </a>
+                    <a href="/admin/payroll/salary-register" class="nav-item {% if '/admin/payroll/salary-register' in request.path %}active{% endif %}">
+                        <i>📊</i> Salary Register
+                    </a>
+                </div>
+            </div>
+            
             <!-- REPORTS Section (Collapsible) -->
             <div class="nav-section-collapsible">
                 <div class="nav-section-header" onclick="toggleSection('reports')">
