@@ -267,6 +267,66 @@ def salary_register():
                          tenant=g.tenant)
 
 
+@payroll_bp.route('/test-update/<int:emp_id>')
+@require_tenant
+@login_required
+def test_update_employee(emp_id):
+    """Test: Manually update an employee's payroll fields"""
+    from flask import g
+    from models import Employee
+    tenant_id = g.tenant.id if hasattr(g, 'tenant') and g.tenant else session.get('tenant_id')
+    
+    # Get employee
+    employee = Employee.query.filter_by(id=emp_id, tenant_id=tenant_id).first()
+    
+    if not employee:
+        return jsonify({
+            'status': 'error',
+            'message': f'Employee with ID {emp_id} not found'
+        })
+    
+    # Store old values
+    old_values = {
+        'monthly_salary': employee.monthly_salary,
+        'designation': employee.designation,
+        'date_of_joining': str(employee.date_of_joining) if employee.date_of_joining else None
+    }
+    
+    # Try to update
+    try:
+        employee.monthly_salary = 18000.00
+        employee.designation = "Test Designation"
+        employee.date_of_joining = "2024-01-01"
+        
+        db.session.commit()
+        
+        # Verify it was saved
+        db.session.refresh(employee)
+        
+        new_values = {
+            'monthly_salary': employee.monthly_salary,
+            'designation': employee.designation,
+            'date_of_joining': str(employee.date_of_joining) if employee.date_of_joining else None
+        }
+        
+        return jsonify({
+            'status': 'success',
+            'employee_name': employee.name,
+            'old_values': old_values,
+            'new_values': new_values,
+            'test': 'Manually set salary=18000, designation=Test Designation, date_of_joining=2024-01-01',
+            'saved': new_values != old_values
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({
+            'status': 'error',
+            'message': str(e),
+            'traceback': str(e.__traceback__)
+        })
+
+
 @payroll_bp.route('/debug-employees')
 @require_tenant
 @login_required
