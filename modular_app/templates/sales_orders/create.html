@@ -829,35 +829,39 @@ function submitCustomer(event) {
     
     fetch('{{ url_for("customers.add") }}', {
         method: 'POST',
-        body: formData
+        body: formData,
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'Accept': 'application/json'
+        }
     })
-    .then(response => response.text())
-    .then(html => {
-        // Success! Auto-fill the customer details in the sales order form
-        const customerName = formData.get('name');
-        const customerPhone = formData.get('phone');
-        const customerEmail = formData.get('email');
-        const customerGstin = formData.get('gstin');
-        const customerAddress = formData.get('address');
-        
-        // Check if customer was added successfully
-        if (html.includes('successfully') || html.includes('added')) {
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Success! Auto-fill the customer details in the sales order form
+            const customer = data.customer;
+            
             // Fill the sales order form
-            document.getElementById('customer_name').value = customerName;
-            document.getElementById('customer_phone').value = customerPhone || '';
-            document.getElementById('customer_email').value = customerEmail || '';
-            document.getElementById('customer_gstin').value = customerGstin || '';
-            document.getElementById('billing_address').value = customerAddress || '';
-            document.getElementById('shipping_address').value = customerAddress || '';
+            document.getElementById('customer_name').value = customer.name;
+            document.getElementById('customer_phone').value = customer.phone || '';
+            document.getElementById('customer_email').value = customer.email || '';
+            document.getElementById('customer_gstin').value = customer.gstin || '';
+            document.getElementById('billing_address').value = customer.address || '';
+            document.getElementById('shipping_address').value = customer.address || '';
+            
+            // Set the hidden customer_id field if available
+            if (document.getElementById('customer_id') && customer.id) {
+                document.getElementById('customer_id').value = customer.id;
+            }
             
             // Clear the search box
-            document.getElementById('customer_search').value = customerName;
+            document.getElementById('customer_search').value = customer.name;
             
             // Show success message
-            alert(`✅ Customer "${customerName}" added successfully!`);
+            alert(`✅ ${data.message}`);
             closeAddCustomerModal();
         } else {
-            alert('❌ Error adding customer. Please try again.');
+            alert(`❌ ${data.error || 'Error adding customer. Please try again.'}`);
             submitBtn.disabled = false;
             submitBtn.innerHTML = '💾 Save Customer';
         }

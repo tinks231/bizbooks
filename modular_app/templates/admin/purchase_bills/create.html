@@ -811,38 +811,41 @@ function submitVendor(event) {
     
     fetch('{{ url_for("vendors.add") }}', {
         method: 'POST',
-        body: formData
+        body: formData,
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'Accept': 'application/json'
+        }
     })
-    .then(response => response.text())
-    .then(html => {
-        // Success! Auto-fill the vendor details in the purchase bill form
-        const vendorName = formData.get('name');
-        const vendorPhone = formData.get('phone');
-        const vendorEmail = formData.get('email');
-        const vendorGstin = formData.get('gstin');
-        const vendorState = formData.get('state');
-        const vendorAddress = formData.get('address');
-        
-        // Check if vendor was added successfully
-        if (html.includes('successfully') || html.includes('added')) {
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Success! Auto-fill the vendor details in the purchase bill form
+            const vendor = data.vendor;
+            
             // Fill the purchase bill form
-            document.getElementById('vendor_name').value = vendorName;
-            document.getElementById('vendor_phone').value = vendorPhone || '';
-            document.getElementById('vendor_email').value = vendorEmail || '';
-            document.getElementById('vendor_gstin').value = vendorGstin || '';
-            document.getElementById('vendor_state').value = vendorState || 'Maharashtra';
-            document.getElementById('vendor_address').value = vendorAddress || '';
+            document.getElementById('vendor_name').value = vendor.name;
+            document.getElementById('vendor_phone').value = vendor.phone || '';
+            document.getElementById('vendor_email').value = vendor.email || '';
+            document.getElementById('vendor_gstin').value = vendor.gstin || '';
+            document.getElementById('vendor_state').value = vendor.state || 'Maharashtra';
+            document.getElementById('vendor_address').value = vendor.address || '';
+            
+            // Set the hidden vendor_id field if available
+            if (document.getElementById('vendor_id') && vendor.id) {
+                document.getElementById('vendor_id').value = vendor.id;
+            }
             
             // Clear the search box
             if (document.getElementById('vendor_search')) {
-                document.getElementById('vendor_search').value = vendorName;
+                document.getElementById('vendor_search').value = vendor.name;
             }
             
             // Show success message
-            alert(`✅ Vendor "${vendorName}" added successfully!`);
+            alert(`✅ ${data.message}`);
             closeAddVendorModal();
         } else {
-            alert('❌ Error adding vendor. Please try again.');
+            alert(`❌ ${data.error || 'Error adding vendor. Please try again.'}`);
             submitBtn.disabled = false;
             submitBtn.innerHTML = '💾 Save Vendor';
         }

@@ -84,6 +84,9 @@ def add():
             
             if existing:
                 flash(f'Customer code {customer_code} already exists!', 'error')
+                # If AJAX request, return JSON
+                if request.headers.get('X-Requested-With') == 'XMLHttpRequest' or request.is_json or 'application/json' in request.headers.get('Accept', ''):
+                    return jsonify({'success': False, 'error': f'Customer code {customer_code} already exists!'}), 400
                 return redirect(url_for('customers.add'))
             
             # Create customer
@@ -108,11 +111,32 @@ def add():
             db.session.commit()
             
             flash(f'Customer {customer.customer_code} added successfully!', 'success')
+            
+            # If AJAX request, return JSON with success message and customer data
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest' or request.is_json or 'application/json' in request.headers.get('Accept', ''):
+                return jsonify({
+                    'success': True,
+                    'message': f'Customer {customer.customer_code} added successfully!',
+                    'customer': {
+                        'id': customer.id,
+                        'customer_code': customer.customer_code,
+                        'name': customer.name,
+                        'phone': customer.phone,
+                        'email': customer.email,
+                        'gstin': customer.gstin,
+                        'state': customer.state,
+                        'address': customer.address
+                    }
+                })
+            
             return redirect(url_for('customers.index'))
             
         except Exception as e:
             db.session.rollback()
             flash(f'Error adding customer: {str(e)}', 'error')
+            # If AJAX request, return JSON error
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest' or request.is_json or 'application/json' in request.headers.get('Accept', ''):
+                return jsonify({'success': False, 'error': str(e)}), 500
     
     # GET request - show form
     next_customer_code = Customer.generate_customer_code(tenant_id)

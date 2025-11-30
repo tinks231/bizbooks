@@ -84,6 +84,9 @@ def add():
             
             if existing:
                 flash(f'Vendor code {vendor_code} already exists!', 'error')
+                # If AJAX request, return JSON
+                if request.headers.get('X-Requested-With') == 'XMLHttpRequest' or request.is_json or 'application/json' in request.headers.get('Accept', ''):
+                    return jsonify({'success': False, 'error': f'Vendor code {vendor_code} already exists!'}), 400
                 return redirect(url_for('vendors.add'))
             
             # Create vendor
@@ -108,11 +111,32 @@ def add():
             db.session.commit()
             
             flash(f'Vendor {vendor.vendor_code} added successfully!', 'success')
+            
+            # If AJAX request, return JSON with success message and vendor data
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest' or request.is_json or 'application/json' in request.headers.get('Accept', ''):
+                return jsonify({
+                    'success': True,
+                    'message': f'Vendor {vendor.vendor_code} added successfully!',
+                    'vendor': {
+                        'id': vendor.id,
+                        'vendor_code': vendor.vendor_code,
+                        'name': vendor.name,
+                        'phone': vendor.phone,
+                        'email': vendor.email,
+                        'gstin': vendor.gstin,
+                        'state': vendor.state,
+                        'address': vendor.address
+                    }
+                })
+            
             return redirect(url_for('vendors.index'))
             
         except Exception as e:
             db.session.rollback()
             flash(f'Error adding vendor: {str(e)}', 'error')
+            # If AJAX request, return JSON error
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest' or request.is_json or 'application/json' in request.headers.get('Accept', ''):
+                return jsonify({'success': False, 'error': str(e)}), 500
     
     # GET request - show form
     next_vendor_code = Vendor.generate_vendor_code(tenant_id)
