@@ -320,12 +320,15 @@ def account_statement(account_id):
     to_date = request.args.get('to_date')
     
     # Build query with named parameters
+    # EXCLUDE 'opening_balance' type - that's shown separately from bank_accounts table
     query = """
         SELECT 
             transaction_date, transaction_type, debit_amount, credit_amount,
             balance_after, narration, voucher_number, reference_type, reference_id
         FROM account_transactions
-        WHERE account_id = :account_id AND tenant_id = :tenant_id
+        WHERE account_id = :account_id 
+        AND tenant_id = :tenant_id
+        AND transaction_type != 'opening_balance'
     """
     params = {'account_id': account_id, 'tenant_id': tenant_id}
     
@@ -341,15 +344,19 @@ def account_statement(account_id):
     
     transactions = db.session.execute(text(query), params).fetchall()
     
-    # Calculate summary
+    # Calculate summary (Current Period only - no opening balance)
     total_debit = sum(txn[2] for txn in transactions)
     total_credit = sum(txn[3] for txn in transactions)
+    
+    # Closing Balance = Opening Balance + Total Debit - Total Credit
+    closing_balance = float(account[5]) + float(total_debit) - float(total_credit)
     
     return render_template('admin/accounts/statement.html',
                          account=account,
                          transactions=transactions,
                          total_debit=total_debit,
                          total_credit=total_credit,
+                         closing_balance=closing_balance,
                          from_date=from_date,
                          to_date=to_date,
                          tenant=g.tenant)
