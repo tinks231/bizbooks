@@ -909,6 +909,20 @@
                     <a href="/admin/accounts/reports/trial-balance" class="nav-item {% if '/admin/accounts/reports/trial-balance' in request.path %}active{% endif %}">
                         <i>⚖️</i> Trial Balance
                     </a>
+                    
+                    <!-- Advanced Reports (Aging & Reconciliation) -->
+                    <div style="margin: 10px 0 5px 20px; padding: 5px 0; border-top: 1px solid rgba(255,255,255,0.1);">
+                        <div style="font-size: 11px; color: rgba(255,255,255,0.5); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 5px;">Advanced Reports</div>
+                    </div>
+                    <a href="/admin/accounts/reports/receivables-aging" class="nav-item {% if '/admin/accounts/reports/receivables-aging' in request.path %}active{% endif %}">
+                        <i>📈</i> Receivables Aging
+                    </a>
+                    <a href="/admin/accounts/reports/payables-aging" class="nav-item {% if '/admin/accounts/reports/payables-aging' in request.path %}active{% endif %}">
+                        <i>📉</i> Payables Aging
+                    </a>
+                    <a href="/admin/accounts/reports/bank-reconciliation" class="nav-item {% if '/admin/accounts/reports/bank-reconciliation' in request.path %}active{% endif %}">
+                        <i>🏦</i> Bank Reconciliation
+                    </a>
                 </div>
             </div>
             

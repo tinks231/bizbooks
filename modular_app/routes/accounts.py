@@ -2037,12 +2037,353 @@ def trial_balance():
     return render_template('admin/accounts/reports/trial_balance.html',
                          as_of_date=as_of_date,
                          assets_accounts=assets_accounts,
-                         liabilities_accounts=liabilities_accounts,
-                         income_accounts=income_accounts,
-                         expense_accounts=expense_accounts,
-                         total_debit=float(total_debit),
-                         total_credit=float(total_credit),
-                         difference=float(difference),
-                         is_balanced=is_balanced,
+                        liabilities_accounts=liabilities_accounts,
+                        income_accounts=income_accounts,
+                        expense_accounts=expense_accounts,
+                        total_debit=float(total_debit),
+                        total_credit=float(total_credit),
+                        difference=float(difference),
+                        is_balanced=is_balanced,
+                        tenant=g.tenant)
+
+
+# =====================================================
+# ADVANCED REPORTS: AGING & RECONCILIATION
+# =====================================================
+
+@accounts_bp.route('/reports/receivables-aging')
+@login_required
+def receivables_aging():
+    """
+    Receivables Aging Report
+    Shows which customers owe money and for how long
+    Aging buckets: Current, 1-30, 31-60, 61-90, 90+ days overdue
+    """
+    tenant_id = session.get('tenant_id')
+    ist = pytz.timezone('Asia/Kolkata')
+    today = datetime.now(ist).date()
+    
+    # Get all unpaid/partially paid invoices
+    invoices = db.session.execute(text("""
+        SELECT 
+            id,
+            invoice_number,
+            customer_name,
+            invoice_date,
+            due_date,
+            total_amount,
+            COALESCE(paid_amount, 0) as paid_amount,
+            payment_status
+        FROM invoices
+        WHERE tenant_id = :tenant_id 
+        AND payment_status != 'paid'
+        ORDER BY customer_name, invoice_date
+    """), {'tenant_id': tenant_id}).fetchall()
+    
+    # Group by customer and aging bucket
+    aging_data = {}
+    aging_summary = {
+        'current': Decimal('0'),      # Not yet due
+        '1_30': Decimal('0'),          # 1-30 days overdue
+        '31_60': Decimal('0'),         # 31-60 days overdue
+        '61_90': Decimal('0'),         # 61-90 days overdue
+        '90_plus': Decimal('0')        # 90+ days overdue
+    }
+    
+    for inv in invoices:
+        customer = inv[2]
+        invoice_date = inv[3]
+        due_date = inv[4] if inv[4] else invoice_date  # Use invoice_date if no due_date
+        outstanding = Decimal(str(inv[5])) - Decimal(str(inv[6]))
+        
+        # Calculate days overdue
+        days_overdue = (today - due_date).days
+        
+        # Determine aging bucket
+        if days_overdue <= 0:
+            bucket = 'current'
+            bucket_label = 'Current (Not Due)'
+        elif days_overdue <= 30:
+            bucket = '1_30'
+            bucket_label = '1-30 Days'
+        elif days_overdue <= 60:
+            bucket = '31_60'
+            bucket_label = '31-60 Days'
+        elif days_overdue <= 90:
+            bucket = '61_90'
+            bucket_label = '61-90 Days'
+        else:
+            bucket = '90_plus'
+            bucket_label = '90+ Days'
+        
+        # Initialize customer if not exists
+        if customer not in aging_data:
+            aging_data[customer] = {
+                'invoices': [],
+                'total': Decimal('0'),
+                'current': Decimal('0'),
+                '1_30': Decimal('0'),
+                '31_60': Decimal('0'),
+                '61_90': Decimal('0'),
+                '90_plus': Decimal('0')
+            }
+        
+        # Add invoice to customer
+        aging_data[customer]['invoices'].append({
+            'invoice_number': inv[1],
+            'invoice_date': invoice_date,
+            'due_date': due_date,
+            'days_overdue': days_overdue,
+            'outstanding': outstanding,
+            'bucket': bucket_label
+        })
+        
+        # Add to customer totals
+        aging_data[customer]['total'] += outstanding
+        aging_data[customer][bucket] += outstanding
+        
+        # Add to summary totals
+        aging_summary[bucket] += outstanding
+    
+    # Calculate grand total
+    grand_total = sum(aging_summary.values())
+    
+    return render_template('admin/accounts/reports/receivables_aging.html',
+                         aging_data=aging_data,
+                         aging_summary=aging_summary,
+                         grand_total=float(grand_total),
+                         today=today,
+                         tenant=g.tenant)
+
+
+@accounts_bp.route('/reports/payables-aging')
+@login_required
+def payables_aging():
+    """
+    Payables Aging Report
+    Shows which vendors you owe money to and for how long
+    Aging buckets: Current, 1-30, 31-60, 61-90, 90+ days overdue
+    """
+    tenant_id = session.get('tenant_id')
+    ist = pytz.timezone('Asia/Kolkata')
+    today = datetime.now(ist).date()
+    
+    # Get all unpaid/partially paid bills
+    bills = db.session.execute(text("""
+        SELECT 
+            id,
+            bill_number,
+            vendor_name,
+            bill_date,
+            due_date,
+            total_amount,
+            COALESCE(paid_amount, 0) as paid_amount,
+            payment_status
+        FROM purchase_bills
+        WHERE tenant_id = :tenant_id 
+        AND payment_status != 'paid'
+        ORDER BY vendor_name, bill_date
+    """), {'tenant_id': tenant_id}).fetchall()
+    
+    # Group by vendor and aging bucket
+    aging_data = {}
+    aging_summary = {
+        'current': Decimal('0'),
+        '1_30': Decimal('0'),
+        '31_60': Decimal('0'),
+        '61_90': Decimal('0'),
+        '90_plus': Decimal('0')
+    }
+    
+    for bill in bills:
+        vendor = bill[2]
+        bill_date = bill[3]
+        due_date = bill[4] if bill[4] else bill_date
+        outstanding = Decimal(str(bill[5])) - Decimal(str(bill[6]))
+        
+        # Calculate days overdue
+        days_overdue = (today - due_date).days
+        
+        # Determine aging bucket
+        if days_overdue <= 0:
+            bucket = 'current'
+            bucket_label = 'Current (Not Due)'
+        elif days_overdue <= 30:
+            bucket = '1_30'
+            bucket_label = '1-30 Days'
+        elif days_overdue <= 60:
+            bucket = '31_60'
+            bucket_label = '31-60 Days'
+        elif days_overdue <= 90:
+            bucket = '61_90'
+            bucket_label = '61-90 Days'
+        else:
+            bucket = '90_plus'
+            bucket_label = '90+ Days'
+        
+        # Initialize vendor if not exists
+        if vendor not in aging_data:
+            aging_data[vendor] = {
+                'bills': [],
+                'total': Decimal('0'),
+                'current': Decimal('0'),
+                '1_30': Decimal('0'),
+                '31_60': Decimal('0'),
+                '61_90': Decimal('0'),
+                '90_plus': Decimal('0')
+            }
+        
+        # Add bill to vendor
+        aging_data[vendor]['bills'].append({
+            'bill_number': bill[1],
+            'bill_date': bill_date,
+            'due_date': due_date,
+            'days_overdue': days_overdue,
+            'outstanding': outstanding,
+            'bucket': bucket_label
+        })
+        
+        # Add to vendor totals
+        aging_data[vendor]['total'] += outstanding
+        aging_data[vendor][bucket] += outstanding
+        
+        # Add to summary totals
+        aging_summary[bucket] += outstanding
+    
+    # Calculate grand total
+    grand_total = sum(aging_summary.values())
+    
+    return render_template('admin/accounts/reports/payables_aging.html',
+                         aging_data=aging_data,
+                         aging_summary=aging_summary,
+                         grand_total=float(grand_total),
+                         today=today,
+                         tenant=g.tenant)
+
+
+@accounts_bp.route('/reports/bank-reconciliation')
+@login_required
+def bank_reconciliation():
+    """
+    Bank Reconciliation Report
+    Match your records with bank statement
+    Shows transactions that need to be reconciled
+    """
+    tenant_id = session.get('tenant_id')
+    ist = pytz.timezone('Asia/Kolkata')
+    today = datetime.now(ist).date()
+    
+    # Get date range from request (default: last month)
+    from_date_str = request.args.get('from_date')
+    to_date_str = request.args.get('to_date')
+    account_id = request.args.get('account_id')
+    
+    if from_date_str and to_date_str:
+        from_date = datetime.strptime(from_date_str, '%Y-%m-%d').date()
+        to_date = datetime.strptime(to_date_str, '%Y-%m-%d').date()
+    else:
+        # Default: Current month
+        from_date = today.replace(day=1)
+        to_date = today
+    
+    # Get all bank/cash accounts
+    accounts = db.session.execute(text("""
+        SELECT id, account_name, account_type, current_balance
+        FROM bank_accounts
+        WHERE tenant_id = :tenant_id AND is_active = TRUE
+        ORDER BY account_name
+    """), {'tenant_id': tenant_id}).fetchall()
+    
+    # If no account selected, use first one
+    if not account_id and accounts:
+        account_id = str(accounts[0][0])
+    
+    reconciliation_data = None
+    if account_id:
+        # Get opening balance (balance at start of period)
+        opening_balance = db.session.execute(text("""
+            SELECT balance_after
+            FROM account_transactions
+            WHERE tenant_id = :tenant_id 
+            AND account_id = :account_id
+            AND transaction_date < :from_date
+            ORDER BY transaction_date DESC, created_at DESC
+            LIMIT 1
+        """), {
+            'tenant_id': tenant_id,
+            'account_id': int(account_id),
+            'from_date': from_date
+        }).fetchone()
+        
+        opening_bal = Decimal(str(opening_balance[0])) if opening_balance else Decimal('0')
+        
+        # Get all transactions in period
+        transactions = db.session.execute(text("""
+            SELECT 
+                transaction_date,
+                transaction_type,
+                voucher_number,
+                narration,
+                debit_amount,
+                credit_amount,
+                balance_after,
+                reference_type,
+                reference_id
+            FROM account_transactions
+            WHERE tenant_id = :tenant_id 
+            AND account_id = :account_id
+            AND transaction_date BETWEEN :from_date AND :to_date
+            ORDER BY transaction_date, created_at
+        """), {
+            'tenant_id': tenant_id,
+            'account_id': int(account_id),
+            'from_date': from_date,
+            'to_date': to_date
+        }).fetchall()
+        
+        # Process transactions
+        txn_list = []
+        for txn in transactions:
+            txn_list.append({
+                'date': txn[0],
+                'type': txn[1],
+                'voucher': txn[2] or '-',
+                'narration': txn[3],
+                'debit': float(txn[4]),
+                'credit': float(txn[5]),
+                'balance': float(txn[6])
+            })
+        
+        # Calculate totals
+        total_debit = sum(Decimal(str(t[4])) for t in transactions)
+        total_credit = sum(Decimal(str(t[5])) for t in transactions)
+        closing_balance = opening_bal + total_debit - total_credit
+        
+        # Get account details
+        selected_account = db.session.execute(text("""
+            SELECT account_name, account_type, current_balance
+            FROM bank_accounts
+            WHERE id = :account_id AND tenant_id = :tenant_id
+        """), {'account_id': int(account_id), 'tenant_id': tenant_id}).fetchone()
+        
+        reconciliation_data = {
+            'account_name': selected_account[0],
+            'account_type': selected_account[1],
+            'opening_balance': float(opening_bal),
+            'total_debit': float(total_debit),
+            'total_credit': float(total_credit),
+            'closing_balance': float(closing_balance),
+            'current_balance': float(selected_account[2]),
+            'transactions': txn_list,
+            'difference': float(selected_account[2]) - float(closing_balance)
+        }
+    
+    return render_template('admin/accounts/reports/bank_reconciliation.html',
+                         accounts=accounts,
+                         selected_account_id=int(account_id) if account_id else None,
+                         from_date=from_date,
+                         to_date=to_date,
+                         reconciliation_data=reconciliation_data,
+                         today=today,
                          tenant=g.tenant)
 
