@@ -51,6 +51,28 @@
             <small style="color: #7f8c8d;">Supported: PDF, JPG, PNG</small>
         </div>
         
+        <!-- NEW: Payroll Section -->
+        <div class="form-group" style="grid-column: span 2; background: #e8f5e9; padding: 15px; border-radius: 8px; border: 2px solid #81c784;">
+            <h4 style="margin: 0 0 15px 0; color: #2e7d32; font-size: 16px;">💰 Payroll Information (Optional)</h4>
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px;">
+                <div class="form-group" style="margin: 0;">
+                    <label class="field-label">Monthly Salary (₹):</label>
+                    <input type="number" name="monthly_salary" step="0.01" min="0" placeholder="e.g., 18000">
+                    <small style="color: #666; display: block; margin-top: 3px;">Fixed monthly salary</small>
+                </div>
+                <div class="form-group" style="margin: 0;">
+                    <label class="field-label">Designation:</label>
+                    <input type="text" name="designation" placeholder="e.g., Sales Executive">
+                    <small style="color: #666; display: block; margin-top: 3px;">Job title</small>
+                </div>
+                <div class="form-group" style="margin: 0;">
+                    <label class="field-label">Date of Joining:</label>
+                    <input type="date" name="date_of_joining">
+                    <small style="color: #666; display: block; margin-top: 3px;">When they started</small>
+                </div>
+            </div>
+        </div>
+        
         <!-- NEW: Commission Section -->
         <div class="form-group" style="grid-column: span 2; background: #f8f9fa; padding: 15px; border-radius: 8px; border: 2px solid #e0e6ed;">
             <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 10px;">
@@ -130,7 +152,7 @@
                 <td style="padding: 15px; text-align: center;">
                     {% if employee.active %}
                     <div style="display: flex; gap: 8px; align-items: center; justify-content: center;">
-                        <button onclick="editEmployee({{ employee.id }}, '{{ employee.name }}', '{{ employee.pin }}', '{{ employee.phone or '' }}', '{{ employee.email or '' }}', {{ employee.site_id or 'null' }}, {{ commission_agents[employee.id].default_commission_percentage if employee.id in commission_agents else 0 }})" 
+                        <button onclick="editEmployee({{ employee.id }}, '{{ employee.name }}', '{{ employee.pin }}', '{{ employee.phone or '' }}', '{{ employee.email or '' }}', {{ employee.site_id or 'null' }}, {{ commission_agents[employee.id].default_commission_percentage if employee.id in commission_agents else 0 }}, {{ employee.monthly_salary or 'null' }}, '{{ employee.designation or '' }}', '{{ employee.date_of_joining or '' }}')" 
                                 style="color: #667eea; background: none; border: none; cursor: pointer; font-size: 18px; padding: 8px 12px; line-height: 1;"
                                 title="Edit Employee">
                             ✏️
@@ -180,7 +202,30 @@
                         {% endfor %}
                     </select>
                 </div>
-                <div class="form-group">
+                
+                <!-- Payroll Fields -->
+                <div class="form-group" style="grid-column: span 2; background: #e8f5e9; padding: 15px; border-radius: 8px; border: 2px solid #81c784; margin-top: 10px;">
+                    <h4 style="margin: 0 0 15px 0; color: #2e7d32; font-size: 16px;">💰 Payroll Information</h4>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px;">
+                        <div class="form-group" style="margin: 0;">
+                            <label class="field-label">Monthly Salary (₹):</label>
+                            <input type="number" name="monthly_salary" id="edit_monthly_salary" step="0.01" min="0" placeholder="e.g., 18000">
+                            <small style="color: #666; display: block; margin-top: 3px;">Fixed monthly salary</small>
+                        </div>
+                        <div class="form-group" style="margin: 0;">
+                            <label class="field-label">Designation:</label>
+                            <input type="text" name="designation" id="edit_designation" placeholder="e.g., Sales Executive">
+                            <small style="color: #666; display: block; margin-top: 3px;">Job title</small>
+                        </div>
+                        <div class="form-group" style="margin: 0;">
+                            <label class="field-label">Date of Joining:</label>
+                            <input type="date" name="date_of_joining" id="edit_date_of_joining">
+                            <small style="color: #666; display: block; margin-top: 3px;">When they started</small>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-group" style="grid-column: span 2;">
                     <label class="field-label">Commission %:</label>
                     <input type="number" name="commission_percentage" id="edit_commission_percentage" step="0.01" min="0" max="100" placeholder="Leave empty to remove commission">
                     <small style="color: #7f8c8d; display: block; margin-top: 5px;">Enter 0 or leave empty to remove commission</small>
@@ -198,7 +243,7 @@
     </div>
 
     <script>
-        function editEmployee(id, name, pin, phone, email, siteId, commissionPercentage) {
+        function editEmployee(id, name, pin, phone, email, siteId, commissionPercentage, monthlySalary, designation, dateOfJoining) {
             document.getElementById('editModal').style.display = 'flex';
             document.getElementById('editForm').action = '/admin/employee/edit/' + id;
             document.getElementById('edit_name').value = name;
@@ -207,6 +252,9 @@
             document.getElementById('edit_email').value = email;
             document.getElementById('edit_site_id').value = siteId || '';
             document.getElementById('edit_commission_percentage').value = commissionPercentage || '';
+            document.getElementById('edit_monthly_salary').value = monthlySalary || '';
+            document.getElementById('edit_designation').value = designation || '';
+            document.getElementById('edit_date_of_joining').value = dateOfJoining || '';
         }
         
         function closeEditModal() {

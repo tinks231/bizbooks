@@ -329,6 +329,11 @@ def add_employee():
     enable_commission = request.form.get('enable_commission') == '1'  # NEW: Commission checkbox
     commission_percentage = request.form.get('commission_percentage')  # NEW: Commission %
     
+    # PAYROLL FIELDS
+    monthly_salary = request.form.get('monthly_salary')
+    designation = request.form.get('designation')
+    date_of_joining = request.form.get('date_of_joining')
+    
     # Convert empty string to None for site_id (PostgreSQL requirement)
     if site_id == '' or not site_id:
         site_id = None
@@ -341,7 +346,17 @@ def add_employee():
         flash('PIN already exists!', 'error')
         return redirect(url_for('admin.employees'))
     
-    employee = Employee(tenant_id=tenant_id, name=name, pin=pin, phone=phone, email=email, site_id=site_id)
+    employee = Employee(
+        tenant_id=tenant_id, 
+        name=name, 
+        pin=pin, 
+        phone=phone, 
+        email=email, 
+        site_id=site_id,
+        monthly_salary=float(monthly_salary) if monthly_salary else None,
+        designation=designation if designation else None,
+        date_of_joining=date_of_joining if date_of_joining else None
+    )
     
     # Handle document upload (Aadhar, etc.)
     if 'document' in request.files:
@@ -406,6 +421,12 @@ def edit_employee(emp_id):
     employee.pin = new_pin
     employee.phone = request.form.get('phone')
     employee.email = request.form.get('email')
+    
+    # PAYROLL FIELDS
+    monthly_salary = request.form.get('monthly_salary')
+    employee.monthly_salary = float(monthly_salary) if monthly_salary else None
+    employee.designation = request.form.get('designation') if request.form.get('designation') else None
+    employee.date_of_joining = request.form.get('date_of_joining') if request.form.get('date_of_joining') else None
     
     site_id = request.form.get('site_id')
     if site_id == '' or not site_id:

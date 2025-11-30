@@ -9,6 +9,7 @@ from sqlalchemy import text
 from datetime import datetime
 import pytz
 from decimal import Decimal
+from utils.tenant_middleware import require_tenant
 
 payroll_bp = Blueprint('payroll', __name__, url_prefix='/admin/payroll')
 
@@ -26,6 +27,7 @@ def login_required(f):
 
 
 @payroll_bp.route('/pay-salary', methods=['GET', 'POST'])
+@require_tenant
 @login_required
 def pay_salary():
     """
@@ -210,6 +212,7 @@ def pay_salary():
 
 
 @payroll_bp.route('/salary-register')
+@require_tenant
 @login_required
 def salary_register():
     """
@@ -260,6 +263,7 @@ def salary_register():
 
 
 @payroll_bp.route('/salary-slip/<int:employee_id>')
+@require_tenant
 @login_required
 def salary_slip(employee_id):
     """
