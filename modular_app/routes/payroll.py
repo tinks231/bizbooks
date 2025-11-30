@@ -44,9 +44,13 @@ def pay_salary():
     ist = pytz.timezone('Asia/Kolkata')
     now = datetime.now(ist)
     
-    # Get current month/year from request or default to current
-    selected_month = int(request.args.get('month', now.month))
-    selected_year = int(request.args.get('year', now.year))
+    # Get current month/year from request or default to PREVIOUS month
+    # (Salary is paid for the month that just ended)
+    default_month = now.month - 1 if now.month > 1 else 12
+    default_year = now.year if now.month > 1 else now.year - 1
+    
+    selected_month = int(request.args.get('month', default_month))
+    selected_year = int(request.args.get('year', default_year))
     
     if request.method == 'POST':
         try:
@@ -229,9 +233,13 @@ def salary_register():
     ist = pytz.timezone('Asia/Kolkata')
     now = datetime.now(ist)
     
-    # Get month/year from request
-    selected_month = int(request.args.get('month', now.month))
-    selected_year = int(request.args.get('year', now.year))
+    # Get month/year from request or default to PREVIOUS month
+    # (Salary is paid for the month that just ended)
+    default_month = now.month - 1 if now.month > 1 else 12
+    default_year = now.year if now.month > 1 else now.year - 1
+    
+    selected_month = int(request.args.get('month', default_month))
+    selected_year = int(request.args.get('year', default_year))
     
     # Get all salary payments for this month
     salary_data = db.session.execute(text("""
