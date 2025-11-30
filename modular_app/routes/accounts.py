@@ -901,6 +901,29 @@ def employee_cash_expense():
         # Calculate new balance
         new_balance = available_cash - amount
         
+        # Generate voucher number for employee expense
+        # Get the last expense voucher number for this tenant
+        last_voucher = db.session.execute(text("""
+            SELECT voucher_number
+            FROM account_transactions
+            WHERE tenant_id = :tenant_id 
+            AND transaction_type = 'employee_expense'
+            AND voucher_number LIKE 'EMP-EXP-%'
+            ORDER BY id DESC
+            LIMIT 1
+        """), {'tenant_id': tenant_id}).fetchone()
+        
+        if last_voucher and last_voucher[0]:
+            try:
+                last_number = int(last_voucher[0].split('-')[-1])
+                next_number = last_number + 1
+            except (ValueError, IndexError):
+                next_number = 1
+        else:
+            next_number = 1
+        
+        voucher_number = f"EMP-EXP-{next_number:04d}"
+        
         # Create expense transaction (credit - employee spent cash)
         # Note: account_id is NULL for employee expenses (they don't affect bank/cash accounts)
         db.session.execute(text("""
@@ -915,8 +938,8 @@ def employee_cash_expense():
             'tenant_id': tenant_id, 'account_id': None, 'transaction_date': txn_date,
             'transaction_type': 'employee_expense', 'debit_amount': 0.00, 'credit_amount': amount,
             'balance_after': new_balance, 'reference_type': 'employee', 'reference_id': employee_id,
-            'voucher_number': expense_head or 'Expense',
-            'narration': narration or f'{expense_head} by {employee.name}',
+            'voucher_number': voucher_number,
+            'narration': f'{expense_head}: {narration}' if narration else expense_head or 'Expense',
             'created_at': now
         })
         

@@ -44,16 +44,6 @@
                 </tr>
             </thead>
             <tbody>
-                <!-- Opening Balance (Always 0 for employees at start) -->
-                <tr style="background: #fffbf0; border-bottom: 1px solid #ddd;">
-                    <td style="padding: 8px; border-right: 1px solid #ddd; font-size: 13px;"></td>
-                    <td style="padding: 8px; border-right: 1px solid #ddd; font-size: 13px; font-weight: 600; color: #000;">Opening Balance</td>
-                    <td style="padding: 8px; border-right: 1px solid #ddd; text-align: center; font-size: 13px;"></td>
-                    <td style="padding: 8px; border-right: 1px solid #ddd; text-align: center; font-size: 13px;"></td>
-                    <td style="padding: 8px; border-right: 1px solid #ddd; text-align: right; font-size: 13px; font-weight: 600; font-family: 'Courier New', monospace;">0.00</td>
-                    <td style="padding: 8px; text-align: right; font-size: 13px;"></td>
-                </tr>
-                
                 {% if transactions %}
                     {% for txn in transactions %}
                     <tr style="border-bottom: 1px solid #e9ecef;">
@@ -98,6 +88,16 @@
                         </td>
                     </tr>
                 {% endif %}
+                
+                <!-- Opening Balance (Always 0 for employees at start) -->
+                <tr style="background: #fffbf0; border-top: 2px solid #333; border-bottom: 1px solid #ddd;">
+                    <td style="padding: 8px; border-right: 1px solid #ddd; font-size: 13px;"></td>
+                    <td style="padding: 8px; border-right: 1px solid #ddd; font-size: 13px; font-weight: 600; color: #000;">Opening Balance</td>
+                    <td style="padding: 8px; border-right: 1px solid #ddd; text-align: center; font-size: 13px;"></td>
+                    <td style="padding: 8px; border-right: 1px solid #ddd; text-align: center; font-size: 13px;"></td>
+                    <td style="padding: 8px; border-right: 1px solid #ddd; text-align: right; font-size: 13px; font-weight: 600; font-family: 'Courier New', monospace;">0.00</td>
+                    <td style="padding: 8px; text-align: right; font-size: 13px;"></td>
+                </tr>
                 
                 <!-- Current Balance (Sum of all transactions) -->
                 <tr style="background: #f8f9fa; border-top: 2px solid #333; border-bottom: 1px solid #ddd;">
