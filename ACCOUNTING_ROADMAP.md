@@ -565,6 +565,48 @@ TOTAL            | ₹85,000   | ₹77,500   | +₹7,500   | 91%
 ---
 
 **Last Updated:** 30 Nov 2025  
-**Status:** Phase 5 - Balance Sheet, P&L, Trial Balance Ready for Implementation  
-**Next Action:** Proceed with Balance Sheet implementation
+**Status:** Phase 5 - COMPLETE! Balance Sheet, P&L, Trial Balance Implemented  
+**Next Action:** Fix opening balance double-entry issue
+
+---
+
+## 🚨 CRITICAL: Opening Balance Setup for New Customers
+
+### **For New Tenant Onboarding:**
+
+When a new customer signs up and wants to import their existing business:
+
+**STEP 1: Set All Opening Balances**
+1. Go to **Accounts & Banking** → **Bank & Cash Accounts**
+2. Add all their bank/cash accounts with opening balances:
+   - Cash in Hand: ₹50,000
+   - Bank HDFC: ₹1,00,000
+   - Petty Cash: ₹5,000
+   - etc.
+
+**STEP 2: Run the Opening Balance Fix (REQUIRED!)**
+```
+After setting all opening balances, navigate to:
+/migrate/fix-opening-balances
+```
+
+**What this does:**
+- Creates the balancing "Opening Balance - Equity" credit entry
+- Makes Trial Balance balanced (Total Debits = Total Credits)
+- Follows proper double-entry bookkeeping principles
+- **REQUIRED for accounting accuracy!**
+
+**Why this is needed:**
+- When you set opening balance ₹50,000 for Cash in Hand, it creates:
+  - Debit: Cash in Hand ₹50,000 ✅
+  - Credit: ??? ❌ (Missing!)
+- The migration creates: Credit: Opening Balance - Equity ₹50,000 ✅
+- Now books are balanced!
+
+### **Verification:**
+After running the migration, check:
+1. **Trial Balance** → Should show: ✅ "Trial Balance is Balanced!"
+2. **Balance Sheet** → Owner's Equity will reflect correct opening capital
+
+---
 

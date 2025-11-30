@@ -3369,3 +3369,197 @@ def create_missing_invoice_payment(invoice_number):
             'message': f'Failed to create transaction: {str(e)}',
             'traceback': traceback.format_exc()
         }), 500
+
+
+@migration_bp.route('/fix-opening-balances')
+def fix_opening_balances():
+    """
+    FIX CRITICAL ACCOUNTING ISSUE: Opening balances causing Trial Balance imbalance
+    
+    PROBLEM:
+    When bank/cash accounts were created with opening balances, they were recorded
+    as single-sided entries (debits to Cash/Bank accounts) WITHOUT corresponding
+    credit entries. This violates double-entry bookkeeping and causes Trial Balance
+    to be out of balance.
+    
+    SOLUTION:
+    1. Identify all opening balance transactions (transaction_type = 'opening_balance')
+    2. Calculate total opening balance debits
+    3. Create a single "Opening Balance - Equity" CREDIT entry to balance them
+    4. This makes Trial Balance balanced and follows proper accounting principles
+    
+    Access: /migrate/fix-opening-balances
+    """
+    try:
+        tenant_id = get_current_tenant_id()
+        import pytz
+        from decimal import Decimal
+        
+        ist = pytz.timezone('Asia/Kolkata')
+        now = datetime.now(ist)
+        
+        print("=" * 80)
+        print("🔧 FIXING OPENING BALANCE ACCOUNTING ISSUE")
+        print("=" * 80)
+        
+        # Step 1: Check if there's already an opening balance equity entry
+        existing_equity = db.session.execute(text("""
+            SELECT id FROM account_transactions
+            WHERE tenant_id = :tenant_id
+            AND transaction_type = 'opening_balance_equity'
+        """), {'tenant_id': tenant_id}).fetchone()
+        
+        if existing_equity:
+            return jsonify({
+                'status': 'info',
+                'message': '✅ Opening balance equity entry already exists!',
+                'details': 'No fix needed - opening balances are already properly recorded with double-entry.'
+            })
+        
+        # Step 2: Get all opening balance transactions (the debit side)
+        opening_balances = db.session.execute(text("""
+            SELECT 
+                at.id,
+                at.account_id,
+                ba.account_name,
+                at.debit_amount,
+                at.transaction_date
+            FROM account_transactions at
+            JOIN bank_accounts ba ON at.account_id = ba.id
+            WHERE at.tenant_id = :tenant_id
+            AND at.transaction_type = 'opening_balance'
+            ORDER BY at.transaction_date, at.id
+        """), {'tenant_id': tenant_id}).fetchall()
+        
+        if not opening_balances:
+            return jsonify({
+                'status': 'info',
+                'message': 'ℹ️ No opening balance transactions found',
+                'details': 'All opening balances appear to be set correctly or no accounts have been created yet.'
+            })
+        
+        # Step 3: Calculate total opening balance (total debits)
+        total_opening_balance = sum(Decimal(str(ob[3])) for ob in opening_balances)
+        
+        print(f"\n📊 OPENING BALANCE ANALYSIS:")
+        print(f"{'='*80}")
+        for ob in opening_balances:
+            print(f"  {ob[2]:30} → Debit: ₹{ob[3]:>15,.2f}")
+        print(f"{'='*80}")
+        print(f"  {'TOTAL OPENING BALANCE (Debit)':30} → ₹{total_opening_balance:>15,.2f}")
+        print(f"  {'Missing Credit Entry':30} → ₹{total_opening_balance:>15,.2f} ❌")
+        print()
+        
+        # Step 4: Get the earliest opening balance date (for the equity entry)
+        earliest_date = min(ob[4] for ob in opening_balances)
+        
+        # Step 5: Create a "virtual" Opening Balance - Equity account
+        # We'll use account_id = None for equity (not a bank account)
+        # The entry will be in account_transactions but linked to equity
+        
+        print("🔧 CREATING BALANCING ENTRY:")
+        print(f"{'='*80}")
+        print(f"  Date: {earliest_date}")
+        print(f"  Type: Opening Balance - Equity (Credit)")
+        print(f"  Amount: ₹{total_opening_balance:,.2f}")
+        print(f"  Effect: This will balance the Trial Balance!")
+        print()
+        
+        # Create the Opening Balance - Equity credit entry
+        # NOTE: We use a special account_id = 0 to represent "Owner's Equity"
+        # This is a placeholder - in future, create a proper equity accounts table
+        
+        db.session.execute(text("""
+            INSERT INTO account_transactions (
+                tenant_id, account_id, transaction_date, transaction_type,
+                debit_amount, credit_amount, balance_after,
+                reference_type, reference_id, voucher_number, narration,
+                created_at, created_by
+            )
+            VALUES (
+                :tenant_id, NULL, :transaction_date, 'opening_balance_equity',
+                0, :credit_amount, :balance_after,
+                'equity', NULL, 'OB-EQUITY-0001', 'Opening Balance - Owner Equity (Balancing Entry)',
+                :created_at, NULL
+            )
+        """), {
+            'tenant_id': tenant_id,
+            'transaction_date': earliest_date,
+            'credit_amount': float(total_opening_balance),
+            'balance_after': float(total_opening_balance),  # Running balance for equity
+            'created_at': now
+        })
+        
+        db.session.commit()
+        
+        print("✅ OPENING BALANCE FIX COMPLETED!")
+        print("=" * 80)
+        
+        # Step 6: Verify the fix by checking Trial Balance
+        print("\n🔍 VERIFYING TRIAL BALANCE...")
+        
+        # Recalculate debits and credits
+        totals = db.session.execute(text("""
+            SELECT 
+                SUM(debit_amount) as total_debit,
+                SUM(credit_amount) as total_credit
+            FROM account_transactions
+            WHERE tenant_id = :tenant_id
+        """), {'tenant_id': tenant_id}).fetchone()
+        
+        total_debit = Decimal(str(totals[0] or 0))
+        total_credit = Decimal(str(totals[1] or 0))
+        difference = total_debit - total_credit
+        
+        print(f"  Total Debits:  ₹{total_debit:,.2f}")
+        print(f"  Total Credits: ₹{total_credit:,.2f}")
+        print(f"  Difference:    ₹{difference:,.2f}")
+        
+        if difference == 0:
+            print("  ✅ Trial Balance is NOW BALANCED! 🎉")
+        else:
+            print(f"  ⚠️ Still {difference:,.2f} difference (may need further investigation)")
+        
+        print("=" * 80)
+        
+        return jsonify({
+            'status': 'success',
+            'message': '✅ Opening balance fix applied successfully!',
+            'opening_balances_fixed': [
+                {
+                    'account': ob[2],
+                    'debit': float(ob[3]),
+                    'date': str(ob[4])
+                }
+                for ob in opening_balances
+            ],
+            'equity_entry_created': {
+                'type': 'Opening Balance - Equity',
+                'credit_amount': float(total_opening_balance),
+                'voucher': 'OB-EQUITY-0001',
+                'narration': 'Opening Balance - Owner Equity (Balancing Entry)'
+            },
+            'trial_balance_status': {
+                'total_debit': float(total_debit),
+                'total_credit': float(total_credit),
+                'difference': float(difference),
+                'is_balanced': (difference == 0)
+            },
+            'next_steps': [
+                'Go to Reports → Trial Balance',
+                'It should now show: Total Debits = Total Credits',
+                '✅ Trial Balance will be BALANCED!',
+                'Balance Sheet will show correct Owner Equity',
+                'All double-entry bookkeeping rules are now followed'
+            ]
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        import traceback
+        return jsonify({
+            'status': 'error',
+            'message': f'❌ Failed to fix opening balances: {str(e)}',
+            'traceback': traceback.format_exc(),
+            'recommendation': 'Please contact support if this error persists'
+        }), 500

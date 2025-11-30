@@ -130,19 +130,23 @@ def create_account():
         
         account_id = result.fetchone()[0]  # Get the returned ID (PostgreSQL way)
         
-        # If opening balance > 0, create opening balance transaction
+        # If opening balance > 0, create opening balance transaction (DEBIT side only)
+        # NOTE: For proper double-entry bookkeeping, after setting ALL opening balances,
+        # run: /migrate/fix-opening-balances to create the balancing CREDIT entry
+        # This is standard practice - set all opening balances first, then balance them
         if opening_balance > 0:
             db.session.execute(text("""
                 INSERT INTO account_transactions
                 (tenant_id, account_id, transaction_date, transaction_type,
-                 debit_amount, credit_amount, balance_after, narration, created_at)
+                 debit_amount, credit_amount, balance_after, narration, created_at, created_by)
                 VALUES (:tenant_id, :account_id, :transaction_date, :transaction_type,
-                        :debit_amount, :credit_amount, :balance_after, :narration, :created_at)
+                        :debit_amount, :credit_amount, :balance_after, :narration, :created_at, :created_by)
             """), {
                 'tenant_id': tenant_id, 'account_id': account_id, 'transaction_date': now.date(),
                 'transaction_type': 'opening_balance', 'debit_amount': opening_balance,
                 'credit_amount': 0.00, 'balance_after': opening_balance,
-                'narration': 'Opening balance', 'created_at': now
+                'narration': f'Opening balance - {account_name}', 'created_at': now,
+                'created_by': None
             })
         
         db.session.commit()
