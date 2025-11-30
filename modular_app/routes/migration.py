@@ -3051,10 +3051,13 @@ def recalculate_account_balances():
             opening_balance = float(account[2])
             
             # Get all transactions for this account in chronological order
+            # EXCLUDE opening_balance type - that's already in bank_accounts.opening_balance
             transactions = db.session.execute(text("""
                 SELECT id, debit_amount, credit_amount
                 FROM account_transactions
-                WHERE tenant_id = :tenant_id AND account_id = :account_id
+                WHERE tenant_id = :tenant_id 
+                AND account_id = :account_id
+                AND transaction_type != 'opening_balance'
                 ORDER BY transaction_date ASC, created_at ASC, id ASC
             """), {'tenant_id': tenant_id, 'account_id': account_id}).fetchall()
             
