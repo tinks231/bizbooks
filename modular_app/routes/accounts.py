@@ -1655,3 +1655,152 @@ def balance_sheet():
                          total_equity=float(total_equity),
                          tenant=g.tenant)
 
+
+@accounts_bp.route('/reports/profit-loss', methods=['GET'])
+@require_tenant
+@login_required
+def profit_loss():
+    """Profit & Loss Statement - Income vs. Expenses for a period"""
+    from datetime import datetime, timedelta
+    import pytz
+    
+    tenant_id = get_current_tenant_id()
+    ist = pytz.timezone('Asia/Kolkata')
+    
+    # Get date range from query params
+    start_date_str = request.args.get('start_date')
+    end_date_str = request.args.get('end_date')
+    
+    if start_date_str and end_date_str:
+        start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
+        end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
+    else:
+        # Default: Current month (1st to today)
+        today = datetime.now(ist).date()
+        start_date = today.replace(day=1)
+        end_date = today
+    
+    # ====================
+    # INCOME CALCULATION
+    # ====================
+    
+    # 1. Sales Revenue (from Invoices)
+    sales_revenue_detail = db.session.execute(text("""
+        SELECT 
+            invoice_number,
+            customer_name,
+            invoice_date,
+            total_amount,
+            payment_status
+        FROM invoices
+        WHERE tenant_id = :tenant_id 
+        AND invoice_date BETWEEN :start_date AND :end_date
+        ORDER BY invoice_date DESC, invoice_number DESC
+    """), {'tenant_id': tenant_id, 'start_date': start_date, 'end_date': end_date}).fetchall()
+    
+    total_sales = sum(Decimal(str(inv[3])) for inv in sales_revenue_detail)
+    sales_paid = sum(Decimal(str(inv[3])) for inv in sales_revenue_detail if inv[4] == 'paid')
+    sales_pending = sum(Decimal(str(inv[3])) for inv in sales_revenue_detail if inv[4] != 'paid')
+    
+    # Total Income
+    total_income = total_sales
+    
+    # ====================
+    # EXPENSES CALCULATION
+    # ====================
+    
+    # 1. Cost of Goods Sold (Purchase Bills)
+    purchase_expenses_detail = db.session.execute(text("""
+        SELECT 
+            bill_number,
+            vendor_name,
+            bill_date,
+            total_amount,
+            payment_status
+        FROM purchase_bills
+        WHERE tenant_id = :tenant_id 
+        AND bill_date BETWEEN :start_date AND :end_date
+        ORDER BY bill_date DESC, bill_number DESC
+    """), {'tenant_id': tenant_id, 'start_date': start_date, 'end_date': end_date}).fetchall()
+    
+    total_purchases = sum(Decimal(str(bill[3])) for bill in purchase_expenses_detail)
+    
+    # 2. Operating Expenses (from Expenses table)
+    operating_expenses_detail = db.session.execute(text("""
+        SELECT 
+            expense_date,
+            expense_category,
+            amount,
+            description,
+            payment_method
+        FROM expenses
+        WHERE tenant_id = :tenant_id 
+        AND expense_date BETWEEN :start_date AND :end_date
+        ORDER BY expense_date DESC
+    """), {'tenant_id': tenant_id, 'start_date': start_date, 'end_date': end_date}).fetchall()
+    
+    # Group operating expenses by category
+    operating_expenses_by_category = {}
+    for exp in operating_expenses_detail:
+        category = exp[1] or 'General'
+        if category not in operating_expenses_by_category:
+            operating_expenses_by_category[category] = Decimal('0')
+        operating_expenses_by_category[category] += Decimal(str(exp[2]))
+    
+    total_operating_expenses = sum(Decimal(str(exp[2])) for exp in operating_expenses_detail)
+    
+    # 3. Employee Expenses (from Employee Cash Advances used)
+    employee_expenses_detail = db.session.execute(text("""
+        SELECT 
+            e.name as employee_name,
+            COALESCE(SUM(at.credit_amount), 0) as total_spent
+        FROM account_transactions at
+        JOIN employees e ON CAST(at.reference_id AS INTEGER) = e.id
+        WHERE at.tenant_id = :tenant_id 
+        AND at.reference_type = 'employee'
+        AND at.transaction_type = 'employee_expense'
+        AND at.transaction_date BETWEEN :start_date AND :end_date
+        GROUP BY e.name
+        HAVING SUM(at.credit_amount) > 0
+        ORDER BY total_spent DESC
+    """), {'tenant_id': tenant_id, 'start_date': start_date, 'end_date': end_date}).fetchall()
+    
+    total_employee_expenses = sum(Decimal(str(emp[1])) for emp in employee_expenses_detail)
+    
+    # Total Expenses
+    total_expenses = total_purchases + total_operating_expenses + total_employee_expenses
+    
+    # ====================
+    # PROFIT CALCULATION
+    # ====================
+    
+    gross_profit = total_income - total_purchases  # Revenue - COGS
+    net_profit = gross_profit - (total_operating_expenses + total_employee_expenses)  # Gross Profit - Operating Expenses
+    
+    # Profit Margin
+    profit_margin = (net_profit / total_income * 100) if total_income > 0 else Decimal('0')
+    
+    return render_template('admin/accounts/reports/profit_loss.html',
+                         start_date=start_date,
+                         end_date=end_date,
+                         # Income
+                         sales_revenue_detail=sales_revenue_detail,
+                         total_sales=float(total_sales),
+                         sales_paid=float(sales_paid),
+                         sales_pending=float(sales_pending),
+                         total_income=float(total_income),
+                         # Expenses
+                         purchase_expenses_detail=purchase_expenses_detail,
+                         total_purchases=float(total_purchases),
+                         operating_expenses_detail=operating_expenses_detail,
+                         operating_expenses_by_category=operating_expenses_by_category,
+                         total_operating_expenses=float(total_operating_expenses),
+                         employee_expenses_detail=employee_expenses_detail,
+                         total_employee_expenses=float(total_employee_expenses),
+                         total_expenses=float(total_expenses),
+                         # Profit
+                         gross_profit=float(gross_profit),
+                         net_profit=float(net_profit),
+                         profit_margin=float(profit_margin),
+                         tenant=g.tenant)
+
