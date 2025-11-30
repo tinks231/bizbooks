@@ -244,6 +244,7 @@ def salary_register():
     # Get all salary payments for this month
     salary_data = db.session.execute(text("""
         SELECT 
+            e.id,
             e.name,
             e.designation,
             ss.salary_amount,
@@ -264,8 +265,8 @@ def salary_register():
         'year': selected_year
     }).fetchall()
     
-    # Calculate total
-    total_salary = sum(Decimal(str(row[2])) for row in salary_data) if salary_data else Decimal('0')
+    # Calculate total (salary_amount is now at index 3)
+    total_salary = sum(Decimal(str(row[3])) for row in salary_data) if salary_data else Decimal('0')
     
     return render_template('admin/payroll/salary_register.html',
                          salary_data=salary_data,

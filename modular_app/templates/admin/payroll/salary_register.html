@@ -96,27 +96,27 @@
                 {% for row in salary_data %}
                 <tr style="border-bottom: 1px solid #f1f3f5;">
                     <td style="padding: 12px;">
-                        <strong>{{ row[0] }}</strong>
+                        <strong>{{ row[1] }}</strong>
                     </td>
                     <td style="padding: 12px;">
-                        {{ row[1] or '-' }}
+                        {{ row[2] or '-' }}
                     </td>
                     <td style="padding: 12px; text-align: right; font-weight: 600; font-size: 16px;">
-                        ₹{{ "{:,.2f}".format(row[2]) }}
+                        ₹{{ "{:,.2f}".format(row[3]) }}
                     </td>
                     <td style="padding: 12px; text-align: center;">
-                        {{ row[3].strftime('%d-%b-%Y') }}
+                        {{ row[4].strftime('%d-%b-%Y') }}
                     </td>
                     <td style="padding: 12px; text-align: center;">
                         <span style="background: #e3f2fd; color: #1976d2; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600;">
-                            {{ row[4] }}
+                            {{ row[5] }}
                         </span>
                     </td>
                     <td style="padding: 12px; text-align: center;">
-                        {{ row[5] or 'Cash' }}
+                        {{ row[6] or 'Cash' }}
                     </td>
                     <td style="padding: 12px; text-align: center;">
-                        <a href="{{ url_for('payroll.salary_slip', employee_id=loop.index, month=selected_month, year=selected_year) }}" 
+                        <a href="{{ url_for('payroll.salary_slip', employee_id=row[0], month=selected_month, year=selected_year) }}" 
                            class="btn btn-sm btn-primary" style="padding: 5px 15px; font-size: 12px;" target="_blank">
                             📄 View Slip
                         </a>
