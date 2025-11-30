@@ -1560,13 +1560,11 @@ def balance_sheet():
     
     accounts_receivable_total = sum(Decimal(str(acc[1])) for acc in accounts_receivable) if accounts_receivable else Decimal('0')
     
-    # 3. Inventory/Stock Value (from materials & items)
-    inventory_value = db.session.execute(text("""
-        SELECT 
-            COALESCE(SUM(quantity * COALESCE(price_per_unit, 0)), 0) as total_value
-        FROM materials
-        WHERE tenant_id = :tenant_id
-    """), {'tenant_id': tenant_id}).fetchone()[0] or Decimal('0')
+    # 3. Inventory/Stock Value
+    # NOTE: Currently not tracked with proper costing
+    # Future: Implement inventory valuation with purchase costs
+    # For now, query stocks table for quantity only (no pricing available)
+    inventory_value = Decimal('0')  # Placeholder until inventory costing is implemented
     
     # Total Current Assets
     total_current_assets = cash_and_bank_total + accounts_receivable_total + Decimal(str(inventory_value))
@@ -1874,19 +1872,19 @@ def trial_balance():
         })
     
     # 3. Inventory (Assets - Debit Balance)
-    inventory_value = db.session.execute(text("""
-        SELECT COALESCE(SUM(quantity * COALESCE(price_per_unit, 0)), 0)
-        FROM materials
-        WHERE tenant_id = :tenant_id
-    """), {'tenant_id': tenant_id}).fetchone()[0] or Decimal('0')
+    # NOTE: Currently not tracked with proper costing
+    # Future: Implement inventory valuation with purchase costs
+    # For now, set to 0 until inventory costing is implemented
+    inventory_value = Decimal('0')
     
-    if Decimal(str(inventory_value)) > 0:
-        accounts.append({
-            'account_name': 'Inventory (Stock)',
-            'category': 'Assets',
-            'debit': Decimal(str(inventory_value)),
-            'credit': Decimal('0')
-        })
+    # Uncomment when inventory costing is available:
+    # if inventory_value > 0:
+    #     accounts.append({
+    #         'account_name': 'Inventory (Stock)',
+    #         'category': 'Assets',
+    #         'debit': inventory_value,
+    #         'credit': Decimal('0')
+    #     })
     
     # 4. Accounts Payable (Liabilities - Credit Balance)
     payables = db.session.execute(text("""
