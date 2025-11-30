@@ -1,0 +1,274 @@
+{% extends "base_sidebar.html" %}
+
+{% block title %}Trial Balance{% endblock %}
+
+{% block page_title %}⚖️ Trial Balance{% endblock %}
+
+{% block header_actions %}
+<button onclick="window.print()" class="btn btn-secondary">
+    🖨️ Print
+</button>
+{% endblock %}
+
+{% block content %}
+
+<div class="container-fluid" style="padding: 30px;">
+    
+    <!-- Date Filter Card -->
+    <div style="background: white; border-radius: 12px; padding: 25px; margin-bottom: 25px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
+        <form method="GET" action="{{ url_for('accounts.trial_balance') }}" style="display: flex; gap: 20px; align-items: end; flex-wrap: wrap;">
+            <div style="flex: 1; min-width: 250px;">
+                <label style="display: block; font-size: 13px; font-weight: 600; color: #666; margin-bottom: 8px;">As on Date</label>
+                <input type="date" name="as_of_date" value="{{ as_of_date.strftime('%Y-%m-%d') }}" 
+                       style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 14px;">
+            </div>
+            <button type="submit" style="padding: 10px 25px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">
+                🔍 View Trial Balance
+            </button>
+        </form>
+    </div>
+
+    <!-- Report Header -->
+    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 12px; padding: 25px; margin-bottom: 25px; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);">
+        <h2 style="margin: 0 0 10px 0; font-size: 24px;">⚖️ Trial Balance</h2>
+        <div style="font-size: 14px; opacity: 0.9;">
+            {{ tenant.business_name if tenant else 'Business' }} | As on: {{ as_of_date.strftime('%d %b %Y') }}
+        </div>
+        <div style="font-size: 12px; opacity: 0.8; margin-top: 5px;">
+            (Verifies double-entry bookkeeping: Total Debits = Total Credits)
+        </div>
+    </div>
+
+    <!-- Trial Balance Table -->
+    <div class="tally-ledger" style="background: white; border: 1px solid #ddd; border-radius: 4px; overflow: hidden;">
+        <table style="width: 100%; border-collapse: collapse; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">
+            <thead>
+                <tr style="background: #f8f9fa; border-bottom: 2px solid #333;">
+                    <th style="padding: 10px; text-align: left; font-weight: 600; font-size: 12px; width: 55%;">ACCOUNT NAME</th>
+                    <th style="padding: 10px; text-align: right; font-weight: 600; font-size: 12px; border-left: 1px solid #ddd; width: 22.5%;">DEBIT (₹)</th>
+                    <th style="padding: 10px; text-align: right; font-weight: 600; font-size: 12px; border-left: 1px solid #ddd; width: 22.5%;">CREDIT (₹)</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- ========== ASSETS SECTION ========== -->
+                <tr style="background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);">
+                    <td colspan="3" style="padding: 10px; font-weight: 700; font-size: 14px; color: #01579b; border-bottom: 2px solid #0288d1;">
+                        ASSETS
+                    </td>
+                </tr>
+                {% if assets_accounts %}
+                    {% for acc in assets_accounts %}
+                    <tr style="border-bottom: 1px solid #e9ecef;">
+                        <td style="padding: 8px 10px 8px 20px; font-size: 12px; color: #333;">
+                            {{ acc['account_name'] }}
+                        </td>
+                        <td style="padding: 8px 10px; text-align: right; font-size: 12px; font-family: 'Courier New', monospace; border-left: 1px solid #e9ecef;">
+                            {% if acc['debit'] > 0 %}{{ "{:,.2f}".format(acc['debit']) }}{% endif %}
+                        </td>
+                        <td style="padding: 8px 10px; text-align: right; font-size: 12px; font-family: 'Courier New', monospace; border-left: 1px solid #e9ecef;">
+                            {% if acc['credit'] > 0 %}{{ "{:,.2f}".format(acc['credit']) }}{% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="3" style="padding: 8px 10px 8px 20px; font-size: 11px; color: #999; font-style: italic;">
+                            No asset accounts
+                        </td>
+                    </tr>
+                {% endif %}
+                
+                <!-- ========== LIABILITIES SECTION ========== -->
+                <tr style="background: linear-gradient(135deg, #ffebee 0%, #ffcdd2 100%); border-top: 2px solid #ddd;">
+                    <td colspan="3" style="padding: 10px; font-weight: 700; font-size: 14px; color: #b71c1c; border-bottom: 2px solid #e53935;">
+                        LIABILITIES
+                    </td>
+                </tr>
+                {% if liabilities_accounts %}
+                    {% for acc in liabilities_accounts %}
+                    <tr style="border-bottom: 1px solid #e9ecef;">
+                        <td style="padding: 8px 10px 8px 20px; font-size: 12px; color: #333;">
+                            {{ acc['account_name'] }}
+                        </td>
+                        <td style="padding: 8px 10px; text-align: right; font-size: 12px; font-family: 'Courier New', monospace; border-left: 1px solid #e9ecef;">
+                            {% if acc['debit'] > 0 %}{{ "{:,.2f}".format(acc['debit']) }}{% endif %}
+                        </td>
+                        <td style="padding: 8px 10px; text-align: right; font-size: 12px; font-family: 'Courier New', monospace; border-left: 1px solid #e9ecef;">
+                            {% if acc['credit'] > 0 %}{{ "{:,.2f}".format(acc['credit']) }}{% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="3" style="padding: 8px 10px 8px 20px; font-size: 11px; color: #999; font-style: italic;">
+                            No liability accounts
+                        </td>
+                    </tr>
+                {% endif %}
+                
+                <!-- ========== INCOME SECTION ========== -->
+                <tr style="background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%); border-top: 2px solid #ddd;">
+                    <td colspan="3" style="padding: 10px; font-weight: 700; font-size: 14px; color: #1b5e20; border-bottom: 2px solid #43a047;">
+                        INCOME
+                    </td>
+                </tr>
+                {% if income_accounts %}
+                    {% for acc in income_accounts %}
+                    <tr style="border-bottom: 1px solid #e9ecef;">
+                        <td style="padding: 8px 10px 8px 20px; font-size: 12px; color: #333;">
+                            {{ acc['account_name'] }}
+                        </td>
+                        <td style="padding: 8px 10px; text-align: right; font-size: 12px; font-family: 'Courier New', monospace; border-left: 1px solid #e9ecef;">
+                            {% if acc['debit'] > 0 %}{{ "{:,.2f}".format(acc['debit']) }}{% endif %}
+                        </td>
+                        <td style="padding: 8px 10px; text-align: right; font-size: 12px; font-family: 'Courier New', monospace; border-left: 1px solid #e9ecef;">
+                            {% if acc['credit'] > 0 %}{{ "{:,.2f}".format(acc['credit']) }}{% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="3" style="padding: 8px 10px 8px 20px; font-size: 11px; color: #999; font-style: italic;">
+                            No income accounts
+                        </td>
+                    </tr>
+                {% endif %}
+                
+                <!-- ========== EXPENSES SECTION ========== -->
+                <tr style="background: linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%); border-top: 2px solid #ddd;">
+                    <td colspan="3" style="padding: 10px; font-weight: 700; font-size: 14px; color: #e65100; border-bottom: 2px solid #f57c00;">
+                        EXPENSES
+                    </td>
+                </tr>
+                {% if expense_accounts %}
+                    {% for acc in expense_accounts %}
+                    <tr style="border-bottom: 1px solid #e9ecef;">
+                        <td style="padding: 8px 10px 8px 20px; font-size: 12px; color: #333;">
+                            {{ acc['account_name'] }}
+                        </td>
+                        <td style="padding: 8px 10px; text-align: right; font-size: 12px; font-family: 'Courier New', monospace; border-left: 1px solid #e9ecef;">
+                            {% if acc['debit'] > 0 %}{{ "{:,.2f}".format(acc['debit']) }}{% endif %}
+                        </td>
+                        <td style="padding: 8px 10px; text-align: right; font-size: 12px; font-family: 'Courier New', monospace; border-left: 1px solid #e9ecef;">
+                            {% if acc['credit'] > 0 %}{{ "{:,.2f}".format(acc['credit']) }}{% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="3" style="padding: 8px 10px 8px 20px; font-size: 11px; color: #999; font-style: italic;">
+                            No expense accounts
+                        </td>
+                    </tr>
+                {% endif %}
+                
+                <!-- ========== GRAND TOTAL ========== -->
+                <tr style="background: linear-gradient(135deg, #f3e5f5 0%, #e1bee7 100%); border-top: 3px solid #000;">
+                    <td style="padding: 15px; font-weight: 700; font-size: 16px; color: #000;">
+                        GRAND TOTAL
+                    </td>
+                    <td style="padding: 15px; text-align: right; font-weight: 700; font-size: 16px; font-family: 'Courier New', monospace; border-left: 2px solid #000; {% if total_debit != total_credit %}color: #d32f2f;{% endif %}">
+                        {{ "{:,.2f}".format(total_debit) }}
+                    </td>
+                    <td style="padding: 15px; text-align: right; font-weight: 700; font-size: 16px; font-family: 'Courier New', monospace; border-left: 2px solid #000; {% if total_debit != total_credit %}color: #d32f2f;{% endif %}">
+                        {{ "{:,.2f}".format(total_credit) }}
+                    </td>
+                </tr>
+                
+                <!-- DIFFERENCE ROW (if not balanced) -->
+                {% if not is_balanced %}
+                <tr style="background: #ffcdd2; border-top: 2px solid #d32f2f;">
+                    <td style="padding: 10px; font-weight: 700; font-size: 14px; color: #b71c1c;">
+                        ⚠️ DIFFERENCE (Out of Balance)
+                    </td>
+                    <td colspan="2" style="padding: 10px; text-align: right; font-weight: 700; font-size: 14px; font-family: 'Courier New', monospace; color: #b71c1c; border-left: 2px solid #d32f2f;">
+                        {{ "{:,.2f}".format(abs(difference)) }}
+                    </td>
+                </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+    
+    <!-- Balance Status Card -->
+    <div style="background: {% if is_balanced %}linear-gradient(135deg, #11998e 0%, #38ef7d 100%){% else %}linear-gradient(135deg, #fc4a1a 0%, #f7b733 100%){% endif %}; color: white; border-radius: 12px; padding: 20px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.2); margin-top: 25px;">
+        {% if is_balanced %}
+        <div style="font-size: 20px; font-weight: 700; margin-bottom: 8px;">✅ Trial Balance is Balanced!</div>
+        <div style="font-size: 14px; opacity: 0.9;">
+            Total Debits (₹{{ "{:,.2f}".format(total_debit) }}) = Total Credits (₹{{ "{:,.2f}".format(total_credit) }})
+        </div>
+        <div style="font-size: 12px; opacity: 0.8; margin-top: 8px;">
+            Your double-entry bookkeeping is accurate. All transactions are properly recorded.
+        </div>
+        {% else %}
+        <div style="font-size: 20px; font-weight: 700; margin-bottom: 8px;">⚠️ Trial Balance is Out of Balance!</div>
+        <div style="font-size: 14px; opacity: 0.9;">
+            Difference: ₹{{ "{:,.2f}".format(abs(difference)) }}
+        </div>
+        <div style="font-size: 12px; opacity: 0.8; margin-top: 8px;">
+            Total Debits (₹{{ "{:,.2f}".format(total_debit) }}) ≠ Total Credits (₹{{ "{:,.2f}".format(total_credit) }})
+        </div>
+        <div style="font-size: 11px; opacity: 0.7; margin-top: 10px; border-top: 1px solid rgba(255,255,255,0.3); padding-top: 10px;">
+            This indicates data entry errors or missing transactions. Review your records and ensure all entries follow double-entry accounting principles.
+        </div>
+        {% endif %}
+    </div>
+    
+    <!-- Info Card -->
+    <div style="background: #fff9c4; border-left: 4px solid #f57f17; padding: 15px; border-radius: 4px; margin-top: 20px;">
+        <div style="font-size: 13px; font-weight: 600; color: #f57f17; margin-bottom: 5px;">ℹ️ About Trial Balance</div>
+        <div style="font-size: 12px; color: #555; line-height: 1.6;">
+            The Trial Balance verifies that your accounting system is balanced. In double-entry bookkeeping, every transaction affects at least two accounts - one debit and one credit. 
+            The total of all debits should always equal the total of all credits. If they don't match, it indicates an error in recording transactions.
+            <br><br>
+            <strong>Assets & Expenses</strong> normally have <strong>debit balances</strong> (left side).<br>
+            <strong>Liabilities, Income & Equity</strong> normally have <strong>credit balances</strong> (right side).
+        </div>
+    </div>
+</div>
+
+<style>
+/* Tally-Style Ledger Formatting */
+.tally-ledger table tbody tr:hover {
+    background: #f0f8ff !important;
+}
+
+.tally-ledger table tbody tr {
+    transition: background 0.2s ease;
+}
+
+@media print {
+    .sidebar, .btn, .nav-header, button, form {
+        display: none !important;
+    }
+    
+    body {
+        background: white !important;
+    }
+    
+    .container-fluid {
+        padding: 20px !important;
+    }
+    
+    .tally-ledger {
+        border: 2px solid #000 !important;
+        page-break-inside: avoid;
+    }
+    
+    .tally-ledger table {
+        border-collapse: collapse !important;
+    }
+    
+    .tally-ledger td, .tally-ledger th {
+        border: 1px solid #000 !important;
+    }
+    
+    div[style*="background: linear-gradient"],
+    div[style*="background: #fff9c4"] {
+        display: none !important;
+    }
+}
+</style>
+
+{% endblock %}
+

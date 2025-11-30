@@ -1804,3 +1804,214 @@ def profit_loss():
                          profit_margin=float(profit_margin),
                          tenant=g.tenant)
 
+
+@accounts_bp.route('/reports/trial-balance', methods=['GET'])
+@require_tenant
+@login_required
+def trial_balance():
+    """Trial Balance - Verify double-entry bookkeeping (Total Debits = Total Credits)"""
+    from datetime import datetime
+    import pytz
+    
+    tenant_id = get_current_tenant_id()
+    ist = pytz.timezone('Asia/Kolkata')
+    
+    # Get as_of_date from query params (default: today)
+    as_of_date_str = request.args.get('as_of_date')
+    if as_of_date_str:
+        as_of_date = datetime.strptime(as_of_date_str, '%Y-%m-%d').date()
+    else:
+        as_of_date = datetime.now(ist).date()
+    
+    # ====================
+    # COLLECT ALL ACCOUNT HEADS WITH DEBIT/CREDIT TOTALS
+    # ====================
+    
+    accounts = []
+    
+    # 1. Bank & Cash Accounts (Assets - Debit Balance)
+    cash_bank_accounts = db.session.execute(text("""
+        SELECT 
+            account_name,
+            account_type,
+            current_balance
+        FROM bank_accounts
+        WHERE tenant_id = :tenant_id 
+        AND is_active = TRUE
+        ORDER BY account_name
+    """), {'tenant_id': tenant_id}).fetchall()
+    
+    for acc in cash_bank_accounts:
+        balance = Decimal(str(acc[2]))
+        accounts.append({
+            'account_name': f"{acc[0]} ({'Cash' if acc[1] == 'cash' else 'Bank'})",
+            'category': 'Assets',
+            'debit': balance if balance >= 0 else Decimal('0'),
+            'credit': abs(balance) if balance < 0 else Decimal('0')
+        })
+    
+    # 2. Accounts Receivable (Assets - Debit Balance)
+    receivables = db.session.execute(text("""
+        SELECT 
+            customer_name,
+            SUM(total_amount - COALESCE(paid_amount, 0)) as outstanding
+        FROM invoices
+        WHERE tenant_id = :tenant_id 
+        AND payment_status != 'paid'
+        AND invoice_date <= :as_of_date
+        GROUP BY customer_name
+        HAVING SUM(total_amount - COALESCE(paid_amount, 0)) > 0
+        ORDER BY customer_name
+    """), {'tenant_id': tenant_id, 'as_of_date': as_of_date}).fetchall()
+    
+    receivables_total = sum(Decimal(str(r[1])) for r in receivables) if receivables else Decimal('0')
+    if receivables_total > 0:
+        accounts.append({
+            'account_name': 'Accounts Receivable (Debtors)',
+            'category': 'Assets',
+            'debit': receivables_total,
+            'credit': Decimal('0')
+        })
+    
+    # 3. Inventory (Assets - Debit Balance)
+    inventory_value = db.session.execute(text("""
+        SELECT COALESCE(SUM(quantity * COALESCE(price_per_unit, 0)), 0)
+        FROM materials
+        WHERE tenant_id = :tenant_id
+    """), {'tenant_id': tenant_id}).fetchone()[0] or Decimal('0')
+    
+    if Decimal(str(inventory_value)) > 0:
+        accounts.append({
+            'account_name': 'Inventory (Stock)',
+            'category': 'Assets',
+            'debit': Decimal(str(inventory_value)),
+            'credit': Decimal('0')
+        })
+    
+    # 4. Accounts Payable (Liabilities - Credit Balance)
+    payables = db.session.execute(text("""
+        SELECT 
+            vendor_name,
+            SUM(total_amount - COALESCE(paid_amount, 0)) as outstanding
+        FROM purchase_bills
+        WHERE tenant_id = :tenant_id 
+        AND payment_status != 'paid'
+        AND bill_date <= :as_of_date
+        GROUP BY vendor_name
+        HAVING SUM(total_amount - COALESCE(paid_amount, 0)) > 0
+        ORDER BY vendor_name
+    """), {'tenant_id': tenant_id, 'as_of_date': as_of_date}).fetchall()
+    
+    payables_total = sum(Decimal(str(p[1])) for p in payables) if payables else Decimal('0')
+    if payables_total > 0:
+        accounts.append({
+            'account_name': 'Accounts Payable (Creditors)',
+            'category': 'Liabilities',
+            'debit': Decimal('0'),
+            'credit': payables_total
+        })
+    
+    # 5. Sales Revenue (Income - Credit Balance)
+    # Calculate total sales up to as_of_date
+    total_sales = db.session.execute(text("""
+        SELECT COALESCE(SUM(total_amount), 0)
+        FROM invoices
+        WHERE tenant_id = :tenant_id 
+        AND invoice_date <= :as_of_date
+    """), {'tenant_id': tenant_id, 'as_of_date': as_of_date}).fetchone()[0] or Decimal('0')
+    
+    if Decimal(str(total_sales)) > 0:
+        accounts.append({
+            'account_name': 'Sales Revenue',
+            'category': 'Income',
+            'debit': Decimal('0'),
+            'credit': Decimal(str(total_sales))
+        })
+    
+    # 6. Purchase Expenses (Expense - Debit Balance)
+    total_purchases = db.session.execute(text("""
+        SELECT COALESCE(SUM(total_amount), 0)
+        FROM purchase_bills
+        WHERE tenant_id = :tenant_id 
+        AND bill_date <= :as_of_date
+    """), {'tenant_id': tenant_id, 'as_of_date': as_of_date}).fetchone()[0] or Decimal('0')
+    
+    if Decimal(str(total_purchases)) > 0:
+        accounts.append({
+            'account_name': 'Purchase Expenses (COGS)',
+            'category': 'Expenses',
+            'debit': Decimal(str(total_purchases)),
+            'credit': Decimal('0')
+        })
+    
+    # 7. Operating Expenses (Expense - Debit Balance)
+    operating_expenses = db.session.execute(text("""
+        SELECT 
+            expense_category,
+            SUM(amount) as total
+        FROM expenses
+        WHERE tenant_id = :tenant_id 
+        AND expense_date <= :as_of_date
+        GROUP BY expense_category
+        ORDER BY expense_category
+    """), {'tenant_id': tenant_id, 'as_of_date': as_of_date}).fetchall()
+    
+    for exp in operating_expenses:
+        category = exp[0] or 'General Expenses'
+        amount = Decimal(str(exp[1]))
+        if amount > 0:
+            accounts.append({
+                'account_name': f"{category} (Operating)",
+                'category': 'Expenses',
+                'debit': amount,
+                'credit': Decimal('0')
+            })
+    
+    # 8. Employee Expenses (Expense - Debit Balance)
+    employee_expenses_total = db.session.execute(text("""
+        SELECT COALESCE(SUM(credit_amount), 0)
+        FROM account_transactions
+        WHERE tenant_id = :tenant_id 
+        AND reference_type = 'employee'
+        AND transaction_type = 'employee_expense'
+        AND transaction_date <= :as_of_date
+    """), {'tenant_id': tenant_id, 'as_of_date': as_of_date}).fetchone()[0] or Decimal('0')
+    
+    if Decimal(str(employee_expenses_total)) > 0:
+        accounts.append({
+            'account_name': 'Employee Expenses',
+            'category': 'Expenses',
+            'debit': Decimal(str(employee_expenses_total)),
+            'credit': Decimal('0')
+        })
+    
+    # ====================
+    # CALCULATE TOTALS
+    # ====================
+    
+    # Group accounts by category
+    assets_accounts = [acc for acc in accounts if acc['category'] == 'Assets']
+    liabilities_accounts = [acc for acc in accounts if acc['category'] == 'Liabilities']
+    income_accounts = [acc for acc in accounts if acc['category'] == 'Income']
+    expense_accounts = [acc for acc in accounts if acc['category'] == 'Expenses']
+    
+    # Calculate grand totals
+    total_debit = sum(acc['debit'] for acc in accounts)
+    total_credit = sum(acc['credit'] for acc in accounts)
+    
+    # Calculate difference (should be zero in a balanced system)
+    difference = total_debit - total_credit
+    is_balanced = (difference == 0)
+    
+    return render_template('admin/accounts/reports/trial_balance.html',
+                         as_of_date=as_of_date,
+                         assets_accounts=assets_accounts,
+                         liabilities_accounts=liabilities_accounts,
+                         income_accounts=income_accounts,
+                         expense_accounts=expense_accounts,
+                         total_debit=float(total_debit),
+                         total_credit=float(total_credit),
+                         difference=float(difference),
+                         is_balanced=is_balanced,
+                         tenant=g.tenant)
+
