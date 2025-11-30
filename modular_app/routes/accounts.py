@@ -1723,24 +1723,25 @@ def profit_loss():
     
     total_purchases = sum(Decimal(str(bill[3])) for bill in purchase_expenses_detail)
     
-    # 2. Operating Expenses (from Expenses table)
+    # 2. Operating Expenses (from Expenses table with category JOIN)
     operating_expenses_detail = db.session.execute(text("""
         SELECT 
-            expense_date,
-            expense_category,
-            amount,
-            description,
-            payment_method
-        FROM expenses
-        WHERE tenant_id = :tenant_id 
-        AND expense_date BETWEEN :start_date AND :end_date
-        ORDER BY expense_date DESC
+            e.expense_date,
+            COALESCE(ec.name, 'General') as category_name,
+            e.amount,
+            e.description,
+            e.payment_method
+        FROM expenses e
+        LEFT JOIN expense_categories ec ON e.category_id = ec.id
+        WHERE e.tenant_id = :tenant_id 
+        AND e.expense_date BETWEEN :start_date AND :end_date
+        ORDER BY e.expense_date DESC
     """), {'tenant_id': tenant_id, 'start_date': start_date, 'end_date': end_date}).fetchall()
     
     # Group operating expenses by category
     operating_expenses_by_category = {}
     for exp in operating_expenses_detail:
-        category = exp[1] or 'General'
+        category = exp[1]  # Already has COALESCE to 'General' in SQL
         if category not in operating_expenses_by_category:
             operating_expenses_by_category[category] = Decimal('0')
         operating_expenses_by_category[category] += Decimal(str(exp[2]))
@@ -1945,17 +1946,18 @@ def trial_balance():
     # 7. Operating Expenses (Expense - Debit Balance)
     operating_expenses = db.session.execute(text("""
         SELECT 
-            expense_category,
-            SUM(amount) as total
-        FROM expenses
-        WHERE tenant_id = :tenant_id 
-        AND expense_date <= :as_of_date
-        GROUP BY expense_category
-        ORDER BY expense_category
+            COALESCE(ec.name, 'General Expenses') as category_name,
+            SUM(e.amount) as total
+        FROM expenses e
+        LEFT JOIN expense_categories ec ON e.category_id = ec.id
+        WHERE e.tenant_id = :tenant_id 
+        AND e.expense_date <= :as_of_date
+        GROUP BY ec.name
+        ORDER BY ec.name
     """), {'tenant_id': tenant_id, 'as_of_date': as_of_date}).fetchall()
     
     for exp in operating_expenses:
-        category = exp[0] or 'General Expenses'
+        category = exp[0]  # Already has COALESCE to 'General Expenses'
         amount = Decimal(str(exp[1]))
         if amount > 0:
             accounts.append({
