@@ -30,6 +30,9 @@
                                oninput="searchVendors(this.value)">
                         <div id="vendor_dropdown" class="autocomplete-dropdown"></div>
                     </div>
+                    <small class="help-text" style="display: block; margin-top: 8px; color: #666; font-size: 13px;">
+                        Don't see your vendor? <a href="javascript:void(0)" onclick="openAddVendorModal()" style="color: #667eea; font-weight: 600; text-decoration: none;">➕ Add Vendor</a>
+                    </small>
                     <input type="hidden" id="vendor_id" name="vendor_id">
                 </div>
             </div>
@@ -780,6 +783,302 @@ function validatePurchaseBillForm() {
 
 // Close dropdowns on outside click
 // Click handler already added above - no duplicate needed
+
+// ========================================
+// VENDOR MODAL FUNCTIONS
+// ========================================
+
+function openAddVendorModal() {
+    document.getElementById('addVendorModal').style.display = 'flex';
+    document.getElementById('newVendorName').focus();
+}
+
+function closeAddVendorModal() {
+    document.getElementById('addVendorModal').style.display = 'none';
+    document.getElementById('addVendorForm').reset();
+}
+
+function submitVendor(event) {
+    event.preventDefault();
+    
+    const form = event.target;
+    const formData = new FormData(form);
+    const submitBtn = form.querySelector('button[type="submit"]');
+    
+    // Disable button
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '⏳ Adding...';
+    
+    fetch('{{ url_for("vendors.add") }}', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.text())
+    .then(html => {
+        // Success! Auto-fill the vendor details in the purchase bill form
+        const vendorName = formData.get('name');
+        const vendorPhone = formData.get('phone');
+        const vendorEmail = formData.get('email');
+        const vendorGstin = formData.get('gstin');
+        const vendorState = formData.get('state');
+        const vendorAddress = formData.get('address');
+        
+        // Check if vendor was added successfully
+        if (html.includes('successfully') || html.includes('added')) {
+            // Fill the purchase bill form
+            document.getElementById('vendor_name').value = vendorName;
+            document.getElementById('vendor_phone').value = vendorPhone || '';
+            document.getElementById('vendor_email').value = vendorEmail || '';
+            document.getElementById('vendor_gstin').value = vendorGstin || '';
+            document.getElementById('vendor_state').value = vendorState || 'Maharashtra';
+            document.getElementById('vendor_address').value = vendorAddress || '';
+            
+            // Clear the search box
+            if (document.getElementById('vendor_search')) {
+                document.getElementById('vendor_search').value = vendorName;
+            }
+            
+            // Show success message
+            alert(`✅ Vendor "${vendorName}" added successfully!`);
+            closeAddVendorModal();
+        } else {
+            alert('❌ Error adding vendor. Please try again.');
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '💾 Save Vendor';
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('❌ Error adding vendor. Please try again.');
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '💾 Save Vendor';
+    });
+}
+
+// Close modal on Escape key
+document.addEventListener('keydown', function(event) {
+    if (event.key === 'Escape') {
+        const modal = document.getElementById('addVendorModal');
+        if (modal && modal.style.display === 'flex') {
+            closeAddVendorModal();
+        }
+    }
+});
+
+// Close modal on outside click
+document.addEventListener('click', function(event) {
+    const modal = document.getElementById('addVendorModal');
+    if (modal && event.target === modal) {
+        closeAddVendorModal();
+    }
+});
 </script>
+
+<!-- Add Vendor Modal -->
+<div id="addVendorModal" class="modal" style="display: none;">
+    <div class="modal-content" style="max-width: 700px;">
+        <div class="modal-header">
+            <h3 style="margin: 0; font-size: 20px; font-weight: 600;">➕ Add New Vendor</h3>
+            <button onclick="closeAddVendorModal()" class="modal-close" style="background: none; border: none; font-size: 24px; cursor: pointer; color: #999;">&times;</button>
+        </div>
+        <form id="addVendorForm" onsubmit="submitVendor(event)">
+            <div class="modal-body">
+                <!-- Basic Details -->
+                <div class="modal-form-row">
+                    <div class="form-group">
+                        <label class="field-label field-label--required">Vendor Name</label>
+                        <input type="text" name="name" id="newVendorName" class="form-control" required placeholder="Enter vendor name">
+                    </div>
+                    <div class="form-group">
+                        <label class="field-label">Phone Number</label>
+                        <input type="tel" name="phone" class="form-control" placeholder="9876543210">
+                    </div>
+                </div>
+                
+                <div class="modal-form-row">
+                    <div class="form-group">
+                        <label class="field-label">Email Address</label>
+                        <input type="email" name="email" class="form-control" placeholder="vendor@example.com">
+                    </div>
+                    <div class="form-group">
+                        <label class="field-label">GSTIN</label>
+                        <input type="text" name="gstin" class="form-control" placeholder="27XXXXX1234X1Z5" maxlength="15">
+                    </div>
+                </div>
+                
+                <div class="modal-form-row">
+                    <div class="form-group">
+                        <label class="field-label field-label--required">State</label>
+                        <select name="state" class="form-control" required>
+                            <option value="">Select State</option>
+                            <option value="Andhra Pradesh">Andhra Pradesh</option>
+                            <option value="Arunachal Pradesh">Arunachal Pradesh</option>
+                            <option value="Assam">Assam</option>
+                            <option value="Bihar">Bihar</option>
+                            <option value="Chhattisgarh">Chhattisgarh</option>
+                            <option value="Goa">Goa</option>
+                            <option value="Gujarat">Gujarat</option>
+                            <option value="Haryana">Haryana</option>
+                            <option value="Himachal Pradesh">Himachal Pradesh</option>
+                            <option value="Jharkhand">Jharkhand</option>
+                            <option value="Karnataka">Karnataka</option>
+                            <option value="Kerala">Kerala</option>
+                            <option value="Madhya Pradesh">Madhya Pradesh</option>
+                            <option value="Maharashtra" selected>Maharashtra</option>
+                            <option value="Manipur">Manipur</option>
+                            <option value="Meghalaya">Meghalaya</option>
+                            <option value="Mizoram">Mizoram</option>
+                            <option value="Nagaland">Nagaland</option>
+                            <option value="Odisha">Odisha</option>
+                            <option value="Punjab">Punjab</option>
+                            <option value="Rajasthan">Rajasthan</option>
+                            <option value="Sikkim">Sikkim</option>
+                            <option value="Tamil Nadu">Tamil Nadu</option>
+                            <option value="Telangana">Telangana</option>
+                            <option value="Tripura">Tripura</option>
+                            <option value="Uttar Pradesh">Uttar Pradesh</option>
+                            <option value="Uttarakhand">Uttarakhand</option>
+                            <option value="West Bengal">West Bengal</option>
+                            <option value="Delhi">Delhi</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="field-label">Opening Balance (₹)</label>
+                        <input type="number" name="opening_balance" class="form-control" step="0.01" value="0" placeholder="0">
+                    </div>
+                </div>
+                
+                <div class="modal-form-row modal-form-row--single">
+                    <div class="form-group">
+                        <label class="field-label">Address</label>
+                        <textarea name="address" class="form-control" rows="2" placeholder="Shop/Building, Street, Area, City"></textarea>
+                    </div>
+                </div>
+                
+                <div class="modal-form-row">
+                    <div class="form-group">
+                        <label class="field-label">Credit Limit (₹)</label>
+                        <input type="number" name="credit_limit" class="form-control" step="0.01" min="0" value="0" placeholder="50000">
+                        <small class="help-text">0 = No limit</small>
+                    </div>
+                    <div class="form-group">
+                        <label class="field-label">Payment Terms (Days)</label>
+                        <input type="number" name="payment_terms_days" class="form-control" min="0" value="30" placeholder="30">
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" onclick="closeAddVendorModal()" class="btn btn-secondary">Cancel</button>
+                <button type="submit" class="btn btn-primary">💾 Save Vendor</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<style>
+/* Modal Styles */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 9999;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
+    align-items: center;
+    justify-content: center;
+    overflow-y: auto;
+}
+
+.modal-content {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+    width: 90%;
+    max-width: 700px;
+    max-height: 90vh;
+    overflow-y: auto;
+    animation: modalSlideIn 0.3s ease;
+    margin: 20px;
+}
+
+@keyframes modalSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-50px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 25px;
+    border-bottom: 2px solid #f0f0f0;
+    position: sticky;
+    top: 0;
+    background: white;
+    z-index: 1;
+}
+
+.modal-body {
+    padding: 25px;
+}
+
+.modal-footer {
+    padding: 15px 25px;
+    border-top: 2px solid #f0f0f0;
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    position: sticky;
+    bottom: 0;
+    background: white;
+    z-index: 1;
+}
+
+.modal-close {
+    transition: all 0.2s ease;
+}
+
+.modal-close:hover {
+    transform: scale(1.2);
+    color: #dc3545 !important;
+}
+
+.modal-form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    margin-bottom: 15px;
+}
+
+.modal-form-row--single {
+    grid-template-columns: 1fr;
+}
+
+.modal-form-row .form-group {
+    margin-bottom: 0;
+}
+
+.field-label--required::after {
+    content: ' *';
+    color: #dc3545;
+}
+
+.help-text {
+    display: block;
+    font-size: 12px;
+    color: #666;
+    margin-top: 4px;
+}
+</style>
+
 {% endblock %}
 
