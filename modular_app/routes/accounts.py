@@ -130,11 +130,14 @@ def create_account():
         
         account_id = result.fetchone()[0]  # Get the returned ID (PostgreSQL way)
         
-        # If opening balance > 0, create opening balance transaction (DEBIT side only)
-        # NOTE: For proper double-entry bookkeeping, after setting ALL opening balances,
-        # run: /migrate/fix-opening-balances to create the balancing CREDIT entry
-        # This is standard practice - set all opening balances first, then balance them
+        # ==========================================
+        # AUTOMATIC DOUBLE-ENTRY FOR OPENING BALANCE
+        # ==========================================
+        # Enterprise Solution: NO manual migration needed!
+        # When opening balance is set, BOTH entries are created automatically
+        
         if opening_balance > 0:
+            # Entry 1: DEBIT to the new account (Asset)
             db.session.execute(text("""
                 INSERT INTO account_transactions
                 (tenant_id, account_id, transaction_date, transaction_type,
@@ -148,6 +151,30 @@ def create_account():
                 'narration': f'Opening balance - {account_name}', 'created_at': now,
                 'created_by': None
             })
+            
+            # Entry 2: CREDIT to Opening Balance - Equity (balancing entry)
+            # Uses account_id = NULL to represent Owner's Equity (virtual account)
+            db.session.execute(text("""
+                INSERT INTO account_transactions
+                (tenant_id, account_id, transaction_date, transaction_type,
+                 debit_amount, credit_amount, balance_after, reference_type, reference_id,
+                 voucher_number, narration, created_at, created_by)
+                VALUES (:tenant_id, NULL, :transaction_date, :transaction_type,
+                        :debit_amount, :credit_amount, :balance_after, :reference_type, :reference_id,
+                        :voucher_number, :narration, :created_at, :created_by)
+            """), {
+                'tenant_id': tenant_id, 'transaction_date': now.date(),
+                'transaction_type': 'opening_balance_equity', 'debit_amount': 0.00,
+                'credit_amount': opening_balance, 'balance_after': opening_balance,
+                'reference_type': 'bank_account', 'reference_id': account_id,
+                'voucher_number': f'OB-{account_id}',
+                'narration': f'Opening balance equity - {account_name}', 'created_at': now,
+                'created_by': None
+            })
+            
+            print(f"✅ Created double-entry for opening balance: ₹{opening_balance:,.2f}")
+            print(f"   Debit: {account_name} (Account #{account_id})")
+            print(f"   Credit: Opening Balance - Equity")
         
         db.session.commit()
         

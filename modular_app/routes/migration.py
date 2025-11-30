@@ -3371,6 +3371,161 @@ def create_missing_invoice_payment(invoice_number):
         }), 500
 
 
+@migration_bp.route('/diagnose-all-imbalances')
+def diagnose_all_imbalances():
+    """
+    COMPREHENSIVE DIAGNOSTIC: Find ALL causes of Trial Balance imbalance
+    Not just opening balances - checks ALL transaction types
+    Access: /migrate/diagnose-all-imbalances
+    """
+    try:
+        tenant_id = get_current_tenant_id()
+        from decimal import Decimal
+        
+        print("=" * 80)
+        print("🔍 COMPREHENSIVE TRIAL BALANCE DIAGNOSTIC")
+        print("=" * 80)
+        
+        # Get ALL transactions grouped by type
+        transactions_by_type = db.session.execute(text("""
+            SELECT 
+                transaction_type,
+                COUNT(*) as count,
+                SUM(debit_amount) as total_debit,
+                SUM(credit_amount) as total_credit
+            FROM account_transactions
+            WHERE tenant_id = :tenant_id
+            GROUP BY transaction_type
+            ORDER BY transaction_type
+        """), {'tenant_id': tenant_id}).fetchall()
+        
+        # Get current bank/cash account balances
+        bank_accounts = db.session.execute(text("""
+            SELECT account_name, account_type, opening_balance, current_balance
+            FROM bank_accounts
+            WHERE tenant_id = :tenant_id AND is_active = TRUE
+            ORDER BY account_name
+        """), {'tenant_id': tenant_id}).fetchall()
+        
+        # Calculate totals
+        grand_debit = sum(Decimal(str(t[2])) for t in transactions_by_type)
+        grand_credit = sum(Decimal(str(t[3])) for t in transactions_by_type)
+        difference = grand_debit - grand_credit
+        
+        # Analyze by transaction type
+        analysis = []
+        for txn_type in transactions_by_type:
+            type_name = txn_type[0]
+            count = txn_type[1]
+            debit = Decimal(str(txn_type[2]))
+            credit = Decimal(str(txn_type[3]))
+            balance = debit - credit
+            
+            analysis.append({
+                'type': type_name,
+                'count': count,
+                'total_debit': float(debit),
+                'total_credit': float(credit),
+                'difference': float(balance),
+                'is_balanced': (balance == 0)
+            })
+        
+        # Find specific issues
+        issues = []
+        
+        # Check 1: Opening balances
+        opening_debits = sum(float(a['total_debit']) for a in analysis if a['type'] == 'opening_balance')
+        opening_credits = sum(float(a['total_credit']) for a in analysis if a['type'] == 'opening_balance_equity')
+        
+        if opening_debits != opening_credits:
+            issues.append({
+                'issue': 'Opening Balances Unbalanced',
+                'description': f'Opening balance debits (₹{opening_debits:,.2f}) != equity credits (₹{opening_credits:,.2f})',
+                'difference': opening_debits - opening_credits,
+                'fix': 'Run: /migrate/fix-opening-balances'
+            })
+        
+        # Check 2: Invoices without account transactions
+        invoice_issues = db.session.execute(text("""
+            SELECT COUNT(*) 
+            FROM invoices
+            WHERE tenant_id = :tenant_id 
+            AND payment_status = 'paid'
+            AND id NOT IN (
+                SELECT CAST(reference_id AS INTEGER)
+                FROM account_transactions
+                WHERE tenant_id = :tenant_id 
+                AND reference_type = 'invoice'
+            )
+        """), {'tenant_id': tenant_id}).fetchone()[0]
+        
+        if invoice_issues > 0:
+            issues.append({
+                'issue': 'Paid Invoices Missing Ledger Entries',
+                'description': f'{invoice_issues} paid invoices have no account_transactions entry',
+                'count': invoice_issues,
+                'fix': 'These invoices were paid before accounting module was added'
+            })
+        
+        # Check 3: Missing Cash in Hand opening balance
+        cash_accounts_with_balance = [acc for acc in bank_accounts if acc[3] > 0]  # current_balance > 0
+        cash_accounts_with_txn = db.session.execute(text("""
+            SELECT DISTINCT ba.account_name
+            FROM bank_accounts ba
+            JOIN account_transactions at ON ba.id = at.account_id
+            WHERE ba.tenant_id = :tenant_id 
+            AND at.transaction_type = 'opening_balance'
+        """), {'tenant_id': tenant_id}).fetchall()
+        
+        cash_names_with_txn = {row[0] for row in cash_accounts_with_txn}
+        missing_opening_balances = [
+            acc for acc in cash_accounts_with_balance 
+            if acc[0] not in cash_names_with_txn and acc[2] > 0  # opening_balance > 0
+        ]
+        
+        if missing_opening_balances:
+            issues.append({
+                'issue': 'Accounts Missing Opening Balance Transaction',
+                'description': f'{len(missing_opening_balances)} accounts have opening_balance but no opening_balance transaction',
+                'accounts': [
+                    {'name': acc[0], 'opening_balance': float(acc[2])}
+                    for acc in missing_opening_balances
+                ],
+                'fix': 'Need to create opening_balance transactions for these accounts'
+            })
+        
+        return jsonify({
+            'status': 'info',
+            'message': f'🔍 Found {len(issues)} issue(s) causing imbalance',
+            'trial_balance': {
+                'total_debit': float(grand_debit),
+                'total_credit': float(grand_credit),
+                'difference': float(difference),
+                'is_balanced': (difference == 0)
+            },
+            'transactions_by_type': analysis,
+            'bank_accounts': [
+                {
+                    'name': acc[0],
+                    'type': acc[1],
+                    'opening_balance': float(acc[2]),
+                    'current_balance': float(acc[3])
+                }
+                for acc in bank_accounts
+            ],
+            'issues_found': issues,
+            'recommendation': 'Run: /migrate/fix-all-accounting-issues to fix all issues at once'
+        })
+        
+    except Exception as e:
+        import traceback
+        return jsonify({
+            'status': 'error',
+            'message': f'❌ Diagnostic failed: {str(e)}',
+            'traceback': traceback.format_exc()
+        }), 500
+
+
 @migration_bp.route('/diagnose-opening-balances')
 def diagnose_opening_balances():
     """
@@ -3511,7 +3666,73 @@ def fix_opening_balances():
             """), {'tenant_id': tenant_id})
             print(f"✅ Deleted {len(existing_equity)} old equity entries")
         
-        # Step 2: Get all opening balance transactions (the debit side)
+        # Step 2: Get ALL bank/cash accounts with their opening balances
+        all_accounts = db.session.execute(text("""
+            SELECT 
+                id,
+                account_name,
+                account_type,
+                opening_balance,
+                current_balance
+            FROM bank_accounts
+            WHERE tenant_id = :tenant_id
+            AND is_active = TRUE
+            ORDER BY id
+        """), {'tenant_id': tenant_id}).fetchall()
+        
+        # Step 2b: Check which accounts have opening_balance transactions
+        existing_ob_txns = db.session.execute(text("""
+            SELECT DISTINCT account_id
+            FROM account_transactions
+            WHERE tenant_id = :tenant_id
+            AND transaction_type = 'opening_balance'
+        """), {'tenant_id': tenant_id}).fetchall()
+        
+        accounts_with_ob = {row[0] for row in existing_ob_txns}
+        
+        # Step 2c: Get earliest transaction date (for consistency)
+        earliest_existing = db.session.execute(text("""
+            SELECT MIN(transaction_date)
+            FROM account_transactions
+            WHERE tenant_id = :tenant_id
+            AND transaction_type = 'opening_balance'
+        """), {'tenant_id': tenant_id}).fetchone()[0]
+        
+        base_date = earliest_existing if earliest_existing else now.date()
+        
+        # Step 2d: Create missing opening balance transactions
+        missing_count = 0
+        for acc in all_accounts:
+            acc_id = acc[0]
+            acc_name = acc[1]
+            opening_bal = Decimal(str(acc[3]))
+            
+            if opening_bal > 0 and acc_id not in accounts_with_ob:
+                print(f"  ⚠️ {acc_name} has opening balance ₹{opening_bal:,.2f} but NO transaction!")
+                print(f"     Creating missing opening balance transaction...")
+                
+                db.session.execute(text("""
+                    INSERT INTO account_transactions
+                    (tenant_id, account_id, transaction_date, transaction_type,
+                     debit_amount, credit_amount, balance_after, narration, created_at, created_by)
+                    VALUES (:tenant_id, :account_id, :transaction_date, :transaction_type,
+                            :debit_amount, :credit_amount, :balance_after, :narration, :created_at, :created_by)
+                """), {
+                    'tenant_id': tenant_id, 'account_id': acc_id, 'transaction_date': base_date,
+                    'transaction_type': 'opening_balance', 'debit_amount': float(opening_bal),
+                    'credit_amount': 0.00, 'balance_after': float(opening_bal),
+                    'narration': f'Opening balance - {acc_name} (Auto-created by migration)', 'created_at': now,
+                    'created_by': None
+                })
+                missing_count += 1
+                print(f"     ✅ Created opening balance transaction for {acc_name}")
+        
+        if missing_count > 0:
+            print(f"\n✅ Created {missing_count} missing opening balance transaction(s)")
+            db.session.flush()  # Flush to make new transactions visible
+            print()
+        
+        # Step 3: Get all opening balance transactions (the debit side)
         opening_balances = db.session.execute(text("""
             SELECT 
                 at.id,
