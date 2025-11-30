@@ -105,7 +105,7 @@
                                     title="Edit Account">
                                 ✏️
                             </button>
-                            {% if account[2] != 'cash' %}
+                            {% if not account[7] %}
                             <form method="POST" action="{{ url_for('accounts.delete_account', account_id=account[0]) }}" style="display: inline;">
                                 <button type="submit" 
                                         class="btn btn-danger" 
