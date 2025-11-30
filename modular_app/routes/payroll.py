@@ -99,7 +99,7 @@ def pay_salary():
                 'total': float(total_amount),
                 'account_id': int(account_id) if account_id else None,
                 'created_at': now,
-                'created_by': session.get('tenant_admin_id')
+                'created_by': None
             })
             payroll_id = result.fetchone()[0]
             
