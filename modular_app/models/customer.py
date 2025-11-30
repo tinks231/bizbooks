@@ -103,18 +103,23 @@ class Customer(db.Model):
     @staticmethod
     def generate_customer_code(tenant_id):
         """Generate next customer code for tenant"""
-        last_customer = Customer.query.filter_by(tenant_id=tenant_id)\
-            .order_by(Customer.id.desc()).first()
+        # Get all customers for this tenant
+        customers = Customer.query.filter_by(tenant_id=tenant_id).all()
         
-        if last_customer and last_customer.customer_code:
-            # Extract number from CUST-0001 format
-            try:
-                last_number = int(last_customer.customer_code.split('-')[1])
-                next_number = last_number + 1
-            except (IndexError, ValueError):
-                next_number = 1
-        else:
-            next_number = 1
+        if not customers:
+            return "CUST-0001"
         
+        # Find the highest customer code number
+        max_number = 0
+        for customer in customers:
+            if customer.customer_code and customer.customer_code.startswith('CUST-'):
+                try:
+                    # Extract number from CUST-0001 format
+                    number = int(customer.customer_code.split('-')[1])
+                    max_number = max(max_number, number)
+                except (IndexError, ValueError):
+                    continue
+        
+        next_number = max_number + 1
         return f"CUST-{next_number:04d}"
 

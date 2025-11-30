@@ -57,18 +57,23 @@ class Vendor(db.Model):
     @staticmethod
     def generate_vendor_code(tenant_id):
         """Generate next vendor code for tenant"""
-        last_vendor = Vendor.query.filter_by(tenant_id=tenant_id)\
-            .order_by(Vendor.id.desc()).first()
+        # Get all vendors for this tenant
+        vendors = Vendor.query.filter_by(tenant_id=tenant_id).all()
         
-        if last_vendor and last_vendor.vendor_code:
-            # Extract number from VEND-0001 format
-            try:
-                last_number = int(last_vendor.vendor_code.split('-')[1])
-                next_number = last_number + 1
-            except (IndexError, ValueError):
-                next_number = 1
-        else:
-            next_number = 1
+        if not vendors:
+            return "VEND-0001"
         
+        # Find the highest vendor code number
+        max_number = 0
+        for vendor in vendors:
+            if vendor.vendor_code and vendor.vendor_code.startswith('VEND-'):
+                try:
+                    # Extract number from VEND-0001 format
+                    number = int(vendor.vendor_code.split('-')[1])
+                    max_number = max(max_number, number)
+                except (IndexError, ValueError):
+                    continue
+        
+        next_number = max_number + 1
         return f"VEND-{next_number:04d}"
 
