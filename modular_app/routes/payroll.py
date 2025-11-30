@@ -275,6 +275,20 @@ def debug_employees():
     from flask import g
     tenant_id = g.tenant.id if hasattr(g, 'tenant') and g.tenant else session.get('tenant_id')
     
+    # First, check if columns exist
+    try:
+        columns_check = db.session.execute(text("""
+            SELECT column_name 
+            FROM information_schema.columns 
+            WHERE table_name = 'employees' 
+            AND column_name IN ('monthly_salary', 'designation', 'date_of_joining')
+            ORDER BY column_name
+        """)).fetchall()
+        
+        existing_columns = [col[0] for col in columns_check]
+    except Exception as e:
+        existing_columns = f"Error checking columns: {str(e)}"
+    
     employees = db.session.execute(text("""
         SELECT 
             id,
@@ -306,9 +320,11 @@ def debug_employees():
     return jsonify({
         'status': 'success',
         'tenant_id': tenant_id,
+        'database_columns_exist': existing_columns,
         'total_employees': len(employees),
         'employees': result,
-        'employees_with_salary': [e for e in result if e['monthly_salary'] != 'NULL' and float(e['monthly_salary']) > 0]
+        'employees_with_salary': [e for e in result if e['monthly_salary'] != 'NULL' and float(e['monthly_salary']) > 0],
+        'migration_url': '/migrate/add-payroll-tables'
     })
 
 

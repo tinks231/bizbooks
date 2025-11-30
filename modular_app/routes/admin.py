@@ -424,9 +424,27 @@ def edit_employee(emp_id):
     
     # PAYROLL FIELDS
     monthly_salary = request.form.get('monthly_salary')
-    employee.monthly_salary = float(monthly_salary) if monthly_salary else None
-    employee.designation = request.form.get('designation') if request.form.get('designation') else None
-    employee.date_of_joining = request.form.get('date_of_joining') if request.form.get('date_of_joining') else None
+    designation = request.form.get('designation')
+    date_of_joining = request.form.get('date_of_joining')
+    
+    # DEBUG: Print what we received
+    print(f"[PAYROLL DEBUG] Received data for {employee.name}:")
+    print(f"  - monthly_salary (form): {monthly_salary}")
+    print(f"  - designation (form): {designation}")
+    print(f"  - date_of_joining (form): {date_of_joining}")
+    
+    try:
+        employee.monthly_salary = float(monthly_salary) if monthly_salary else None
+        employee.designation = designation if designation else None
+        employee.date_of_joining = date_of_joining if date_of_joining else None
+        
+        print(f"[PAYROLL DEBUG] Setting employee attributes:")
+        print(f"  - employee.monthly_salary: {employee.monthly_salary}")
+        print(f"  - employee.designation: {employee.designation}")
+        print(f"  - employee.date_of_joining: {employee.date_of_joining}")
+    except Exception as e:
+        print(f"[PAYROLL ERROR] Failed to set payroll fields: {str(e)}")
+        flash(f"⚠️ Warning: Payroll fields may not have been saved: {str(e)}", 'warning')
     
     site_id = request.form.get('site_id')
     if site_id == '' or not site_id:
