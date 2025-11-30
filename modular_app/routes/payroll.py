@@ -336,6 +336,95 @@ def test_update_employee(emp_id):
         })
 
 
+@payroll_bp.route('/debug-payments')
+@require_tenant
+@login_required
+def debug_payments():
+    """Debug: Check if salary payments exist in database"""
+    from flask import g
+    tenant_id = g.tenant.id if hasattr(g, 'tenant') and g.tenant else session.get('tenant_id')
+    
+    # Check payroll_payments
+    payroll_payments = db.session.execute(text("""
+        SELECT id, payment_month, payment_year, payment_date, total_amount, paid_from_account_id
+        FROM payroll_payments
+        WHERE tenant_id = :tenant_id
+        ORDER BY payment_year DESC, payment_month DESC
+    """), {'tenant_id': tenant_id}).fetchall()
+    
+    # Check salary_slips
+    salary_slips = db.session.execute(text("""
+        SELECT id, employee_id, payment_month, payment_year, salary_amount, payment_date
+        FROM salary_slips
+        WHERE tenant_id = :tenant_id
+        ORDER BY payment_year DESC, payment_month DESC
+    """), {'tenant_id': tenant_id}).fetchall()
+    
+    # Check account_transactions for salary payments
+    salary_transactions = db.session.execute(text("""
+        SELECT id, account_id, transaction_date, transaction_type, debit_amount, credit_amount, 
+               balance_after, reference_type, reference_id, voucher_number
+        FROM account_transactions
+        WHERE tenant_id = :tenant_id
+        AND transaction_type = 'salary_payment'
+        ORDER BY transaction_date DESC
+    """), {'tenant_id': tenant_id}).fetchall()
+    
+    # Check bank account balance
+    bank_accounts = db.session.execute(text("""
+        SELECT id, account_name, current_balance
+        FROM bank_accounts
+        WHERE tenant_id = :tenant_id
+        ORDER BY account_name
+    """), {'tenant_id': tenant_id}).fetchall()
+    
+    return jsonify({
+        'status': 'success',
+        'tenant_id': tenant_id,
+        'payroll_payments': [
+            {
+                'id': p[0],
+                'month': p[1],
+                'year': p[2],
+                'date': str(p[3]),
+                'total': float(p[4]),
+                'account_id': p[5]
+            } for p in payroll_payments
+        ],
+        'salary_slips': [
+            {
+                'id': s[0],
+                'employee_id': s[1],
+                'month': s[2],
+                'year': s[3],
+                'amount': float(s[4]),
+                'date': str(s[5])
+            } for s in salary_slips
+        ],
+        'salary_transactions': [
+            {
+                'id': t[0],
+                'account_id': t[1],
+                'date': str(t[2]),
+                'type': t[3],
+                'debit': float(t[4]),
+                'credit': float(t[5]),
+                'balance': float(t[6]),
+                'ref_type': t[7],
+                'ref_id': t[8],
+                'voucher': t[9]
+            } for t in salary_transactions
+        ],
+        'bank_accounts': [
+            {
+                'id': b[0],
+                'name': b[1],
+                'balance': float(b[2])
+            } for b in bank_accounts
+        ]
+    })
+
+
 @payroll_bp.route('/debug-employees')
 @require_tenant
 @login_required
