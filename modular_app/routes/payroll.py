@@ -60,6 +60,10 @@ def pay_salary():
             account_id = request.form.get('account_id')
             selected_employees = request.form.getlist('employee_ids')
             
+            # Get the month/year being paid from the form (not from GET params!)
+            payment_month = int(request.form.get('payment_month', selected_month))
+            payment_year = int(request.form.get('payment_year', selected_year))
+            
             if not selected_employees:
                 flash('⚠️ Please select at least one employee', 'warning')
                 return redirect(url_for('payroll.pay_salary'))
@@ -97,8 +101,8 @@ def pay_salary():
                 RETURNING id
             """), {
                 'tenant_id': tenant_id,
-                'month': selected_month,
-                'year': selected_year,
+                'month': payment_month,
+                'year': payment_year,
                 'date': payment_date,
                 'total': float(total_amount),
                 'account_id': int(account_id) if account_id else None,
@@ -119,8 +123,8 @@ def pay_salary():
                     'tenant_id': tenant_id,
                     'payroll_id': payroll_id,
                     'emp_id': emp[0],
-                    'month': selected_month,
-                    'year': selected_year,
+                    'month': payment_month,
+                    'year': payment_year,
                     'amount': float(emp[2]),
                     'date': payment_date,
                     'method': 'Cash',
@@ -171,7 +175,7 @@ def pay_salary():
             db.session.commit()
             
             flash(f'✅ Salary paid to {len(employees_to_pay)} employee(s) - Total: ₹{total_amount:,.2f}', 'success')
-            return redirect(url_for('payroll.salary_register'))
+            return redirect(url_for('payroll.salary_register', month=payment_month, year=payment_year))
             
         except Exception as e:
             db.session.rollback()

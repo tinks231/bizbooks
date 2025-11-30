@@ -46,6 +46,10 @@
 {% if employees %}
 <!-- Payment Form -->
 <form method="POST" action="{{ url_for('payroll.pay_salary') }}" onsubmit="return confirmPayment()">
+    <!-- Hidden inputs to preserve selected month/year -->
+    <input type="hidden" name="payment_month" value="{{ selected_month }}">
+    <input type="hidden" name="payment_year" value="{{ selected_year }}">
+    
     <div class="card" style="margin-bottom: 20px;">
         <div class="card-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px 20px;">
             <h3 style="margin: 0; font-size: 18px; font-weight: 600;">
