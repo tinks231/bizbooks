@@ -64,72 +64,82 @@
         </form>
     </div>
     
-    <!-- Transactions Table -->
-    <div class="statement-table" style="background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); overflow: hidden;">
+    <!-- Transactions Table (Tally Style - Same as Employee Ledger) -->
+    <div class="tally-ledger" style="background: white; border: 1px solid #ddd; border-radius: 4px; overflow: hidden;">
         {% if transactions %}
-        <table style="width: 100%; border-collapse: collapse;">
-            <thead style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
-                <tr>
-                    <th style="padding: 15px; text-align: left; font-weight: 600; font-size: 13px; text-transform: uppercase;">Date</th>
-                    <th style="padding: 15px; text-align: left; font-weight: 600; font-size: 13px; text-transform: uppercase;">Particulars</th>
-                    <th style="padding: 15px; text-align: left; font-weight: 600; font-size: 13px; text-transform: uppercase;">Voucher</th>
-                    <th style="padding: 15px; text-align: right; font-weight: 600; font-size: 13px; text-transform: uppercase;">Debit (₹)</th>
-                    <th style="padding: 15px; text-align: right; font-weight: 600; font-size: 13px; text-transform: uppercase;">Credit (₹)</th>
-                    <th style="padding: 15px; text-align: right; font-weight: 600; font-size: 13px; text-transform: uppercase;">Balance (₹)</th>
+        <table style="width: 100%; border-collapse: collapse; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">
+            <thead>
+                <tr style="background: #f8f9fa; border-bottom: 2px solid #333;">
+                    <th style="padding: 10px; text-align: left; font-weight: 600; font-size: 12px; border-right: 1px solid #ddd; width: 10%;">DATE</th>
+                    <th style="padding: 10px; text-align: left; font-weight: 600; font-size: 12px; border-right: 1px solid #ddd; width: 40%;">PARTICULARS</th>
+                    <th style="padding: 10px; text-align: center; font-weight: 600; font-size: 12px; border-right: 1px solid #ddd; width: 15%;">VCH NO.</th>
+                    <th style="padding: 10px; text-align: right; font-weight: 600; font-size: 12px; border-right: 1px solid #ddd; width: 17.5%;">DEBIT</th>
+                    <th style="padding: 10px; text-align: right; font-weight: 600; font-size: 12px; width: 17.5%;">CREDIT</th>
                 </tr>
             </thead>
             <tbody>
                 {% for txn in transactions %}
-                <tr style="border-bottom: 1px solid #f0f0f0;">
-                    <td style="padding: 15px;">
-                        {{ txn[0].strftime('%d %b %Y') }}
+                <tr style="border-bottom: 1px solid #e9ecef;">
+                    <td style="padding: 8px; border-right: 1px solid #ddd; font-size: 13px; color: #333;">
+                        {{ txn[0].strftime('%d-%b-%y') }}
                     </td>
-                    <td style="padding: 15px;">
-                        <div style="font-weight: 600; color: #2c3e50;">
-                            {% if txn[1] == 'opening_balance' %}💰 Opening Balance
-                            {% elif txn[1] == 'invoice_payment' %}📄 Invoice Payment
-                            {% elif txn[1] == 'bill_payment' %}📋 Bill Payment
-                            {% elif txn[1] == 'expense' %}💸 Expense
-                            {% elif txn[1] == 'contra' %}🔄 Contra
-                            {% elif txn[1] == 'employee_advance' %}👷 Employee Advance
+                    <td style="padding: 8px; border-right: 1px solid #ddd; font-size: 13px;">
+                        <div style="font-weight: 500; color: #333;">
+                            {% if txn[1] == 'opening_balance' %}Opening Balance
+                            {% elif txn[1] == 'invoice_payment' %}Invoice Payment
+                            {% elif txn[1] == 'bill_payment' %}Bill Payment
+                            {% elif txn[1] == 'expense' %}Expense
+                            {% elif txn[1] == 'contra' %}Contra Transfer
+                            {% elif txn[1] == 'employee_advance' %}Employee Advance
                             {% else %}{{ txn[1]|title }}{% endif %}
                         </div>
                         {% if txn[5] %}
-                        <div style="font-size: 12px; color: #666; margin-top: 4px;">{{ txn[5] }}</div>
+                        <div style="font-size: 11px; color: #666; margin-top: 2px;">{{ txn[5] }}</div>
                         {% endif %}
                     </td>
-                    <td style="padding: 15px;">
-                        {% if txn[6] %}
-                        <span style="background: #e3f2fd; color: #1976d2; padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 600;">
-                            {{ txn[6] }}
-                        </span>
-                        {% else %}-{% endif %}
+                    <td style="padding: 8px; border-right: 1px solid #ddd; text-align: center; font-size: 12px; color: #666;">
+                        {% if txn[6] %}{{ txn[6][:20] }}{% else %}-{% endif %}
                     </td>
-                    <td style="padding: 15px; text-align: right;">
-                        {% if txn[2] > 0 %}
-                        <span style="color: #28a745; font-weight: 600;">{{ "{:,.2f}".format(txn[2]) }}</span>
-                        {% else %}-{% endif %}
+                    <td style="padding: 8px; border-right: 1px solid #ddd; text-align: right; font-size: 13px; font-family: 'Courier New', monospace;">
+                        {% if txn[2] > 0 %}{{ "{:,.2f}".format(txn[2]) }}{% endif %}
                     </td>
-                    <td style="padding: 15px; text-align: right;">
-                        {% if txn[3] > 0 %}
-                        <span style="color: #dc3545; font-weight: 600;">{{ "{:,.2f}".format(txn[3]) }}</span>
-                        {% else %}-{% endif %}
-                    </td>
-                    <td style="padding: 15px; text-align: right;">
-                        <span style="font-size: 16px; font-weight: 700; color: {% if txn[4] > 0 %}#28a745{% elif txn[4] < 0 %}#dc3545{% else %}#6c757d{% endif %};">
-                            {{ "{:,.2f}".format(txn[4]) }}
-                        </span>
+                    <td style="padding: 8px; text-align: right; font-size: 13px; font-family: 'Courier New', monospace;">
+                        {% if txn[3] > 0 %}{{ "{:,.2f}".format(txn[3]) }}{% endif %}
                     </td>
                 </tr>
                 {% endfor %}
                 
-                <!-- Summary Row -->
-                <tr style="background: #f8f9fa; font-weight: 700;">
-                    <td colspan="3" style="padding: 15px; text-align: right;">TOTAL:</td>
-                    <td style="padding: 15px; text-align: right; color: #28a745;">{{ "{:,.2f}".format(total_debit) }}</td>
-                    <td style="padding: 15px; text-align: right; color: #dc3545;">{{ "{:,.2f}".format(total_credit) }}</td>
-                    <td style="padding: 15px; text-align: right; font-size: 18px;">
-                        ₹{{ "{:,.2f}".format(account[6]) }}
+                <!-- Opening Balance Row -->
+                <tr style="background: #fffbf0; border-top: 2px solid #333;">
+                    <td style="padding: 8px; border-right: 1px solid #ddd; font-size: 13px;"></td>
+                    <td style="padding: 8px; border-right: 1px solid #ddd; font-size: 13px; font-weight: 600; color: #000;">Opening Balance</td>
+                    <td style="padding: 8px; border-right: 1px solid #ddd; text-align: center; font-size: 13px;"></td>
+                    <td style="padding: 8px; border-right: 1px solid #ddd; text-align: right; font-size: 13px; font-weight: 600; font-family: 'Courier New', monospace;">{{ "{:,.2f}".format(account[5]) }}</td>
+                    <td style="padding: 8px; text-align: right; font-size: 13px;"></td>
+                </tr>
+                
+                <!-- Current Balance Row -->
+                <tr style="background: #f8f9fa; border-bottom: 2px solid #333;">
+                    <td style="padding: 10px; border-right: 1px solid #ddd; font-size: 13px;"></td>
+                    <td style="padding: 10px; border-right: 1px solid #ddd; font-size: 13px; font-weight: 700; color: #000;">Current Balance</td>
+                    <td style="padding: 10px; border-right: 1px solid #ddd;"></td>
+                    <td style="padding: 10px; border-right: 1px solid #ddd; text-align: right; font-size: 14px; font-weight: 700; font-family: 'Courier New', monospace; color: #000;">
+                        {{ "{:,.2f}".format(total_debit) }}
+                    </td>
+                    <td style="padding: 10px; text-align: right; font-size: 14px; font-weight: 700; font-family: 'Courier New', monospace; color: #000;">
+                        {{ "{:,.2f}".format(total_credit) }}
+                    </td>
+                </tr>
+                
+                <!-- Closing Balance Row -->
+                <tr style="background: #fffbf0; font-weight: 700;">
+                    <td style="padding: 10px; border-right: 1px solid #ddd; font-size: 13px;"></td>
+                    <td style="padding: 10px; border-right: 1px solid #ddd; font-size: 13px; font-weight: 700; color: #000;">Closing Balance</td>
+                    <td style="padding: 10px; border-right: 1px solid #ddd;"></td>
+                    <td style="padding: 10px; border-right: 1px solid #ddd; text-align: right; font-size: 14px; font-weight: 700; font-family: 'Courier New', monospace; color: #000;">
+                        {{ "{:,.2f}".format(account[6]) }}
+                    </td>
+                    <td style="padding: 10px; text-align: right; font-size: 14px; font-weight: 700; font-family: 'Courier New', monospace; color: #000;">
                     </td>
                 </tr>
             </tbody>
@@ -149,23 +159,42 @@
 </div>
 
 <style>
-/* Table Hover Effects */
-.statement-table tbody tr {
-    transition: background 0.2s ease;
+/* Tally-Style Ledger */
+.tally-ledger {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
-.statement-table tbody tr:hover {
-    background: #f8f9ff !important;
+.tally-ledger table {
+    font-size: 13px;
+}
+
+.tally-ledger tbody tr {
+    transition: background 0.15s ease;
+}
+
+.tally-ledger tbody tr:hover:not(:nth-last-child(-n+3)) {
+    background: #f8f9fa !important;
+}
+
+/* Print-friendly */
+@media print {
+    .tally-ledger {
+        border: 2px solid #000 !important;
+    }
+    
+    .tally-ledger table {
+        font-size: 11px;
+    }
 }
 
 /* Responsive */
 @media (max-width: 768px) {
-    .statement-table {
+    .tally-ledger {
         overflow-x: auto;
     }
     
-    .statement-table table {
-        min-width: 600px;
+    .tally-ledger table {
+        min-width: 900px;
     }
 }
 </style>
