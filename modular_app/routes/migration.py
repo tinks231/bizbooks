@@ -3573,6 +3573,340 @@ def fix_all_accounting_issues():
         }), 500
 
 
+@migration_bp.route('/diagnose-trial-balance-detailed')
+def diagnose_trial_balance_detailed():
+    """
+    DETAILED DIAGNOSTIC: Show EXACTLY where each rupee is
+    Compares Trial Balance calculation vs Ledger entries
+    Shows the exact source of discrepancies
+    Access: /migrate/diagnose-trial-balance-detailed
+    """
+    try:
+        tenant_id = get_current_tenant_id()
+        ist = pytz.timezone('Asia/Kolkata')
+        now = datetime.now(ist)
+        from decimal import Decimal
+        
+        print("=" * 80)
+        print("🔍 DETAILED TRIAL BALANCE DIAGNOSTIC")
+        print("=" * 80)
+        
+        diagnosis = {
+            'assets': [],
+            'liabilities': [],
+            'income': [],
+            'expenses': [],
+            'summary': {}
+        }
+        
+        # =====================================================
+        # ASSETS
+        # =====================================================
+        print("\n📊 ASSETS (Should be DEBIT side):")
+        
+        # 1. Bank & Cash Accounts
+        cash_bank = db.session.execute(text("""
+            SELECT 
+                account_name,
+                account_type,
+                opening_balance,
+                current_balance
+            FROM bank_accounts
+            WHERE tenant_id = :tenant_id AND is_active = TRUE
+            ORDER BY account_name
+        """), {'tenant_id': tenant_id}).fetchall()
+        
+        for acc in cash_bank:
+            balance = Decimal(str(acc[3]))
+            
+            # Check if has opening balance transaction
+            has_ob_txn = db.session.execute(text("""
+                SELECT COUNT(*) FROM account_transactions
+                WHERE tenant_id = :tenant_id 
+                AND account_id = (SELECT id FROM bank_accounts WHERE account_name = :acc_name AND tenant_id = :tenant_id)
+                AND transaction_type = 'opening_balance'
+            """), {'tenant_id': tenant_id, 'acc_name': acc[0]}).fetchone()[0]
+            
+            diagnosis['assets'].append({
+                'account': f"{acc[0]} ({acc[1]})",
+                'trial_balance_shows': float(balance),
+                'opening_balance_in_table': float(acc[2]),
+                'current_balance': float(balance),
+                'has_opening_txn': has_ob_txn > 0,
+                'issue': '✅ OK' if has_ob_txn > 0 or acc[2] == 0 else f'⚠️ No opening balance transaction!'
+            })
+            
+            print(f"  {acc[0]}: ₹{balance:,.2f} (Opening: ₹{acc[2]:,.2f}, Has OB Txn: {has_ob_txn > 0})")
+        
+        # 2. Accounts Receivable
+        receivables = db.session.execute(text("""
+            SELECT 
+                COUNT(*) as invoice_count,
+                SUM(total_amount - COALESCE(paid_amount, 0)) as outstanding
+            FROM invoices
+            WHERE tenant_id = :tenant_id 
+            AND payment_status != 'paid'
+        """), {'tenant_id': tenant_id}).fetchone()
+        
+        receivables_amount = Decimal(str(receivables[1])) if receivables[1] else Decimal('0')
+        diagnosis['assets'].append({
+            'account': 'Accounts Receivable (Debtors)',
+            'trial_balance_shows': float(receivables_amount),
+            'invoice_count': receivables[0],
+            'issue': '✅ OK (unpaid invoices)'
+        })
+        print(f"  Accounts Receivable: ₹{receivables_amount:,.2f} ({receivables[0]} unpaid invoices)")
+        
+        # =====================================================
+        # LIABILITIES
+        # =====================================================
+        print("\n📊 LIABILITIES (Should be CREDIT side):")
+        
+        # Accounts Payable
+        payables = db.session.execute(text("""
+            SELECT 
+                COUNT(*) as bill_count,
+                SUM(total_amount - COALESCE(paid_amount, 0)) as outstanding
+            FROM purchase_bills
+            WHERE tenant_id = :tenant_id 
+            AND payment_status != 'paid'
+        """), {'tenant_id': tenant_id}).fetchone()
+        
+        payables_amount = Decimal(str(payables[1])) if payables[1] else Decimal('0')
+        diagnosis['liabilities'].append({
+            'account': 'Accounts Payable (Creditors)',
+            'trial_balance_shows': float(payables_amount),
+            'bill_count': payables[0],
+            'issue': '✅ OK (unpaid bills)'
+        })
+        print(f"  Accounts Payable: ₹{payables_amount:,.2f} ({payables[0]} unpaid bills)")
+        
+        # =====================================================
+        # INCOME (CREDIT SIDE)
+        # =====================================================
+        print("\n📊 INCOME (Should be CREDIT side):")
+        
+        # Sales Revenue - FROM INVOICES TABLE
+        sales_from_invoices = db.session.execute(text("""
+            SELECT 
+                COUNT(*) as total_invoices,
+                SUM(CASE WHEN payment_status = 'paid' THEN 1 ELSE 0 END) as paid_invoices,
+                SUM(total_amount) as total_sales
+            FROM invoices
+            WHERE tenant_id = :tenant_id
+        """), {'tenant_id': tenant_id}).fetchone()
+        
+        # Sales Revenue - FROM LEDGER (account_transactions)
+        sales_in_ledger = db.session.execute(text("""
+            SELECT 
+                COUNT(*) as txn_count,
+                SUM(debit_amount) as total_debit
+            FROM account_transactions
+            WHERE tenant_id = :tenant_id
+            AND transaction_type = 'invoice_payment'
+        """), {'tenant_id': tenant_id}).fetchone()
+        
+        total_sales = Decimal(str(sales_from_invoices[2])) if sales_from_invoices[2] else Decimal('0')
+        sales_in_ledger_amt = Decimal(str(sales_in_ledger[1])) if sales_in_ledger[1] else Decimal('0')
+        
+        sales_difference = total_sales - sales_in_ledger_amt
+        
+        diagnosis['income'].append({
+            'account': 'Sales Revenue',
+            'trial_balance_shows': float(total_sales),
+            'ledger_has': float(sales_in_ledger_amt),
+            'difference': float(sales_difference),
+            'total_invoices': sales_from_invoices[0],
+            'paid_invoices': sales_from_invoices[1],
+            'invoices_in_ledger': sales_in_ledger[0],
+            'missing_invoices': sales_from_invoices[1] - sales_in_ledger[0],
+            'issue': '✅ OK' if sales_difference == 0 else f'⚠️ Missing ₹{sales_difference:,.2f} in ledger!'
+        })
+        
+        print(f"  Sales Revenue (from invoices table): ₹{total_sales:,.2f}")
+        print(f"  Sales Revenue (in ledger):            ₹{sales_in_ledger_amt:,.2f}")
+        print(f"  DIFFERENCE:                           ₹{sales_difference:,.2f}")
+        print(f"  Total invoices: {sales_from_invoices[0]}, Paid: {sales_from_invoices[1]}, In Ledger: {sales_in_ledger[0]}")
+        print(f"  Missing: {sales_from_invoices[1] - sales_in_ledger[0]} paid invoices not in ledger!")
+        
+        # =====================================================
+        # EXPENSES (DEBIT SIDE)
+        # =====================================================
+        print("\n📊 EXPENSES (Should be DEBIT side):")
+        
+        # 1. Purchase Expenses - FROM BILLS TABLE
+        purchases_from_bills = db.session.execute(text("""
+            SELECT 
+                COUNT(*) as total_bills,
+                SUM(CASE WHEN payment_status = 'paid' THEN 1 ELSE 0 END) as paid_bills,
+                SUM(total_amount) as total_purchases
+            FROM purchase_bills
+            WHERE tenant_id = :tenant_id
+        """), {'tenant_id': tenant_id}).fetchone()
+        
+        # Purchase Expenses - FROM LEDGER
+        purchases_in_ledger = db.session.execute(text("""
+            SELECT 
+                COUNT(*) as txn_count,
+                SUM(credit_amount) as total_credit
+            FROM account_transactions
+            WHERE tenant_id = :tenant_id
+            AND transaction_type = 'bill_payment'
+        """), {'tenant_id': tenant_id}).fetchone()
+        
+        total_purchases = Decimal(str(purchases_from_bills[2])) if purchases_from_bills[2] else Decimal('0')
+        purchases_in_ledger_amt = Decimal(str(purchases_in_ledger[1])) if purchases_in_ledger[1] else Decimal('0')
+        purchases_difference = total_purchases - purchases_in_ledger_amt
+        
+        diagnosis['expenses'].append({
+            'account': 'Purchase Expenses (COGS)',
+            'trial_balance_shows': float(total_purchases),
+            'ledger_has': float(purchases_in_ledger_amt),
+            'difference': float(purchases_difference),
+            'total_bills': purchases_from_bills[0],
+            'paid_bills': purchases_from_bills[1],
+            'bills_in_ledger': purchases_in_ledger[0],
+            'issue': '✅ OK' if purchases_difference == 0 else f'⚠️ Missing ₹{purchases_difference:,.2f} in ledger!'
+        })
+        
+        print(f"  Purchase Expenses (from bills table): ₹{total_purchases:,.2f}")
+        print(f"  Purchase Expenses (in ledger):        ₹{purchases_in_ledger_amt:,.2f}")
+        print(f"  DIFFERENCE:                            ₹{purchases_difference:,.2f}")
+        
+        # 2. Operating Expenses - FROM EXPENSES TABLE
+        expenses_from_table = db.session.execute(text("""
+            SELECT 
+                COUNT(*) as total_expenses,
+                SUM(amount) as total_amount
+            FROM expenses
+            WHERE tenant_id = :tenant_id
+        """), {'tenant_id': tenant_id}).fetchone()
+        
+        # Operating Expenses - FROM LEDGER
+        expenses_in_ledger = db.session.execute(text("""
+            SELECT 
+                COUNT(*) as txn_count,
+                SUM(credit_amount) as total_credit
+            FROM account_transactions
+            WHERE tenant_id = :tenant_id
+            AND transaction_type = 'expense'
+        """), {'tenant_id': tenant_id}).fetchone()
+        
+        total_expenses = Decimal(str(expenses_from_table[1])) if expenses_from_table[1] else Decimal('0')
+        expenses_in_ledger_amt = Decimal(str(expenses_in_ledger[1])) if expenses_in_ledger[1] else Decimal('0')
+        expenses_difference = total_expenses - expenses_in_ledger_amt
+        
+        diagnosis['expenses'].append({
+            'account': 'Operating Expenses',
+            'trial_balance_shows': float(total_expenses),
+            'ledger_has': float(expenses_in_ledger_amt),
+            'difference': float(expenses_difference),
+            'total_expenses': expenses_from_table[0],
+            'expenses_in_ledger': expenses_in_ledger[0],
+            'issue': '✅ OK' if expenses_difference == 0 else f'⚠️ Missing ₹{expenses_difference:,.2f} in ledger!'
+        })
+        
+        print(f"  Operating Expenses (from expenses table): ₹{total_expenses:,.2f}")
+        print(f"  Operating Expenses (in ledger):           ₹{expenses_in_ledger_amt:,.2f}")
+        print(f"  DIFFERENCE:                               ₹{expenses_difference:,.2f}")
+        
+        # 3. Employee Expenses - FROM LEDGER ONLY
+        employee_expenses = db.session.execute(text("""
+            SELECT 
+                COUNT(*) as txn_count,
+                SUM(credit_amount) as total_amount
+            FROM account_transactions
+            WHERE tenant_id = :tenant_id
+            AND transaction_type = 'employee_expense'
+        """), {'tenant_id': tenant_id}).fetchone()
+        
+        emp_exp_amt = Decimal(str(employee_expenses[1])) if employee_expenses[1] else Decimal('0')
+        diagnosis['expenses'].append({
+            'account': 'Employee Expenses',
+            'trial_balance_shows': float(emp_exp_amt),
+            'ledger_has': float(emp_exp_amt),
+            'difference': 0.0,
+            'issue': '✅ OK (ledger-only)'
+        })
+        print(f"  Employee Expenses: ₹{emp_exp_amt:,.2f} (ledger-only, should match)")
+        
+        # =====================================================
+        # CALCULATE TOTALS & IDENTIFY ISSUE
+        # =====================================================
+        print("\n" + "=" * 80)
+        print("📊 SUMMARY OF DISCREPANCIES:")
+        print("=" * 80)
+        
+        total_discrepancy = sales_difference - purchases_difference - expenses_difference
+        
+        diagnosis['summary'] = {
+            'sales_missing_in_ledger': float(sales_difference),
+            'purchases_missing_in_ledger': float(purchases_difference),
+            'expenses_missing_in_ledger': float(expenses_difference),
+            'net_discrepancy': float(total_discrepancy),
+            'explanation': 'Sales increases CREDIT, Purchases/Expenses increase DEBIT'
+        }
+        
+        print(f"\n1. Sales Revenue MISSING in ledger:     +₹{sales_difference:,.2f} (CREDIT side short)")
+        print(f"2. Purchases MISSING in ledger:         +₹{purchases_difference:,.2f} (DEBIT side short)")
+        print(f"3. Operating Expenses MISSING in ledger: +₹{expenses_difference:,.2f} (DEBIT side short)")
+        print(f"\n   NET EFFECT on Trial Balance:")
+        print(f"   Credits short by: ₹{sales_difference:,.2f}")
+        print(f"   Debits short by:  ₹{purchases_difference + expenses_difference:,.2f}")
+        print(f"   ───────────────────────────────")
+        print(f"   NET DISCREPANCY:  ₹{abs(sales_difference - purchases_difference - expenses_difference):,.2f}")
+        
+        # =====================================================
+        # FINAL LEDGER CHECK
+        # =====================================================
+        print("\n" + "=" * 80)
+        print("📊 LEDGER TOTALS (account_transactions):")
+        print("=" * 80)
+        
+        ledger_totals = db.session.execute(text("""
+            SELECT 
+                SUM(debit_amount) as total_debit,
+                SUM(credit_amount) as total_credit
+            FROM account_transactions
+            WHERE tenant_id = :tenant_id
+        """), {'tenant_id': tenant_id}).fetchone()
+        
+        ledger_debit = Decimal(str(ledger_totals[0])) if ledger_totals[0] else Decimal('0')
+        ledger_credit = Decimal(str(ledger_totals[1])) if ledger_totals[1] else Decimal('0')
+        ledger_diff = ledger_debit - ledger_credit
+        
+        print(f"  Total Debits:  ₹{ledger_debit:,.2f}")
+        print(f"  Total Credits: ₹{ledger_credit:,.2f}")
+        print(f"  Difference:    ₹{ledger_diff:,.2f}")
+        
+        diagnosis['summary']['ledger_debit'] = float(ledger_debit)
+        diagnosis['summary']['ledger_credit'] = float(ledger_credit)
+        diagnosis['summary']['ledger_difference'] = float(ledger_diff)
+        
+        print("=" * 80)
+        
+        return jsonify({
+            'status': 'success',
+            'message': '🔍 Detailed diagnostic complete',
+            'diagnosis': diagnosis,
+            'key_findings': [
+                f"Sales: ₹{sales_difference:,.2f} missing from ledger ({sales_from_invoices[1] - sales_in_ledger[0]} paid invoices)",
+                f"Purchases: ₹{purchases_difference:,.2f} missing from ledger",
+                f"Expenses: ₹{expenses_difference:,.2f} missing from ledger",
+                f"Ledger imbalance: ₹{ledger_diff:,.2f}"
+            ],
+            'recommendation': 'These are historical transactions from before accounting module was added'
+        })
+        
+    except Exception as e:
+        import traceback
+        return jsonify({
+            'status': 'error',
+            'message': f'❌ Diagnostic failed: {str(e)}',
+            'traceback': traceback.format_exc()
+        }), 500
+
+
 @migration_bp.route('/diagnose-all-imbalances')
 def diagnose_all_imbalances():
     """
