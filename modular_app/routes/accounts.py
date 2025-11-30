@@ -2034,6 +2034,22 @@ def trial_balance():
             'credit': Decimal('0')
         })
     
+    # 9. Salary Expenses (Expense - Debit Balance)
+    salary_expenses_total = db.session.execute(text("""
+        SELECT COALESCE(SUM(salary_amount), 0)
+        FROM salary_slips
+        WHERE tenant_id = :tenant_id 
+        AND payment_date <= :as_of_date
+    """), {'tenant_id': tenant_id, 'as_of_date': as_of_date}).fetchone()[0] or Decimal('0')
+    
+    if Decimal(str(salary_expenses_total)) > 0:
+        accounts.append({
+            'account_name': 'Salary Expenses',
+            'category': 'Expenses',
+            'debit': Decimal(str(salary_expenses_total)),
+            'credit': Decimal('0')
+        })
+    
     # ====================
     # CALCULATE TOTALS
     # ====================

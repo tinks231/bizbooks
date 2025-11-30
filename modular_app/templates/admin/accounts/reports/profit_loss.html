@@ -237,6 +237,34 @@
                 </tr>
                 {% endif %}
                 
+                <!-- Salary Expenses -->
+                {% if total_salary_expenses > 0 %}
+                <tr>
+                    <td style="padding: 8px 10px 4px 20px; font-weight: 600; font-size: 13px; color: #666; border-bottom: 1px solid #f0f0f0;">
+                        Salary Expenses:
+                    </td>
+                    <td style="padding: 8px 10px 4px 10px; border-bottom: 1px solid #f0f0f0;"></td>
+                </tr>
+                {% for emp in salary_expenses_detail %}
+                <tr>
+                    <td style="padding: 4px 10px 4px 30px; font-size: 12px; color: #555; border-bottom: 1px solid #f9f9f9;">
+                        {{ emp[0] }} {% if emp[1] %}({{ emp[1] }}){% endif %}
+                    </td>
+                    <td style="padding: 4px 10px; text-align: right; font-size: 12px; font-family: 'Courier New', monospace; color: #dc3545; border-bottom: 1px solid #f9f9f9;">
+                        {{ "{:,.2f}".format(emp[2]) }}
+                    </td>
+                </tr>
+                {% endfor %}
+                <tr style="background: #f8d7da;">
+                    <td style="padding: 6px 10px; font-weight: 600; font-size: 12px; color: #000; border-bottom: 1px solid #ddd;">
+                        Total Salary Expenses
+                    </td>
+                    <td style="padding: 6px 10px; text-align: right; font-weight: 600; font-size: 13px; font-family: 'Courier New', monospace; color: #dc3545; border-bottom: 1px solid #ddd;">
+                        {{ "{:,.2f}".format(total_salary_expenses) }}
+                    </td>
+                </tr>
+                {% endif %}
+                
                 <!-- Total Expenses -->
                 <tr style="background: #f5c6cb; border-top: 2px solid #dc3545;">
                     <td style="padding: 12px; font-weight: 700; font-size: 15px; color: #721c24;">
