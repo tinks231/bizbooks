@@ -267,6 +267,51 @@ def salary_register():
                          tenant=g.tenant)
 
 
+@payroll_bp.route('/debug-employees')
+@require_tenant
+@login_required
+def debug_employees():
+    """Debug: Show all employees with their salary info"""
+    from flask import g
+    tenant_id = g.tenant.id if hasattr(g, 'tenant') and g.tenant else session.get('tenant_id')
+    
+    employees = db.session.execute(text("""
+        SELECT 
+            id,
+            name,
+            pin,
+            active,
+            monthly_salary,
+            designation,
+            date_of_joining,
+            site_id
+        FROM employees
+        WHERE tenant_id = :tenant_id
+        ORDER BY name
+    """), {'tenant_id': tenant_id}).fetchall()
+    
+    result = []
+    for emp in employees:
+        result.append({
+            'id': emp[0],
+            'name': emp[1],
+            'pin': emp[2],
+            'active': emp[3],
+            'monthly_salary': str(emp[4]) if emp[4] else 'NULL',
+            'designation': emp[5] if emp[5] else 'NULL',
+            'date_of_joining': str(emp[6]) if emp[6] else 'NULL',
+            'site_id': emp[7] if emp[7] else 'NULL'
+        })
+    
+    return jsonify({
+        'status': 'success',
+        'tenant_id': tenant_id,
+        'total_employees': len(employees),
+        'employees': result,
+        'employees_with_salary': [e for e in result if e['monthly_salary'] != 'NULL' and float(e['monthly_salary']) > 0]
+    })
+
+
 @payroll_bp.route('/salary-slip/<int:employee_id>')
 @require_tenant
 @login_required
