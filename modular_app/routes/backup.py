@@ -466,6 +466,10 @@ def restore_backup():
                 from decimal import Decimal
                 objects = []
                 for item_data in data_list:
+                    # CRITICAL: Replace old tenant_id with current tenant_id
+                    if 'tenant_id' in item_data:
+                        item_data['tenant_id'] = tenant_id
+                    
                     # Convert datetime/date strings back to datetime/date objects
                     for key, value in item_data.items():
                         if isinstance(value, str) and ('_at' in key or '_date' in key):
@@ -571,12 +575,14 @@ def restore_backup():
             if "payroll_payments" in data:
                 payroll_count = 0
                 for item in data["payroll_payments"]:
+                    # CRITICAL: Replace old tenant_id with current tenant_id
+                    item['tenant_id'] = tenant_id
                     db.session.execute(text("""
                         INSERT INTO payroll_payments 
                         (tenant_id, payment_month, payment_year, payment_date, total_amount, 
                          paid_from_account_id, notes, created_at, created_by)
-                        VALUES (:tenant_id, :month, :year, :date, :total, :account_id, 
-                                :notes, :created_at, :created_by)
+                        VALUES (:tenant_id, :payment_month, :payment_year, :payment_date, :total_amount, 
+                                :paid_from_account_id, :notes, :created_at, :created_by)
                         ON CONFLICT (tenant_id, payment_month, payment_year) DO NOTHING
                     """), item)
                     payroll_count += 1
@@ -586,6 +592,8 @@ def restore_backup():
             if "salary_slips" in data:
                 slips_count = 0
                 for item in data["salary_slips"]:
+                    # CRITICAL: Replace old tenant_id with current tenant_id
+                    item['tenant_id'] = tenant_id
                     db.session.execute(text("""
                         INSERT INTO salary_slips 
                         (tenant_id, payroll_payment_id, employee_id, payment_month, payment_year,
