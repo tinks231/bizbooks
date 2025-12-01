@@ -1115,7 +1115,7 @@ def employee_cash_return():
         """), {
             'tenant_id': tenant_id, 'account_id': target_account.id, 'transaction_date': txn_date,
             'transaction_type': 'employee_return', 'debit_amount': amount, 'credit_amount': Decimal('0.00'),
-            'balance_after': company_new_balance, 'reference_type': 'employee', 'reference_id': employee_id,
+            'balance_after': company_new_balance, 'reference_type': 'employee_return_received', 'reference_id': employee_id,
             'voucher_number': voucher_number,
             'narration': narration or f'Cash returned by {employee.name}',
             'created_at': now
