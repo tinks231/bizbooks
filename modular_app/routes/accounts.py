@@ -1798,6 +1798,13 @@ def profit_loss():
     total_employee_expenses = sum(Decimal(str(emp[1])) for emp in employee_expenses_detail)
     
     # 4. Salary Expenses (from Payroll)
+    # Uses payment_month/payment_year for accrual accounting
+    # (Salary belongs to the month worked, not when it was paid)
+    start_year = start_date.year
+    start_month = start_date.month
+    end_year = end_date.year
+    end_month = end_date.month
+    
     salary_expenses_detail = db.session.execute(text("""
         SELECT 
             e.name as employee_name,
@@ -1806,10 +1813,20 @@ def profit_loss():
         FROM salary_slips ss
         JOIN employees e ON ss.employee_id = e.id
         WHERE ss.tenant_id = :tenant_id 
-        AND ss.payment_date BETWEEN :start_date AND :end_date
+        AND (
+            (ss.payment_year = :start_year AND ss.payment_month >= :start_month)
+            OR (ss.payment_year > :start_year AND ss.payment_year < :end_year)
+            OR (ss.payment_year = :end_year AND ss.payment_month <= :end_month)
+        )
         GROUP BY e.id, e.name, e.designation
         ORDER BY total_salary DESC
-    """), {'tenant_id': tenant_id, 'start_date': start_date, 'end_date': end_date}).fetchall()
+    """), {
+        'tenant_id': tenant_id, 
+        'start_year': start_year,
+        'start_month': start_month,
+        'end_year': end_year,
+        'end_month': end_month
+    }).fetchall()
     
     total_salary_expenses = sum(Decimal(str(emp[2])) for emp in salary_expenses_detail) if salary_expenses_detail else Decimal('0')
     
