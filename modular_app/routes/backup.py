@@ -557,6 +557,45 @@ def restore_backup():
             if "payment_allocations" in data:
                 counts['payment_allocations'] = create_objects(PaymentAllocation, data["payment_allocations"])
             
+            # Bank & Cash Accounts (NEW - Accounting Module)
+            if "bank_accounts" in data:
+                from models.bank_account import BankAccount
+                counts['bank_accounts'] = create_objects(BankAccount, data["bank_accounts"])
+            
+            # Account Transactions (NEW - Accounting Module)
+            if "account_transactions" in data:
+                from models.bank_account import AccountTransaction
+                counts['account_transactions'] = create_objects(AccountTransaction, data["account_transactions"])
+            
+            # Payroll Payments (NEW - Payroll Module) - Raw SQL insert
+            if "payroll_payments" in data:
+                payroll_count = 0
+                for item in data["payroll_payments"]:
+                    db.session.execute(text("""
+                        INSERT INTO payroll_payments 
+                        (tenant_id, payment_month, payment_year, payment_date, total_amount, 
+                         paid_from_account_id, notes, created_at, created_by)
+                        VALUES (:tenant_id, :month, :year, :date, :total, :account_id, 
+                                :notes, :created_at, :created_by)
+                        ON CONFLICT (tenant_id, payment_month, payment_year) DO NOTHING
+                    """), item)
+                    payroll_count += 1
+                counts['payroll_payments'] = payroll_count
+            
+            # Salary Slips (NEW - Payroll Module) - Raw SQL insert
+            if "salary_slips" in data:
+                slips_count = 0
+                for item in data["salary_slips"]:
+                    db.session.execute(text("""
+                        INSERT INTO salary_slips 
+                        (tenant_id, payroll_payment_id, employee_id, payment_month, payment_year,
+                         salary_amount, payment_date, payment_method, notes, created_at)
+                        VALUES (:tenant_id, :payroll_payment_id, :employee_id, :payment_month, :payment_year,
+                                :salary_amount, :payment_date, :payment_method, :notes, :created_at)
+                    """), item)
+                    slips_count += 1
+                counts['salary_slips'] = slips_count
+            
             # COMMIT TRANSACTION
             db.session.commit()
             
