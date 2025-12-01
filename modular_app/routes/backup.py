@@ -266,42 +266,45 @@ def download_backup():
         allocations = PaymentAllocation.query.join(VendorPayment).filter(VendorPayment.tenant_id == tenant_id).all()
         backup_data["data"]["payment_allocations"] = [serialize_model(a) for a in allocations]
         
-        # Bank & Cash Accounts (NEW - Accounting Module)
-        from models.bank_account import BankAccount, AccountTransaction
-        accounts = BankAccount.query.filter_by(tenant_id=tenant_id).all()
-        backup_data["data"]["bank_accounts"] = [serialize_model(acc) for acc in accounts]
-        backup_data["metadata"]["bank_accounts_count"] = len(accounts)
+        # Bank & Cash Accounts (NEW - Accounting Module) - Skip if not migrated
+        try:
+            from models.bank_account import BankAccount, AccountTransaction
+            accounts = BankAccount.query.filter_by(tenant_id=tenant_id).all()
+            backup_data["data"]["bank_accounts"] = [serialize_model(acc) for acc in accounts]
+            backup_data["metadata"]["bank_accounts_count"] = len(accounts)
+            
+            # Account Transactions (includes contra, employee advances, etc.)
+            transactions = AccountTransaction.query.filter_by(tenant_id=tenant_id).all()
+            backup_data["data"]["account_transactions"] = [serialize_model(t) for t in transactions]
+            backup_data["metadata"]["account_transactions_count"] = len(transactions)
+        except Exception as e:
+            print(f"⚠️ Skipping bank_accounts (not migrated yet): {e}")
+            backup_data["data"]["bank_accounts"] = []
+            backup_data["data"]["account_transactions"] = []
         
-        # Account Transactions (NEW - Accounting Module)
-        transactions = AccountTransaction.query.filter_by(tenant_id=tenant_id).all()
-        backup_data["data"]["account_transactions"] = [serialize_model(t) for t in transactions]
-        backup_data["metadata"]["account_transactions_count"] = len(transactions)
+        # Payroll Payments (NEW - Payroll Module) - Skip if table doesn't exist
+        try:
+            payroll_result = db.session.execute(text("""
+                SELECT * FROM payroll_payments WHERE tenant_id = :tenant_id
+            """), {'tenant_id': tenant_id}).fetchall()
+            backup_data["data"]["payroll_payments"] = [dict(row._mapping) for row in payroll_result] if payroll_result else []
+            backup_data["metadata"]["payroll_payments_count"] = len(backup_data["data"]["payroll_payments"])
+        except Exception as e:
+            print(f"⚠️ Skipping payroll_payments (table doesn't exist): {e}")
+            backup_data["data"]["payroll_payments"] = []
+            backup_data["metadata"]["payroll_payments_count"] = 0
         
-        # Contra Vouchers (NEW - Accounting Module) - Using raw SQL as no model exists
-        contra_result = db.session.execute(text("""
-            SELECT * FROM contra_vouchers WHERE tenant_id = :tenant_id
-        """), {'tenant_id': tenant_id}).fetchall()
-        backup_data["data"]["contra_vouchers"] = [dict(row._mapping) for row in contra_result] if contra_result else []
-        
-        # Employee Cash Advances (NEW - Accounting Module) - Using raw SQL as no model exists
-        advances_result = db.session.execute(text("""
-            SELECT * FROM employee_cash_advances WHERE tenant_id = :tenant_id
-        """), {'tenant_id': tenant_id}).fetchall()
-        backup_data["data"]["employee_cash_advances"] = [dict(row._mapping) for row in advances_result] if advances_result else []
-        
-        # Payroll Payments (NEW - Payroll Module) - Using raw SQL as no model exists
-        payroll_result = db.session.execute(text("""
-            SELECT * FROM payroll_payments WHERE tenant_id = :tenant_id
-        """), {'tenant_id': tenant_id}).fetchall()
-        backup_data["data"]["payroll_payments"] = [dict(row._mapping) for row in payroll_result] if payroll_result else []
-        backup_data["metadata"]["payroll_payments_count"] = len(backup_data["data"]["payroll_payments"])
-        
-        # Salary Slips (NEW - Payroll Module) - Using raw SQL as no model exists
-        salary_result = db.session.execute(text("""
-            SELECT * FROM salary_slips WHERE tenant_id = :tenant_id
-        """), {'tenant_id': tenant_id}).fetchall()
-        backup_data["data"]["salary_slips"] = [dict(row._mapping) for row in salary_result] if salary_result else []
-        backup_data["metadata"]["salary_slips_count"] = len(backup_data["data"]["salary_slips"])
+        # Salary Slips (NEW - Payroll Module) - Skip if table doesn't exist
+        try:
+            salary_result = db.session.execute(text("""
+                SELECT * FROM salary_slips WHERE tenant_id = :tenant_id
+            """), {'tenant_id': tenant_id}).fetchall()
+            backup_data["data"]["salary_slips"] = [dict(row._mapping) for row in salary_result] if salary_result else []
+            backup_data["metadata"]["salary_slips_count"] = len(backup_data["data"]["salary_slips"])
+        except Exception as e:
+            print(f"⚠️ Skipping salary_slips (table doesn't exist): {e}")
+            backup_data["data"]["salary_slips"] = []
+            backup_data["metadata"]["salary_slips_count"] = 0
         
         # Calculate total records
         total_records = sum([
