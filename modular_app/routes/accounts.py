@@ -1813,11 +1813,7 @@ def profit_loss():
         FROM salary_slips ss
         JOIN employees e ON ss.employee_id = e.id
         WHERE ss.tenant_id = :tenant_id 
-        AND (
-            (ss.payment_year = :start_year AND ss.payment_month >= :start_month)
-            OR (ss.payment_year > :start_year AND ss.payment_year < :end_year)
-            OR (ss.payment_year = :end_year AND ss.payment_month <= :end_month)
-        )
+        AND (ss.payment_year, ss.payment_month) BETWEEN (:start_year, :start_month) AND (:end_year, :end_month)
         GROUP BY e.id, e.name, e.designation
         ORDER BY total_salary DESC
     """), {
