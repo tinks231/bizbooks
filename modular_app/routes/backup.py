@@ -265,6 +265,40 @@ def download_backup():
         allocations = PaymentAllocation.query.join(VendorPayment).filter(VendorPayment.tenant_id == tenant_id).all()
         backup_data["data"]["payment_allocations"] = [serialize_model(a) for a in allocations]
         
+        # Bank & Cash Accounts (NEW - Accounting Module)
+        from models.bank_cash_account import BankCashAccount
+        accounts = BankCashAccount.query.filter_by(tenant_id=tenant_id).all()
+        backup_data["data"]["bank_cash_accounts"] = [serialize_model(acc) for acc in accounts]
+        backup_data["metadata"]["bank_cash_accounts_count"] = len(accounts)
+        
+        # Account Transactions (NEW - Accounting Module)
+        from models.bank_cash_account import AccountTransaction
+        transactions = AccountTransaction.query.filter_by(tenant_id=tenant_id).all()
+        backup_data["data"]["account_transactions"] = [serialize_model(t) for t in transactions]
+        backup_data["metadata"]["account_transactions_count"] = len(transactions)
+        
+        # Contra Vouchers (NEW - Accounting Module)
+        from models.bank_cash_account import ContraVoucher
+        contra = ContraVoucher.query.filter_by(tenant_id=tenant_id).all()
+        backup_data["data"]["contra_vouchers"] = [serialize_model(c) for c in contra]
+        
+        # Employee Cash Advances (NEW - Accounting Module)
+        from models.bank_cash_account import EmployeeCashAdvance
+        advances = EmployeeCashAdvance.query.filter_by(tenant_id=tenant_id).all()
+        backup_data["data"]["employee_cash_advances"] = [serialize_model(adv) for adv in advances]
+        
+        # Payroll Payments (NEW - Payroll Module)
+        from models.payroll import PayrollPayment
+        payroll_payments = PayrollPayment.query.filter_by(tenant_id=tenant_id).all()
+        backup_data["data"]["payroll_payments"] = [serialize_model(pp) for pp in payroll_payments]
+        backup_data["metadata"]["payroll_payments_count"] = len(payroll_payments)
+        
+        # Salary Slips (NEW - Payroll Module)
+        from models.payroll import SalarySlip
+        salary_slips = SalarySlip.query.filter_by(tenant_id=tenant_id).all()
+        backup_data["data"]["salary_slips"] = [serialize_model(ss) for ss in salary_slips]
+        backup_data["metadata"]["salary_slips_count"] = len(salary_slips)
+        
         # Calculate total records
         total_records = sum([
             len(backup_data["data"].get(key, [])) 

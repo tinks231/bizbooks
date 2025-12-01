@@ -18,8 +18,8 @@ def create_employee_template():
     ws = wb.active
     ws.title = "Employee Import"
     
-    # Headers - match actual Employee model fields
-    headers = ['Name*', 'PIN*', 'Phone', 'Email', 'Site Name']
+    # Headers - match actual Employee model fields (including payroll)
+    headers = ['Name*', 'PIN*', 'Phone', 'Email', 'Site Name', 'Monthly Salary', 'Designation', 'Date of Joining']
     
     # Style headers
     header_fill = PatternFill(start_color="4472C4", end_color="4472C4", fill_type="solid")
@@ -37,7 +37,10 @@ def create_employee_template():
         '1234',
         '9876543210',
         'john@example.com',
-        'Main Office'
+        'Main Office',
+        '25000',
+        'Manager',
+        '2025-01-01'
     ]
     
     for col_num, value in enumerate(sample_data, 1):
@@ -51,7 +54,10 @@ def create_employee_template():
     ws.cell(row=7, column=1, value="3. Phone should be 10 digits (optional)")
     ws.cell(row=8, column=1, value="4. Email is optional (for purchase request notifications)")
     ws.cell(row=9, column=1, value="5. If Site Name doesn't exist, it will be created")
-    ws.cell(row=10, column=1, value="6. Delete row 2 (sample data) before uploading")
+    ws.cell(row=10, column=1, value="6. Monthly Salary: Enter numbers only (e.g., 25000)")
+    ws.cell(row=11, column=1, value="7. Designation: Job title (e.g., Manager, Helper, Sales)")
+    ws.cell(row=12, column=1, value="8. Date of Joining: Format YYYY-MM-DD (e.g., 2025-01-15)")
+    ws.cell(row=13, column=1, value="9. Delete row 2 (sample data) before uploading")
     ws.cell(row=11, column=1, value="7. You can add as many rows as you need")
     
     # Adjust column widths
@@ -354,8 +360,8 @@ def import_employees_from_excel(file, tenant_id):
                 continue
             
             # Extract data (pad with None if row is shorter)
-            row_data = list(row) + [None] * (5 - len(row))
-            name, pin, phone, email, site_name = row_data[:5]
+            row_data = list(row) + [None] * (8 - len(row))
+            name, pin, phone, email, site_name, monthly_salary, designation, date_of_joining = row_data[:8]
             
             # Validate
             is_valid, error_msg = validate_employee_row(row_data[:5], row_num)
@@ -398,6 +404,27 @@ def import_employees_from_excel(file, tenant_id):
                 pin_final = str(int(pin) if isinstance(pin, float) else pin).strip()
                 phone_final = str(int(phone) if isinstance(phone, float) else phone).strip() if phone else None
                 
+                # Parse payroll fields
+                salary_final = None
+                if monthly_salary:
+                    try:
+                        salary_final = float(monthly_salary)
+                    except:
+                        pass  # Ignore invalid salary
+                
+                designation_final = str(designation).strip() if designation else None
+                
+                doj_final = None
+                if date_of_joining:
+                    try:
+                        from datetime import datetime
+                        if isinstance(date_of_joining, datetime):
+                            doj_final = date_of_joining.date()
+                        elif isinstance(date_of_joining, str):
+                            doj_final = datetime.strptime(date_of_joining.strip(), '%Y-%m-%d').date()
+                    except:
+                        pass  # Ignore invalid date
+                
                 employee = Employee(
                     tenant_id=tenant_id,
                     name=str(name).strip(),
@@ -405,6 +432,9 @@ def import_employees_from_excel(file, tenant_id):
                     phone=phone_final,
                     email=str(email).strip() if email else None,
                     site_id=site.id if site else None,
+                    monthly_salary=salary_final,
+                    designation=designation_final,
+                    date_of_joining=doj_final,
                     active=True
                 )
                 
