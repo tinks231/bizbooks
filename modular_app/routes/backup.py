@@ -3,6 +3,7 @@ Backup & Restore Module
 Allows tenant to backup/restore business data locally
 """
 from flask import Blueprint, render_template, request, flash, redirect, url_for, session, jsonify, send_file
+from sqlalchemy import text
 from models import (
     db, Tenant, Customer, Vendor, Employee, Site,
     Item, ItemCategory, ItemGroup, ItemStock, ItemImage,
@@ -266,38 +267,41 @@ def download_backup():
         backup_data["data"]["payment_allocations"] = [serialize_model(a) for a in allocations]
         
         # Bank & Cash Accounts (NEW - Accounting Module)
-        from models.bank_cash_account import BankCashAccount
-        accounts = BankCashAccount.query.filter_by(tenant_id=tenant_id).all()
-        backup_data["data"]["bank_cash_accounts"] = [serialize_model(acc) for acc in accounts]
-        backup_data["metadata"]["bank_cash_accounts_count"] = len(accounts)
+        from models.bank_account import BankAccount, AccountTransaction
+        accounts = BankAccount.query.filter_by(tenant_id=tenant_id).all()
+        backup_data["data"]["bank_accounts"] = [serialize_model(acc) for acc in accounts]
+        backup_data["metadata"]["bank_accounts_count"] = len(accounts)
         
         # Account Transactions (NEW - Accounting Module)
-        from models.bank_cash_account import AccountTransaction
         transactions = AccountTransaction.query.filter_by(tenant_id=tenant_id).all()
         backup_data["data"]["account_transactions"] = [serialize_model(t) for t in transactions]
         backup_data["metadata"]["account_transactions_count"] = len(transactions)
         
-        # Contra Vouchers (NEW - Accounting Module)
-        from models.bank_cash_account import ContraVoucher
-        contra = ContraVoucher.query.filter_by(tenant_id=tenant_id).all()
-        backup_data["data"]["contra_vouchers"] = [serialize_model(c) for c in contra]
+        # Contra Vouchers (NEW - Accounting Module) - Using raw SQL as no model exists
+        contra_result = db.session.execute(text("""
+            SELECT * FROM contra_vouchers WHERE tenant_id = :tenant_id
+        """), {'tenant_id': tenant_id}).fetchall()
+        backup_data["data"]["contra_vouchers"] = [dict(row._mapping) for row in contra_result] if contra_result else []
         
-        # Employee Cash Advances (NEW - Accounting Module)
-        from models.bank_cash_account import EmployeeCashAdvance
-        advances = EmployeeCashAdvance.query.filter_by(tenant_id=tenant_id).all()
-        backup_data["data"]["employee_cash_advances"] = [serialize_model(adv) for adv in advances]
+        # Employee Cash Advances (NEW - Accounting Module) - Using raw SQL as no model exists
+        advances_result = db.session.execute(text("""
+            SELECT * FROM employee_cash_advances WHERE tenant_id = :tenant_id
+        """), {'tenant_id': tenant_id}).fetchall()
+        backup_data["data"]["employee_cash_advances"] = [dict(row._mapping) for row in advances_result] if advances_result else []
         
-        # Payroll Payments (NEW - Payroll Module)
-        from models.payroll import PayrollPayment
-        payroll_payments = PayrollPayment.query.filter_by(tenant_id=tenant_id).all()
-        backup_data["data"]["payroll_payments"] = [serialize_model(pp) for pp in payroll_payments]
-        backup_data["metadata"]["payroll_payments_count"] = len(payroll_payments)
+        # Payroll Payments (NEW - Payroll Module) - Using raw SQL as no model exists
+        payroll_result = db.session.execute(text("""
+            SELECT * FROM payroll_payments WHERE tenant_id = :tenant_id
+        """), {'tenant_id': tenant_id}).fetchall()
+        backup_data["data"]["payroll_payments"] = [dict(row._mapping) for row in payroll_result] if payroll_result else []
+        backup_data["metadata"]["payroll_payments_count"] = len(backup_data["data"]["payroll_payments"])
         
-        # Salary Slips (NEW - Payroll Module)
-        from models.payroll import SalarySlip
-        salary_slips = SalarySlip.query.filter_by(tenant_id=tenant_id).all()
-        backup_data["data"]["salary_slips"] = [serialize_model(ss) for ss in salary_slips]
-        backup_data["metadata"]["salary_slips_count"] = len(salary_slips)
+        # Salary Slips (NEW - Payroll Module) - Using raw SQL as no model exists
+        salary_result = db.session.execute(text("""
+            SELECT * FROM salary_slips WHERE tenant_id = :tenant_id
+        """), {'tenant_id': tenant_id}).fetchall()
+        backup_data["data"]["salary_slips"] = [dict(row._mapping) for row in salary_result] if salary_result else []
+        backup_data["metadata"]["salary_slips_count"] = len(backup_data["data"]["salary_slips"])
         
         # Calculate total records
         total_records = sum([
