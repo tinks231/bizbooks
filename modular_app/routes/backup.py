@@ -105,34 +105,42 @@ def download_backup():
     tenant_id = get_current_tenant_id()
     
     try:
+        # Helper function to serialize any value (handles date, datetime, Decimal)
+        def serialize_value(value):
+            """Convert Python objects to JSON-serializable types"""
+            from datetime import date
+            from decimal import Decimal
+            
+            if isinstance(value, datetime):
+                # Convert to IST and make it ISO format
+                if value.tzinfo is None:
+                    value = pytz.UTC.localize(value)
+                ist = pytz.timezone('Asia/Kolkata')
+                return value.astimezone(ist).isoformat()
+            elif isinstance(value, date):
+                return value.isoformat()  # Convert to 'YYYY-MM-DD' string
+            elif isinstance(value, Decimal):
+                return float(value)  # Convert to float for JSON
+            else:
+                return value
+        
         # Helper function to serialize model objects
         def serialize_model(obj, exclude_fields=None):
             """Convert SQLAlchemy model to dict"""
             if exclude_fields is None:
                 exclude_fields = []
             
-            from datetime import date
-            from decimal import Decimal
-            
             data = {}
             for column in obj.__table__.columns:
                 if column.name not in exclude_fields:
                     value = getattr(obj, column.name)
-                    # Handle datetime objects
-                    if isinstance(value, datetime):
-                        # Convert to IST and make it ISO format
-                        if value.tzinfo is None:
-                            value = pytz.UTC.localize(value)
-                        ist = pytz.timezone('Asia/Kolkata')
-                        value = value.astimezone(ist).isoformat()
-                    # Handle date objects (invoice_date, bill_date, etc.)
-                    elif isinstance(value, date):
-                        value = value.isoformat()  # Convert to 'YYYY-MM-DD' string
-                    # Handle Decimal objects (amounts, prices, etc.)
-                    elif isinstance(value, Decimal):
-                        value = float(value)  # Convert to float for JSON
-                    data[column.name] = value
+                    data[column.name] = serialize_value(value)
             return data
+        
+        # Helper function to serialize raw SQL row
+        def serialize_row(row):
+            """Convert SQLAlchemy Row to JSON-serializable dict"""
+            return {key: serialize_value(value) for key, value in row._mapping.items()}
         
         # Build backup data structure
         backup_data = {
@@ -287,7 +295,7 @@ def download_backup():
             payroll_result = db.session.execute(text("""
                 SELECT * FROM payroll_payments WHERE tenant_id = :tenant_id
             """), {'tenant_id': tenant_id}).fetchall()
-            backup_data["data"]["payroll_payments"] = [dict(row._mapping) for row in payroll_result] if payroll_result else []
+            backup_data["data"]["payroll_payments"] = [serialize_row(row) for row in payroll_result] if payroll_result else []
             backup_data["metadata"]["payroll_payments_count"] = len(backup_data["data"]["payroll_payments"])
         except Exception as e:
             print(f"⚠️ Skipping payroll_payments (table doesn't exist): {e}")
@@ -299,7 +307,7 @@ def download_backup():
             salary_result = db.session.execute(text("""
                 SELECT * FROM salary_slips WHERE tenant_id = :tenant_id
             """), {'tenant_id': tenant_id}).fetchall()
-            backup_data["data"]["salary_slips"] = [dict(row._mapping) for row in salary_result] if salary_result else []
+            backup_data["data"]["salary_slips"] = [serialize_row(row) for row in salary_result] if salary_result else []
             backup_data["metadata"]["salary_slips_count"] = len(backup_data["data"]["salary_slips"])
         except Exception as e:
             print(f"⚠️ Skipping salary_slips (table doesn't exist): {e}")
