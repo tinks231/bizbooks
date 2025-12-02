@@ -177,6 +177,10 @@ def reset_password(token):
     
     token_id, token_tenant_id, expires_at, used = result
     
+    # Make expires_at timezone-aware if it isn't already
+    if expires_at.tzinfo is None:
+        expires_at = ist.localize(expires_at)
+    
     # Check if token already used
     if used:
         flash('❌ This reset link has already been used. Please request a new one.', 'error')
