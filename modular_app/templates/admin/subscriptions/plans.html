@@ -227,7 +227,7 @@
                 <h5 class="modal-title">➕ Add New Plan</h5>
                 <button type="button" class="close" data-dismiss="modal">&times;</button>
             </div>
-            <form method="POST" action="{{ url_for('subscriptions.add_plan') }}">
+            <form method="POST" action="{{ url_for('subscriptions.add_plan') }}" id="addPlanForm">
                 <div class="modal-body">
                     <!-- Plan Type Selector -->
                     <div class="form-group">

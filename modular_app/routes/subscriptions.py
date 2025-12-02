@@ -793,6 +793,151 @@ def resume_delivery(delivery_id):
 # ============================================================
 # SUBSCRIPTION PLANS CRUD
 # ============================================================
+@subscriptions_bp.route('/plans/fix-custom-days/<int:plan_id>', methods=['GET'], strict_slashes=False)
+@require_tenant
+@login_required
+def fix_custom_days(plan_id):
+    """
+    Fix custom days for a plan and regenerate deliveries for all subscriptions.
+    
+    PRODUCTION MIGRATION URL:
+    /admin/subscriptions/plans/fix-custom-days/<plan_id>?days=<weekday_numbers>
+    
+    Example: /admin/subscriptions/plans/fix-custom-days/6?days=2,6
+    - 2,6 = Wednesday and Sunday
+    - Weekday numbers: 0=Mon, 1=Tue, 2=Wed, 3=Thu, 4=Fri, 5=Sat, 6=Sun
+    """
+    from flask import jsonify, request
+    tenant_id = get_current_tenant_id()
+    
+    # Get custom_days from query parameter (e.g., ?days=2,6 for Wed,Sun)
+    custom_days_str = request.args.get('days', '')
+    if not custom_days_str:
+        return jsonify({
+            'error': 'Provide ?days=X,Y parameter (comma-separated weekday numbers)',
+            'help': {
+                '0': 'Monday',
+                '1': 'Tuesday', 
+                '2': 'Wednesday',
+                '3': 'Thursday',
+                '4': 'Friday',
+                '5': 'Saturday',
+                '6': 'Sunday'
+            },
+            'example': '/admin/subscriptions/plans/fix-custom-days/6?days=2,6  (for Wed & Sun)'
+        }), 400
+    
+    plan = SubscriptionPlan.query.filter_by(id=plan_id, tenant_id=tenant_id).first_or_404()
+    
+    # Update plan
+    old_custom_days = plan.custom_days
+    plan.custom_days = custom_days_str
+    db.session.commit()
+    
+    # Get all active subscriptions using this plan
+    subscriptions = CustomerSubscription.query.filter_by(
+        plan_id=plan_id,
+        tenant_id=tenant_id,
+        status='active'
+    ).all()
+    
+    fixed_count = 0
+    deliveries_deleted = 0
+    deliveries_created = 0
+    
+    for subscription in subscriptions:
+        # Delete ALL existing deliveries for this subscription
+        deleted = SubscriptionDelivery.query.filter_by(
+            subscription_id=subscription.id,
+            tenant_id=tenant_id
+        ).delete()
+        deliveries_deleted += deleted
+        
+        # Regenerate deliveries with correct schedule
+        current_date = subscription.start_date
+        period_end = subscription.current_period_end
+        
+        while current_date <= period_end:
+            if should_deliver_on_date(current_date, plan.delivery_pattern, plan.custom_days, subscription.start_date):
+                delivery = SubscriptionDelivery(
+                    tenant_id=tenant_id,
+                    subscription_id=subscription.id,
+                    delivery_date=current_date,
+                    quantity=subscription.default_quantity,
+                    rate=plan.unit_rate,
+                    amount=subscription.default_quantity * plan.unit_rate,
+                    status='delivered',
+                    is_modified=False
+                )
+                db.session.add(delivery)
+                deliveries_created += 1
+            
+            current_date += timedelta(days=1)
+        
+        fixed_count += 1
+    
+    db.session.commit()
+    
+    # Create human-readable day names
+    day_names = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+    selected_day_names = [day_names[int(d)] for d in custom_days_str.split(',')]
+    
+    return jsonify({
+        'success': True,
+        'message': f'✅ Fixed plan "{plan.name}"',
+        'details': {
+            'plan_id': plan.id,
+            'plan_name': plan.name,
+            'old_custom_days': old_custom_days or '(empty)',
+            'new_custom_days': custom_days_str,
+            'delivery_days': selected_day_names,
+            'subscriptions_fixed': fixed_count,
+            'deliveries_deleted': deliveries_deleted,
+            'deliveries_created': deliveries_created
+        }
+    })
+
+
+@subscriptions_bp.route('/plans/debug', methods=['GET'], strict_slashes=False)
+@require_tenant
+@login_required
+def debug_all_plans():
+    """Debug: List all plans with IDs and delivery settings"""
+    from flask import jsonify
+    tenant_id = get_current_tenant_id()
+    plans = SubscriptionPlan.query.filter_by(tenant_id=tenant_id).order_by(SubscriptionPlan.id).all()
+    
+    return jsonify([{
+        'id': plan.id,
+        'name': plan.name,
+        'plan_type': plan.plan_type,
+        'delivery_pattern': plan.delivery_pattern,
+        'custom_days': plan.custom_days,
+        'unit_rate': float(plan.unit_rate) if plan.unit_rate else None,
+        'unit_name': plan.unit_name
+    } for plan in plans])
+
+
+@subscriptions_bp.route('/plans/debug/<int:plan_id>', methods=['GET'], strict_slashes=False)
+@require_tenant
+@login_required
+def debug_plan(plan_id):
+    """Debug: Check plan delivery settings"""
+    from flask import jsonify
+    tenant_id = get_current_tenant_id()
+    plan = SubscriptionPlan.query.filter_by(id=plan_id, tenant_id=tenant_id).first_or_404()
+    
+    return jsonify({
+        'id': plan.id,
+        'name': plan.name,
+        'plan_type': plan.plan_type,
+        'delivery_pattern': plan.delivery_pattern,
+        'custom_days': plan.custom_days,
+        'unit_rate': float(plan.unit_rate) if plan.unit_rate else None,
+        'unit_name': plan.unit_name
+    })
+
+
 @subscriptions_bp.route('/plans', methods=['GET'], strict_slashes=False)
 @require_tenant
 @login_required
