@@ -904,3 +904,202 @@ This is an automated email from {tenant_name}.
     
     return send_email(customer_email, subject, body_html, body_text, attachments=attachments)
 
+
+def send_password_reset_email(admin_email, admin_name, company_name, reset_url):
+    """
+    Send password reset link to tenant admin
+    Security: Token expires in 1 hour, one-time use only
+    """
+    
+    subject = f"🔐 Reset Your Password - {company_name}"
+    
+    body_html = f"""
+    <html>
+    <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; background: #f4f4f4; padding: 20px;">
+        <div style="max-width: 600px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+            <!-- Header -->
+            <div style="text-align: center; margin-bottom: 30px;">
+                <h1 style="color: #667eea; margin: 0; font-size: 28px;">📚 BizBooks</h1>
+                <p style="color: #888; font-size: 14px; margin: 5px 0 0 0;">Secure Password Reset</p>
+            </div>
+            
+            <!-- Main Message -->
+            <h2 style="color: #333; margin-bottom: 20px; font-size: 24px;">Reset Your Password</h2>
+            
+            <p style="font-size: 16px; line-height: 1.8; margin-bottom: 20px;">
+                Hello {admin_name},
+            </p>
+            
+            <p style="font-size: 16px; line-height: 1.8; margin-bottom: 20px;">
+                We received a request to reset the password for your <strong>{company_name}</strong> BizBooks account.
+            </p>
+            
+            <p style="font-size: 16px; line-height: 1.8; margin-bottom: 30px;">
+                Click the button below to create a new password:
+            </p>
+            
+            <!-- Reset Button -->
+            <div style="text-align: center; margin: 40px 0;">
+                <a href="{reset_url}" 
+                   style="display: inline-block; padding: 16px 40px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; text-decoration: none; border-radius: 8px; font-size: 18px; font-weight: bold; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);">
+                    🔐 Reset Password
+                </a>
+            </div>
+            
+            <!-- Alternative Link -->
+            <p style="font-size: 14px; color: #666; margin-top: 30px;">
+                If the button doesn't work, copy and paste this link in your browser:
+            </p>
+            <p style="background: #f8f9fa; padding: 12px; border-radius: 5px; word-break: break-all; font-size: 13px; color: #667eea; border: 1px dashed #667eea;">
+                {reset_url}
+            </p>
+            
+            <!-- Security Notice -->
+            <div style="background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 30px 0; border-radius: 5px;">
+                <p style="margin: 0; font-size: 14px; color: #856404;">
+                    <strong>⏰ Security Notice:</strong>
+                </p>
+                <ul style="margin: 10px 0 0 20px; font-size: 14px; color: #856404;">
+                    <li>This link will expire in <strong>1 hour</strong></li>
+                    <li>Can only be used <strong>once</strong></li>
+                    <li>If you didn't request this, ignore this email</li>
+                </ul>
+            </p>
+            </div>
+            
+            <!-- Warning -->
+            <div style="background: #f8d7da; border-left: 4px solid #dc3545; padding: 15px; margin: 20px 0; border-radius: 5px;">
+                <p style="margin: 0; font-size: 14px; color: #721c24;">
+                    <strong>⚠️ Didn't request this?</strong><br>
+                    If you didn't request a password reset, please ignore this email. Your password will remain unchanged.
+                </p>
+            </div>
+            
+            <!-- Support -->
+            <div style="margin-top: 40px; padding-top: 20px; border-top: 2px solid #eee;">
+                <p style="color: #666; font-size: 14px; margin: 5px 0;">
+                    <strong>Need Help?</strong>
+                </p>
+                <p style="color: #666; font-size: 14px; margin: 5px 0;">
+                    📧 Email: <a href="mailto:bizbooks.notifications@gmail.com" style="color: #667eea; text-decoration: none;">bizbooks.notifications@gmail.com</a>
+                </p>
+                <p style="color: #999; font-size: 12px; margin-top: 20px;">
+                    This is an automated security message from BizBooks. Please do not reply to this email.
+                </p>
+            </div>
+        </div>
+    </body>
+    </html>
+    """
+    
+    body_text = f"""
+🔐 Reset Your Password - BizBooks
+
+Hello {admin_name},
+
+We received a request to reset the password for your {company_name} BizBooks account.
+
+Click the link below to create a new password:
+{reset_url}
+
+SECURITY NOTICE:
+- This link will expire in 1 hour
+- Can only be used once
+- If you didn't request this, ignore this email
+
+⚠️ Didn't request this?
+If you didn't request a password reset, please ignore this email. Your password will remain unchanged.
+
+Need help? Email us at bizbooks.notifications@gmail.com
+
+---
+This is an automated security message from BizBooks.
+    """
+    
+    return send_email(admin_email, subject, body_html, body_text)
+
+
+def send_password_changed_notification(admin_email, admin_name, company_name):
+    """
+    Send confirmation email after password is successfully changed
+    Security: Alerts user of password change
+    """
+    
+    subject = f"✅ Password Changed - {company_name}"
+    
+    body_html = f"""
+    <html>
+    <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; background: #f4f4f4; padding: 20px;">
+        <div style="max-width: 600px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+            <!-- Header -->
+            <div style="text-align: center; margin-bottom: 30px;">
+                <h1 style="color: #28a745; margin: 0; font-size: 28px;">✅ Password Changed</h1>
+            </div>
+            
+            <!-- Main Message -->
+            <p style="font-size: 16px; line-height: 1.8; margin-bottom: 20px;">
+                Hello {admin_name},
+            </p>
+            
+            <div style="background: #d4edda; border-left: 4px solid #28a745; padding: 20px; margin: 20px 0; border-radius: 5px;">
+                <p style="margin: 0; font-size: 16px; color: #155724;">
+                    <strong>✅ Your password was successfully changed.</strong>
+                </p>
+                <p style="margin: 10px 0 0 0; font-size: 14px; color: #155724;">
+                    Company: {company_name}<br>
+                    Changed: Just now
+                </p>
+            </div>
+            
+            <!-- Security Alert -->
+            <div style="background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 20px 0; border-radius: 5px;">
+                <p style="margin: 0; font-size: 14px; color: #856404;">
+                    <strong>🔒 Security Recommendations:</strong>
+                </p>
+                <ul style="margin: 10px 0 0 20px; font-size: 14px; color: #856404;">
+                    <li>Use a strong, unique password</li>
+                    <li>Don't share your password with anyone</li>
+                    <li>Log out from unused devices</li>
+                </ul>
+            </div>
+            
+            <!-- Warning -->
+            <div style="background: #f8d7da; border-left: 4px solid #dc3545; padding: 15px; margin: 20px 0; border-radius: 5px;">
+                <p style="margin: 0; font-size: 14px; color: #721c24;">
+                    <strong>⚠️ Didn't make this change?</strong><br>
+                    If you didn't change your password, your account may be compromised. Please contact us immediately at bizbooks.notifications@gmail.com
+                </p>
+            </div>
+            
+            <!-- Support -->
+            <div style="margin-top: 40px; padding-top: 20px; border-top: 2px solid #eee;">
+                <p style="color: #999; font-size: 12px;">
+                    This is an automated security notification from BizBooks.
+                </p>
+            </div>
+        </div>
+    </body>
+    </html>
+    """
+    
+    body_text = f"""
+✅ Password Changed - BizBooks
+
+Hello {admin_name},
+
+Your password for {company_name} was successfully changed just now.
+
+SECURITY RECOMMENDATIONS:
+- Use a strong, unique password
+- Don't share your password with anyone
+- Log out from unused devices
+
+⚠️ Didn't make this change?
+If you didn't change your password, please contact us immediately at bizbooks.notifications@gmail.com
+
+---
+This is an automated security notification from BizBooks.
+    """
+    
+    return send_email(admin_email, subject, body_html, body_text)
+

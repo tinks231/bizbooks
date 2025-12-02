@@ -4,7 +4,7 @@ Admin routes - Login, Dashboard, Management
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session, g, abort
 from models import db, User, Employee, Site, Attendance, Material, Stock, StockMovement, Tenant
 from datetime import datetime, timedelta
-from sqlalchemy import func
+from sqlalchemy import func, text
 from utils.tenant_middleware import require_tenant, get_current_tenant_id, get_current_tenant
 from utils.license_check import check_license
 import hashlib
@@ -85,37 +85,152 @@ def login():
 @admin_bp.route('/forgot-password', methods=['GET', 'POST'])
 @require_tenant
 def forgot_password():
-    """Reset password"""
+    """
+    Step 1: Request password reset (sends email with token)
+    SECURE: Only sends email, doesn't reset password immediately
+    """
     tenant = get_current_tenant()
     
     if request.method == 'POST':
         email = request.form.get('email')
-        new_password = request.form.get('new_password')
-        confirm_password = request.form.get('confirm_password')
         
         # Verify email matches tenant admin
         if tenant.admin_email != email:
-            flash('Email does not match our records for this account', 'error')
+            # Still show success message (security: don't reveal if email exists)
+            flash('✅ If that email is registered, you will receive a password reset link shortly.', 'success')
             return render_template('admin/forgot_password.html')
+        
+        # Generate secure token
+        import secrets
+        from datetime import datetime, timedelta
+        import pytz
+        
+        token = secrets.token_urlsafe(32)  # Cryptographically secure random token
+        
+        # Set expiry (1 hour from now)
+        ist = pytz.timezone('Asia/Kolkata')
+        expires_at = datetime.now(ist) + timedelta(hours=1)
+        
+        # Save token to database
+        insert_token = text("""
+            INSERT INTO password_reset_tokens 
+            (tenant_id, token, expires_at, used, ip_address)
+            VALUES (:tenant_id, :token, :expires_at, FALSE, :ip_address)
+        """)
+        
+        db.session.execute(insert_token, {
+            'tenant_id': tenant.id,
+            'token': token,
+            'expires_at': expires_at,
+            'ip_address': request.remote_addr
+        })
+        db.session.commit()
+        
+        # Send email with reset link
+        from utils.email_utils import send_password_reset_email
+        reset_url = f"{request.scheme}://{request.host}/admin/reset-password/{token}"
+        
+        send_password_reset_email(
+            admin_email=tenant.admin_email,
+            admin_name=tenant.admin_name,
+            company_name=tenant.company_name,
+            reset_url=reset_url
+        )
+        
+        flash('✅ If that email is registered, you will receive a password reset link shortly. Check your inbox!', 'success')
+        return render_template('admin/forgot_password.html')
+    
+    return render_template('admin/forgot_password.html')
+
+
+@admin_bp.route('/reset-password/<token>', methods=['GET', 'POST'])
+@require_tenant
+def reset_password(token):
+    """
+    Step 2: Validate token and allow password reset
+    SECURE: Checks token validity, expiry, and one-time use
+    """
+    from datetime import datetime
+    import pytz
+    from sqlalchemy import text
+    
+    tenant = get_current_tenant()
+    ist = pytz.timezone('Asia/Kolkata')
+    now = datetime.now(ist)
+    
+    # Validate token
+    check_token = text("""
+        SELECT id, tenant_id, expires_at, used
+        FROM password_reset_tokens
+        WHERE token = :token AND tenant_id = :tenant_id
+    """)
+    
+    result = db.session.execute(check_token, {
+        'token': token,
+        'tenant_id': tenant.id
+    }).fetchone()
+    
+    # Check if token exists
+    if not result:
+        flash('❌ Invalid password reset link. Please request a new one.', 'error')
+        return redirect(url_for('admin.forgot_password'))
+    
+    token_id, token_tenant_id, expires_at, used = result
+    
+    # Check if token already used
+    if used:
+        flash('❌ This reset link has already been used. Please request a new one.', 'error')
+        return redirect(url_for('admin.forgot_password'))
+    
+    # Check if token expired
+    if now > expires_at:
+        flash('❌ This reset link has expired (valid for 1 hour). Please request a new one.', 'error')
+        return redirect(url_for('admin.forgot_password'))
+    
+    # Token is valid! Show password reset form
+    if request.method == 'POST':
+        new_password = request.form.get('new_password')
+        confirm_password = request.form.get('confirm_password')
         
         # Validate passwords match
         if new_password != confirm_password:
             flash('Passwords do not match!', 'error')
-            return render_template('admin/forgot_password.html')
+            return render_template('admin/reset_password.html', token=token)
         
         # Validate password length
         if len(new_password) < 6:
             flash('Password must be at least 6 characters!', 'error')
-            return render_template('admin/forgot_password.html')
+            return render_template('admin/reset_password.html', token=token)
         
         # Update password
         tenant.admin_password_hash = hashlib.sha256(new_password.encode()).hexdigest()
+        
+        # Mark token as used
+        mark_used = text("""
+            UPDATE password_reset_tokens
+            SET used = TRUE, used_at = :used_at
+            WHERE id = :token_id
+        """)
+        
+        db.session.execute(mark_used, {
+            'used_at': now,
+            'token_id': token_id
+        })
+        
         db.session.commit()
+        
+        # Send confirmation email
+        from utils.email_utils import send_password_changed_notification
+        send_password_changed_notification(
+            admin_email=tenant.admin_email,
+            admin_name=tenant.admin_name,
+            company_name=tenant.company_name
+        )
         
         flash('✅ Password reset successful! You can now login with your new password.', 'success')
         return redirect(url_for('admin.login'))
     
-    return render_template('admin/forgot_password.html')
+    return render_template('admin/reset_password.html', token=token)
 
 @admin_bp.route('/logout')
 def logout():
