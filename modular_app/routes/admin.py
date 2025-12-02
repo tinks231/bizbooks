@@ -107,11 +107,10 @@ def forgot_password():
         
         token = secrets.token_urlsafe(32)  # Cryptographically secure random token
         
-        # Set expiry (1 hour from now)
-        ist = pytz.timezone('Asia/Kolkata')
-        expires_at = datetime.now(ist) + timedelta(hours=1)
+        # Set expiry (1 hour from now) - use UTC for database storage
+        expires_at = datetime.utcnow() + timedelta(hours=1)
         
-        # Save token to database
+        # Save token to database (created_at defaults to CURRENT_TIMESTAMP in UTC)
         insert_token = text("""
             INSERT INTO password_reset_tokens 
             (tenant_id, token, expires_at, used, ip_address)
@@ -155,8 +154,7 @@ def reset_password(token):
     from sqlalchemy import text
     
     tenant = get_current_tenant()
-    ist = pytz.timezone('Asia/Kolkata')
-    now = datetime.now(ist)
+    now = datetime.utcnow()  # Use UTC for comparison
     
     # Validate token
     check_token = text("""
@@ -177,16 +175,12 @@ def reset_password(token):
     
     token_id, token_tenant_id, expires_at, used = result
     
-    # Make expires_at timezone-aware if it isn't already
-    if expires_at.tzinfo is None:
-        expires_at = ist.localize(expires_at)
-    
     # Check if token already used
     if used:
         flash('❌ This reset link has already been used. Please request a new one.', 'error')
         return redirect(url_for('admin.forgot_password'))
     
-    # Check if token expired
+    # Check if token expired (both are naive UTC timestamps)
     if now > expires_at:
         flash('❌ This reset link has expired (valid for 1 hour). Please request a new one.', 'error')
         return redirect(url_for('admin.forgot_password'))
@@ -217,7 +211,7 @@ def reset_password(token):
         """)
         
         db.session.execute(mark_used, {
-            'used_at': now,
+            'used_at': datetime.utcnow(),
             'token_id': token_id
         })
         
