@@ -8,6 +8,21 @@
 
 {% block content %}
 
+<style>
+/* Fix Chrome text cutoff issue in select dropdowns */
+select.form-control {
+    line-height: 1.6 !important;
+    padding: 10px 12px !important;
+    height: auto !important;
+    min-height: 42px !important;
+}
+
+/* Ensure dropdown options are also properly sized */
+select.form-control option {
+    padding: 8px 12px;
+    line-height: 1.6;
+}
+</style>
 
 <div class="container-fluid">
     <div class="subscription-header">
