@@ -1433,14 +1433,119 @@ def member_detail(subscription_id):
         subscription_id=subscription_id
     ).order_by(SubscriptionPayment.payment_date.desc()).all()
     
+    # Get all active plans for editing (same plan_type as current)
+    available_plans = SubscriptionPlan.query.filter_by(
+        tenant_id=tenant_id,
+        is_active=True,
+        plan_type=subscription.plan.plan_type  # Only show same type plans
+    ).order_by(SubscriptionPlan.name).all()
+    
     return render_template('admin/subscriptions/member_detail.html',
                          subscription=subscription,
-                         payments=payments)
+                         payments=payments,
+                         available_plans=available_plans)
 
 
 # ============================================================
 # PAYMENT COLLECTION
 # ============================================================
+@subscriptions_bp.route('/members/<int:subscription_id>/edit', methods=['POST'], strict_slashes=False)
+@require_tenant
+@login_required
+def edit_subscription(subscription_id):
+    """
+    Edit subscription - change plan or default quantity.
+    Preserves past deliveries, regenerates future deliveries.
+    """
+    tenant_id = get_current_tenant_id()
+    
+    subscription = CustomerSubscription.query.filter_by(
+        id=subscription_id,
+        tenant_id=tenant_id
+    ).first_or_404()
+    
+    try:
+        new_plan_id = int(request.form.get('plan_id'))
+        new_quantity = request.form.get('default_quantity')
+        
+        # Get new plan
+        new_plan = SubscriptionPlan.query.filter_by(
+            id=new_plan_id,
+            tenant_id=tenant_id,
+            is_active=True
+        ).first_or_404()
+        
+        # Get today's date for determining past vs future
+        from datetime import date
+        today = date.today()
+        
+        old_plan_name = subscription.plan.name
+        changes_made = []
+        
+        # Check if plan is changing
+        if new_plan_id != subscription.plan_id:
+            subscription.plan_id = new_plan_id
+            changes_made.append(f'Plan changed from "{old_plan_name}" to "{new_plan.name}"')
+        
+        # Check if quantity is changing (for metered plans)
+        if new_quantity and subscription.plan.plan_type == 'metered':
+            new_qty = Decimal(new_quantity)
+            if new_qty != subscription.default_quantity:
+                old_qty = subscription.default_quantity
+                subscription.default_quantity = new_qty
+                changes_made.append(f'Default quantity changed from {old_qty} to {new_qty} {new_plan.unit_name}/day')
+        
+        if not changes_made:
+            flash('ℹ️ No changes were made.', 'info')
+            return redirect(url_for('subscriptions.member_detail', subscription_id=subscription_id))
+        
+        # For metered plans: regenerate future deliveries
+        if new_plan.plan_type == 'metered':
+            # Delete ONLY future deliveries (preserve past/today)
+            future_deleted = SubscriptionDelivery.query.filter(
+                SubscriptionDelivery.subscription_id == subscription_id,
+                SubscriptionDelivery.tenant_id == tenant_id,
+                SubscriptionDelivery.delivery_date > today,
+                SubscriptionDelivery.delivered_at == None  # Only delete unconfirmed
+            ).delete(synchronize_session=False)
+            
+            # Regenerate future deliveries with new plan's schedule
+            tomorrow = today + timedelta(days=1)
+            current_date = tomorrow
+            period_end = subscription.current_period_end
+            deliveries_created = 0
+            
+            while current_date <= period_end:
+                if should_deliver_on_date(current_date, new_plan.delivery_pattern, new_plan.custom_days, subscription.start_date):
+                    delivery = SubscriptionDelivery(
+                        tenant_id=tenant_id,
+                        subscription_id=subscription.id,
+                        delivery_date=current_date,
+                        quantity=subscription.default_quantity,
+                        rate=new_plan.unit_rate,
+                        amount=subscription.default_quantity * new_plan.unit_rate,
+                        status='delivered',
+                        is_modified=False
+                    )
+                    db.session.add(delivery)
+                    deliveries_created += 1
+                
+                current_date += timedelta(days=1)
+            
+            changes_made.append(f'Regenerated {deliveries_created} future deliveries (deleted {future_deleted} old)')
+        
+        subscription.updated_at = datetime.utcnow()
+        db.session.commit()
+        
+        flash(f'✅ Subscription updated successfully! ' + ' | '.join(changes_made), 'success')
+        
+    except Exception as e:
+        db.session.rollback()
+        flash(f'❌ Error updating subscription: {str(e)}', 'error')
+    
+    return redirect(url_for('subscriptions.member_detail', subscription_id=subscription_id))
+
+
 @subscriptions_bp.route('/members/<int:subscription_id>/collect-payment', methods=['GET', 'POST'], strict_slashes=False)
 @require_tenant
 @login_required
