@@ -88,10 +88,12 @@
                         <td>
                             {% if delivery.status == 'paused' or delivery.quantity == 0 %}
                             <span class="badge badge-secondary">Paused</span>
+                            {% elif delivery.delivered_at %}
+                            <span class="badge badge-success">Delivered</span>
                             {% elif delivery.is_modified %}
                             <span class="badge badge-info">Modified</span>
                             {% else %}
-                            <span class="badge badge-success">Delivered</span>
+                            <span class="badge badge-primary">Scheduled</span>
                             {% endif %}
                         </td>
                         <td>{{ delivery.modification_reason or '-' }}</td>
