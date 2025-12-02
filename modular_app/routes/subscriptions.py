@@ -677,9 +677,19 @@ def pause_deliveries():
     
     try:
         subscription_id = int(request.form['subscription_id'])
-        date_from = datetime.strptime(request.form['date_from'], '%Y-%m-%d').date()
-        date_to = datetime.strptime(request.form['date_to'], '%Y-%m-%d').date()
-        reason = request.form.get('reason', 'Paused by customer')
+        
+        # Support both field name formats for backward compatibility
+        # Some templates use 'start_date'/'end_date', others use 'date_from'/'date_to'
+        date_from_str = request.form.get('start_date') or request.form.get('date_from')
+        date_to_str = request.form.get('end_date') or request.form.get('date_to')
+        
+        if not date_from_str or not date_to_str:
+            flash('❌ Please provide both start and end dates', 'error')
+            return redirect(request.referrer or url_for('subscriptions.index'))
+        
+        date_from = datetime.strptime(date_from_str, '%Y-%m-%d').date()
+        date_to = datetime.strptime(date_to_str, '%Y-%m-%d').date()
+        reason = request.form.get('reason', 'Paused by admin')
         
         # Verify subscription belongs to tenant
         subscription = CustomerSubscription.query.filter_by(
