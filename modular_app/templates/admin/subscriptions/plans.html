@@ -176,7 +176,21 @@
                                 {% endif %}
                             </td>
                             <td>
-                                <button class="btn btn-sm btn-outline-primary" onclick="openEditPlanModal({{ plan.id }}, '{{ plan.name }}', '{{ plan.description }}', {{ plan.price }}, {{ plan.duration_days }}, {{ plan.is_active|lower }})" title="Edit Plan">
+                                <button class="btn btn-sm btn-outline-primary" 
+                                    onclick="openEditPlanModal(
+                                        {{ plan.id }}, 
+                                        '{{ plan.name }}', 
+                                        '{{ plan.description }}', 
+                                        '{{ plan.plan_type }}',
+                                        {{ plan.price or 0 }}, 
+                                        {{ plan.duration_days or 30 }}, 
+                                        {{ plan.unit_rate or 0 }},
+                                        '{{ plan.unit_name or '' }}',
+                                        '{{ plan.delivery_pattern or 'daily' }}',
+                                        '{{ plan.custom_days or '' }}',
+                                        {{ plan.is_active|lower }}
+                                    )" 
+                                    title="Edit Plan">
                                     ✏️
                                 </button>
                                 <form method="POST" action="{{ url_for('subscriptions.delete_plan', plan_id=plan.id) }}" style="display: inline;" onsubmit="return confirm('Deactivate this plan?')">
@@ -344,10 +358,11 @@
     <div class="modal-dialog" role="document">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">✏️ Edit Plan</h5>
+                <h5 class="modal-title" id="edit_modal_title">✏️ Edit Plan</h5>
                 <button type="button" class="close" data-dismiss="modal">&times;</button>
             </div>
             <form method="POST" id="editPlanForm">
+                <input type="hidden" id="edit_plan_type" name="plan_type">
                 <div class="modal-body">
                     <div class="form-group">
                         <label class="field-label"><strong>Plan Name *</strong></label>
@@ -357,19 +372,93 @@
                         <label class="field-label"><strong>Description</strong></label>
                         <textarea name="description" id="edit_description" class="form-control" rows="2"></textarea>
                     </div>
-                    <div class="form-group">
-                        <label class="field-label"><strong>Price (₹) *</strong></label>
-                        <input type="number" name="price" id="edit_price" class="form-control" step="0.01" min="0" required>
-                    </div>
-                    <div class="form-group">
-                        <label class="field-label"><strong>Duration *</strong></label>
-                        <div class="input-group">
-                            <input type="number" name="duration_days" id="edit_duration_days" class="form-control" min="1" required>
-                            <div class="input-group-append">
-                                <span class="input-group-text">days</span>
+                    
+                    <!-- FIXED Plan Fields -->
+                    <div id="edit_fixed_fields">
+                        <div class="form-group">
+                            <label class="field-label"><strong>Price (₹) *</strong></label>
+                            <input type="number" name="price" id="edit_price" class="form-control" step="0.01" min="0">
+                        </div>
+                        <div class="form-group">
+                            <label class="field-label"><strong>Duration *</strong></label>
+                            <div class="input-group">
+                                <input type="number" name="duration_days" id="edit_duration_days" class="form-control" min="1">
+                                <div class="input-group-append">
+                                    <span class="input-group-text">days</span>
+                                </div>
                             </div>
                         </div>
                     </div>
+                    
+                    <!-- METERED Plan Fields -->
+                    <div id="edit_metered_fields" style="display: none;">
+                        <div class="form-group">
+                            <label class="field-label"><strong>Unit Rate (₹) *</strong></label>
+                            <input type="number" name="unit_rate" id="edit_unit_rate" class="form-control" step="0.01" min="0">
+                            <small class="form-text text-muted">Price per unit (e.g., ₹60 per liter)</small>
+                        </div>
+                        <div class="form-group">
+                            <label class="field-label"><strong>Unit Name *</strong></label>
+                            <input type="text" name="unit_name" id="edit_unit_name" class="form-control" placeholder="e.g., liter, kg, piece">
+                            <small class="form-text text-muted">What are you billing for?</small>
+                        </div>
+                        <div class="form-group">
+                            <label class="field-label"><strong>Billing Cycle *</strong></label>
+                            <div class="input-group">
+                                <input type="number" name="billing_cycle_days" id="edit_billing_cycle_days" class="form-control" min="1">
+                                <div class="input-group-append">
+                                    <span class="input-group-text">days</span>
+                                </div>
+                            </div>
+                            <small class="form-text text-muted">How often to bill? (e.g., 30 days for monthly)</small>
+                        </div>
+                        <div class="form-group">
+                            <label class="field-label"><strong>Delivery Pattern *</strong></label>
+                            <select name="delivery_pattern" id="edit_delivery_pattern" class="form-control" onchange="toggleCustomDays('edit')">
+                                <option value="daily">📅 Daily (every day)</option>
+                                <option value="alternate">📅 Alternate Days (Mon, Wed, Fri, Sun, ...)</option>
+                                <option value="weekdays">📅 Weekdays Only (Mon-Fri)</option>
+                                <option value="weekends">📅 Weekends Only (Sat-Sun)</option>
+                                <option value="custom">📅 Custom Schedule</option>
+                            </select>
+                        </div>
+                        <div class="form-group" id="edit_custom_days_group" style="display: none;">
+                            <label class="field-label"><strong>Select Delivery Days *</strong></label>
+                            <div class="custom-days-selector">
+                                <label class="custom-control custom-checkbox">
+                                    <input type="checkbox" class="custom-control-input edit-custom-day" value="0">
+                                    <span class="custom-control-label">Mon</span>
+                                </label>
+                                <label class="custom-control custom-checkbox">
+                                    <input type="checkbox" class="custom-control-input edit-custom-day" value="1">
+                                    <span class="custom-control-label">Tue</span>
+                                </label>
+                                <label class="custom-control custom-checkbox">
+                                    <input type="checkbox" class="custom-control-input edit-custom-day" value="2">
+                                    <span class="custom-control-label">Wed</span>
+                                </label>
+                                <label class="custom-control custom-checkbox">
+                                    <input type="checkbox" class="custom-control-input edit-custom-day" value="3">
+                                    <span class="custom-control-label">Thu</span>
+                                </label>
+                                <label class="custom-control custom-checkbox">
+                                    <input type="checkbox" class="custom-control-input edit-custom-day" value="4">
+                                    <span class="custom-control-label">Fri</span>
+                                </label>
+                                <label class="custom-control custom-checkbox">
+                                    <input type="checkbox" class="custom-control-input edit-custom-day" value="5">
+                                    <span class="custom-control-label">Sat</span>
+                                </label>
+                                <label class="custom-control custom-checkbox">
+                                    <input type="checkbox" class="custom-control-input edit-custom-day" value="6">
+                                    <span class="custom-control-label">Sun</span>
+                                </label>
+                            </div>
+                            <input type="hidden" name="custom_days" id="edit_custom_days_value">
+                            <small class="form-text text-muted">Example: Mon-Wed-Fri or Tue-Thu-Sat</small>
+                        </div>
+                    </div>
+                    
                     <div class="form-group">
                         <div class="custom-control custom-checkbox">
                             <input type="checkbox" class="custom-control-input" id="edit_is_active" name="is_active">
@@ -423,12 +512,57 @@ function toggleAddPlanFields() {
     }
 }
 
-function openEditPlanModal(id, name, description, price, duration, is_active) {
+function openEditPlanModal(id, name, description, planType, price, duration, unitRate, unitName, deliveryPattern, customDays, isActive) {
+    // Common fields
     document.getElementById('edit_name').value = name;
     document.getElementById('edit_description').value = description || '';
-    document.getElementById('edit_price').value = price;
-    document.getElementById('edit_duration_days').value = duration;
-    document.getElementById('edit_is_active').checked = is_active;
+    document.getElementById('edit_is_active').checked = isActive;
+    document.getElementById('edit_plan_type').value = planType;
+    
+    // Show/hide fields based on plan type
+    const fixedFields = document.getElementById('edit_fixed_fields');
+    const meteredFields = document.getElementById('edit_metered_fields');
+    
+    if (planType === 'fixed') {
+        // FIXED plan
+        fixedFields.style.display = 'block';
+        meteredFields.style.display = 'none';
+        
+        document.getElementById('edit_price').value = price;
+        document.getElementById('edit_duration_days').value = duration;
+        document.getElementById('edit_price').required = true;
+        document.getElementById('edit_duration_days').required = true;
+        document.getElementById('edit_unit_rate').required = false;
+        document.getElementById('edit_unit_name').required = false;
+        
+        document.getElementById('edit_modal_title').textContent = '✏️ Edit Fixed Plan';
+    } else {
+        // METERED plan
+        fixedFields.style.display = 'none';
+        meteredFields.style.display = 'block';
+        
+        document.getElementById('edit_unit_rate').value = unitRate;
+        document.getElementById('edit_unit_name').value = unitName;
+        document.getElementById('edit_billing_cycle_days').value = duration || 30;
+        document.getElementById('edit_delivery_pattern').value = deliveryPattern || 'daily';
+        document.getElementById('edit_price').required = false;
+        document.getElementById('edit_duration_days').required = false;
+        document.getElementById('edit_unit_rate').required = true;
+        document.getElementById('edit_unit_name').required = true;
+        
+        // Handle custom days
+        if (deliveryPattern === 'custom' && customDays) {
+            document.getElementById('edit_custom_days_group').style.display = 'block';
+            const days = customDays.split(',');
+            document.querySelectorAll('.edit-custom-day').forEach(cb => {
+                cb.checked = days.includes(cb.value);
+            });
+        } else {
+            document.getElementById('edit_custom_days_group').style.display = 'none';
+        }
+        
+        document.getElementById('edit_modal_title').textContent = '✏️ Edit Metered Plan';
+    }
     
     document.getElementById('editPlanForm').action = '/admin/subscriptions/plans/edit/' + id;
     
@@ -464,6 +598,30 @@ document.getElementById('addPlanForm').addEventListener('submit', function(e) {
         }
         
         document.getElementById('add_custom_days_value').value = selectedDays.join(',');
+    }
+});
+
+// Edit form submission handler (for custom days)
+document.getElementById('editPlanForm').addEventListener('submit', function(e) {
+    const planType = document.getElementById('edit_plan_type').value;
+    
+    if (planType === 'metered') {
+        const pattern = document.getElementById('edit_delivery_pattern').value;
+        
+        if (pattern === 'custom') {
+            const selectedDays = [];
+            document.querySelectorAll('.edit-custom-day:checked').forEach(cb => {
+                selectedDays.push(cb.value);
+            });
+            
+            if (selectedDays.length === 0) {
+                e.preventDefault();
+                alert('Please select at least one delivery day for custom schedule!');
+                return false;
+            }
+            
+            document.getElementById('edit_custom_days_value').value = selectedDays.join(',');
+        }
     }
 });
 </script>

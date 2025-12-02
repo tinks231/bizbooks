@@ -864,22 +864,33 @@ def add_plan():
 @require_tenant
 @login_required
 def edit_plan(plan_id):
-    """Edit subscription plan"""
+    """Edit subscription plan (fixed or metered)"""
     tenant_id = get_current_tenant_id()
     
     plan = SubscriptionPlan.query.filter_by(id=plan_id, tenant_id=tenant_id).first_or_404()
     
     try:
+        # Common fields
         plan.name = request.form['name']
         plan.description = request.form.get('description', '')
-        plan.price = Decimal(request.form['price'])
-        plan.duration_days = int(request.form['duration_days'])
         plan.is_active = request.form.get('is_active') == 'on'
         plan.updated_at = datetime.utcnow()
         
+        # Update fields based on plan type
+        if plan.plan_type == 'fixed':
+            plan.price = Decimal(request.form['price'])
+            plan.duration_days = int(request.form['duration_days'])
+        else:  # metered
+            plan.unit_rate = Decimal(request.form['unit_rate'])
+            plan.unit_name = request.form['unit_name']
+            plan.duration_days = int(request.form.get('billing_cycle_days', 30))
+            plan.delivery_pattern = request.form.get('delivery_pattern', 'daily')
+            plan.custom_days = request.form.get('custom_days', '') if request.form.get('delivery_pattern') == 'custom' else None
+        
         db.session.commit()
         
-        flash(f'✅ Plan "{plan.name}" updated successfully!', 'success')
+        plan_type_label = '📦 Fixed' if plan.plan_type == 'fixed' else '📊 Metered'
+        flash(f'✅ {plan_type_label} Plan "{plan.name}" updated successfully!', 'success')
         
     except Exception as e:
         db.session.rollback()
