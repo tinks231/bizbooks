@@ -37,10 +37,19 @@
     <!-- Billing Period Summary -->
     <div class="form-section">
         <h3 class="section-title">Billing Period</h3>
+        
+        <!-- Important Notice -->
+        <div class="alert alert-info" style="margin-bottom: 15px;">
+            <strong>📋 Billing Info:</strong> This invoice includes deliveries from 
+            <strong>{{ summary.billing_start.strftime('%b %d') }}</strong> to 
+            <strong>{{ summary.billed_until.strftime('%b %d, %Y') }}</strong> (today).
+            Future scheduled deliveries are <u>not</u> included.
+        </div>
+        
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
             <div>
                 <label class="field-label"><strong>Period</strong></label>
-                <div class="form-value">{{ summary.billing_start.strftime('%b %d') }} - {{ summary.billing_end.strftime('%b %d, %Y') }}</div>
+                <div class="form-value">{{ summary.billing_start.strftime('%b %d') }} - {{ summary.billed_until.strftime('%b %d, %Y') }}</div>
             </div>
             <div>
                 <label class="field-label"><strong>Total Days</strong></label>

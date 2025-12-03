@@ -1912,17 +1912,20 @@ def generate_invoice_metered(subscription_id):
         # Show invoice preview with delivery summary
         billing_start = subscription.current_period_start
         billing_end = subscription.current_period_end
+        today = datetime.now().date()
         
-        # Get all deliveries for this period
+        # Get ONLY DELIVERED items (past/today, not future scheduled)
+        # Only include deliveries up to today that are not paused
         deliveries = SubscriptionDelivery.query.filter_by(
             subscription_id=subscription_id,
             tenant_id=tenant_id
         ).filter(
             SubscriptionDelivery.delivery_date >= billing_start,
-            SubscriptionDelivery.delivery_date <= billing_end
+            SubscriptionDelivery.delivery_date <= today,  # Only up to TODAY
+            SubscriptionDelivery.status != 'paused'  # Exclude paused
         ).order_by(SubscriptionDelivery.delivery_date.asc()).all()
         
-        # Calculate totals
+        # Calculate totals (only for actually delivered items)
         total_quantity = sum(d.quantity for d in deliveries)
         total_amount = sum(d.amount for d in deliveries)
         total_days = len(deliveries)
@@ -1931,6 +1934,7 @@ def generate_invoice_metered(subscription_id):
         summary = {
             'billing_start': billing_start,
             'billing_end': billing_end,
+            'billed_until': today,  # Actual date being billed until
             'total_days': total_days,
             'modified_days': modified_days,
             'total_quantity': total_quantity,
@@ -1940,25 +1944,32 @@ def generate_invoice_metered(subscription_id):
         
         return render_template('admin/subscriptions/invoice_preview.html',
                              subscription=subscription,
-                             summary=summary)
+                             summary=summary,
+                             today=today)
     
     # POST - Generate invoice
     try:
         billing_start = subscription.current_period_start
         billing_end = subscription.current_period_end
+        today = datetime.now().date()
         
-        # Get all deliveries for this period
+        # Get ONLY DELIVERED items (past/today, not future scheduled)
         deliveries = SubscriptionDelivery.query.filter_by(
             subscription_id=subscription_id,
             tenant_id=tenant_id
         ).filter(
             SubscriptionDelivery.delivery_date >= billing_start,
-            SubscriptionDelivery.delivery_date <= billing_end
+            SubscriptionDelivery.delivery_date <= today,  # Only up to TODAY
+            SubscriptionDelivery.status != 'paused'  # Exclude paused
         ).all()
         
-        # Calculate total
+        # Calculate total (only for actually delivered items)
         total_quantity = sum(d.quantity for d in deliveries)
         total_amount = float(sum(d.amount for d in deliveries))
+        
+        if total_quantity == 0:
+            flash('❌ No deliveries to invoice yet. Wait until some deliveries are completed.', 'error')
+            return redirect(url_for('subscriptions.generate_invoice_metered', subscription_id=subscription_id))
         
         # Create invoice
         customer = subscription.customer
