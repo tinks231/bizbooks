@@ -1532,12 +1532,14 @@ def generate_qr():
 def bulk_import():
     """Bulk import landing page"""
     from models import Employee, Item, Customer
+    from models.subscription import CustomerSubscription
     tenant_id = get_current_tenant_id()
     
     stats = {
         'employees': Employee.query.filter_by(tenant_id=tenant_id).count(),
         'inventory': Item.query.filter_by(tenant_id=tenant_id).count(),
-        'customers': Customer.query.filter_by(tenant_id=tenant_id).count()
+        'customers': Customer.query.filter_by(tenant_id=tenant_id).count(),
+        'subscriptions': CustomerSubscription.query.filter_by(tenant_id=tenant_id, status='active').count()
     }
     
     return render_template('admin/bulk_import.html', stats=stats, tenant=g.tenant)
@@ -1549,13 +1551,31 @@ def bulk_import():
 def download_template(template_type):
     """Download Excel template for bulk import"""
     from flask import send_file
-    from utils.excel_import import create_employee_template, create_inventory_template, create_customer_template
+    from utils.excel_import import (
+        create_employee_template, 
+        create_inventory_template, 
+        create_customer_template,
+        create_subscription_enrollment_template
+    )
     
+    tenant_id = get_current_tenant_id()
+    
+    # Standard templates (no tenant context needed)
     templates = {
         'employees': (create_employee_template, 'BizBooks_Employee_Import_Template.xlsx'),
         'inventory': (create_inventory_template, 'BizBooks_Inventory_Import_Template.xlsx'),
         'customers': (create_customer_template, 'BizBooks_Customer_Import_Template.xlsx')
     }
+    
+    # Special case: subscription enrollment needs tenant_id for dynamic data
+    if template_type == 'subscriptions':
+        excel_file = create_subscription_enrollment_template(tenant_id)
+        return send_file(
+            excel_file,
+            mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            as_attachment=True,
+            download_name='BizBooks_Subscription_Enrollment_Template.xlsx'
+        )
     
     if template_type not in templates:
         flash('Invalid template type', 'error')
@@ -1577,7 +1597,12 @@ def download_template(template_type):
 @login_required
 def upload_import(import_type):
     """Process bulk import upload"""
-    from utils.excel_import import import_employees_from_excel, import_inventory_from_excel, import_customers_from_excel
+    from utils.excel_import import (
+        import_employees_from_excel, 
+        import_inventory_from_excel, 
+        import_customers_from_excel,
+        import_subscription_enrollments_from_excel
+    )
     
     if 'file' not in request.files:
         flash('⚠️ No file uploaded', 'error')
@@ -1605,11 +1630,35 @@ def upload_import(import_type):
         elif import_type == 'customers':
             success_count, errors = import_customers_from_excel(file, tenant_id)
             entity_name = 'customers'
+        elif import_type == 'subscriptions':
+            success_count, skipped_count, errors = import_subscription_enrollments_from_excel(file, tenant_id)
+            entity_name = 'subscriptions'
+            
+            # Custom messaging for subscription import
+            if success_count > 0:
+                flash(f'✅ Successfully enrolled {success_count} customer(s) in subscriptions!', 'success')
+            
+            if skipped_count > 0:
+                flash(f'⏭️ Skipped {skipped_count} duplicate enrollment(s) (already enrolled in same plan)', 'info')
+            
+            if errors:
+                # Filter out SKIPPED messages from error display (they're not real errors)
+                real_errors = [e for e in errors if 'SKIPPED' not in e]
+                if real_errors:
+                    error_msg = f'⚠️ {len(real_errors)} issue(s):<br>' + '<br>'.join(real_errors[:10])
+                    if len(real_errors) > 10:
+                        error_msg += f'<br>...and {len(real_errors) - 10} more'
+                    flash(error_msg, 'warning')
+            
+            if success_count == 0 and skipped_count == 0 and not errors:
+                flash('⚠️ No data to import. Please check your file.', 'warning')
+            
+            return redirect(url_for('admin.bulk_import'))
         else:
             flash('⚠️ Invalid import type', 'error')
             return redirect(url_for('admin.bulk_import'))
         
-        # Show results
+        # Show results (for non-subscription imports)
         if success_count > 0:
             flash(f'✅ Successfully imported {success_count} {entity_name}!', 'success')
         

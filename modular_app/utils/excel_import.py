@@ -6,8 +6,9 @@ Handles validation, parsing, and importing from Excel/CSV files
 from openpyxl import Workbook, load_workbook
 from openpyxl.styles import Font, PatternFill, Alignment
 from io import BytesIO
-from datetime import datetime
+from datetime import datetime, timedelta
 from models import db, Employee, Item, Customer, Site, ItemCategory, ItemGroup
+from models.subscription import SubscriptionPlan, CustomerSubscription, SubscriptionDelivery
 
 def create_employee_template():
     """
@@ -666,4 +667,405 @@ def import_customers_from_excel(file, tenant_id):
     except Exception as e:
         db.session.rollback()
         return 0, [f"File error: {str(e)}"]
+
+
+# ============================================
+# SUBSCRIPTION ENROLLMENT IMPORT
+# ============================================
+
+def create_subscription_enrollment_template(tenant_id):
+    """
+    Create Excel template for subscription enrollment bulk import
+    This is DYNAMIC - includes tenant's plans and customers for reference
+    
+    Returns: BytesIO object with Excel file
+    """
+    wb = Workbook()
+    
+    # ==========================================
+    # SHEET 1: Enrollment Data (User fills this)
+    # ==========================================
+    ws_data = wb.active
+    ws_data.title = "Enrollment Data"
+    
+    # Headers
+    headers = ['Customer Phone*', 'Customer Name (optional)', 'Plan ID*', 'Start Date*', 'Quantity', 'Auto Renew']
+    
+    # Style headers
+    header_fill = PatternFill(start_color="7B68EE", end_color="7B68EE", fill_type="solid")
+    header_font = Font(bold=True, color="FFFFFF")
+    
+    for col_num, header in enumerate(headers, 1):
+        cell = ws_data.cell(row=1, column=col_num, value=header)
+        cell.fill = header_fill
+        cell.font = header_font
+        cell.alignment = Alignment(horizontal="center", vertical="center")
+    
+    # Add sample data (row 2)
+    sample_data = [
+        '9876543210',
+        '(auto-matched)',
+        '1',
+        datetime.now().strftime('%Y-%m-%d'),
+        '2',
+        'Yes'
+    ]
+    
+    for col_num, value in enumerate(sample_data, 1):
+        cell = ws_data.cell(row=2, column=col_num, value=value)
+        cell.fill = PatternFill(start_color="E7E6E6", end_color="E7E6E6", fill_type="solid")
+    
+    # Instructions in Sheet 1
+    ws_data.cell(row=4, column=1, value="INSTRUCTIONS:")
+    ws_data.cell(row=5, column=1, value="1. Fields marked with * are required")
+    ws_data.cell(row=6, column=1, value="2. Customer Phone: 10-digit phone number (must exist in system)")
+    ws_data.cell(row=7, column=1, value="3. Customer Name: Optional - for your reference only")
+    ws_data.cell(row=8, column=1, value="4. Plan ID: Look up from 'Your Plans' sheet (DO NOT use plan name)")
+    ws_data.cell(row=9, column=1, value="5. Start Date: Format YYYY-MM-DD (e.g., 2024-12-01)")
+    ws_data.cell(row=10, column=1, value="6. Quantity: For metered plans (liters/day). Leave blank for fixed plans.")
+    ws_data.cell(row=11, column=1, value="7. Auto Renew: 'Yes' or 'No' (default: Yes)")
+    ws_data.cell(row=12, column=1, value="8. Delete row 2 (sample data) before uploading")
+    ws_data.cell(row=13, column=1, value="")
+    ws_data.cell(row=14, column=1, value="DUPLICATE HANDLING:")
+    ws_data.cell(row=15, column=1, value="   - Same customer + Same plan = SKIPPED (no duplicate created)")
+    ws_data.cell(row=16, column=1, value="   - Same customer + Different plan = ENROLLED (customer can have multiple)")
+    
+    # Style instructions
+    for row in range(4, 17):
+        cell = ws_data.cell(row=row, column=1)
+        if 'INSTRUCTIONS' in str(cell.value) or 'DUPLICATE' in str(cell.value):
+            cell.font = Font(bold=True, color="7B68EE")
+        else:
+            cell.font = Font(color="666666")
+    
+    # Adjust column widths
+    ws_data.column_dimensions['A'].width = 18
+    ws_data.column_dimensions['B'].width = 25
+    ws_data.column_dimensions['C'].width = 10
+    ws_data.column_dimensions['D'].width = 15
+    ws_data.column_dimensions['E'].width = 12
+    ws_data.column_dimensions['F'].width = 12
+    
+    # ==========================================
+    # SHEET 2: Your Plans (Reference)
+    # ==========================================
+    ws_plans = wb.create_sheet("Your Plans (Reference)")
+    
+    # Headers
+    plan_headers = ['Plan ID', 'Plan Name', 'Type', 'Price/Rate', 'Unit', 'Duration', 'Delivery Pattern']
+    plan_header_fill = PatternFill(start_color="4CAF50", end_color="4CAF50", fill_type="solid")
+    
+    for col_num, header in enumerate(plan_headers, 1):
+        cell = ws_plans.cell(row=1, column=col_num, value=header)
+        cell.fill = plan_header_fill
+        cell.font = header_font
+        cell.alignment = Alignment(horizontal="center", vertical="center")
+    
+    # Get tenant's plans
+    plans = SubscriptionPlan.query.filter_by(tenant_id=tenant_id, is_active=True).order_by(SubscriptionPlan.id).all()
+    
+    for row_num, plan in enumerate(plans, 2):
+        ws_plans.cell(row=row_num, column=1, value=plan.id)
+        ws_plans.cell(row=row_num, column=2, value=plan.name)
+        ws_plans.cell(row=row_num, column=3, value=plan.plan_type.upper())
+        
+        if plan.plan_type == 'metered':
+            ws_plans.cell(row=row_num, column=4, value=f"Rs.{plan.unit_rate}/unit")
+            ws_plans.cell(row=row_num, column=5, value=plan.unit_name or 'unit')
+            ws_plans.cell(row=row_num, column=6, value="Monthly billing")
+            ws_plans.cell(row=row_num, column=7, value=plan.delivery_pattern or 'daily')
+        else:
+            ws_plans.cell(row=row_num, column=4, value=f"Rs.{plan.price}")
+            ws_plans.cell(row=row_num, column=5, value="-")
+            ws_plans.cell(row=row_num, column=6, value=plan.duration_display)
+            ws_plans.cell(row=row_num, column=7, value="-")
+    
+    # Add note at the bottom
+    note_row = len(plans) + 3
+    ws_plans.cell(row=note_row, column=1, value="NOTE: Use the Plan ID (first column) in your enrollment data, NOT the plan name.")
+    ws_plans.cell(row=note_row, column=1).font = Font(bold=True, color="FF6600")
+    ws_plans.merge_cells(start_row=note_row, start_column=1, end_row=note_row, end_column=7)
+    
+    # Adjust column widths
+    ws_plans.column_dimensions['A'].width = 10
+    ws_plans.column_dimensions['B'].width = 40
+    ws_plans.column_dimensions['C'].width = 10
+    ws_plans.column_dimensions['D'].width = 15
+    ws_plans.column_dimensions['E'].width = 10
+    ws_plans.column_dimensions['F'].width = 18
+    ws_plans.column_dimensions['G'].width = 18
+    
+    # ==========================================
+    # SHEET 3: Your Customers (Reference)
+    # ==========================================
+    ws_customers = wb.create_sheet("Your Customers (Reference)")
+    
+    # Headers
+    customer_headers = ['Phone', 'Customer Name', 'Email', 'Existing Subscriptions']
+    customer_header_fill = PatternFill(start_color="FF9800", end_color="FF9800", fill_type="solid")
+    
+    for col_num, header in enumerate(customer_headers, 1):
+        cell = ws_customers.cell(row=1, column=col_num, value=header)
+        cell.fill = customer_header_fill
+        cell.font = Font(bold=True, color="000000")
+        cell.alignment = Alignment(horizontal="center", vertical="center")
+    
+    # Get tenant's customers
+    customers = Customer.query.filter_by(tenant_id=tenant_id).order_by(Customer.name).all()
+    
+    for row_num, customer in enumerate(customers, 2):
+        ws_customers.cell(row=row_num, column=1, value=customer.phone)
+        ws_customers.cell(row=row_num, column=2, value=customer.name)
+        ws_customers.cell(row=row_num, column=3, value=customer.email or '-')
+        
+        # Check existing subscriptions
+        existing_subs = CustomerSubscription.query.filter_by(
+            customer_id=customer.id,
+            status='active'
+        ).all()
+        
+        if existing_subs:
+            sub_names = [sub.plan.name for sub in existing_subs]
+            ws_customers.cell(row=row_num, column=4, value=', '.join(sub_names))
+            ws_customers.cell(row=row_num, column=4).font = Font(color="4CAF50")
+        else:
+            ws_customers.cell(row=row_num, column=4, value="No active subscriptions")
+            ws_customers.cell(row=row_num, column=4).font = Font(color="999999")
+    
+    # Add note
+    note_row = len(customers) + 3
+    ws_customers.cell(row=note_row, column=1, value="NOTE: Use the Phone number (first column) in your enrollment data to match customers.")
+    ws_customers.cell(row=note_row, column=1).font = Font(bold=True, color="FF6600")
+    ws_customers.merge_cells(start_row=note_row, start_column=1, end_row=note_row, end_column=4)
+    
+    # Adjust column widths
+    ws_customers.column_dimensions['A'].width = 15
+    ws_customers.column_dimensions['B'].width = 30
+    ws_customers.column_dimensions['C'].width = 30
+    ws_customers.column_dimensions['D'].width = 40
+    
+    # Save to BytesIO
+    output = BytesIO()
+    wb.save(output)
+    output.seek(0)
+    
+    return output
+
+
+def validate_subscription_enrollment_row(row_data, row_num, tenant_id):
+    """
+    Validate a single subscription enrollment row
+    Returns: (is_valid, error_message, parsed_data)
+    """
+    phone, customer_name, plan_id, start_date, quantity, auto_renew = row_data
+    
+    parsed_data = {}
+    
+    # Required: Phone
+    if not phone:
+        return False, f"Row {row_num}: Customer Phone is required", None
+    
+    # Handle phone as float (Excel issue)
+    try:
+        if isinstance(phone, float):
+            phone = int(phone)
+        phone_str = str(phone).strip()
+    except:
+        return False, f"Row {row_num}: Phone must be a valid number", None
+    
+    if len(phone_str) != 10 or not phone_str.isdigit():
+        return False, f"Row {row_num}: Phone must be 10 digits", None
+    
+    # Find customer by phone
+    customer = Customer.query.filter_by(tenant_id=tenant_id, phone=phone_str).first()
+    if not customer:
+        return False, f"Row {row_num}: Customer with phone {phone_str} not found", None
+    
+    parsed_data['customer_id'] = customer.id
+    parsed_data['customer_name'] = customer.name
+    
+    # Required: Plan ID
+    if not plan_id:
+        return False, f"Row {row_num}: Plan ID is required", None
+    
+    try:
+        if isinstance(plan_id, float):
+            plan_id = int(plan_id)
+        plan_id_int = int(plan_id)
+    except:
+        return False, f"Row {row_num}: Plan ID must be a number", None
+    
+    # Find plan
+    plan = SubscriptionPlan.query.filter_by(id=plan_id_int, tenant_id=tenant_id, is_active=True).first()
+    if not plan:
+        return False, f"Row {row_num}: Plan with ID {plan_id_int} not found or inactive", None
+    
+    parsed_data['plan_id'] = plan.id
+    parsed_data['plan'] = plan
+    
+    # Required: Start Date
+    if not start_date:
+        return False, f"Row {row_num}: Start Date is required", None
+    
+    try:
+        if isinstance(start_date, datetime):
+            parsed_data['start_date'] = start_date.date()
+        elif isinstance(start_date, str):
+            # Try multiple date formats
+            for fmt in ['%Y-%m-%d', '%d/%m/%Y', '%d-%m-%Y', '%m/%d/%Y']:
+                try:
+                    parsed_data['start_date'] = datetime.strptime(start_date.strip(), fmt).date()
+                    break
+                except:
+                    continue
+            else:
+                return False, f"Row {row_num}: Invalid date format. Use YYYY-MM-DD", None
+        else:
+            return False, f"Row {row_num}: Invalid start date", None
+    except Exception as e:
+        return False, f"Row {row_num}: Invalid start date - {str(e)}", None
+    
+    # Optional: Quantity (for metered plans)
+    if plan.plan_type == 'metered':
+        if quantity and str(quantity).strip():
+            try:
+                parsed_data['quantity'] = float(quantity)
+            except:
+                return False, f"Row {row_num}: Quantity must be a number", None
+        else:
+            parsed_data['quantity'] = 1.0  # Default quantity for metered
+    else:
+        parsed_data['quantity'] = None
+    
+    # Optional: Auto Renew
+    if auto_renew:
+        auto_renew_str = str(auto_renew).strip().lower()
+        parsed_data['auto_renew'] = auto_renew_str in ['yes', 'y', 'true', '1']
+    else:
+        parsed_data['auto_renew'] = True  # Default to auto-renew
+    
+    return True, None, parsed_data
+
+
+def import_subscription_enrollments_from_excel(file, tenant_id):
+    """
+    Import subscription enrollments from Excel file
+    Returns: (success_count, skipped_count, errors_list)
+    
+    Duplicate handling:
+    - Same customer + Same plan = SKIP (already enrolled)
+    - Same customer + Different plan = CREATE (multiple subscriptions allowed)
+    """
+    # Import here to avoid circular imports
+    from routes.subscriptions import should_deliver_on_date
+    
+    try:
+        wb = load_workbook(file)
+        ws = wb.active
+        
+        success_count = 0
+        skipped_count = 0
+        errors = []
+        
+        # Skip header row, start from row 2
+        for row_num, row in enumerate(ws.iter_rows(min_row=2, values_only=True), start=2):
+            # Skip empty rows
+            if all(cell is None or str(cell).strip() == '' for cell in row):
+                continue
+            
+            # Extract data (pad with None if row is shorter)
+            row_data = list(row) + [None] * (6 - len(row))
+            phone, customer_name, plan_id, start_date, quantity, auto_renew = row_data[:6]
+            
+            # Validate
+            is_valid, error_msg, parsed_data = validate_subscription_enrollment_row(row_data[:6], row_num, tenant_id)
+            if not is_valid:
+                errors.append(error_msg)
+                continue
+            
+            try:
+                customer_id = parsed_data['customer_id']
+                plan = parsed_data['plan']
+                
+                # Check for duplicate: same customer + same plan (active or pending)
+                existing = CustomerSubscription.query.filter(
+                    CustomerSubscription.customer_id == customer_id,
+                    CustomerSubscription.plan_id == plan.id,
+                    CustomerSubscription.status.in_(['active', 'pending_payment'])
+                ).first()
+                
+                if existing:
+                    skipped_count += 1
+                    errors.append(f"Row {row_num}: {parsed_data['customer_name']} already enrolled in {plan.name} - SKIPPED")
+                    continue
+                
+                # Calculate period end based on plan type
+                start_date = parsed_data['start_date']
+                
+                if plan.plan_type == 'metered':
+                    # METERED: End on last day of start month
+                    if start_date.month == 12:
+                        period_end = datetime(start_date.year, 12, 31).date()
+                    else:
+                        period_end = datetime(start_date.year, start_date.month + 1, 1).date() - timedelta(days=1)
+                else:
+                    # FIXED: Add duration days
+                    period_end = start_date + timedelta(days=plan.duration_days)
+                
+                # Create subscription
+                subscription = CustomerSubscription(
+                    tenant_id=tenant_id,
+                    customer_id=customer_id,
+                    plan_id=plan.id,
+                    default_quantity=parsed_data['quantity'],
+                    start_date=start_date,
+                    current_period_start=start_date,
+                    current_period_end=period_end,
+                    status='active',
+                    auto_renew=parsed_data['auto_renew']
+                )
+                
+                db.session.add(subscription)
+                db.session.flush()  # Get subscription ID
+                
+                # AUTO-GENERATE DELIVERIES for metered plans
+                if plan.plan_type == 'metered':
+                    current_date = start_date
+                    delivery_pattern = plan.delivery_pattern or 'daily'
+                    custom_days = plan.custom_days
+                    
+                    while current_date <= period_end:
+                        if should_deliver_on_date(current_date, delivery_pattern, custom_days, start_date):
+                            # Get customer for delivery assignment
+                            customer = Customer.query.get(customer_id)
+                            
+                            delivery = SubscriptionDelivery(
+                                tenant_id=tenant_id,
+                                subscription_id=subscription.id,
+                                delivery_date=current_date,
+                                quantity=parsed_data['quantity'],
+                                rate=plan.unit_rate,
+                                amount=parsed_data['quantity'] * float(plan.unit_rate),
+                                status='delivered',
+                                is_modified=False,
+                                assigned_to=customer.default_delivery_employee if customer else None
+                            )
+                            db.session.add(delivery)
+                        
+                        current_date += timedelta(days=1)
+                
+                success_count += 1
+                
+            except Exception as e:
+                errors.append(f"Row {row_num}: {str(e)}")
+                continue
+        
+        if success_count > 0:
+            db.session.commit()
+        
+        return success_count, skipped_count, errors
+        
+    except Exception as e:
+        db.session.rollback()
+        return 0, 0, [f"File error: {str(e)}"]
 

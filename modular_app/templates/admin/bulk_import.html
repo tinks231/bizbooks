@@ -71,6 +71,10 @@
         border-color: #2196F3;
     }
     
+    .import-card.subscriptions {
+        border-color: #9C27B0;
+    }
+    
     .card-icon {
         font-size: 48px;
         display: block;
@@ -344,6 +348,34 @@
                 <button type="submit" class="btn-upload">⬆️ Upload & Import</button>
             </form>
         </div>
+        
+        <!-- Subscription Enrollment Import -->
+        <div class="import-card subscriptions">
+            <span class="card-icon">📋</span>
+            <div class="feature-badge" style="background: linear-gradient(135deg, #9C27B0 0%, #E91E63 100%);">SAVE TIME</div>
+            <h3 class="card-title">Enroll Subscriptions</h3>
+            <p class="card-description">
+                Bulk enroll existing customers into subscription plans.
+                Template includes your plans & customers for easy reference.
+            </p>
+            <div class="current-count">
+                Active Subscriptions: <span>{{ stats.subscriptions }}</span>
+            </div>
+            
+            <a href="{{ url_for('admin.download_template', template_type='subscriptions') }}" class="btn-download">
+                📥 Download Template (with your plans)
+            </a>
+            
+            <form action="{{ url_for('admin.upload_import', import_type='subscriptions') }}" method="POST" enctype="multipart/form-data" class="upload-form">
+                <div class="file-input-wrapper">
+                    <input type="file" id="subscription-file" name="file" accept=".xlsx,.xls" required onchange="updateFileName(this, 'subscription')">
+                    <label class="field-label" for="subscription-file" class="file-input-label" id="subscription-label">
+                        📄 Choose Excel File
+                    </label>
+                </div>
+                <button type="submit" class="btn-upload" style="background: linear-gradient(135deg, #9C27B0 0%, #E91E63 100%);">⬆️ Upload & Enroll</button>
+            </form>
+        </div>
     </div>
     
     <!-- Instructions Section -->
@@ -365,6 +397,16 @@
             <li>Phone numbers must be 10 digits without country code.</li>
             <li>If an employee/customer with the same phone exists, it will be skipped.</li>
             <li>If an inventory item with the same SKU exists, it will be skipped.</li>
+        </ul>
+        
+        <h3 style="margin-top: 20px;">📋 Subscription Enrollment Tips</h3>
+        <ul>
+            <li><strong>Template is personalized</strong> - includes YOUR plans and customers for easy reference.</li>
+            <li>Use <strong>Plan ID</strong> (from Sheet 2) instead of plan name to avoid errors.</li>
+            <li>If a customer is already enrolled in the same plan, they will be <strong>skipped</strong> (no duplicates).</li>
+            <li>Same customer can be enrolled in <strong>multiple different plans</strong>.</li>
+            <li>For metered plans (milk, newspaper), deliveries are auto-generated based on the plan schedule.</li>
+            <li><strong>Re-uploading is safe</strong> - only new enrollments are added, existing ones are skipped.</li>
         </ul>
     </div>
 </div>
