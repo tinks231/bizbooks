@@ -12,8 +12,18 @@ def init_db(app):
     db.init_app(app)
     
     with app.app_context():
-        # Create all tables
-        db.create_all()
+        # Create all tables (safe even if some already exist)
+        from sqlalchemy.exc import ProgrammingError
+        try:
+            db.create_all()
+        except ProgrammingError as exc:
+            # Ignore duplicate table errors triggered when tables are created via manual migrations
+            message = str(exc).lower()
+            if 'already exists' in message:
+                db.session.rollback()
+                app.logger.warning(f"⚠️ Skipping create_all duplicate table error: {exc}")
+            else:
+                raise
         
         # Create default admin user if not exists
         from .user import User
