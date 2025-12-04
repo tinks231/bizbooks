@@ -25,19 +25,24 @@ def employee_login_required(f):
 def login():
     """Employee PIN login for tasks"""
     if request.method == 'POST':
-        phone = request.form.get('phone')
-        pin = request.form.get('pin')
+        pin = request.form.get('pin', '').strip()
         
-        employee = Employee.query.filter_by(phone=phone, pin=pin, active=True).first()
+        if not pin:
+            flash('Please enter your PIN', 'error')
+            return redirect(url_for('employee_tasks.login'))
+        
+        employee = Employee.query.filter_by(pin=pin, active=True).first()
         
         if employee:
             session['employee_id'] = employee.id
             session['employee_name'] = employee.name
             session['tenant_id'] = employee.tenant_id
-            flash(f'Welcome {employee.name}!', 'success')
+            session.permanent = True
+            flash(f'Welcome, {employee.name}!', 'success')
             return redirect(url_for('employee_tasks.my_tasks'))
         else:
-            flash('Invalid phone or PIN', 'error')
+            flash('Invalid PIN or inactive employee', 'error')
+            return redirect(url_for('employee_tasks.login'))
     
     return render_template('employee_tasks/login.html')
 

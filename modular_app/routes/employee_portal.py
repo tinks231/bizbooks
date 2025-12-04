@@ -15,17 +15,15 @@ employee_portal_bp = Blueprint('employee_portal', __name__, url_prefix='/employe
 def login():
     """Employee PIN login for unified portal"""
     if request.method == 'POST':
-        phone = request.form.get('phone')
-        pin = request.form.get('pin')
+        pin = request.form.get('pin', '').strip()
         
-        if not phone or not pin:
-            flash('Phone and PIN are required', 'error')
-            return render_template('employee_portal/login.html', tenant=g.tenant)
+        if not pin:
+            flash('Please enter your PIN', 'error')
+            return redirect(url_for('employee_portal.login'))
         
-        # Find employee
+        # Find employee by PIN and tenant
         employee = Employee.query.filter_by(
             tenant_id=g.tenant.id,
-            phone=phone,
             pin=pin,
             active=True
         ).first()
@@ -34,10 +32,14 @@ def login():
             # Store employee ID in session
             session['employee_id'] = employee.id
             session['employee_name'] = employee.name
-            flash(f'Welcome {employee.name}!', 'success')
+            session['employee_tenant_id'] = employee.tenant_id
+            session.permanent = True
+            
+            flash(f'Welcome, {employee.name}!', 'success')
             return redirect(url_for('employee_portal.dashboard'))
         else:
-            flash('Invalid phone or PIN', 'error')
+            flash('Invalid PIN or inactive employee', 'error')
+            return redirect(url_for('employee_portal.login'))
     
     return render_template('employee_portal/login.html', tenant=g.tenant)
 

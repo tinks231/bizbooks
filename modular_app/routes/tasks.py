@@ -484,7 +484,7 @@ def send_task_assignment_email(task, employee):
                 
                 <p>Please login to your account to view details and update progress.</p>
                 
-                <a href="{request.host_url}employee/tasks/login" 
+                <a href="{request.host_url}employee/login" 
                    style="display: inline-block; padding: 12px 24px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; text-decoration: none; border-radius: 5px; margin-top: 15px;">
                     View Task
                 </a>
@@ -515,7 +515,7 @@ Description:
 
 Please login to your account to view details and update progress.
 
-Login: {request.host_url}employee/tasks/login
+Login: {request.host_url}employee/login
 
 ---
 BizBooks Task Management

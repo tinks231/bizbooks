@@ -159,18 +159,6 @@
         
         <form method="POST" action="{{ url_for('employee_tasks.login') }}">
             <div class="form-group">
-                <label for="phone">📞 Phone Number</label>
-                <input type="tel" 
-                       id="phone" 
-                       name="phone" 
-                       placeholder="Enter your phone number" 
-                       pattern="[0-9]{10}" 
-                       maxlength="10"
-                       required 
-                       autofocus>
-            </div>
-            
-            <div class="form-group">
                 <label for="pin">🔒 PIN</label>
                 <input type="password" 
                        id="pin" 
@@ -178,7 +166,8 @@
                        placeholder="Enter your 4-digit PIN" 
                        pattern="[0-9]{4}" 
                        maxlength="4"
-                       required>
+                       required
+                       autofocus>
             </div>
             
             <button type="submit" class="btn">
