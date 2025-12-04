@@ -28,7 +28,13 @@ from .purchase_bill import PurchaseBill
 from .purchase_bill_item import PurchaseBillItem
 from .vendor_payment import VendorPayment, PaymentAllocation
 from .commission_agent import CommissionAgent, InvoiceCommission
-from .subscription import SubscriptionPlan, CustomerSubscription, SubscriptionPayment, SubscriptionDelivery
+from .subscription import (
+    SubscriptionPlan,
+    CustomerSubscription,
+    SubscriptionPayment,
+    SubscriptionDelivery,
+    DeliveryDayNote
+)
 from .customer_order import CustomerOrder, CustomerOrderItem
 from .bank_account import BankAccount, AccountTransaction
 
@@ -52,7 +58,7 @@ __all__ = [
     'PurchaseBill', 'PurchaseBillItem',
     'VendorPayment', 'PaymentAllocation',
     'CommissionAgent', 'InvoiceCommission',
-    'SubscriptionPlan', 'CustomerSubscription', 'SubscriptionPayment', 'SubscriptionDelivery',
+    'SubscriptionPlan', 'CustomerSubscription', 'SubscriptionPayment', 'SubscriptionDelivery', 'DeliveryDayNote',
     'CustomerOrder', 'CustomerOrderItem',
     'BankAccount', 'AccountTransaction'
 ]

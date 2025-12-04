@@ -188,6 +188,74 @@
         margin-bottom: 25px;
         box-shadow: 0 2px 8px rgba(0,0,0,0.08);
     }
+
+    .day-note-card {
+        background: white;
+        border-radius: 12px;
+        padding: 20px;
+        margin-bottom: 25px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        border-left: 5px solid #ffb74d;
+    }
+    
+    .day-note-card h3 {
+        margin: 0 0 12px 0;
+        font-size: 18px;
+        color: #ff8f00;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    .day-note-card textarea {
+        width: 100%;
+        border-radius: 10px;
+        border: 2px solid #ffe0b2;
+        padding: 12px;
+        font-size: 14px;
+        min-height: 90px;
+        transition: border 0.2s;
+        resize: vertical;
+    }
+    
+    .day-note-card textarea:focus {
+        outline: none;
+        border-color: #ff9800;
+        box-shadow: 0 0 0 3px rgba(255, 152, 0, 0.15);
+    }
+    
+    .day-note-actions {
+        display: flex;
+        gap: 12px;
+        margin-top: 12px;
+        flex-wrap: wrap;
+    }
+    
+    .day-note-actions button {
+        border: none;
+        border-radius: 8px;
+        padding: 10px 18px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    
+    .day-note-actions .save-btn {
+        background: linear-gradient(135deg, #ff9800 0%, #ffb74d 100%);
+        color: white;
+        box-shadow: 0 3px 10px rgba(255, 152, 0, 0.3);
+    }
+    
+    .day-note-actions .clear-btn {
+        background: #ffe0b2;
+        color: #d84315;
+    }
+    
+    .day-note-hint {
+        margin-top: 10px;
+        font-size: 12px;
+        color: #777;
+    }
     
     .product-summary h3 {
         margin: 0 0 20px 0;
@@ -405,6 +473,12 @@
         border: 1px solid #ffc107;
     }
     
+    .status-badge.other-assignment {
+        background: #fff8e1;
+        color: #b26a00;
+        border: 1px solid #ffcc80;
+    }
+    
     .delivery-details {
         font-size: 11px;
         color: #666;
@@ -464,6 +538,12 @@
         background: #e8f5e9;
         color: #2e7d32;
         border: 1px solid #a5d6a7;
+    }
+    
+    .assigned-badge.other-assignment {
+        background: #fff8e1;
+        color: #b26a00;
+        border-color: #ffcc80;
     }
     
     .unassigned-badge {
@@ -875,6 +955,8 @@
         
         // Find employee name
         const employee = employeesData.find(e => e.id == employeeId);
+        const selectedEmployeeName = employee ? employee.name : '';
+        const selectedLabel = selectedEmployeeName || 'selected employee';
         if (employee && employeeNameDisplay) {
             employeeNameDisplay.textContent = employee.name;
         }
@@ -888,7 +970,20 @@
         // Populate customer table
         tbody.innerHTML = '';
         allCustomersData.forEach((customer, index) => {
-            const isAssigned = customer.assigned_to == employeeId;
+            const assignedId = customer.default_employee_id ?? customer.assigned_to;
+            const assignedName = customer.default_employee_name || 'another employee';
+            const isAssigned = assignedId && assignedId == employeeId;
+            const badgeHtml = assignedId
+                ? (isAssigned
+                    ? '<span class="assigned-badge">✓ Assigned</span>'
+                    : `<span class="assigned-badge other-assignment">↪ Assigned to ${assignedName}</span>`)
+                : '<span class="unassigned-badge">Unassigned</span>';
+            const statusHtml = assignedId
+                ? (isAssigned
+                    ? `<span class="status-badge completed">✅ Assigned to ${selectedLabel}</span>`
+                    : `<span class="status-badge other-assignment">↪ Assigned to ${assignedName}</span>`)
+                : '<span class="status-badge pending">⏳ Unassigned</span>';
+            
             const row = document.createElement('tr');
             row.className = 'customer-row';
             row.setAttribute('data-customer-name', customer.name.toLowerCase());
@@ -906,12 +1001,12 @@
                 <td>${index + 1}</td>
                 <td>
                     <strong>${customer.name}</strong>
-                    ${isAssigned ? '<span class="assigned-badge">✓ Assigned</span>' : '<span class="unassigned-badge">Unassigned</span>'}
+                    ${badgeHtml}
                 </td>
                 <td>${customer.phone || '-'}</td>
                 <td>${customer.plan_name}</td>
                 <td>
-                    ${isAssigned ? '<span style="color: #4CAF50; font-weight: 600;">✓ Currently Assigned</span>' : '<span style="color: #999;">-</span>'}
+                    ${statusHtml}
                 </td>
             `;
             tbody.appendChild(row);
@@ -1004,6 +1099,25 @@
             </div>
             <p class="value">{{ paused_deliveries|length }}</p>
         </div>
+    </div>
+    
+    <!-- Day Note Editor -->
+    <div class="day-note-card">
+        <h3>🗒 Daily Instruction</h3>
+        <form method="POST" action="{{ url_for('subscriptions.save_delivery_day_note') }}">
+            <input type="hidden" name="note_date" value="{{ target_date.strftime('%Y-%m-%d') }}">
+            <input type="hidden" name="redirect_view" value="{{ current_view }}">
+            <textarea name="note_text" placeholder="Example: Road repair near MG Road, use back gate.">{{ day_note.note_text if day_note else '' }}</textarea>
+            <div class="day-note-actions">
+                <button type="submit" class="save-btn">💾 Save Note</button>
+                {% if day_note %}
+                <button type="submit" name="clear" value="1" class="clear-btn" onclick="return confirm('Clear this note?')">🧹 Clear</button>
+                {% endif %}
+            </div>
+            <div class="day-note-hint">
+                This message appears to delivery staff for {{ target_date.strftime('%d %b %Y') }}.
+            </div>
+        </form>
     </div>
     
     <!-- Product Summary (Quantities Only) -->
@@ -1215,7 +1329,19 @@ function populateCustomerList(employeeId) {
     
     allCustomers.forEach(customer => {
         rowNum++;
-        const isAssigned = customer.default_employee_id == employeeId;
+        const assignedId = customer.default_employee_id;
+        const assignedName = customer.default_employee_name || 'another employee';
+        const isAssigned = assignedId && assignedId == employeeId;
+        const badgeHtml = assignedId
+            ? (isAssigned
+                ? '<span class="assigned-badge" style="margin-left:6px;">✓ Assigned</span>'
+                : `<span class="assigned-badge other-assignment" style="margin-left:6px;">↪ ${assignedName}</span>`)
+            : '<span class="unassigned-badge" style="margin-left:6px;">Unassigned</span>';
+        const statusHtml = assignedId
+            ? (isAssigned
+                ? `<span class="status-badge completed">✅ Assigned to ${assignedName}</span>`
+                : `<span class="status-badge other-assignment">↪ Assigned to ${assignedName}</span>`)
+            : '<span class="status-badge pending">⏳ Unassigned</span>';
         
         html += `
             <tr class="customer-row" data-name="${customer.name.toLowerCase()}" data-phone="${customer.phone.toLowerCase()}" style="${isAssigned ? 'background: #f1f8f4;' : ''}">
@@ -1227,7 +1353,7 @@ function populateCustomerList(employeeId) {
                 </td>
                 <td>${rowNum}</td>
                 <td>
-                    <div class="customer-name">${customer.name}</div>
+                    <div class="customer-name">${customer.name} ${badgeHtml}</div>
                 </td>
                 <td>
                     ${customer.phone ? `<div class="customer-phone">📞 ${customer.phone}</div>` : '<span style="color: #999;">-</span>'}
@@ -1236,10 +1362,7 @@ function populateCustomerList(employeeId) {
                     <span class="product-info">${customer.plans}</span>
                 </td>
                 <td>
-                    ${isAssigned ? 
-                        '<span class="status-badge completed">✅ Assigned</span>' : 
-                        '<span class="status-badge pending">⏳ Unassigned</span>'
-                    }
+                    ${statusHtml}
                 </td>
             </tr>
         `;

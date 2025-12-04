@@ -37,6 +37,8 @@ class Customer(db.Model):
     
     # Additional Info
     notes = db.Column(db.Text)
+    delivery_special_instruction = db.Column(db.Text)  # Visible to delivery team
+    delivery_comment = db.Column(db.Text)  # Internal admin comment
     is_active = db.Column(db.Boolean, default=True)
     
     # Timestamps

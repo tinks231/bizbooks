@@ -6,7 +6,18 @@ payment collection, and recurring billing.
 """
 
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, g
-from models import db, SubscriptionPlan, CustomerSubscription, SubscriptionPayment, SubscriptionDelivery, Customer, Invoice, InvoiceItem, Employee
+from models import (
+    db,
+    SubscriptionPlan,
+    CustomerSubscription,
+    SubscriptionPayment,
+    SubscriptionDelivery,
+    Customer,
+    Invoice,
+    InvoiceItem,
+    Employee,
+    DeliveryDayNote
+)
 from utils.tenant_middleware import require_tenant, get_current_tenant, get_current_tenant_id
 from utils.license_check import check_license
 from datetime import datetime, timedelta
@@ -141,6 +152,7 @@ def delivery_schedule():
             tenant_id=tenant_id,
             active=True
         ).all()
+        employee_lookup = {emp.id: emp.name for emp in employees}
         
         # Get ALL active customers (not date-filtered) for bulk assignment
         all_customers = db.session.query(Customer).distinct().join(
@@ -158,12 +170,15 @@ def delivery_schedule():
         for customer in all_customers:
             active_subs = [s for s in customer.subscriptions if s.status == 'active']
             if active_subs:
+                assigned_id = customer.default_delivery_employee if customer.default_delivery_employee else None
                 all_customers_json.append({
                     'id': customer.id,
                     'name': customer.name,
                     'phone': customer.phone or '',
-                    'assigned_to': customer.default_delivery_employee if customer.default_delivery_employee else None,
-                    'plan_name': ', '.join([s.plan.name for s in active_subs])
+                    'plan_name': ', '.join([s.plan.name for s in active_subs]),
+                    'assigned_to': assigned_id,
+                    'default_employee_id': assigned_id,
+                    'default_employee_name': employee_lookup.get(assigned_id)
                 })
         
         # Convert employees to JSON format
@@ -200,6 +215,12 @@ def delivery_schedule():
     else:  # default to today
         target_date = today
         view = 'today'
+    
+    # Fetch per-day note for this date (shown to admins and delivery staff)
+    day_note = DeliveryDayNote.query.filter_by(
+        tenant_id=tenant_id,
+        note_date=target_date
+    ).first()
     
     # Get ALL deliveries for target date (regardless of status - we want the full list)
     all_deliveries = SubscriptionDelivery.query.join(
@@ -243,6 +264,7 @@ def delivery_schedule():
         tenant_id=tenant_id,
         active=True
     ).order_by(Employee.name.asc()).all()
+    employee_lookup = {emp.id: emp.name for emp in employees}
     
     # Convert deliveries to JSON-serializable format for JavaScript (for the specific date)
     deliveries_json = []
@@ -284,17 +306,20 @@ def delivery_schedule():
         
         plan_names = [sub.plan.name for sub in active_subs]
         
+        assigned_id = customer.default_delivery_employee
         all_customers_json.append({
             'id': customer.id,
             'name': customer.name,
             'phone': customer.phone or '',
             'plans': ', '.join(plan_names) if plan_names else 'N/A',
-            'default_employee_id': customer.default_delivery_employee
+            'default_employee_id': assigned_id,
+            'default_employee_name': employee_lookup.get(assigned_id)
         })
     
     return render_template('admin/subscriptions/delivery_schedule.html',
                          target_date=target_date,
                          current_view=view,
+                         day_note=day_note,
                          active_deliveries=active_deliveries,
                          paused_deliveries=paused_deliveries,
                          total_customers=total_customers,
@@ -305,6 +330,60 @@ def delivery_schedule():
                          employees_json=employees_json,
                          all_customers_json=all_customers_json,
                          tenant=g.tenant)
+
+
+@subscriptions_bp.route('/delivery-notes/day', methods=['POST'], strict_slashes=False)
+@require_tenant
+@login_required
+def save_delivery_day_note():
+    """Save or clear a note for a specific delivery date."""
+    tenant_id = get_current_tenant_id()
+    redirect_view = request.form.get('redirect_view', 'today')
+    note_date_str = request.form.get('note_date')
+    note_text = (request.form.get('note_text') or '').strip()
+    clear_note = request.form.get('clear') == '1'
+    
+    if not note_date_str:
+        flash('⚠️ Missing note date.', 'error')
+        return redirect(url_for('subscriptions.delivery_schedule', view=redirect_view))
+    
+    try:
+        note_date = datetime.strptime(note_date_str, '%Y-%m-%d').date()
+    except ValueError:
+        flash('⚠️ Invalid note date.', 'error')
+        return redirect(url_for('subscriptions.delivery_schedule', view=redirect_view))
+    
+    note = DeliveryDayNote.query.filter_by(
+        tenant_id=tenant_id,
+        note_date=note_date
+    ).first()
+    
+    if clear_note or not note_text:
+        if note:
+            db.session.delete(note)
+            db.session.commit()
+            flash('🧹 Delivery note cleared.', 'success')
+        else:
+            flash('ℹ️ No note to clear.', 'info')
+    else:
+        if note:
+            note.note_text = note_text
+            note.updated_at = datetime.utcnow()
+        else:
+            note = DeliveryDayNote(
+                tenant_id=tenant_id,
+                note_date=note_date,
+                note_text=note_text
+            )
+            db.session.add(note)
+        db.session.commit()
+        flash('✅ Delivery note saved!', 'success')
+    
+    redirect_kwargs = {'view': redirect_view}
+    if redirect_view == 'custom':
+        redirect_kwargs['date'] = note_date_str
+    
+    return redirect(url_for('subscriptions.delivery_schedule', **redirect_kwargs))
 
 
 # Backward compatibility redirects
@@ -616,7 +695,10 @@ def modify_delivery():
     try:
         subscription_id = int(request.form['subscription_id'])
         delivery_date = datetime.strptime(request.form['delivery_date'], '%Y-%m-%d').date()
-        new_quantity = Decimal(request.form['quantity'])
+        quantity_str = request.form.get('quantity') or request.form.get('new_quantity')
+        if not quantity_str:
+            raise ValueError('Quantity is required')
+        new_quantity = Decimal(quantity_str)
         reason = request.form.get('reason', 'Modified by owner')
         
         # Verify subscription belongs to tenant
@@ -1444,6 +1526,32 @@ def member_detail(subscription_id):
                          subscription=subscription,
                          payments=payments,
                          available_plans=available_plans)
+
+
+@subscriptions_bp.route('/members/<int:subscription_id>/delivery-notes', methods=['POST'], strict_slashes=False)
+@require_tenant
+@login_required
+def update_delivery_notes(subscription_id):
+    """Update delivery instructions/comments for a customer (visible to delivery team)"""
+    tenant_id = get_current_tenant_id()
+    
+    subscription = CustomerSubscription.query.filter_by(
+        id=subscription_id,
+        tenant_id=tenant_id
+    ).first_or_404()
+    
+    customer = subscription.customer
+    
+    special_instruction = request.form.get('special_instruction', '').strip()
+    delivery_comment = request.form.get('delivery_comment', '').strip()
+    
+    customer.delivery_special_instruction = special_instruction or None
+    customer.delivery_comment = delivery_comment or None
+    
+    db.session.commit()
+    
+    flash('✅ Delivery notes updated. Drivers will see this instantly.', 'success')
+    return redirect(url_for('subscriptions.member_detail', subscription_id=subscription_id))
 
 
 # ============================================================

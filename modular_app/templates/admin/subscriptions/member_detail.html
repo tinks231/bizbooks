@@ -262,6 +262,32 @@
                     {% endif %}
                 </div>
             </div>
+
+            <!-- Delivery Notes -->
+            <div class="card" style="margin-top: 20px;">
+                <div class="card-header" style="background: #fff7e6;">
+                    <h5 style="margin: 0; color: #ff8a00;">📝 Delivery Instructions</h5>
+                    <small class="text-muted">Shown on delivery portal</small>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('subscriptions.update_delivery_notes', subscription_id=subscription.id) }}">
+                        <div class="form-group">
+                            <label><strong>Special Instruction</strong> <small class="text-muted">(drivers see this)</small></label>
+                            <textarea name="special_instruction" class="form-control" rows="3" placeholder="e.g., Leave at security, ring bell twice">{{ subscription.customer.delivery_special_instruction or '' }}</textarea>
+                        </div>
+                        <div class="form-group" style="margin-top: 15px;">
+                            <label><strong>Admin Comment</strong> <small class="text-muted">(internal note for driver)</small></label>
+                            <textarea name="delivery_comment" class="form-control" rows="2" placeholder="e.g., Collect ₹200 pending">{{ subscription.customer.delivery_comment or '' }}</textarea>
+                        </div>
+                        <button type="submit" class="btn btn-primary btn-block" style="margin-top: 15px;">
+                            💾 Save Instructions
+                        </button>
+                    </form>
+                    <div class="alert alert-info" style="margin-top: 15px;">
+                        <strong>Tip:</strong> Delivery staff see these notes instantly on their portal.
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </div>

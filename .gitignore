@@ -71,3 +71,5 @@ modular_app/config/settings.ini
 
 config.ini
 current_tunnel_url.txt
+start-local.sh
+run_local.py

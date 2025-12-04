@@ -3,7 +3,7 @@ Employee Delivery Portal Routes
 For delivery personnel to mark deliveries and track bottles
 """
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session, g
-from models import db, Employee, SubscriptionDelivery, Customer, CustomerSubscription
+from models import db, Employee, SubscriptionDelivery, Customer, CustomerSubscription, DeliveryDayNote
 from utils.tenant_middleware import require_tenant, get_current_tenant_id
 from datetime import datetime, date
 from sqlalchemy import and_
@@ -62,7 +62,9 @@ def login():
 @employee_delivery_bp.route('/logout')
 def logout():
     """Employee logout"""
-    session.clear()
+    session.pop('employee_id', None)
+    session.pop('employee_name', None)
+    session.pop('employee_tenant_id', None)
     flash('Logged out successfully', 'success')
     return redirect(url_for('employee_delivery.login'))
 
@@ -109,6 +111,11 @@ def today_deliveries():
     completed_count = len(completed_deliveries)
     pending_count = len(pending_deliveries)
     
+    day_note = DeliveryDayNote.query.filter_by(
+        tenant_id=tenant_id,
+        note_date=today
+    ).first()
+    
     return render_template('employee_delivery/today_deliveries.html',
                          tenant=g.tenant,
                          employee_name=session.get('employee_name'),
@@ -117,7 +124,8 @@ def today_deliveries():
                          total_deliveries=total_deliveries,
                          completed_count=completed_count,
                          pending_count=pending_count,
-                         today=today)
+                         today=today,
+                         day_note=day_note)
 
 
 @employee_delivery_bp.route('/mark/<int:delivery_id>', methods=['POST'])

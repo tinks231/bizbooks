@@ -120,6 +120,29 @@
             margin-bottom: 24px;
         }
         
+        .day-note-banner {
+            max-width: 800px;
+            margin: 0 auto 20px auto;
+            padding: 16px;
+            background: #fff4e5;
+            border-left: 4px solid #ff9800;
+            border-radius: 12px;
+            color: #8c4a07;
+            box-shadow: 0 4px 12px rgba(255, 152, 0, 0.15);
+        }
+        
+        .day-note-banner h3 {
+            margin: 0 0 6px 0;
+            font-size: 15px;
+            font-weight: 800;
+        }
+        
+        .day-note-banner p {
+            margin: 0;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+        
         .stat-card {
             background: white;
             padding: 20px 16px;
@@ -585,6 +608,13 @@
     
     <!-- Deliveries Section -->
     <div class="deliveries-section">
+        {% if day_note %}
+        <div class="day-note-banner">
+            <h3>📣 Today's Instruction</h3>
+            <p>{{ day_note.note_text }}</p>
+        </div>
+        {% endif %}
+        
         <!-- Pending Deliveries -->
         {% if pending_deliveries %}
         <h2 class="section-title">
@@ -625,6 +655,26 @@
                 <div class="info-row">
                     <span class="info-icon">🍾</span>
                     <span><strong>{{ delivery.subscription.customer.bottles_in_possession }} <span data-en="bottles" data-hi="बोतलें">bottles</span></strong> <span data-en="with customer" data-hi="ग्राहक के पास">with customer</span></span>
+                </div>
+                {% endif %}
+
+                {% if delivery.subscription.customer.delivery_special_instruction %}
+                <div class="info-row" style="background: #fff9e6; padding: 10px; border-radius: 10px;">
+                    <span class="info-icon">📌</span>
+                    <span>
+                        <strong data-en="Instruction" data-hi="निर्देश">Instruction</strong>: 
+                        {{ delivery.subscription.customer.delivery_special_instruction }}
+                    </span>
+                </div>
+                {% endif %}
+
+                {% if delivery.subscription.customer.delivery_comment %}
+                <div class="info-row" style="background: #eef5ff; padding: 10px; border-radius: 10px;">
+                    <span class="info-icon">💬</span>
+                    <span>
+                        <strong data-en="Note" data-hi="टिप्पणी">Note</strong>: 
+                        {{ delivery.subscription.customer.delivery_comment }}
+                    </span>
                 </div>
                 {% endif %}
             </div>
@@ -679,6 +729,24 @@
                     <span class="info-icon">🔄</span>
                     <span><span data-en="Collected" data-hi="इकट्ठा किया">Collected</span> {{ delivery.bottles_collected }} <span data-en="bottles" data-hi="बोतलें">bottles</span></span>
                 </div>
+                {% if delivery.subscription.customer.delivery_special_instruction %}
+                <div class="info-row" style="background: #fff9e6; padding: 10px; border-radius: 10px;">
+                    <span class="info-icon">📌</span>
+                    <span>
+                        <strong data-en="Instruction" data-hi="निर्देश">Instruction</strong>: 
+                        {{ delivery.subscription.customer.delivery_special_instruction }}
+                    </span>
+                </div>
+                {% endif %}
+                {% if delivery.subscription.customer.delivery_comment %}
+                <div class="info-row" style="background: #eef5ff; padding: 10px; border-radius: 10px;">
+                    <span class="info-icon">💬</span>
+                    <span>
+                        <strong data-en="Note" data-hi="टिप्पणी">Note</strong>: 
+                        {{ delivery.subscription.customer.delivery_comment }}
+                    </span>
+                </div>
+                {% endif %}
             </div>
             
             <div class="delivery-actions">

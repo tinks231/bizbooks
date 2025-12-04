@@ -2248,6 +2248,115 @@ def add_gst_rate_to_items():
         }), 500
 
 
+@migration_bp.route('/add-customer-delivery-notes')
+def add_customer_delivery_notes():
+    """
+    Add delivery_special_instruction and delivery_comment columns to customers table.
+    Access: /migrate/add-customer-delivery-notes
+    """
+    try:
+        db_type = db.engine.url.drivername if hasattr(db.engine, 'url') else 'sqlite'
+        
+        if 'postgresql' in db_type:
+            db.session.execute(text("""
+                DO $$
+                BEGIN
+                    IF NOT EXISTS (
+                        SELECT 1 FROM information_schema.columns 
+                        WHERE table_name='customers' AND column_name='delivery_special_instruction'
+                    ) THEN
+                        ALTER TABLE customers ADD COLUMN delivery_special_instruction TEXT;
+                    END IF;
+                    
+                    IF NOT EXISTS (
+                        SELECT 1 FROM information_schema.columns 
+                        WHERE table_name='customers' AND column_name='delivery_comment'
+                    ) THEN
+                        ALTER TABLE customers ADD COLUMN delivery_comment TEXT;
+                    END IF;
+                END $$;
+            """))
+        else:
+            columns_result = db.session.execute(text("PRAGMA table_info(customers)")).fetchall()
+            columns = [col[1] for col in columns_result]
+            
+            if 'delivery_special_instruction' not in columns:
+                db.session.execute(text("ALTER TABLE customers ADD COLUMN delivery_special_instruction TEXT;"))
+            
+            if 'delivery_comment' not in columns:
+                db.session.execute(text("ALTER TABLE customers ADD COLUMN delivery_comment TEXT;"))
+        
+        db.session.commit()
+        
+        return jsonify({
+            'status': 'success',
+            'message': '✅ Delivery instruction & comment fields added to customers table!',
+            'details': 'Admins can now record delivery notes that appear in the delivery portal.'
+        })
+    
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({
+            'status': 'error',
+            'message': f'Migration failed: {str(e)}',
+            'details': str(e)
+        }), 500
+
+
+@migration_bp.route('/add-delivery-day-notes-table')
+def add_delivery_day_notes_table():
+    """
+    Create delivery_day_notes table for daily instructions.
+    Access: /migrate/add-delivery-day-notes-table
+    """
+    try:
+        db_type = db.engine.url.drivername if hasattr(db.engine, 'url') else 'sqlite'
+        
+        if 'postgresql' in db_type:
+            db.session.execute(text("""
+                CREATE TABLE IF NOT EXISTS delivery_day_notes (
+                    id SERIAL PRIMARY KEY,
+                    tenant_id INTEGER NOT NULL REFERENCES tenants(id),
+                    note_date DATE NOT NULL,
+                    note_text TEXT NOT NULL,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                );
+                
+                CREATE UNIQUE INDEX IF NOT EXISTS uq_delivery_day_note_tenant_date
+                    ON delivery_day_notes(tenant_id, note_date);
+            """))
+        else:
+            db.session.execute(text("""
+                CREATE TABLE IF NOT EXISTS delivery_day_notes (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    tenant_id INTEGER NOT NULL REFERENCES tenants(id),
+                    note_date DATE NOT NULL,
+                    note_text TEXT NOT NULL,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                );
+            """))
+            db.session.execute(text("""
+                CREATE UNIQUE INDEX IF NOT EXISTS uq_delivery_day_note_tenant_date
+                ON delivery_day_notes(tenant_id, note_date);
+            """))
+        
+        db.session.commit()
+        
+        return jsonify({
+            'status': 'success',
+            'message': '✅ delivery_day_notes table added!'
+        })
+    
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({
+            'status': 'error',
+            'message': f'Migration failed: {str(e)}'
+        }), 500
+
+
 @migration_bp.route('/add-commission-tables')
 def add_commission_tables():
     """

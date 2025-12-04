@@ -397,3 +397,27 @@ class SubscriptionDelivery(db.Model):
         db.session.commit()
         return updated_count
 
+
+class DeliveryDayNote(db.Model):
+    """
+    Stores day-specific instructions that admins leave for delivery staff.
+    Example use: "Road closed near MG Road, use back gate".
+    """
+    __tablename__ = 'delivery_day_notes'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    tenant_id = db.Column(db.Integer, db.ForeignKey('tenants.id'), nullable=False)
+    note_date = db.Column(db.Date, nullable=False)
+    note_text = db.Column(db.Text, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    tenant = db.relationship('Tenant', backref='delivery_day_notes')
+    
+    __table_args__ = (
+        db.UniqueConstraint('tenant_id', 'note_date', name='uq_delivery_day_note_tenant_date'),
+    )
+    
+    def __repr__(self):
+        return f'<DeliveryDayNote {self.note_date} tenant={self.tenant_id}>'
+
