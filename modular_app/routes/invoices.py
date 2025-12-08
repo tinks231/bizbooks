@@ -526,6 +526,7 @@ def create():
             'name': item.name,
             'mrp': item.mrp if hasattr(item, 'mrp') and item.mrp else None,
             'selling_price': item.selling_price or 0,
+            'gst_rate': item.gst_rate or 18,
             'hsn_code': item.hsn_code or '',
             'track_inventory': item.track_inventory,
             'stock': total_stock if total_stock is not None else 'N/A'
@@ -803,6 +804,7 @@ def edit(invoice_id):
                 'name': item.name,
                 'mrp': item.mrp if hasattr(item, 'mrp') and item.mrp else None,
                 'selling_price': item.selling_price or 0,
+                'gst_rate': item.gst_rate or 18,
                 'hsn_code': item.hsn_code or '',
                 'track_inventory': item.track_inventory,
                 'stock': total_stock if total_stock is not None else 'N/A'

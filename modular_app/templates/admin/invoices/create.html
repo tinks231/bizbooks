@@ -762,6 +762,8 @@
                      data-item-id="${item.id}"
                      data-item-name="${escapedName}"
                      data-item-price="${item.selling_price || 0}"
+                     data-item-mrp="${item.mrp || 0}"
+                     data-item-gst="${item.gst_rate || 18}"
                      data-item-hsn="${escapedHsn}">
                     <div class="autocomplete-item-name">${escapedName}${discountBadge}</div>
                     <div class="autocomplete-item-details">
@@ -783,8 +785,10 @@
                 const itemId = this.dataset.itemId;
                 const itemName = this.dataset.itemName;
                 const price = this.dataset.itemPrice;
+                const mrp = this.dataset.itemMrp;
+                const gstRate = this.dataset.itemGst;
                 const hsn = this.dataset.itemHsn;
-                selectItemFromDropdown(rowId, itemId, itemName, price, hsn);
+                selectItemFromDropdown(rowId, itemId, itemName, price, hsn, mrp, gstRate);
             });
         });
         
