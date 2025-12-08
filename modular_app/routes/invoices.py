@@ -208,7 +208,9 @@ def create():
             rates = request.form.getlist('rate[]')
             gst_rates = request.form.getlist('gst_rate[]')
             hsn_codes = request.form.getlist('hsn_code[]')
-            price_inclusives = request.form.getlist('price_inclusive[]')
+            
+            # Check if GST is enabled on this invoice
+            gst_enabled = request.form.get('gst_enabled') == '1'
             
             subtotal = 0
             total_cgst = 0
@@ -221,25 +223,22 @@ def create():
                 
                 item_id = int(item_ids[i]) if item_ids[i] and item_ids[i] != '' else None
                 quantity = float(quantities[i])
-                rate = float(rates[i])
+                selling_price = float(rates[i])  # This is GST-inclusive selling price from inventory
                 gst_rate = float(gst_rates[i]) if gst_rates[i] else 18
                 
-                # Check if price is inclusive of GST (MRP mode)
-                # Checkboxes appear in list only if checked
-                price_inclusive = i < len(price_inclusives) and price_inclusives[i] == 'on'
-                
-                # Calculate based on price mode
-                if price_inclusive:
-                    # Rate is INCLUSIVE of GST (like MRP)
-                    total_amount = quantity * rate
+                # NEW LOGIC: Prices from inventory are ALWAYS GST-inclusive (MRP-based)
+                # Calculate based on GST toggle
+                if gst_enabled:
+                    # GST ON: Reverse-calculate base price from GST-inclusive selling price
+                    total_amount = quantity * selling_price  # Total is selling price × qty
                     divisor = 1 + (gst_rate / 100)
-                    taxable_value = total_amount / divisor
-                    gst_amount = total_amount - taxable_value
+                    taxable_value = total_amount / divisor  # Reverse calculate base price
+                    gst_amount = total_amount - taxable_value  # GST amount
                 else:
-                    # Rate is EXCLUSIVE of GST (traditional)
-                    taxable_value = quantity * rate
-                    gst_amount = taxable_value * (gst_rate / 100)
-                    total_amount = taxable_value + gst_amount
+                    # GST OFF: Use selling price directly, no GST calculation
+                    total_amount = quantity * selling_price
+                    taxable_value = total_amount  # Same as total when GST is off
+                    gst_amount = 0  # No GST
                 
                 # Create invoice item with calculated values
                 invoice_item = InvoiceItem(
@@ -346,6 +345,7 @@ def create():
             invoice.cgst_amount = total_cgst
             invoice.sgst_amount = total_sgst
             invoice.igst_amount = total_igst
+            invoice.gst_enabled = gst_enabled  # Save GST toggle state
             
             # Round off to nearest rupee
             total_before_rounding = subtotal + total_cgst + total_sgst + total_igst
