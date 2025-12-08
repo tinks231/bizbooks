@@ -386,18 +386,26 @@ h1, h2, h3, h4 {
     /* Column widths for better wrapping */
     .invoice .table th:nth-child(1),
     .invoice .table td:nth-child(1) {
-        width: 5%;     /* # */
+        width: 4%;     /* # */
     }
     .invoice .table th:nth-child(2),
     .invoice .table td:nth-child(2) {
-        width: 40%;    /* Item – nice and wide */
+        width: 30%;    /* Item */
     }
     .invoice .table th:nth-child(3),
     .invoice .table td:nth-child(3) {
-        width: 10%;    /* HSN */
+        width: 9%;     /* HSN */
     }
     .invoice .table th:nth-child(4),
     .invoice .table td:nth-child(4) {
+        width: 9%;     /* MRP */
+    }
+    .invoice .table th:nth-child(5),
+    .invoice .table td:nth-child(5) {
+        width: 7%;     /* Disc % */
+    }
+    .invoice .table th:nth-child(6),
+    .invoice .table td:nth-child(6) {
         width: 10%;    /* Qty */
     }
     .invoice .table th:nth-child(5),
@@ -547,6 +555,8 @@ h1, h2, h3, h4 {
                 <th>#</th>
                 <th>Item</th>
                 <th>HSN</th>
+                <th>MRP</th>
+                <th>Disc %</th>
                 <th>Qty</th>
                 <th>Rate</th>
                 <th>GST %</th>
@@ -562,6 +572,20 @@ h1, h2, h3, h4 {
                     {% if item.description %}<br><small style="color:#666;">{{ item.description }}</small>{% endif %}
                 </td>
                 <td>{{ item.hsn_code or '-' }}</td>
+                <td>
+                    {% if item.item and item.item.mrp %}
+                        ₹{{ "%.2f"|format(item.item.mrp) }}
+                    {% else %}
+                        -
+                    {% endif %}
+                </td>
+                <td style="color: #27ae60; font-weight: 600;">
+                    {% if item.item and item.item.discount_percent > 0 %}
+                        {{ "%.1f"|format(item.item.discount_percent) }}%
+                    {% else %}
+                        -
+                    {% endif %}
+                </td>
                 <td>{{ item.quantity }} {{ item.unit }}</td>
                 <td>{{ "%.2f"|format(item.rate) }}</td>
                 <td>{{ item.gst_rate }}%</td>
@@ -570,21 +594,21 @@ h1, h2, h3, h4 {
             {% endfor %}
         </tbody>
         <tfoot>
-            <tr><td colspan="6" class="text-right"><strong>Subtotal</strong></td><td class="text-right">₹{{ "%.2f"|format(invoice.subtotal) }}</td></tr>
+            <tr><td colspan="8" class="text-right"><strong>Subtotal</strong></td><td class="text-right">₹{{ "%.2f"|format(invoice.subtotal) }}</td></tr>
             {% if invoice.discount_amount and invoice.discount_amount > 0 %}
-            <tr><td colspan="6" class="text-right"><strong>Discount</strong></td><td class="text-right" style="color:#e74c3c;">-₹{{ "%.2f"|format(invoice.discount_amount) }}</td></tr>
+            <tr><td colspan="8" class="text-right"><strong>Discount</strong></td><td class="text-right" style="color:#e74c3c;">-₹{{ "%.2f"|format(invoice.discount_amount) }}</td></tr>
             {% endif %}
             {% if invoice.cgst_amount > 0 %}
-            <tr><td colspan="6" class="text-right">CGST</td><td class="text-right">₹{{ "%.2f"|format(invoice.cgst_amount) }}</td></tr>
-            <tr><td colspan="6" class="text-right">SGST</td><td class="text-right">₹{{ "%.2f"|format(invoice.sgst_amount) }}</td></tr>
+            <tr><td colspan="8" class="text-right">CGST</td><td class="text-right">₹{{ "%.2f"|format(invoice.cgst_amount) }}</td></tr>
+            <tr><td colspan="8" class="text-right">SGST</td><td class="text-right">₹{{ "%.2f"|format(invoice.sgst_amount) }}</td></tr>
             {% endif %}
             {% if invoice.igst_amount > 0 %}
-            <tr><td colspan="6" class="text-right">IGST</td><td class="text-right">₹{{ "%.2f"|format(invoice.igst_amount) }}</td></tr>
+            <tr><td colspan="8" class="text-right">IGST</td><td class="text-right">₹{{ "%.2f"|format(invoice.igst_amount) }}</td></tr>
             {% endif %}
             {% if invoice.round_off and invoice.round_off != 0 %}
-            <tr><td colspan="6" class="text-right">Round Off</td><td class="text-right">₹{{ "%.2f"|format(invoice.round_off) }}</td></tr>
+            <tr><td colspan="8" class="text-right">Round Off</td><td class="text-right">₹{{ "%.2f"|format(invoice.round_off) }}</td></tr>
             {% endif %}
-            <tr class="total-row"><td colspan="6" class="text-right">TOTAL</td><td class="text-right">₹{{ "%.2f"|format(invoice.total_amount) }}</td></tr>
+            <tr class="total-row"><td colspan="8" class="text-right">TOTAL</td><td class="text-right">₹{{ "%.2f"|format(invoice.total_amount) }}</td></tr>
         </tfoot>
     </table>
 
