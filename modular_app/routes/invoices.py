@@ -888,19 +888,39 @@ def mark_sent(invoice_id):
     if invoice.status == 'draft':
         invoice.status = 'sent'
         
-        # Reduce stock for items
+        # Get default site for stock deduction
+        from models.site import Site
+        default_site = Site.query.filter_by(tenant_id=tenant_id, is_default=True).first()
+        if not default_site:
+            # Fallback to first active site
+            default_site = Site.query.filter_by(tenant_id=tenant_id, active=True).first()
+        
+        if not default_site:
+            flash('❌ No active site found! Please create a site first.', 'error')
+            return redirect(url_for('invoices.view', invoice_id=invoice_id))
+        
+        # Reduce stock for items from default site
         for item in invoice.items:
             if item.item_id:
                 stock = ItemStock.query.filter_by(
                     tenant_id=tenant_id,
-                    item_id=item.item_id
+                    item_id=item.item_id,
+                    site_id=default_site.id  # FIXED: Use default site instead of .first()
                 ).first()
                 
                 if stock:
+                    old_qty = stock.quantity_available
                     stock.quantity_available -= item.quantity
+                    new_qty = stock.quantity_available
+                    
+                    # Warn if stock goes negative
+                    if new_qty < 0:
+                        flash(f'⚠️ Warning: {item.item_name} is now OUT OF STOCK at {default_site.name} (Qty: {new_qty:.2f})', 'warning')
+                else:
+                    flash(f'⚠️ Warning: No stock record found for {item.item_name} at {default_site.name}', 'warning')
         
         db.session.commit()
-        flash('Invoice marked as sent and stock updated!', 'success')
+        flash(f'✅ Invoice marked as sent! Stock deducted from: {default_site.name}', 'success')
     else:
         flash('Invoice is already sent', 'info')
     
