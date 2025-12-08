@@ -343,11 +343,62 @@ ADD COLUMN IF NOT EXISTS discount_amount NUMERIC(10, 2) DEFAULT 0;
 ## 📝 Next Steps:
 
 Once you confirm the design decisions above, we'll:
-1. Implement in this feature branch
-2. Test locally at `http://mahaveerelectricals.bizbooks.local:5001`
+1. ✅ **COMPLETED:** Implement in this feature branch
+2. 🔄 **IN PROGRESS:** Test locally at `http://mahaveerelectricals.bizbooks.local:5001`
 3. Review and refine
 4. Merge to main
 5. Deploy to production
 
-**Ready to discuss? Let me know your preferences!** 🚀
+---
+
+## ✅ Implementation Status (Dec 7, 2025)
+
+### Completed Features:
+
+#### 1. MRP Field ✅
+- ✅ Database migration created (`/migrate/add-mrp-discount-gst-fields`)
+- ✅ Item model updated with `mrp` field (nullable)
+- ✅ Item add form: MRP input with validation
+- ✅ Item edit form: MRP input with validation
+- ✅ JavaScript validation: Blocks selling price > MRP
+- ✅ Auto-calculates discount % from MRP
+- ✅ Backend routes save MRP correctly
+
+#### 2. Enhanced Discount System ✅
+- ✅ Invoice model: Added `discount_type` and `discount_value`
+- ✅ Invoice UI: Dropdown selector (% or ₹)
+- ✅ JavaScript: Auto-calculates discount amount
+- ✅ Supports both percentage and flat amount
+- ✅ Hidden field stores calculated `discount_amount`
+- ✅ Applies discount before GST calculation
+
+#### 3. GST Toggle ✅
+- ✅ Invoice model: Added `gst_enabled` field
+- ✅ Customer model: Added `is_gst_customer` field
+- ✅ Invoice UI: Checkbox to enable/disable GST
+- ✅ JavaScript: Hides GST rows when disabled
+- ✅ Calculation skips GST when unchecked
+- ✅ Clean invoice for non-GST customers
+
+### Files Modified:
+1. `modular_app/routes/mrp_discount_migration.py` - Migration endpoint
+2. `modular_app/models/item.py` - Added MRP field
+3. `modular_app/models/invoice.py` - Added discount & GST fields
+4. `modular_app/models/customer.py` - Added is_gst_customer
+5. `modular_app/templates/admin/items/add.html` - MRP input & validation
+6. `modular_app/templates/admin/items/edit.html` - MRP input & validation
+7. `modular_app/routes/items.py` - Handle MRP in add/edit
+8. `modular_app/templates/admin/invoices/create.html` - Enhanced discount & GST toggle
+9. `modular_app/app.py` - Registered migration blueprint
+
+### Testing Required:
+- [ ] Run migration on local database
+- [ ] Test MRP validation (selling price > MRP should be blocked)
+- [ ] Test percentage discount (10% of ₹1000 = ₹100)
+- [ ] Test flat discount (₹500 discount)
+- [ ] Test GST toggle (enable/disable)
+- [ ] Test non-GST invoice (no GST rows shown)
+- [ ] Create invoice and verify database fields saved correctly
+
+**Ready to test!** 🚀
 
