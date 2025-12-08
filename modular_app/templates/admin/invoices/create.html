@@ -795,8 +795,8 @@
         dropdown.style.display = 'block';
     }
     
-    function selectItemFromDropdown(rowId, itemId, itemName, price, hsnCode) {
-        console.log('🔍 Selecting item:', { rowId, itemId, itemName, price, hsnCode });
+    function selectItemFromDropdown(rowId, itemId, itemName, price, hsnCode, mrp, gstRate) {
+        console.log('🔍 Selecting item:', { rowId, itemId, itemName, price, hsnCode, mrp, gstRate });
         
         const row = document.getElementById(`row_${rowId}`);
         if (!row) {
@@ -825,7 +825,25 @@
             console.log('✅ HSN code set:', hsnCode);
         }
         
-        // Set rate (use ID for more reliable selection)
+        // Set MRP (hidden input and display)
+        const mrpInput = document.getElementById(`mrp_${rowId}`);
+        const mrpDisplay = document.getElementById(`mrp_display_${rowId}`);
+        if (mrpInput && mrpDisplay) {
+            mrpInput.value = mrp || 0;
+            mrpDisplay.textContent = mrp && mrp > 0 ? `₹${parseFloat(mrp).toFixed(2)}` : '-';
+            console.log('✅ MRP set:', mrp);
+        }
+        
+        // Set GST rate (hidden input and display)
+        const gstInput = document.getElementById(`gst_rate_${rowId}`);
+        const gstDisplay = document.getElementById(`gst_display_${rowId}`);
+        if (gstInput && gstDisplay) {
+            gstInput.value = gstRate || 18;
+            gstDisplay.textContent = `${gstRate || 18}%`;
+            console.log('✅ GST rate set:', gstRate);
+        }
+        
+        // Set selling price in rate field
         const rateInput = document.getElementById(`rate_${rowId}`);
         if (rateInput) {
             rateInput.value = price || 0;
@@ -860,37 +878,37 @@
         const row = document.getElementById(`row_${rowId}`);
         if (!row) return;
         
-        // Use IDs for more reliable element selection
+        // Get input values
         const qtyInput = document.getElementById(`quantity_${rowId}`);
         const rateInput = document.getElementById(`rate_${rowId}`);
-        const gstRateSelect = document.getElementById(`gst_rate_${rowId}`);
-        const priceInclusiveCheckbox = document.getElementById(`price_inclusive_${rowId}`);
+        const gstRateInput = document.getElementById(`gst_rate_${rowId}`);
+        const mrpInput = document.getElementById(`mrp_${rowId}`);
         
         const qty = qtyInput ? parseFloat(qtyInput.value) || 0 : 0;
-        const rate = rateInput ? parseFloat(rateInput.value) || 0 : 0;
-        const gstRate = gstRateSelect ? parseFloat(gstRateSelect.value) || 0 : 0;
-        const priceInclusive = priceInclusiveCheckbox ? priceInclusiveCheckbox.checked : false;
+        const sellingPrice = rateInput ? parseFloat(rateInput.value) || 0 : 0; // GST-inclusive price from inventory
+        const gstRate = gstRateInput ? parseFloat(gstRateInput.value) || 0 : 0;
+        const mrp = mrpInput ? parseFloat(mrpInput.value) || 0 : 0;
+        
+        const gstEnabled = document.getElementById('gstEnabled').checked;
         
         let taxableValue, gstAmount, total;
         
-        if (priceInclusive) {
-            // Price is INCLUSIVE of GST (like MRP)
-            // Total amount per unit = rate
-            const ratePerUnit = rate;
-            total = qty * ratePerUnit;
-            
-            // Calculate base price (without GST)
+        if (gstEnabled) {
+            // GST ON: Selling price is GST-inclusive, need to reverse-calculate base price
+            // MRP ₹2000 → Selling Price ₹1830 (GST-incl) → Base ₹1550 (GST-excl) + GST ₹280 = ₹1830
+            total = qty * sellingPrice; // Total is selling price × qty (GST-inclusive)
             const divisor = 1 + (gstRate / 100);
-            taxableValue = total / divisor;
-            gstAmount = total - taxableValue;
+            taxableValue = total / divisor; // Reverse calculate base price
+            gstAmount = total - taxableValue; // GST amount
         } else {
-            // Price is EXCLUSIVE of GST (traditional)
-            // Base price per unit = rate
-            taxableValue = qty * rate;
-            gstAmount = taxableValue * (gstRate / 100);
-            total = taxableValue + gstAmount;
+            // GST OFF: Selling price is final price, no GST calculation
+            // MRP ₹2000 → Selling Price ₹1830 → Total ₹1830 (no GST breakdown)
+            total = qty * sellingPrice;
+            taxableValue = total; // Same as total when GST is off
+            gstAmount = 0; // No GST
         }
         
+        // Display amount (always selling price × qty)
         document.getElementById(`amount_${rowId}`).textContent = `₹${total.toFixed(2)}`;
         
         // Store calculated values as data attributes for total calculation
@@ -971,7 +989,9 @@
             totalIGST = totalIGST * discountRatio;
         }
         
-        const total = subtotalAfterDiscount + (gstEnabled ? (totalCGST + totalSGST + totalIGST) : 0);
+        const grossTotal = subtotalAfterDiscount + (gstEnabled ? (totalCGST + totalSGST + totalIGST) : 0);
+        const roundedTotal = Math.round(grossTotal);
+        const roundOff = roundedTotal - grossTotal;
         
         // Update displays
         document.getElementById('subtotalDisplay').textContent = `₹${subtotal.toFixed(2)}`;
@@ -993,7 +1013,10 @@
             document.getElementById('igstRow').style.display = 'none';
         }
         
-        document.getElementById('totalDisplay').textContent = `₹${Math.round(total).toFixed(2)}`;
+        // Display gross total, round-off, and net total
+        document.getElementById('grossTotalDisplay').textContent = `₹${grossTotal.toFixed(2)}`;
+        document.getElementById('roundOffDisplay').textContent = roundOff >= 0 ? `₹${roundOff.toFixed(2)}` : `-₹${Math.abs(roundOff).toFixed(2)}`;
+        document.getElementById('totalDisplay').textContent = `₹${roundedTotal.toFixed(2)}`;
         
         // Recalculate commission when invoice total changes
         calculateCommission();
