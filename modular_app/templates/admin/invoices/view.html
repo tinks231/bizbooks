@@ -398,14 +398,18 @@ h1, h2, h3, h4 {
     }
     .invoice .table th:nth-child(4),
     .invoice .table td:nth-child(4) {
-        width: 9%;     /* MRP */
+        width: 8%;     /* Qty */
     }
     .invoice .table th:nth-child(5),
     .invoice .table td:nth-child(5) {
-        width: 7%;     /* Disc % */
+        width: 9%;     /* MRP */
     }
     .invoice .table th:nth-child(6),
     .invoice .table td:nth-child(6) {
+        width: 7%;     /* Disc % */
+    }
+    .invoice .table th:nth-child(7),
+    .invoice .table td:nth-child(7) {
         width: 10%;    /* Qty */
     }
     .invoice .table th:nth-child(5),
@@ -555,9 +559,9 @@ h1, h2, h3, h4 {
                 <th>#</th>
                 <th>Item</th>
                 <th>HSN</th>
+                <th>Qty</th>
                 <th>MRP</th>
                 <th>Disc %</th>
-                <th>Qty</th>
                 <th>Rate</th>
                 <th>GST %</th>
                 <th class="text-right">Amount</th>
@@ -572,6 +576,7 @@ h1, h2, h3, h4 {
                     {% if item.description %}<br><small style="color:#666;">{{ item.description }}</small>{% endif %}
                 </td>
                 <td>{{ item.hsn_code or '-' }}</td>
+                <td>{{ item.quantity }} {{ item.unit }}</td>
                 <td>
                     {% if item.item and item.item.mrp %}
                         ₹{{ "%.2f"|format(item.item.mrp) }}
@@ -586,7 +591,6 @@ h1, h2, h3, h4 {
                         -
                     {% endif %}
                 </td>
-                <td>{{ item.quantity }} {{ item.unit }}</td>
                 <td>{{ "%.2f"|format(item.rate) }}</td>
                 <td>{{ item.gst_rate }}%</td>
                 <td class="text-right">{{ "%.2f"|format(item.taxable_value + item.cgst_amount + item.sgst_amount + item.igst_amount) }}</td>
