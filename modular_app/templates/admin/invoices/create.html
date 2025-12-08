@@ -1045,7 +1045,16 @@
     }
     
     function toggleGSTRows() {
-        // Recalculate total when GST is toggled
+        // When GST is toggled, recalculate ALL rows first (to update their data attributes)
+        const rows = document.querySelectorAll('#itemsTableBody tr');
+        rows.forEach(row => {
+            const rowId = row.id.replace('row_', '');
+            if (rowId) {
+                calculateRow(rowId);
+            }
+        });
+        
+        // Then recalculate total
         calculateTotal();
     }
     
