@@ -38,10 +38,18 @@ class Invoice(db.Model, TimestampMixin):
     
     # Amounts
     subtotal = db.Column(db.Float, nullable=False, default=0)  # Before tax
+    
+    # Discount (Enhanced)
+    discount_type = db.Column(db.String(20), default='flat')  # 'flat' or 'percentage'
+    discount_value = db.Column(db.Float, default=0)  # Percentage (10 = 10%) or flat amount (100 = ₹100)
+    discount_amount = db.Column(db.Float, default=0)  # Calculated discount amount
+    
+    # GST (can be toggled off)
+    gst_enabled = db.Column(db.Boolean, default=True)  # Toggle GST on/off
     cgst_amount = db.Column(db.Float, default=0)  # Central GST (for same state)
     sgst_amount = db.Column(db.Float, default=0)  # State GST (for same state)
     igst_amount = db.Column(db.Float, default=0)  # Integrated GST (for inter-state)
-    discount_amount = db.Column(db.Float, default=0)
+    
     round_off = db.Column(db.Float, default=0)  # To make total round number
     total_amount = db.Column(db.Float, nullable=False)
     

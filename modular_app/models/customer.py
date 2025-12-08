@@ -21,6 +21,7 @@ class Customer(db.Model):
     pin = db.Column(db.String(10))  # Customer portal PIN (like employee portal)
     
     # GST Details
+    is_gst_customer = db.Column(db.Boolean, default=True)  # Whether this customer requires GST invoices
     gstin = db.Column(db.String(15))
     state = db.Column(db.String(50))
     

@@ -98,6 +98,7 @@ class Item(db.Model, TimestampMixin):
     hsn_code = db.Column(db.String(20))  # HSN/SAC Code for GST (India)
     
     # ===== Sales Information =====
+    mrp = db.Column(db.Float, default=None)  # Maximum Retail Price (optional)
     selling_price = db.Column(db.Float, default=0.0)
     sales_description = db.Column(db.Text)
     sales_account = db.Column(db.String(100), default='Sales')

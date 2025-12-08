@@ -120,6 +120,7 @@ from routes.customer_orders import customer_orders_bp  # NEW: Customer orders ad
 from routes.employee_delivery import employee_delivery_bp  # NEW: Employee delivery portal with bottle tracking
 from routes.accounts import accounts_bp  # NEW: Bank/Cash Account Management (Phase 1)
 from routes.payroll import payroll_bp  # NEW: Payroll Management
+from routes.mrp_discount_migration import mrp_discount_migration_bp  # NEW: MRP & Discount features
 
 app.register_blueprint(registration_bp)
 app.register_blueprint(employee_portal_bp)  # Register unified portal
@@ -154,6 +155,7 @@ app.register_blueprint(customer_orders_bp)  # NEW: Customer orders admin
 app.register_blueprint(employee_delivery_bp)  # NEW: Employee delivery portal  # NEW: Customer orders admin
 app.register_blueprint(accounts_bp)  # NEW: Bank/Cash Account Management (Phase 1)
 app.register_blueprint(payroll_bp)  # NEW: Payroll Management
+app.register_blueprint(mrp_discount_migration_bp)  # NEW: MRP & Discount features
 
 # ============================================================
 # Main route
