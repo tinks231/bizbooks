@@ -646,7 +646,8 @@
         {% elif delivery_challan %}
         preFillFromDeliveryChallan();
         {% else %}
-        addItemRow();
+        // Don't add default row - user will add items via barcode or manual search
+        // addItemRow();
         {% endif %}
         
         // Initialize barcode scanner
@@ -838,7 +839,7 @@
             </td>
             <td>
                 <input type="number" name="quantity[]" id="quantity_${itemCount}" class="form-control" 
-                       value="1" min="0.01" step="0.01" required 
+                       value="1" min="1" step="1" required 
                        oninput="calculateRow(${itemCount})">
             </td>
             <td>
@@ -903,6 +904,15 @@
         const audio = new Audio('data:audio/wav;base64,UklGRhYAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YTQAAAA=');
         audio.playbackRate = 0.75;
         audio.play().catch(() => {});
+    }
+    
+    // Remove row function (for barcode-scanned items)
+    function removeRow(rowId) {
+        const row = document.getElementById(`row_${rowId}`);
+        if (row) {
+            row.remove();
+            calculateTotal();  // Recalculate totals after removing
+        }
     }
     
     function addItemRow() {
