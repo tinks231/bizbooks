@@ -59,17 +59,30 @@ def search_by_barcode():
             ).first()
         
         if not item:
-            logger.warning(f"Barcode not found for tenant {tenant_id}: '{barcode}' (cleaned: '{barcode_clean}')")
+            logger.warning(f"❌ Barcode not found for tenant {tenant_id}: '{barcode}' (cleaned: '{barcode_clean}')")
             
             # Check if barcode exists for ANY tenant (debugging)
             any_item = Item.query.filter_by(barcode=barcode_clean).first()
             if any_item:
-                logger.error(f"FOUND barcode in tenant {any_item.tenant_id} but user is in tenant {tenant_id}!")
+                logger.error(f"🐛 FOUND barcode '{barcode_clean}' in tenant {any_item.tenant_id} but user is in tenant {tenant_id}!")
+                return jsonify({
+                    'found': False,
+                    'error': f'Item found in different account (tenant {any_item.tenant_id})',
+                    'barcode': barcode,
+                    'debug': f'Your tenant: {tenant_id}, Item tenant: {any_item.tenant_id}'
+                }), 404
+            
+            # Check all items for this tenant
+            tenant_items = Item.query.filter_by(tenant_id=tenant_id, is_active=True).limit(5).all()
+            logger.info(f"📊 Tenant {tenant_id} has {len(tenant_items)} active items (showing first 5)")
+            for t_item in tenant_items:
+                logger.info(f"   - {t_item.name}: barcode='{t_item.barcode}'")
             
             return jsonify({
                 'found': False,
                 'error': 'Item not found',
-                'barcode': barcode
+                'barcode': barcode,
+                'debug': f'Searched in tenant {tenant_id}, no match'
             }), 404
         
         # Get total stock
