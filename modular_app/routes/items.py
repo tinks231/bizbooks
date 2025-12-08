@@ -212,6 +212,7 @@ def add():
                 hsn_code=request.form.get('hsn_code'),
                 
                 # Sales Information
+                mrp=float(request.form.get('mrp') or 0) if request.form.get('mrp') else None,
                 selling_price=float(request.form.get('selling_price') or 0),
                 sales_description=request.form.get('sales_description'),
                 sales_account=request.form.get('sales_account', 'Sales'),
@@ -344,6 +345,7 @@ def edit(item_id):
             item.hsn_code = request.form.get('hsn_code')
             
             # Sales Information
+            item.mrp = float(request.form.get('mrp') or 0) if request.form.get('mrp') else None
             item.selling_price = float(request.form.get('selling_price') or 0)
             item.sales_description = request.form.get('sales_description')
             item.sales_account = request.form.get('sales_account', 'Sales')
