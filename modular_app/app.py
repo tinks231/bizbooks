@@ -122,6 +122,8 @@ from routes.accounts import accounts_bp  # NEW: Bank/Cash Account Management (Ph
 from routes.payroll import payroll_bp  # NEW: Payroll Management
 from routes.mrp_discount_migration import mrp_discount_migration_bp  # NEW: MRP & Discount features
 from routes.site_default_migration import site_default_migration_bp  # NEW: Default site feature
+from routes.barcode_migration import barcode_migration_bp  # NEW: Barcode scanner feature
+from routes.barcode_api import barcode_api_bp  # NEW: Barcode API endpoints
 
 app.register_blueprint(registration_bp)
 app.register_blueprint(employee_portal_bp)  # Register unified portal
@@ -158,6 +160,8 @@ app.register_blueprint(accounts_bp)  # NEW: Bank/Cash Account Management (Phase 
 app.register_blueprint(payroll_bp)  # NEW: Payroll Management
 app.register_blueprint(mrp_discount_migration_bp)  # NEW: MRP & Discount features
 app.register_blueprint(site_default_migration_bp)  # NEW: Default site feature
+app.register_blueprint(barcode_migration_bp)  # NEW: Barcode scanner feature
+app.register_blueprint(barcode_api_bp)  # NEW: Barcode API endpoints
 
 # ============================================================
 # Main route

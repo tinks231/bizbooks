@@ -89,6 +89,7 @@ class Item(db.Model, TimestampMixin):
     weight_unit = db.Column(db.String(10), default='kg')  # kg, g, lb
     
     # ===== Product Identifiers =====
+    barcode = db.Column(db.String(50))  # Barcode for scanning (EAN-13, Code-128, etc.)
     manufacturer = db.Column(db.String(200))
     brand = db.Column(db.String(100))
     upc = db.Column(db.String(50))  # Universal Product Code
