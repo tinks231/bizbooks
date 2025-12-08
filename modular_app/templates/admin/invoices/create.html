@@ -755,6 +755,13 @@
                 stockDisplay = `<span style="color: ${stockColor};">${stockIcon} Stock: ${stock.toFixed(2)}</span>`;
             }
             
+            // MRP and discount badge
+            let discountBadge = '';
+            if (item.mrp && item.mrp > 0 && item.selling_price < item.mrp) {
+                const discountPercent = ((item.mrp - item.selling_price) / item.mrp * 100).toFixed(1);
+                discountBadge = ` <span style="background: #27ae60; color: white; padding: 2px 6px; border-radius: 3px; font-size: 11px; font-weight: 600;">💰 ${discountPercent}% OFF</span>`;
+            }
+            
             html += `
                 <div class="autocomplete-item" 
                      data-row-id="${rowId}"
@@ -762,9 +769,10 @@
                      data-item-name="${escapedName}"
                      data-item-price="${item.selling_price || 0}"
                      data-item-hsn="${escapedHsn}">
-                    <div class="autocomplete-item-name">${escapedName}</div>
+                    <div class="autocomplete-item-name">${escapedName}${discountBadge}</div>
                     <div class="autocomplete-item-details">
-                        <span>💰 Rate: ₹${item.selling_price || 0}</span>
+                        ${item.mrp ? `<span>🏷️ MRP: ₹${item.mrp.toFixed(2)}</span>` : ''}
+                        <span>💰 Price: ₹${item.selling_price || 0}</span>
                         ${item.hsn_code ? `<span>📋 HSN: ${escapedHsn}</span>` : ''}
                         ${stockDisplay ? stockDisplay : ''}
                     </div>

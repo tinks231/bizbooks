@@ -524,6 +524,7 @@ def create():
         items_json.append({
             'id': item.id,
             'name': item.name,
+            'mrp': item.mrp if hasattr(item, 'mrp') and item.mrp else None,
             'selling_price': item.selling_price or 0,
             'hsn_code': item.hsn_code or '',
             'track_inventory': item.track_inventory,
@@ -800,6 +801,7 @@ def edit(invoice_id):
             items_json.append({
                 'id': item.id,
                 'name': item.name,
+                'mrp': item.mrp if hasattr(item, 'mrp') and item.mrp else None,
                 'selling_price': item.selling_price or 0,
                 'hsn_code': item.hsn_code or '',
                 'track_inventory': item.track_inventory,
