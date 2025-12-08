@@ -52,6 +52,21 @@
 
         <div class="form-row">
             <div class="form-group">
+                <label class="field-label">📱 Barcode</label>
+                <input type="text" 
+                       id="barcodeInput" 
+                       name="barcode" 
+                       placeholder="Scan or enter barcode (e.g., 8901234567890)"
+                       maxlength="50"
+                       onblur="checkBarcodeDuplicate()">
+                <small class="help-text" id="barcodeHint">
+                    Scan with barcode scanner or type manually. Leave empty to skip.
+                </small>
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
                 <label class="field-label field-label--required">Unit</label>
                 <select name="unit" required>
                     <option value="nos">Nos (Numbers)</option>
@@ -492,6 +507,54 @@
             skuInput.focus();
             skuHint.textContent = 'Enter your custom SKU code';
         }
+    }
+    
+    // Check for duplicate barcode
+    function checkBarcodeDuplicate() {
+        const barcodeInput = document.getElementById('barcodeInput');
+        const barcodeHint = document.getElementById('barcodeHint');
+        const barcode = barcodeInput.value.trim();
+        
+        // Skip if empty
+        if (!barcode) {
+            barcodeHint.textContent = 'Scan with barcode scanner or type manually. Leave empty to skip.';
+            barcodeHint.style.color = '#95a5a6';
+            barcodeInput.style.borderColor = '#dfe6e9';
+            return;
+        }
+        
+        // Show checking status
+        barcodeHint.textContent = '⏳ Checking...';
+        barcodeHint.style.color = '#3498db';
+        
+        fetch('/api/barcode/check-duplicate', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ barcode: barcode })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.exists) {
+                // Duplicate found
+                barcodeHint.innerHTML = `⚠️ Barcode already used by: <strong>${data.item.name}</strong> (SKU: ${data.item.sku})`;
+                barcodeHint.style.color = '#e74c3c';
+                barcodeInput.style.borderColor = '#e74c3c';
+                barcodeInput.style.background = '#fff5f5';
+            } else {
+                // Available
+                barcodeHint.innerHTML = '✅ Barcode available';
+                barcodeHint.style.color = '#27ae60';
+                barcodeInput.style.borderColor = '#27ae60';
+                barcodeInput.style.background = '#f0fff4';
+            }
+        })
+        .catch(error => {
+            console.error('Error checking barcode:', error);
+            barcodeHint.textContent = '❌ Error checking barcode';
+            barcodeHint.style.color = '#e74c3c';
+        });
     }
     
     function toggleInventoryFields() {

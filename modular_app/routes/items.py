@@ -203,6 +203,7 @@ def add():
                 weight_unit=request.form.get('weight_unit', 'kg'),
                 
                 # Product Identifiers
+                barcode=request.form.get('barcode', '').strip() or None,
                 manufacturer=request.form.get('manufacturer'),
                 brand=request.form.get('brand'),
                 upc=request.form.get('upc'),
@@ -350,6 +351,7 @@ def edit(item_id):
             item.weight_unit = request.form.get('weight_unit', 'kg')
             
             # Product Identifiers
+            item.barcode = request.form.get('barcode', '').strip() or None
             item.manufacturer = request.form.get('manufacturer')
             item.brand = request.form.get('brand')
             item.upc = request.form.get('upc')
