@@ -15,6 +15,9 @@
             🏷️ Generate Barcodes
         </button>
     </form>
+    <a href="{{ url_for('items.print_labels') }}" class="btn btn-secondary" style="background: #9b59b6;">
+        🖨️ Print Labels
+    </a>
     <a href="{{ url_for('items.add') }}" class="btn btn-primary">
         ➕ Add New Item
     </a>

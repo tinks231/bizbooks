@@ -1072,3 +1072,182 @@ def bulk_generate_barcodes():
         flash(f'❌ Error generating barcodes: {str(e)}', 'error')
         return redirect(url_for('items.index'))
 
+
+# ===== PRINT BARCODE LABELS =====
+@items_bp.route('/print-labels', methods=['GET', 'POST'])
+@require_tenant
+@login_required
+def print_labels():
+    """Generate PDF with barcode labels for printing"""
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib.units import mm
+    from reportlab.pdfgen import canvas
+    from reportlab.lib import colors
+    from io import BytesIO
+    import barcode
+    from barcode.writer import ImageWriter
+    from PIL import Image
+    
+    tenant_id = get_current_tenant_id()
+    
+    if request.method == 'POST':
+        # Get selected items or all items with barcodes
+        selected_item_ids = request.form.getlist('item_ids')
+        
+        if selected_item_ids:
+            items = Item.query.filter(
+                Item.id.in_(selected_item_ids),
+                Item.tenant_id == tenant_id
+            ).all()
+        else:
+            # Get all items with barcodes
+            items = Item.query.filter_by(
+                tenant_id=tenant_id,
+                is_active=True
+            ).filter(
+                Item.barcode != None,
+                Item.barcode != ''
+            ).all()
+        
+        if not items:
+            flash('⚠️ No items with barcodes found!', 'warning')
+            return redirect(url_for('items.index'))
+        
+        # Get quantity for each item (default 1)
+        labels_to_print = []
+        for item in items:
+            qty = int(request.form.get(f'qty_{item.id}', 1))
+            for _ in range(qty):
+                labels_to_print.append(item)
+        
+        # Generate PDF
+        pdf_buffer = BytesIO()
+        c = canvas.Canvas(pdf_buffer, pagesize=A4)
+        width, height = A4
+        
+        # Label dimensions for 30 labels per A4 (3 columns x 10 rows)
+        # Standard Avery A4-J8160 compatible
+        label_width = 70 * mm
+        label_height = 29.7 * mm
+        margin_left = 5 * mm
+        margin_top = 10 * mm
+        gap_x = 2.5 * mm
+        gap_y = 0 * mm
+        
+        cols = 3
+        rows = 10
+        labels_per_page = cols * rows
+        
+        page_num = 0
+        
+        for idx, item in enumerate(labels_to_print):
+            # Calculate position
+            col = idx % cols
+            row = (idx // cols) % rows
+            
+            # New page if needed
+            if idx > 0 and idx % labels_per_page == 0:
+                c.showPage()
+                page_num += 1
+            
+            # Calculate x, y position (top-left origin)
+            x = margin_left + col * (label_width + gap_x)
+            y = height - margin_top - (row + 1) * (label_height + gap_y)
+            
+            # Draw label border (optional - for cutting guide)
+            # c.setStrokeColor(colors.lightgrey)
+            # c.rect(x, y, label_width, label_height)
+            
+            # Item name (top)
+            c.setFont("Helvetica-Bold", 9)
+            name_text = item.name[:35]  # Truncate if too long
+            c.drawString(x + 3*mm, y + label_height - 6*mm, name_text)
+            
+            # Price info (below name)
+            c.setFont("Helvetica", 7)
+            price_text = f"MRP: ₹{item.mrp or item.selling_price:.0f}  |  Price: ₹{item.selling_price:.0f}"
+            c.drawString(x + 3*mm, y + label_height - 11*mm, price_text)
+            
+            # SKU (small)
+            c.setFont("Helvetica", 6)
+            c.drawString(x + 3*mm, y + label_height - 15*mm, f"SKU: {item.sku}")
+            
+            # Generate barcode image
+            if item.barcode:
+                try:
+                    # Determine barcode type based on length
+                    if len(item.barcode) == 13:
+                        barcode_class = barcode.get_barcode_class('ean13')
+                    elif len(item.barcode) == 8:
+                        barcode_class = barcode.get_barcode_class('ean8')
+                    else:
+                        barcode_class = barcode.get_barcode_class('code128')
+                    
+                    # Generate barcode
+                    barcode_instance = barcode_class(item.barcode, writer=ImageWriter())
+                    
+                    # Save to BytesIO
+                    barcode_buffer = BytesIO()
+                    barcode_instance.write(barcode_buffer, options={
+                        'module_height': 10,
+                        'module_width': 0.25,
+                        'quiet_zone': 2,
+                        'font_size': 8,
+                        'text_distance': 2,
+                        'write_text': True
+                    })
+                    barcode_buffer.seek(0)
+                    
+                    # Draw barcode on PDF
+                    barcode_img = Image.open(barcode_buffer)
+                    
+                    # Calculate barcode position and size
+                    barcode_x = x + 3*mm
+                    barcode_y = y + 3*mm
+                    barcode_width = label_width - 6*mm
+                    barcode_height = 12*mm
+                    
+                    # Draw image
+                    c.drawInlineImage(
+                        barcode_img,
+                        barcode_x,
+                        barcode_y,
+                        width=barcode_width,
+                        height=barcode_height,
+                        preserveAspectRatio=True
+                    )
+                    
+                except Exception as e:
+                    # Fallback: just print barcode text
+                    c.setFont("Courier", 8)
+                    c.drawString(x + 3*mm, y + 10*mm, item.barcode)
+        
+        # Save PDF
+        c.save()
+        pdf_buffer.seek(0)
+        
+        # Generate filename
+        from datetime import datetime
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        filename = f'barcode_labels_{timestamp}.pdf'
+        
+        return send_file(
+            pdf_buffer,
+            mimetype='application/pdf',
+            as_attachment=True,
+            download_name=filename
+        )
+    
+    # GET request - show form to select items
+    items_with_barcodes = Item.query.filter_by(
+        tenant_id=tenant_id,
+        is_active=True
+    ).filter(
+        Item.barcode != None,
+        Item.barcode != ''
+    ).order_by(Item.name).all()
+    
+    return render_template('admin/items/print_labels.html',
+                         items=items_with_barcodes,
+                         tenant=g.tenant)
+

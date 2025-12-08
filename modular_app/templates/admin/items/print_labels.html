@@ -1,0 +1,190 @@
+{% extends "base_sidebar.html" %}
+
+{% block title %}Print Barcode Labels - {{ tenant.company_name }}{% endblock %}
+
+{% block page_title %}🏷️ Print Barcode Labels{% endblock %}
+
+{% block header_actions %}
+<a href="{{ url_for('items.index') }}" class="btn btn-secondary">
+    ← Back to Items
+</a>
+{% endblock %}
+
+{% block content %}
+<form method="POST" id="printLabelsForm">
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">Select Items & Quantities</h3>
+        </div>
+        
+        {% if items %}
+        <div style="margin-bottom: 20px; padding: 15px; background: #fff3cd; border-radius: 8px;">
+            <strong>📋 Instructions:</strong>
+            <ul style="margin: 10px 0 0 20px;">
+                <li>Select items you want to print labels for</li>
+                <li>Set quantity (how many labels per item)</li>
+                <li>Labels are formatted for A4 paper (30 labels per sheet)</li>
+                <li>Compatible with Avery A4-J8160 label sheets</li>
+                <li>Can also print on regular A4 paper and cut manually</li>
+            </ul>
+        </div>
+        
+        <div style="margin-bottom: 20px; display: flex; gap: 10px; flex-wrap: wrap;">
+            <button type="button" class="btn btn-secondary" onclick="selectAll()">
+                ☑️ Select All
+            </button>
+            <button type="button" class="btn btn-secondary" onclick="deselectAll()">
+                ☐ Deselect All
+            </button>
+            <button type="button" class="btn btn-secondary" onclick="setAllQuantities(1)">
+                1️⃣ Set All to 1
+            </button>
+            <button type="button" class="btn btn-secondary" onclick="setAllQuantities(5)">
+                5️⃣ Set All to 5
+            </button>
+            <button type="submit" class="btn btn-primary" style="margin-left: auto;">
+                🖨️ Generate PDF
+            </button>
+        </div>
+        
+        <div style="overflow-x: auto;">
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width: 50px;">
+                            <input type="checkbox" id="selectAllCheckbox" onchange="toggleAll(this)">
+                        </th>
+                        <th>Item Name</th>
+                        <th>SKU</th>
+                        <th>Barcode</th>
+                        <th>Price</th>
+                        <th style="width: 120px;">Quantity</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in items %}
+                    <tr>
+                        <td>
+                            <input type="checkbox" 
+                                   name="item_ids" 
+                                   value="{{ item.id }}" 
+                                   class="item-checkbox"
+                                   checked>
+                        </td>
+                        <td>
+                            <strong>{{ item.name }}</strong>
+                            {% if item.brand %}
+                            <br><small style="color: #7f8c8d;">{{ item.brand }}</small>
+                            {% endif %}
+                        </td>
+                        <td>{{ item.sku }}</td>
+                        <td>
+                            <span style="font-family: monospace; color: #27ae60;">
+                                {{ item.barcode }}
+                            </span>
+                        </td>
+                        <td>₹{{ item.selling_price }}</td>
+                        <td>
+                            <input type="number" 
+                                   name="qty_{{ item.id }}" 
+                                   min="1" 
+                                   max="100" 
+                                   value="1" 
+                                   style="width: 80px; padding: 8px; text-align: center;">
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <div style="margin-top: 20px; padding: 15px; background: #e8f5e9; border-radius: 8px;">
+            <strong>💡 Printing Tips:</strong>
+            <ul style="margin: 10px 0 0 20px;">
+                <li><strong>Label Sheets:</strong> Use Avery A4-J8160 or compatible (70mm × 29.7mm, 30 per sheet)</li>
+                <li><strong>Regular Paper:</strong> Print on A4, cut labels manually with scissors</li>
+                <li><strong>Printer Settings:</strong> Actual Size, No Scaling, Portrait</li>
+                <li><strong>Cost:</strong> Label sheets: ₹2-5 per sheet (30 labels)</li>
+            </ul>
+        </div>
+        
+        {% else %}
+        <div style="padding: 40px; text-align: center;">
+            <div style="font-size: 48px; margin-bottom: 20px;">📦</div>
+            <h3 style="color: #95a5a6; margin-bottom: 10px;">No Items with Barcodes</h3>
+            <p style="color: #7f8c8d; margin-bottom: 20px;">
+                Generate barcodes first, then come back to print labels.
+            </p>
+            <a href="{{ url_for('items.index') }}" class="btn btn-primary">
+                Go to Items List
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</form>
+
+<script>
+function toggleAll(checkbox) {
+    const checkboxes = document.querySelectorAll('.item-checkbox');
+    checkboxes.forEach(cb => cb.checked = checkbox.checked);
+}
+
+function selectAll() {
+    const checkboxes = document.querySelectorAll('.item-checkbox');
+    checkboxes.forEach(cb => cb.checked = true);
+    document.getElementById('selectAllCheckbox').checked = true;
+}
+
+function deselectAll() {
+    const checkboxes = document.querySelectorAll('.item-checkbox');
+    checkboxes.forEach(cb => cb.checked = false);
+    document.getElementById('selectAllCheckbox').checked = false;
+}
+
+function setAllQuantities(qty) {
+    const qtyInputs = document.querySelectorAll('input[type="number"][name^="qty_"]');
+    qtyInputs.forEach(input => input.value = qty);
+}
+</script>
+
+<style>
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+th, td {
+    padding: 12px;
+    text-align: left;
+    border-bottom: 1px solid #ecf0f1;
+}
+
+th {
+    background: #f8f9fa;
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+tbody tr:hover {
+    background: #f8f9fa;
+}
+
+input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+}
+
+input[type="number"] {
+    border: 2px solid #dfe6e9;
+    border-radius: 6px;
+    font-size: 14px;
+}
+
+input[type="number"]:focus {
+    outline: none;
+    border-color: #667eea;
+}
+</style>
+{% endblock %}
+
