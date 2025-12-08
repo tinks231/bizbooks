@@ -525,6 +525,7 @@ def create():
             'id': item.id,
             'name': item.name,
             'mrp': item.mrp if hasattr(item, 'mrp') and item.mrp else None,
+            'discount_percent': item.discount_percent if hasattr(item, 'discount_percent') else 0,
             'selling_price': item.selling_price or 0,
             'gst_rate': item.gst_rate or 18,
             'hsn_code': item.hsn_code or '',

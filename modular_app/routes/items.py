@@ -213,6 +213,7 @@ def add():
                 
                 # Sales Information
                 mrp=float(request.form.get('mrp') or 0) if request.form.get('mrp') else None,
+                discount_percent=float(request.form.get('discount_percent') or 0),
                 selling_price=float(request.form.get('selling_price') or 0),
                 sales_description=request.form.get('sales_description'),
                 sales_account=request.form.get('sales_account', 'Sales'),
@@ -346,6 +347,7 @@ def edit(item_id):
             
             # Sales Information
             item.mrp = float(request.form.get('mrp') or 0) if request.form.get('mrp') else None
+            item.discount_percent = float(request.form.get('discount_percent') or 0)
             item.selling_price = float(request.form.get('selling_price') or 0)
             item.sales_description = request.form.get('sales_description')
             item.sales_account = request.form.get('sales_account', 'Sales')

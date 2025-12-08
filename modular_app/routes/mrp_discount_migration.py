@@ -34,6 +34,19 @@ def add_mrp_discount_gst_fields():
                 else:
                     raise
             
+            # 1b. Add discount_percent to items table
+            try:
+                conn.execute(text("""
+                    ALTER TABLE items 
+                    ADD COLUMN IF NOT EXISTS discount_percent NUMERIC(5, 2) DEFAULT 0;
+                """))
+                results.append("✅ Added 'discount_percent' column to items table")
+            except Exception as e:
+                if "already exists" in str(e).lower():
+                    results.append("ℹ️ discount_percent column already exists in items table")
+                else:
+                    raise
+            
             # 2. Add discount fields to invoices
             try:
                 conn.execute(text("""
