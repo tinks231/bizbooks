@@ -1070,6 +1070,12 @@
     document.getElementById('invoice_date').valueAsDate = new Date();
     {% endif %}
     
+    // Initialize GST toggle and calculations on page load
+    window.addEventListener('DOMContentLoaded', function() {
+        toggleGSTRows(); // Initialize GST row visibility
+        calculateTotal(); // Initialize all calculations
+    });
+    
     {% if invoice_items %}
     // Edit mode: Pre-populate items
     window.addEventListener('DOMContentLoaded', function() {
