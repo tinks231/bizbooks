@@ -228,6 +228,30 @@
             </button>
         </div>
         
+        <!-- BARCODE SCANNER INPUT -->
+        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 20px; margin: 0; border-radius: 0;">
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <div style="flex: 0 0 auto;">
+                    <div style="width: 48px; height: 48px; background: rgba(255, 255, 255, 0.2); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 24px;">
+                        📱
+                    </div>
+                </div>
+                <div style="flex: 1;">
+                    <label style="color: white; font-weight: 600; font-size: 14px; margin-bottom: 8px; display: block;">
+                        Scan Barcode or Type to Search Items
+                    </label>
+                    <input type="text" 
+                           id="barcodeScanner" 
+                           placeholder="Focus here and scan barcode or type item name..." 
+                           autocomplete="off"
+                           style="width: 100%; padding: 12px 16px; font-size: 16px; border: 2px solid rgba(255, 255, 255, 0.3); border-radius: 8px; background: rgba(255, 255, 255, 0.95); box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+                    <small id="barcodeScannerHint" style="color: rgba(255, 255, 255, 0.9); font-size: 12px; display: block; margin-top: 6px;">
+                        💡 Tip: Keep this field focused for quick scanning. Press Tab to skip.
+                    </small>
+                </div>
+            </div>
+        </div>
+        
         <div style="overflow-x: auto;">
             <table class="table" id="itemsTable">
                 <thead>
@@ -624,7 +648,259 @@
         {% else %}
         addItemRow();
         {% endif %}
+        
+        // Initialize barcode scanner
+        initBarcodeScanner();
     });
+    
+    // ========================================
+    // BARCODE SCANNER FUNCTIONALITY
+    // ========================================
+    
+    let barcodeBuffer = '';
+    let barcodeTimeout = null;
+    
+    function initBarcodeScanner() {
+        const scannerInput = document.getElementById('barcodeScanner');
+        
+        // Auto-focus on load
+        scannerInput.focus();
+        
+        // Handle input (for both typing and scanning)
+        scannerInput.addEventListener('input', function(e) {
+            const value = e.target.value.trim();
+            
+            // Clear previous timeout
+            if (barcodeTimeout) {
+                clearTimeout(barcodeTimeout);
+            }
+            
+            // Wait 300ms after last keystroke (allows manual typing)
+            barcodeTimeout = setTimeout(() => {
+                if (value.length >= 3) {  // Minimum 3 characters
+                    searchByBarcodeOrName(value);
+                }
+            }, 300);
+        });
+        
+        // Handle Enter key (immediate search)
+        scannerInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                const value = e.target.value.trim();
+                if (value.length > 0) {
+                    searchByBarcodeOrName(value);
+                }
+            }
+        });
+        
+        // Re-focus on click anywhere on the scanner box
+        scannerInput.parentElement.parentElement.addEventListener('click', function() {
+            scannerInput.focus();
+        });
+    }
+    
+    function searchByBarcodeOrName(query) {
+        const scannerInput = document.getElementById('barcodeScanner');
+        const hint = document.getElementById('barcodeScannerHint');
+        
+        // Show searching status
+        hint.textContent = '⏳ Searching...';
+        hint.style.color = 'rgba(255, 255, 255, 0.9)';
+        
+        // Try barcode search first
+        fetch(`/api/barcode/search?code=${encodeURIComponent(query)}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.found) {
+                    // Barcode found!
+                    playSuccessBeep();
+                    hint.textContent = `✅ Found: ${data.item.name}`;
+                    hint.style.color = '#4ade80';
+                    
+                    // Add item to invoice
+                    addItemToInvoice(data.item);
+                    
+                    // Clear and refocus
+                    scannerInput.value = '';
+                    setTimeout(() => {
+                        hint.textContent = '💡 Tip: Keep this field focused for quick scanning. Press Tab to skip.';
+                        hint.style.color = 'rgba(255, 255, 255, 0.9)';
+                        scannerInput.focus();
+                    }, 1500);
+                } else {
+                    // Barcode not found, try name search
+                    searchItemsByName(query);
+                }
+            })
+            .catch(error => {
+                console.error('Barcode search error:', error);
+                // Fallback to name search
+                searchItemsByName(query);
+            });
+    }
+    
+    function searchItemsByName(query) {
+        const scannerInput = document.getElementById('barcodeScanner');
+        const hint = document.getElementById('barcodeScannerHint');
+        
+        // Search in items array (same as existing item search)
+        const results = items.filter(item => 
+            item.name.toLowerCase().includes(query.toLowerCase()) ||
+            (item.sku && item.sku.toLowerCase().includes(query.toLowerCase()))
+        );
+        
+        if (results.length === 1) {
+            // Exact match - add item
+            playSuccessBeep();
+            hint.textContent = `✅ Found: ${results[0].name}`;
+            hint.style.color = '#4ade80';
+            
+            addItemToInvoice(results[0]);
+            
+            scannerInput.value = '';
+            setTimeout(() => {
+                hint.textContent = '💡 Tip: Keep this field focused for quick scanning. Press Tab to skip.';
+                hint.style.color = 'rgba(255, 255, 255, 0.9)';
+                scannerInput.focus();
+            }, 1500);
+        } else if (results.length > 1) {
+            // Multiple matches
+            playWarningBeep();
+            hint.textContent = `⚠️ ${results.length} items found. Please be more specific.`;
+            hint.style.color = '#fbbf24';
+        } else {
+            // No matches
+            playErrorBeep();
+            hint.textContent = `❌ Item not found: "${query}"`;
+            hint.style.color = '#f87171';
+            
+            setTimeout(() => {
+                hint.textContent = '💡 Tip: Keep this field focused for quick scanning. Press Tab to skip.';
+                hint.style.color = 'rgba(255, 255, 255, 0.9)';
+            }, 2000);
+        }
+    }
+    
+    function addItemToInvoice(item) {
+        // Check if item already exists in invoice
+        const existingRow = findItemInInvoice(item.id);
+        
+        if (existingRow) {
+            // Increment quantity
+            const qtyInput = existingRow.querySelector('input[name="quantity[]"]');
+            qtyInput.value = parseInt(qtyInput.value) + 1;
+            qtyInput.dispatchEvent(new Event('input'));  // Trigger recalculation
+            
+            // Flash the row
+            existingRow.style.background = '#d4edda';
+            setTimeout(() => {
+                existingRow.style.background = '';
+            }, 500);
+        } else {
+            // Add new row with item data
+            addItemRowWithData(item);
+        }
+    }
+    
+    function findItemInInvoice(itemId) {
+        const tbody = document.getElementById('itemsTableBody');
+        const rows = tbody.querySelectorAll('tr');
+        
+        for (let row of rows) {
+            const itemIdInput = row.querySelector('input[name="item_id[]"]');
+            if (itemIdInput && parseInt(itemIdInput.value) === itemId) {
+                return row;
+            }
+        }
+        return null;
+    }
+    
+    function addItemRowWithData(item) {
+        itemCount++;
+        const tbody = document.getElementById('itemsTableBody');
+        const row = document.createElement('tr');
+        row.id = `row_${itemCount}`;
+        
+        // Pre-populate all item data
+        row.innerHTML = `
+            <td>${itemCount}</td>
+            <td style="position: relative;">
+                <input type="text" name="item_name[]" class="form-control" 
+                       value="${item.name}" 
+                       readonly
+                       style="background: #f8f9fa;">
+                <input type="hidden" name="item_id[]" value="${item.id}">
+            </td>
+            <td>
+                <input type="text" name="hsn_code[]" class="form-control" 
+                       value="${item.hsn_code || ''}" readonly style="background: #f8f9fa;">
+            </td>
+            <td>
+                <input type="number" name="quantity[]" class="form-control" 
+                       value="1" min="0.01" step="0.01" required 
+                       oninput="calculateRow(${itemCount})">
+            </td>
+            <td>
+                <span style="color: #95a5a6;">${item.mrp ? '₹' + item.mrp.toFixed(2) : '-'}</span>
+                <input type="hidden" name="mrp[]" value="${item.mrp || 0}">
+            </td>
+            <td>
+                <span style="color: #95a5a6;">${item.discount_percent || 0}%</span>
+                <input type="hidden" name="discount_percent[]" value="${item.discount_percent || 0}">
+            </td>
+            <td>
+                <span style="color: #95a5a6; font-size: 12px;">${item.unit || 'nos'}</span>
+                <input type="hidden" name="unit[]" value="${item.unit || 'nos'}">
+            </td>
+            <td>
+                <input type="number" name="rate[]" class="form-control" 
+                       value="${item.selling_price || 0}" min="0" step="0.01" required 
+                       oninput="calculateRow(${itemCount})">
+            </td>
+            <td>
+                <input type="number" name="gst_rate[]" class="form-control" 
+                       value="${item.gst_rate || 18}" min="0" max="28" step="0.01" 
+                       oninput="calculateRow(${itemCount})">
+            </td>
+            <td>
+                <span id="amount_${itemCount}">₹0.00</span>
+            </td>
+            <td>
+                <button type="button" class="btn-icon" onclick="removeRow(${itemCount})" 
+                        style="color: #e74c3c; font-size: 18px; padding: 4px 8px;">✕</button>
+            </td>
+        `;
+        
+        tbody.appendChild(row);
+        
+        // Calculate initial amount
+        calculateRow(itemCount);
+        
+        // Flash the new row
+        row.style.background = '#d4edda';
+        setTimeout(() => {
+            row.style.background = '';
+        }, 500);
+    }
+    
+    // Sound effects
+    function playSuccessBeep() {
+        const audio = new Audio('data:audio/wav;base64,UklGRhYAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YTQAAAA=');
+        audio.play().catch(() => {});
+    }
+    
+    function playErrorBeep() {
+        const audio = new Audio('data:audio/wav;base64,UklGRhYAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YTQAAAA=');
+        audio.playbackRate = 0.5;
+        audio.play().catch(() => {});
+    }
+    
+    function playWarningBeep() {
+        const audio = new Audio('data:audio/wav;base64,UklGRhYAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YTQAAAA=');
+        audio.playbackRate = 0.75;
+        audio.play().catch(() => {});
+    }
     
     function addItemRow() {
         itemCount++;
