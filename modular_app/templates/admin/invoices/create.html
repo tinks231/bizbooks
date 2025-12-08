@@ -235,18 +235,11 @@
                         <th style="width: 30px;">#</th>
                         <th style="min-width: 200px;">Item Name *</th>
                         <th style="min-width: 100px;">HSN/SAC</th>
+                        <th style="width: 90px;">MRP</th>
                         <th style="width: 80px;">Qty *</th>
                         <th style="width: 80px;">Unit</th>
-                        <th style="width: 140px; text-align: center;">
-                            <div style="display: flex; flex-direction: column; align-items: center; gap: 5px;">
-                                <span>Rate *</span>
-                                <label style="display: flex; align-items: center; gap: 4px; font-size: 11px; font-weight: normal; cursor: pointer; white-space: nowrap;" title="Check this if the rate you enter already includes GST (like MRP on products)">
-                                    <input type="checkbox" id="priceInclusiveAll" onchange="toggleAllPriceInclusive(this.checked)">
-                                    <span>Tax Inclusive (MRP)</span>
-                                </label>
-                            </div>
-                        </th>
-                        <th style="width: 100px;">GST % *</th>
+                        <th style="width: 100px;" id="rateHeader">Rate *</th>
+                        <th style="width: 80px;" id="gstHeader">GST %</th>
                         <th style="width: 120px;">Amount</th>
                         <th style="width: 50px;">Action</th>
                     </tr>
@@ -256,12 +249,12 @@
                 </tbody>
                 <tfoot>
                     <tr>
-                        <td colspan="7" style="text-align: right; font-weight: bold;">Subtotal:</td>
+                        <td colspan="8" style="text-align: right; font-weight: bold;">Subtotal:</td>
                         <td><span id="subtotalDisplay">₹0.00</span></td>
                         <td></td>
                     </tr>
                     <tr>
-                        <td colspan="7" style="text-align: right;">
+                        <td colspan="8" style="text-align: right;">
                             Discount: 
                             <select id="discountType" name="discount_type" onchange="calculateTotal()" 
                                     style="width: 80px; display: inline-block; margin-left: 10px; padding: 5px;">
@@ -278,22 +271,32 @@
                         <td></td>
                     </tr>
                     <tr id="cgstRow">
-                        <td colspan="7" style="text-align: right;">CGST:</td>
+                        <td colspan="8" style="text-align: right;">CGST:</td>
                         <td><span id="cgstDisplay">₹0.00</span></td>
                         <td></td>
                     </tr>
                     <tr id="sgstRow">
-                        <td colspan="7" style="text-align: right;">SGST:</td>
+                        <td colspan="8" style="text-align: right;">SGST:</td>
                         <td><span id="sgstDisplay">₹0.00</span></td>
                         <td></td>
                     </tr>
                     <tr id="igstRow" style="display: none;">
-                        <td colspan="7" style="text-align: right;">IGST:</td>
+                        <td colspan="8" style="text-align: right;">IGST:</td>
                         <td><span id="igstDisplay">₹0.00</span></td>
                         <td></td>
                     </tr>
                     <tr>
-                        <td colspan="7" style="text-align: right; font-weight: bold; font-size: 18px;">Total:</td>
+                        <td colspan="8" style="text-align: right;">Gross Total:</td>
+                        <td><span id="grossTotalDisplay">₹0.00</span></td>
+                        <td></td>
+                    </tr>
+                    <tr>
+                        <td colspan="8" style="text-align: right;">Round-off:</td>
+                        <td><span id="roundOffDisplay">₹0.00</span></td>
+                        <td></td>
+                    </tr>
+                    <tr style="background: #f8f9fa;">
+                        <td colspan="8" style="text-align: right; font-weight: bold; font-size: 18px;">Net Total:</td>
                         <td style="font-weight: bold; font-size: 18px;"><span id="totalDisplay">₹0.00</span></td>
                         <td></td>
                     </tr>
@@ -642,9 +645,13 @@
                 <div class="autocomplete-dropdown" id="dropdown_${itemCount}"></div>
                 <input type="hidden" name="item_id[]" id="item_id_${itemCount}">
                 <input type="hidden" name="description[]" id="description_${itemCount}">
+                <input type="hidden" name="mrp[]" id="mrp_${itemCount}" value="0">
             </td>
             <td>
                 <input type="text" name="hsn_code[]" class="form-control" placeholder="8544">
+            </td>
+            <td>
+                <span id="mrp_display_${itemCount}" style="font-weight: 500; color: #666;">-</span>
             </td>
             <td>
                 <input type="number" name="quantity[]" id="quantity_${itemCount}" class="form-control" step="0.01" min="0.01" 
@@ -674,25 +681,12 @@
                 </select>
             </td>
             <td>
-                <div style="display: flex; align-items: center; gap: 8px;">
-                    <input type="number" name="rate[]" id="rate_${itemCount}" class="form-control" step="0.01" min="0.01" 
-                           placeholder="1200" required oninput="calculateRow(${itemCount})" 
-                           style="text-align: right; flex: 1; min-width: 80px;">
-                    <label style="display: flex; align-items: center; gap: 4px; margin: 0; cursor: pointer; white-space: nowrap;">
-                        <input type="checkbox" name="price_inclusive[]" id="price_inclusive_${itemCount}" 
-                               class="price-inclusive-checkbox" onchange="calculateRow(${itemCount})">
-                        <span style="font-size: 11px; color: #666;">Inc</span>
-                    </label>
-                </div>
+                <input type="number" name="rate[]" id="rate_${itemCount}" class="form-control" step="0.01" min="0.01" 
+                       placeholder="1200" required oninput="calculateRow(${itemCount})" style="text-align: right;">
             </td>
             <td>
-                <select name="gst_rate[]" id="gst_rate_${itemCount}" class="form-control" onchange="calculateRow(${itemCount})">
-                    <option value="0">0%</option>
-                    <option value="5">5%</option>
-                    <option value="12">12%</option>
-                    <option value="18" selected>18%</option>
-                    <option value="28">28%</option>
-                </select>
+                <span id="gst_display_${itemCount}" style="font-weight: 500;">18%</span>
+                <input type="hidden" name="gst_rate[]" id="gst_rate_${itemCount}" value="18">
             </td>
             <td>
                 <span id="amount_${itemCount}">₹0.00</span>
