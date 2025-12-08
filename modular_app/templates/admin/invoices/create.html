@@ -143,6 +143,21 @@
                        value="{% if invoice and invoice.due_date %}{{ invoice.due_date if invoice.due_date is string else invoice.due_date.strftime('%Y-%m-%d') }}{% endif %}">
             </div>
         </div>
+        
+        <div class="form-row" style="margin-top: 15px; padding: 15px; background: #f8f9fa; border-radius: 8px;">
+            <div class="form-group">
+                <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; font-weight: 600; color: #2c3e50;">
+                    <input type="checkbox" id="gstEnabled" name="gst_enabled" value="1" 
+                           {% if not invoice or invoice.gst_enabled != False %}checked{% endif %}
+                           onchange="toggleGSTRows()" 
+                           style="width: 20px; height: 20px; cursor: pointer;">
+                    <span>📋 Apply GST on this Invoice</span>
+                </label>
+                <small class="help-text" style="margin-left: 30px;">
+                    Uncheck for non-GST customers or cash sales where GST is not applicable
+                </small>
+            </div>
+        </div>
     </div>
     
     <!-- Commission Section (Optional) -->
@@ -248,9 +263,16 @@
                     <tr>
                         <td colspan="7" style="text-align: right;">
                             Discount: 
-                            <input type="number" id="discountInput" name="discount" step="0.01" min="0" 
+                            <select id="discountType" name="discount_type" onchange="calculateTotal()" 
+                                    style="width: 80px; display: inline-block; margin-left: 10px; padding: 5px;">
+                                <option value="percentage">%</option>
+                                <option value="flat" selected>₹</option>
+                            </select>
+                            <input type="number" id="discountValue" name="discount_value" step="0.01" min="0" 
                                    value="0" onchange="calculateTotal()" 
-                                   style="width: 100px; display: inline-block; margin-left: 10px; padding: 5px; text-align: right;">
+                                   placeholder="0" 
+                                   style="width: 100px; display: inline-block; margin-left: 5px; padding: 5px; text-align: right;">
+                            <input type="hidden" id="discountAmount" name="discount" value="0">
                         </td>
                         <td><span id="discountDisplay">-₹0.00</span></td>
                         <td></td>
@@ -896,11 +918,7 @@
         
         const customerState = document.getElementById('customer_state').value;
         const isSameState = customerState === tenantState;
-        
-        // Show/hide GST rows
-        document.getElementById('cgstRow').style.display = isSameState ? '' : 'none';
-        document.getElementById('sgstRow').style.display = isSameState ? '' : 'none';
-        document.getElementById('igstRow').style.display = isSameState ? 'none' : '';
+        const gstEnabled = document.getElementById('gstEnabled').checked;
         
         // Use stored calculated values from data attributes
         const rows = document.querySelectorAll('#itemsTableBody tr');
@@ -909,37 +927,75 @@
             const gstAmount = parseFloat(row.getAttribute('data-gst')) || 0;
             
             subtotal += taxableValue;
-            totalGSTAmount += gstAmount;
             
-            if (isSameState) {
-                totalCGST += gstAmount / 2;
-                totalSGST += gstAmount / 2;
-            } else {
-                totalIGST += gstAmount;
+            // Only add GST if enabled
+            if (gstEnabled) {
+                totalGSTAmount += gstAmount;
+                
+                if (isSameState) {
+                    totalCGST += gstAmount / 2;
+                    totalSGST += gstAmount / 2;
+                } else {
+                    totalIGST += gstAmount;
+                }
             }
         });
         
-        // Apply discount
-        const discount = parseFloat(document.getElementById('discountInput').value) || 0;
+        // Calculate discount based on type
+        const discountType = document.getElementById('discountType').value;
+        const discountValue = parseFloat(document.getElementById('discountValue').value) || 0;
+        let discount = 0;
+        
+        if (discountType === 'percentage') {
+            discount = (subtotal * discountValue) / 100;
+        } else {
+            discount = discountValue;
+        }
+        
+        // Update hidden discount amount field
+        document.getElementById('discountAmount').value = discount.toFixed(2);
+        
         const subtotalAfterDiscount = subtotal - discount;
         
-        // Recalculate GST after discount
-        const discountRatio = subtotalAfterDiscount / (subtotal || 1);
-        totalCGST = totalCGST * discountRatio;
-        totalSGST = totalSGST * discountRatio;
-        totalIGST = totalIGST * discountRatio;
+        // Recalculate GST after discount (only if GST is enabled)
+        if (gstEnabled && discount > 0) {
+            const discountRatio = subtotalAfterDiscount / (subtotal || 1);
+            totalCGST = totalCGST * discountRatio;
+            totalSGST = totalSGST * discountRatio;
+            totalIGST = totalIGST * discountRatio;
+        }
         
-        const total = subtotalAfterDiscount + totalCGST + totalSGST + totalIGST;
+        const total = subtotalAfterDiscount + (gstEnabled ? (totalCGST + totalSGST + totalIGST) : 0);
         
+        // Update displays
         document.getElementById('subtotalDisplay').textContent = `₹${subtotal.toFixed(2)}`;
         document.getElementById('discountDisplay').textContent = discount > 0 ? `-₹${discount.toFixed(2)}` : `₹0.00`;
-        document.getElementById('cgstDisplay').textContent = `₹${totalCGST.toFixed(2)}`;
-        document.getElementById('sgstDisplay').textContent = `₹${totalSGST.toFixed(2)}`;
-        document.getElementById('igstDisplay').textContent = `₹${totalIGST.toFixed(2)}`;
+        
+        // Show/hide GST rows based on GST enabled status
+        if (gstEnabled) {
+            document.getElementById('cgstRow').style.display = isSameState ? '' : 'none';
+            document.getElementById('sgstRow').style.display = isSameState ? '' : 'none';
+            document.getElementById('igstRow').style.display = isSameState ? 'none' : '';
+            
+            document.getElementById('cgstDisplay').textContent = `₹${totalCGST.toFixed(2)}`;
+            document.getElementById('sgstDisplay').textContent = `₹${totalSGST.toFixed(2)}`;
+            document.getElementById('igstDisplay').textContent = `₹${totalIGST.toFixed(2)}`;
+        } else {
+            // Hide all GST rows when GST is disabled
+            document.getElementById('cgstRow').style.display = 'none';
+            document.getElementById('sgstRow').style.display = 'none';
+            document.getElementById('igstRow').style.display = 'none';
+        }
+        
         document.getElementById('totalDisplay').textContent = `₹${Math.round(total).toFixed(2)}`;
         
         // Recalculate commission when invoice total changes
         calculateCommission();
+    }
+    
+    function toggleGSTRows() {
+        // Recalculate total when GST is toggled
+        calculateTotal();
     }
     
     // Commission Management Functions
