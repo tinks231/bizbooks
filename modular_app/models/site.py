@@ -18,6 +18,7 @@ class Site(db.Model, TimestampMixin):
     longitude = db.Column(db.Float, default=0.0)
     allowed_radius = db.Column(db.Integer, default=100)  # meters (radius within which attendance is allowed)
     active = db.Column(db.Boolean, default=True)
+    is_default = db.Column(db.Boolean, default=False)  # Default site for stock deduction
     
     # Relationships
     employees = db.relationship('Employee', backref='site', lazy=True)

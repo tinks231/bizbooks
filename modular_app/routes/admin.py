@@ -994,6 +994,29 @@ def delete_site(site_id):
     
     return redirect(url_for('admin.sites'))
 
+@admin_bp.route('/site/set-default/<int:site_id>', methods=['POST'])
+@require_tenant
+@login_required
+def set_default_site(site_id):
+    """Set a site as the default site for stock deduction"""
+    tenant_id = get_current_tenant_id()
+    site = Site.query.filter_by(tenant_id=tenant_id, id=site_id).first_or_404()
+    
+    # Unset all other sites as default (only one default per tenant)
+    Site.query.filter_by(tenant_id=tenant_id).update({'is_default': False})
+    
+    # Set this site as default
+    site.is_default = True
+    
+    try:
+        db.session.commit()
+        flash(f'✅ "{site.name}" is now the default site for stock deduction!', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'❌ Error setting default site: {str(e)}', 'error')
+    
+    return redirect(url_for('admin.sites'))
+
 # Inventory Management
 @admin_bp.route('/inventory')
 @require_tenant

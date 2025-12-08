@@ -30,7 +30,14 @@
         <tbody>
             {% for site in sites %}
             <tr style="border-bottom: 1px solid #e0e0e0;">
-                <td style="padding: 15px; font-weight: 500;">{{ site.name }}</td>
+                <td style="padding: 15px;">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span style="font-weight: 500;">{{ site.name }}</span>
+                        {% if site.is_default %}
+                        <span style="background: #ffd700; color: #000; padding: 3px 8px; border-radius: 12px; font-size: 11px; font-weight: 700;">⭐ DEFAULT</span>
+                        {% endif %}
+                    </div>
+                </td>
                 <td style="padding: 15px; color: #666;">{{ site.address or '-' }}</td>
                 <td style="padding: 15px; color: #666;">{{ site.latitude }}, {{ site.longitude }}</td>
                 <td style="padding: 15px; text-align: center;">{{ site.allowed_radius }} m</td>
@@ -42,6 +49,11 @@
                     {% endif %}
                 </td>
                 <td style="padding: 15px; text-align: center;">
+                    {% if not site.is_default %}
+                    <form method="POST" action="/admin/site/set-default/{{ site.id }}" style="display: inline; margin-right: 8px;" onsubmit="return confirm('Set \'{{ site.name }}\' as the default site for stock deduction?');">
+                        <button type="submit" style="background: #ffd700; color: #000; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 600;" title="Set as Default Site">⭐ Set Default</button>
+                    </form>
+                    {% endif %}
                     <a href="/admin/site/edit/{{ site.id }}" style="text-decoration: none; font-size: 1.2em; margin-right: 10px;" title="Edit Site">✏️</a>
                     <form method="POST" action="/admin/site/delete/{{ site.id }}" style="display: inline;" onsubmit="return confirm('⚠️ Are you sure you want to delete site \'{{ site.name }}\'?\n\nThis action cannot be undone.');">
                         <button type="submit" style="background: none; border: none; cursor: pointer; font-size: 1.2em; color: #dc3545;" title="Delete Site">🗑️</button>

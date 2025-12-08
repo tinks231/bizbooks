@@ -272,8 +272,17 @@ def create():
                 if item_id:  # Only reduce stock if item is from inventory (not manual entry)
                     item_obj = Item.query.get(item_id)
                     if item_obj and item_obj.track_inventory:
-                        # Get default site (or first site)
-                        default_site = Site.query.filter_by(tenant_id=tenant_id).first()
+                        # Get default site (marked as is_default=True)
+                        default_site = Site.query.filter_by(
+                            tenant_id=tenant_id,
+                            is_default=True,
+                            active=True
+                        ).first()
+                        
+                        # Fallback to first active site if no default is set
+                        if not default_site:
+                            default_site = Site.query.filter_by(tenant_id=tenant_id, active=True).first()
+                        
                         if default_site:
                             # Get or create stock record
                             item_stock = ItemStock.query.filter_by(
@@ -888,11 +897,16 @@ def mark_sent(invoice_id):
     if invoice.status == 'draft':
         invoice.status = 'sent'
         
-        # Get default site for stock deduction
+        # Get default site (marked as is_default=True)
         from models.site import Site
-        default_site = Site.query.filter_by(tenant_id=tenant_id, is_default=True).first()
+        default_site = Site.query.filter_by(
+            tenant_id=tenant_id,
+            is_default=True,
+            active=True
+        ).first()
+        
+        # Fallback to first active site if no default is set
         if not default_site:
-            # Fallback to first active site
             default_site = Site.query.filter_by(tenant_id=tenant_id, active=True).first()
         
         if not default_site:
