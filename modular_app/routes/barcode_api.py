@@ -31,10 +31,17 @@ def search_by_barcode():
     """
     try:
         # Get barcode from query params or JSON body
-        barcode = request.args.get('code') or request.json.get('code') if request.is_json else None
+        barcode = request.args.get('code')
+        
+        # If not in query params, try JSON body
+        if not barcode and request.is_json:
+            barcode = request.json.get('code')
+        
+        logger.info(f"🔍 Barcode search request: code='{barcode}', method={request.method}, args={dict(request.args)}")
         
         if not barcode:
-            return jsonify({'error': 'Barcode required'}), 400
+            logger.error(f"❌ No barcode provided! Query params: {dict(request.args)}, Is JSON: {request.is_json}")
+            return jsonify({'error': 'Barcode required', 'debug': f'Query params: {dict(request.args)}'}), 400
         
         # Get tenant from session
         tenant_id = g.tenant.id if hasattr(g, 'tenant') else None
