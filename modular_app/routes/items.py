@@ -1,7 +1,7 @@
 """
 Items management routes (Professional inventory - Zoho style)
 """
-from flask import Blueprint, render_template, request, redirect, url_for, flash, g, jsonify
+from flask import Blueprint, render_template, request, redirect, url_for, flash, g, jsonify, send_file
 from models import db, Item, ItemCategory, ItemGroup, ItemStock, ItemStockMovement, Site, InventoryAdjustment, InventoryAdjustmentLine
 from utils.tenant_middleware import require_tenant, get_current_tenant_id
 from utils.license_check import check_license
