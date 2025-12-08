@@ -1052,14 +1052,42 @@ def bulk_generate_barcodes():
             check_digit = (10 - (total % 10)) % 10
             return check_digit
         
+        # Get the highest existing barcode number for this tenant to avoid duplicates
+        last_barcode = db.session.query(Item.barcode).filter(
+            Item.tenant_id == tenant_id,
+            Item.barcode != None,
+            Item.barcode.like(f'890{tenant_id:04d}%')
+        ).order_by(Item.barcode.desc()).first()
+        
+        # Start from next sequential number
+        if last_barcode and last_barcode[0]:
+            try:
+                # Extract the sequential part (digits 8-12) and increment
+                last_num = int(last_barcode[0][7:12])
+                next_num = last_num + 1
+            except:
+                next_num = 1
+        else:
+            next_num = 1
+        
         count = 0
         for item in items_without_barcode:
-            # Generate EAN-13 barcode: 890 (India) + tenant_id (4 digits) + item_id (5 digits) + check digit
-            base = f"890{tenant_id:04d}{item.id:05d}"
+            # Generate EAN-13 barcode: 890 (India) + tenant_id (4 digits) + sequential (5 digits) + check digit
+            base = f"890{tenant_id:04d}{next_num:05d}"
             check_digit = calculate_ean13_check_digit(base)
             barcode = base + str(check_digit)
             
+            # Double-check for duplicates before saving
+            existing = Item.query.filter_by(tenant_id=tenant_id, barcode=barcode).first()
+            while existing:
+                next_num += 1
+                base = f"890{tenant_id:04d}{next_num:05d}"
+                check_digit = calculate_ean13_check_digit(base)
+                barcode = base + str(check_digit)
+                existing = Item.query.filter_by(tenant_id=tenant_id, barcode=barcode).first()
+            
             item.barcode = barcode
+            next_num += 1  # Increment for next item
             count += 1
         
         db.session.commit()

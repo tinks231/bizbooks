@@ -41,15 +41,31 @@ def search_by_barcode():
         if not tenant_id:
             return jsonify({'error': 'Tenant not found'}), 401
         
-        # Search for item
+        # Search for item (strip whitespace and handle different formats)
+        barcode_clean = barcode.strip().replace(' ', '').replace('-', '')
+        
         item = Item.query.filter_by(
-            barcode=barcode.strip(),
+            barcode=barcode_clean,
             tenant_id=tenant_id,
             is_active=True
         ).first()
         
         if not item:
-            logger.info(f"Barcode not found: {barcode}")
+            # Try searching without stripping (in case barcode has spaces stored)
+            item = Item.query.filter_by(
+                barcode=barcode,
+                tenant_id=tenant_id,
+                is_active=True
+            ).first()
+        
+        if not item:
+            logger.warning(f"Barcode not found for tenant {tenant_id}: '{barcode}' (cleaned: '{barcode_clean}')")
+            
+            # Check if barcode exists for ANY tenant (debugging)
+            any_item = Item.query.filter_by(barcode=barcode_clean).first()
+            if any_item:
+                logger.error(f"FOUND barcode in tenant {any_item.tenant_id} but user is in tenant {tenant_id}!")
+            
             return jsonify({
                 'found': False,
                 'error': 'Item not found',
