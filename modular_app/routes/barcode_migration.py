@@ -33,7 +33,6 @@ def migrate_barcode():
                     ALTER TABLE items 
                     ADD COLUMN IF NOT EXISTS barcode VARCHAR(50);
                 """))
-                conn.commit()
                 
                 # Create index for fast lookups
                 logger.info("Creating index on barcode column...")
@@ -42,7 +41,6 @@ def migrate_barcode():
                     ON items(tenant_id, barcode) 
                     WHERE barcode IS NOT NULL;
                 """))
-                conn.commit()
                 
                 # Add unique constraint per tenant
                 logger.info("Adding unique constraint on barcode per tenant...")
@@ -59,8 +57,8 @@ def migrate_barcode():
                         END IF;
                     END $$;
                 """))
-                conn.commit()
                 
+                # Commit all changes at once
                 trans.commit()
                 logger.info("✅ Barcode migration completed successfully!")
                 
