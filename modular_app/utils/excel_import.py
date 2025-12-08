@@ -86,7 +86,7 @@ def create_inventory_template():
     ws.title = "Inventory Import"
     
     # Headers
-    headers = ['Item Name*', 'SKU', 'Category*', 'Group*', 'Unit*', 'Stock Quantity*', 
+    headers = ['Item Name*', 'SKU', 'Barcode', 'Category*', 'Group*', 'Unit*', 'Stock Quantity*', 
                'Price', 'Tax Rate (%)', 'HSN Code', 'Description']
     
     # Style headers
@@ -103,6 +103,7 @@ def create_inventory_template():
     sample_data = [
         'Cement 50kg',
         'CEM-001',
+        '8901234567890',  # Barcode
         'Building Material',
         'Construction',
         'Bag',
@@ -121,10 +122,11 @@ def create_inventory_template():
     ws.cell(row=4, column=1, value="INSTRUCTIONS:")
     ws.cell(row=5, column=1, value="1. Fields marked with * are required")
     ws.cell(row=6, column=1, value="2. If SKU is blank, it will be auto-generated")
-    ws.cell(row=7, column=1, value="3. If Category/Group doesn't exist, it will be created")
-    ws.cell(row=8, column=1, value="4. Unit examples: Pcs, Kg, Liter, Box, Bag, Meter")
-    ws.cell(row=9, column=1, value="5. Tax Rate is optional (default 18%)")
-    ws.cell(row=10, column=1, value="6. Delete row 2 (sample data) before uploading")
+    ws.cell(row=7, column=1, value="3. Barcode is optional (for scanning). Leave blank if not applicable.")
+    ws.cell(row=8, column=1, value="4. If Category/Group doesn't exist, it will be created")
+    ws.cell(row=9, column=1, value="5. Unit examples: Pcs, Kg, Liter, Box, Bag, Meter")
+    ws.cell(row=10, column=1, value="6. Tax Rate is optional (default 18%)")
+    ws.cell(row=11, column=1, value="7. Delete row 2 (sample data) before uploading")
     
     # Adjust column widths
     ws.column_dimensions['A'].width = 25
@@ -474,9 +476,9 @@ def import_inventory_from_excel(file, tenant_id):
             if all(cell is None or str(cell).strip() == '' for cell in row):
                 continue
             
-            # Extract data
-            row_data = list(row) + [None] * (10 - len(row))
-            item_name, sku, category, group, unit, stock, price, tax_rate, hsn, description = row_data[:10]
+            # Extract data (now with barcode column)
+            row_data = list(row) + [None] * (11 - len(row))
+            item_name, sku, barcode, category, group, unit, stock, price, tax_rate, hsn, description = row_data[:11]
             
             # Validate
             is_valid, error_msg = validate_inventory_row(row_data[:10], row_num)
@@ -539,6 +541,7 @@ def import_inventory_from_excel(file, tenant_id):
                     tenant_id=tenant_id,
                     name=str(item_name).strip(),
                     sku=sku,
+                    barcode=str(barcode).strip() if barcode else None,  # NEW: Barcode from Excel
                     category_id=category_obj.id,
                     item_group_id=group_obj.id,
                     unit=str(unit).strip(),
