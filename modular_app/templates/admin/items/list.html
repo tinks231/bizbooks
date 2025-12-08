@@ -5,9 +5,20 @@
 {% block page_title %}All Items{% endblock %}
 
 {% block header_actions %}
-<a href="{{ url_for('items.add') }}" class="btn btn-primary">
-    ➕ Add New Item
-</a>
+<div style="display: flex; gap: 10px; flex-wrap: wrap;">
+    <a href="{{ url_for('items.export_excel') }}" class="btn btn-secondary" style="background: #27ae60;">
+        📥 Export to Excel
+    </a>
+    <form method="POST" action="{{ url_for('items.bulk_generate_barcodes') }}" style="display: inline;" 
+          onsubmit="return confirm('Generate barcodes for all items without barcodes?\n\nThis will create unique EAN-13 barcodes.\n\nContinue?')">
+        <button type="submit" class="btn btn-secondary" style="background: #f39c12;">
+            🏷️ Generate Barcodes
+        </button>
+    </form>
+    <a href="{{ url_for('items.add') }}" class="btn btn-primary">
+        ➕ Add New Item
+    </a>
+</div>
 {% endblock %}
 
 {% block content %}
@@ -103,6 +114,7 @@
                 <tr>
                     <th>SKU</th>
                     <th>Item Name</th>
+                    <th>Barcode</th>
                     <th>Type</th>
                     <th>Category</th>
                     <th>Unit</th>
@@ -123,6 +135,17 @@
                         <div style="font-weight: 600;">{{ item.name }}</div>
                         {% if item.brand %}
                         <small style="color: #7f8c8d;">{{ item.brand }}</small>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if item.barcode %}
+                        <span style="font-family: monospace; font-size: 13px; color: #27ae60; font-weight: 600;">
+                            📱 {{ item.barcode }}
+                        </span>
+                        {% else %}
+                        <span style="color: #e74c3c; font-size: 12px;">
+                            ⚠️ No barcode
+                        </span>
                         {% endif %}
                     </td>
                     <td>

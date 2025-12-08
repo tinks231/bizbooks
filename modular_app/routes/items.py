@@ -936,3 +936,139 @@ def reports():
                          movements_out=movements_out,
                          tenant=g.tenant)
 
+
+# ===== EXPORT ITEMS TO EXCEL =====
+@items_bp.route('/export-excel')
+@require_tenant
+@login_required
+def export_excel():
+    """Export all items to Excel with barcode column"""
+    from openpyxl import Workbook
+    from openpyxl.styles import Font, PatternFill, Alignment
+    from io import BytesIO
+    from flask import send_file
+    
+    tenant_id = get_current_tenant_id()
+    
+    # Get all active items
+    items = Item.query.filter_by(tenant_id=tenant_id, is_active=True).order_by(Item.name).all()
+    
+    # Create workbook
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Items Export"
+    
+    # Headers
+    headers = ['Item Name', 'SKU', 'Barcode', 'Category', 'Group', 'Unit', 'Stock Quantity', 
+               'MRP', 'Discount %', 'Selling Price', 'Cost Price', 'GST Rate (%)', 'HSN Code', 'Description']
+    
+    # Style headers
+    header_fill = PatternFill(start_color="667eea", end_color="667eea", fill_type="solid")
+    header_font = Font(bold=True, color="FFFFFF")
+    
+    for col_num, header in enumerate(headers, 1):
+        cell = ws.cell(row=1, column=col_num, value=header)
+        cell.fill = header_fill
+        cell.font = header_font
+        cell.alignment = Alignment(horizontal="center", vertical="center")
+    
+    # Add data rows
+    for row_num, item in enumerate(items, start=2):
+        total_stock = item.get_total_stock() if item.track_inventory else 0
+        
+        row_data = [
+            item.name,
+            item.sku,
+            item.barcode or '',  # Barcode (empty if not set)
+            item.category.name if item.category else '',
+            item.item_group.name if item.item_group else '',
+            item.unit or 'nos',
+            total_stock,
+            item.mrp or 0,
+            item.discount_percent or 0,
+            item.selling_price or 0,
+            item.cost_price or 0,
+            item.gst_rate or 18,
+            item.hsn_code or '',
+            item.sales_description or ''
+        ]
+        
+        for col_num, value in enumerate(row_data, 1):
+            ws.cell(row=row_num, column=col_num, value=value)
+    
+    # Adjust column widths
+    ws.column_dimensions['A'].width = 30  # Item Name
+    ws.column_dimensions['B'].width = 15  # SKU
+    ws.column_dimensions['C'].width = 18  # Barcode
+    ws.column_dimensions['D'].width = 20  # Category
+    ws.column_dimensions['E'].width = 20  # Group
+    
+    # Save to BytesIO
+    output = BytesIO()
+    wb.save(output)
+    output.seek(0)
+    
+    # Generate filename with timestamp
+    from datetime import datetime
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    filename = f'items_export_{timestamp}.xlsx'
+    
+    return send_file(
+        output,
+        mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        as_attachment=True,
+        download_name=filename
+    )
+
+
+# ===== BULK GENERATE BARCODES =====
+@items_bp.route('/bulk-generate-barcodes', methods=['POST'])
+@require_tenant
+@login_required
+def bulk_generate_barcodes():
+    """Auto-generate barcodes for all items that don't have one"""
+    tenant_id = get_current_tenant_id()
+    
+    try:
+        # Get all items without barcodes
+        items_without_barcode = Item.query.filter_by(
+            tenant_id=tenant_id,
+            is_active=True
+        ).filter(
+            (Item.barcode == None) | (Item.barcode == '')
+        ).all()
+        
+        if not items_without_barcode:
+            flash('✅ All items already have barcodes!', 'success')
+            return redirect(url_for('items.index'))
+        
+        # Helper function to calculate EAN-13 check digit
+        def calculate_ean13_check_digit(barcode_base):
+            if len(barcode_base) != 12:
+                return 0
+            odd_sum = sum(int(barcode_base[i]) for i in range(0, 12, 2))
+            even_sum = sum(int(barcode_base[i]) * 3 for i in range(1, 12, 2))
+            total = odd_sum + even_sum
+            check_digit = (10 - (total % 10)) % 10
+            return check_digit
+        
+        count = 0
+        for item in items_without_barcode:
+            # Generate EAN-13 barcode: 890 (India) + tenant_id (4 digits) + item_id (5 digits) + check digit
+            base = f"890{tenant_id:04d}{item.id:05d}"
+            check_digit = calculate_ean13_check_digit(base)
+            barcode = base + str(check_digit)
+            
+            item.barcode = barcode
+            count += 1
+        
+        db.session.commit()
+        
+        flash(f'✅ Generated {count} barcodes successfully!', 'success')
+        return redirect(url_for('items.index'))
+        
+    except Exception as e:
+        db.session.rollback()
+        flash(f'❌ Error generating barcodes: {str(e)}', 'error')
+        return redirect(url_for('items.index'))
+
