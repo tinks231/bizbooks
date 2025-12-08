@@ -557,7 +557,16 @@ def import_inventory_from_excel(file, tenant_id):
                 
                 # Create stock record for default site
                 from models import Site, ItemStock
-                default_site = Site.query.filter_by(tenant_id=tenant_id).first()
+                # Get default site (marked as is_default=True)
+                default_site = Site.query.filter_by(
+                    tenant_id=tenant_id,
+                    is_default=True,
+                    active=True
+                ).first()
+                
+                # Fallback to first active site if no default is set
+                if not default_site:
+                    default_site = Site.query.filter_by(tenant_id=tenant_id, active=True).first()
                 
                 if default_site and item.track_inventory:
                     item_stock = ItemStock(

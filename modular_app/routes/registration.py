@@ -113,7 +113,8 @@ def index():
                 latitude=0.0,
                 longitude=0.0,
                 allowed_radius=100,
-                active=True
+                active=True,
+                is_default=True  # ✅ Mark as default for stock deduction
             )
             db.session.add(default_site)
             

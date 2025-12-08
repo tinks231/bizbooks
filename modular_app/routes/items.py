@@ -247,19 +247,32 @@ def add():
                 from models.site import Site
                 sites = Site.query.filter_by(tenant_id=tenant_id, active=True).all()
                 
+                # Get default site (marked as is_default=True)
+                default_site = Site.query.filter_by(
+                    tenant_id=tenant_id,
+                    is_default=True,
+                    active=True
+                ).first()
+                
+                # Fallback to first active site if no default is set
+                if not default_site and sites:
+                    default_site = sites[0]
+                
                 for site in sites:
-                    # Create stock record
+                    # Create stock record - put opening stock only in default site
+                    is_default = (site.id == default_site.id) if default_site else (site == sites[0])
+                    
                     stock = ItemStock(
                         tenant_id=tenant_id,
                         item_id=item.id,
                         site_id=site.id,
-                        quantity_available=item.opening_stock if site == sites[0] else 0,  # Put all opening stock in first site
-                        stock_value=item.opening_stock_value if site == sites[0] else 0
+                        quantity_available=item.opening_stock if is_default else 0,
+                        stock_value=item.opening_stock_value if is_default else 0
                     )
                     db.session.add(stock)
                     
-                    # Create opening stock movement
-                    if site == sites[0]:
+                    # Create opening stock movement only for default site
+                    if is_default:
                         movement = ItemStockMovement(
                             tenant_id=tenant_id,
                             item_id=item.id,
