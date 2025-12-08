@@ -34,13 +34,13 @@ def add_mrp_discount_gst_fields():
                 else:
                     raise
             
-            # 2. Add discount fields to sales_invoices
+            # 2. Add discount fields to invoices
             try:
                 conn.execute(text("""
-                    ALTER TABLE sales_invoices 
+                    ALTER TABLE invoices 
                     ADD COLUMN IF NOT EXISTS discount_type VARCHAR(20) DEFAULT 'flat';
                 """))
-                results.append("✅ Added 'discount_type' column to sales_invoices table")
+                results.append("✅ Added 'discount_type' column to invoices table")
             except Exception as e:
                 if "already exists" in str(e).lower():
                     results.append("ℹ️ discount_type column already exists")
@@ -49,23 +49,23 @@ def add_mrp_discount_gst_fields():
             
             try:
                 conn.execute(text("""
-                    ALTER TABLE sales_invoices 
+                    ALTER TABLE invoices 
                     ADD COLUMN IF NOT EXISTS discount_value NUMERIC(10, 2) DEFAULT 0;
                 """))
-                results.append("✅ Added 'discount_value' column to sales_invoices table")
+                results.append("✅ Added 'discount_value' column to invoices table")
             except Exception as e:
                 if "already exists" in str(e).lower():
                     results.append("ℹ️ discount_value column already exists")
                 else:
                     raise
             
-            # 3. Add GST toggle to sales_invoices
+            # 3. Add GST toggle to invoices
             try:
                 conn.execute(text("""
-                    ALTER TABLE sales_invoices 
+                    ALTER TABLE invoices 
                     ADD COLUMN IF NOT EXISTS gst_enabled BOOLEAN DEFAULT TRUE;
                 """))
-                results.append("✅ Added 'gst_enabled' column to sales_invoices table")
+                results.append("✅ Added 'gst_enabled' column to invoices table")
             except Exception as e:
                 if "already exists" in str(e).lower():
                     results.append("ℹ️ gst_enabled column already exists")
