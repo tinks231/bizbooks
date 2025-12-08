@@ -874,8 +874,11 @@
         
         tbody.appendChild(row);
         
-        // Calculate initial amount
-        calculateRow(itemCount);
+        // Calculate initial amount (with small delay to ensure DOM is ready)
+        setTimeout(() => {
+            calculateRow(itemCount);
+            calculateTotal();
+        }, 50);
         
         // Flash the new row
         row.style.background = '#d4edda';
