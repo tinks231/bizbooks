@@ -1500,6 +1500,11 @@
         
         // Recalculate commission when invoice total changes
         calculateCommission();
+        
+        // Update loyalty points preview if loyalty is active
+        if (loyaltySettings && customerLoyaltyData) {
+            calculatePointsPreview();
+        }
     }
     
     function toggleGSTRows() {
@@ -2777,20 +2782,6 @@ function calculateTotalWithLoyalty() {
     calculateTotal();
     calculatePointsPreview();
 }
-
-// Hook into calculate total to update points preview
-const originalCalculateTotal = calculateTotal;
-calculateTotal = function() {
-    originalCalculateTotal();
-    
-    // If loyalty discount is applied, recalculate with loyalty
-    const loyaltyDiscount = parseFloat(document.getElementById('loyalty_discount').value) || 0;
-    if (loyaltyDiscount > 0) {
-        calculateTotalWithLoyalty();
-    } else {
-        calculatePointsPreview();
-    }
-};
 </script>
 
 {% endblock %}
