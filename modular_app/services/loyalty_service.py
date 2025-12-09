@@ -233,7 +233,8 @@ class LoyaltyService:
         total_members = CustomerLoyaltyPoints.query.filter_by(tenant_id=tenant_id).count()
         
         # Active members (earned or redeemed in last 90 days)
-        ninety_days_ago = datetime.utcnow().replace(day=datetime.utcnow().day - 90)
+        from datetime import timedelta
+        ninety_days_ago = datetime.utcnow() - timedelta(days=90)
         active_members = CustomerLoyaltyPoints.query.filter(
             CustomerLoyaltyPoints.tenant_id == tenant_id
         ).filter(
