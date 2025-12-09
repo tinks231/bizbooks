@@ -43,47 +43,67 @@ def admin_required(f):
 @loyalty_bp.route('/api/loyalty/settings')
 def api_get_settings():
     """Get loyalty program settings for JavaScript"""
-    tenant_id = g.tenant.id if hasattr(g, 'tenant') else None
+    from utils.tenant_middleware import get_current_tenant_id
+    from models import Tenant
+    
+    # Get tenant from subdomain
+    tenant_id = get_current_tenant_id()
+    if not tenant_id:
+        return jsonify({'enabled': False, 'error': 'No tenant found'}), 200
+    
+    # Load tenant into g
+    tenant = Tenant.query.get(tenant_id)
+    if not tenant:
+        return jsonify({'enabled': False, 'error': 'Tenant not found'}), 200
+    
+    g.tenant = tenant
+    tenant_id = tenant.id
     
     if not tenant_id:
         return jsonify({'enabled': False, 'error': 'Tenant not found'}), 400
     
-    program = LoyaltyService.get_loyalty_program(tenant_id)
-    
-    if not program or not program.is_enabled:
-        return jsonify({'enabled': False})
-    
-    # Build threshold bonuses array
-    threshold_bonuses = []
-    if program.enable_threshold_bonuses:
-        if program.threshold_1_amount and program.threshold_1_bonus_points:
-            threshold_bonuses.append({
-                'invoice_amount': program.threshold_1_amount,
-                'bonus_points': program.threshold_1_bonus_points
-            })
-        if program.threshold_2_amount and program.threshold_2_bonus_points:
-            threshold_bonuses.append({
-                'invoice_amount': program.threshold_2_amount,
-                'bonus_points': program.threshold_2_bonus_points
-            })
-        if program.threshold_3_amount and program.threshold_3_bonus_points:
-            threshold_bonuses.append({
-                'invoice_amount': program.threshold_3_amount,
-                'bonus_points': program.threshold_3_bonus_points
-            })
-    
-    return jsonify({
-        'enabled': True,
-        'points_earning_rate': program.points_per_100_rupees,
-        'points_earning_per_amount': 100.0,  # Points per 100 rupees
-        'redemption_value': program.points_to_rupees_ratio,
-        'min_redemption_points': program.minimum_points_to_redeem,
-        'max_redemption_percentage': program.maximum_discount_percent or 100,
-        'max_earning_per_invoice': program.maximum_points_per_invoice or 0,
-        'threshold_bonuses': threshold_bonuses,
-        'footer_note_enabled': program.show_points_on_invoice,
-        'footer_note_text': program.invoice_footer_text
-    })
+    try:
+        program = LoyaltyService.get_loyalty_program(tenant_id)
+        
+        if not program or not program.is_enabled:
+            return jsonify({'enabled': False})
+        
+        # Build threshold bonuses array
+        threshold_bonuses = []
+        if program.enable_threshold_bonuses:
+            if program.threshold_1_amount and program.threshold_1_bonus_points:
+                threshold_bonuses.append({
+                    'invoice_amount': program.threshold_1_amount,
+                    'bonus_points': program.threshold_1_bonus_points
+                })
+            if program.threshold_2_amount and program.threshold_2_bonus_points:
+                threshold_bonuses.append({
+                    'invoice_amount': program.threshold_2_amount,
+                    'bonus_points': program.threshold_2_bonus_points
+                })
+            if program.threshold_3_amount and program.threshold_3_bonus_points:
+                threshold_bonuses.append({
+                    'invoice_amount': program.threshold_3_amount,
+                    'bonus_points': program.threshold_3_bonus_points
+                })
+        
+        return jsonify({
+            'enabled': True,
+            'points_earning_rate': program.points_per_100_rupees,
+            'points_earning_per_amount': 100.0,  # Points per 100 rupees
+            'redemption_value': program.points_to_rupees_ratio,
+            'min_redemption_points': program.minimum_points_to_redeem,
+            'max_redemption_percentage': program.maximum_discount_percent or 100,
+            'max_earning_per_invoice': program.maximum_points_per_invoice or 0,
+            'threshold_bonuses': threshold_bonuses,
+            'footer_note_enabled': program.show_points_on_invoice,
+            'footer_note_text': program.invoice_footer_text
+        })
+    except Exception as e:
+        print(f"❌ Error in api_get_settings: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'enabled': False, 'error': str(e)}), 200
 
 # ============================================================
 # Admin Settings Pages
@@ -232,10 +252,21 @@ def reports():
 @login_required
 def customer_balance(customer_id):
     """Get customer's loyalty points balance"""
-    tenant_id = g.tenant.id if hasattr(g, 'tenant') else None
+    from utils.tenant_middleware import get_current_tenant_id
+    from models import Tenant
     
+    # Get tenant from subdomain
+    tenant_id = get_current_tenant_id()
     if not tenant_id:
-        return jsonify({'error': 'Tenant not found'}), 400
+        return jsonify({'points': 0, 'error': 'No tenant found'}), 200
+    
+    # Load tenant into g
+    tenant = Tenant.query.get(tenant_id)
+    if not tenant:
+        return jsonify({'points': 0, 'error': 'Tenant not found'}), 200
+    
+    g.tenant = tenant
+    tenant_id = tenant.id
     
     loyalty = LoyaltyService.get_customer_balance(customer_id, tenant_id, auto_create=False)
     
