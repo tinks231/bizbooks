@@ -203,6 +203,16 @@ def ledger(customer_id):
     total_paid = sum(inv.paid_amount for inv in invoices)
     total_outstanding = sum(inv.total_amount for inv in invoices if inv.payment_status == 'unpaid')
     
+    # Get loyalty program data (if enabled)
+    from services.loyalty_service import LoyaltyService
+    loyalty_program = LoyaltyService.get_loyalty_program(tenant_id)
+    customer_loyalty = None
+    loyalty_history = []
+    
+    if loyalty_program and loyalty_program.is_active:
+        customer_loyalty = LoyaltyService.get_customer_loyalty_balance(customer_id, tenant_id)
+        loyalty_history = LoyaltyService.get_customer_loyalty_history(customer_id, tenant_id)
+    
     # Get aging analysis (overdue invoices)
     today = datetime.now().date()
     aging_data = {
@@ -231,6 +241,9 @@ def ledger(customer_id):
                          invoices=invoices,
                          total_billed=total_billed,
                          total_paid=total_paid,
+                         loyalty_program=loyalty_program,
+                         customer_loyalty=customer_loyalty,
+                         loyalty_history=loyalty_history,
                          total_outstanding=total_outstanding,
                          aging_data=aging_data)
 
