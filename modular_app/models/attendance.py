@@ -14,9 +14,9 @@ class Attendance(db.Model, TimestampMixin):
     )
     
     id = db.Column(db.Integer, primary_key=True)
-    tenant_id = db.Column(db.Integer, db.ForeignKey('tenants.id'), nullable=False, index=True)
-    employee_id = db.Column(db.Integer, db.ForeignKey('employees.id'), nullable=False)
-    site_id = db.Column(db.Integer, db.ForeignKey('sites.id'), nullable=False)
+    tenant_id = db.Column(db.Integer, db.ForeignKey('tenants.id', ondelete='CASCADE'), nullable=False, index=True)
+    employee_id = db.Column(db.Integer, db.ForeignKey('employees.id', ondelete='CASCADE'), nullable=False)
+    site_id = db.Column(db.Integer, db.ForeignKey('sites.id', ondelete='CASCADE'), nullable=False)
     employee_name = db.Column(db.String(100))  # Denormalized for quick access
     type = db.Column(db.String(20), nullable=False)  # 'check_in' or 'check_out'
     # Store timezone-aware datetime (IST)
