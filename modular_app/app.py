@@ -203,6 +203,20 @@ def purchase_bill_document(tenant_id, filename):
     upload_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'uploads', 'purchase_bills', str(tenant_id))
     return send_from_directory(upload_dir, filename)
 
+# ============================================================
+# Health check endpoint (keep serverless function warm)
+# ============================================================
+@app.route('/health')
+def health_check():
+    """Simple health check endpoint - keeps Vercel function warm"""
+    from flask import jsonify
+    import datetime
+    return jsonify({
+        'status': 'ok',
+        'timestamp': datetime.datetime.utcnow().isoformat(),
+        'message': 'BizBooks is running'
+    }), 200
+
 # Welcome page for documentation
 @app.route('/welcome')
 def welcome():

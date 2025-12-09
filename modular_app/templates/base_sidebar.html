@@ -13,17 +13,11 @@
     <meta name="apple-mobile-web-app-title" content="BizBooks">
     <link rel="apple-touch-icon" href="{{ url_for('static', filename='images/bizbooks_logo_square.png') }}">
     
-    <!-- Preload critical assets for parallel loading and faster page load -->
-    <link rel="preload" href="{{ url_for('static', filename='vendor/bootstrap/css/bootstrap.min.css') }}" as="style">
-    <link rel="preload" href="{{ url_for('static', filename='css/forms.css') }}" as="style">
-    <link rel="preload" href="{{ url_for('static', filename='vendor/jquery/jquery-3.6.0.min.js') }}" as="script">
-    <link rel="preload" href="{{ url_for('static', filename='vendor/bootstrap/js/bootstrap.bundle.min.js') }}" as="script">
+    <!-- Bootstrap CSS (for modals and components) - Cloudflare R2 CDN for ultra-fast loading -->
+    <link rel="stylesheet" href="https://pub-efaabb14d38e46898a2783236c60d05f.r2.dev/vendor/bootstrap/css/bootstrap.min.css">
     
-    <!-- Bootstrap CSS (for modals and components) - Local for performance -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='vendor/bootstrap/css/bootstrap.min.css') }}">
-    
-    <!-- BizBooks Design System - Form Styles -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/forms.css') }}?v=1.2">
+    <!-- BizBooks Design System - Form Styles - Cloudflare R2 CDN -->
+    <link rel="stylesheet" href="https://pub-efaabb14d38e46898a2783236c60d05f.r2.dev/forms.css">
     
     <style>
         * {
@@ -1144,9 +1138,9 @@
         </div>
     </div>
     
-    <!-- JavaScript Libraries - Local for performance -->
-    <script src="{{ url_for('static', filename='vendor/jquery/jquery-3.6.0.min.js') }}"></script>
-    <script src="{{ url_for('static', filename='vendor/bootstrap/js/bootstrap.bundle.min.js') }}"></script>
+    <!-- JavaScript Libraries - Cloudflare R2 CDN for ultra-fast loading -->
+    <script src="https://pub-efaabb14d38e46898a2783236c60d05f.r2.dev/vendor/jquery/jquery-3.6.0.min.js"></script>
+    <script src="https://pub-efaabb14d38e46898a2783236c60d05f.r2.dev/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
     
     <!-- Custom JavaScript -->
     <script>
