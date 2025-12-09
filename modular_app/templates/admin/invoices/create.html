@@ -2663,7 +2663,7 @@ function applyLoyaltyDiscount() {
         const pointsToRedeem = parseInt(document.getElementById('pointsToRedeem').value) || 0;
         const maxPoints = parseInt(document.getElementById('pointsToRedeem').max) || 0;
         
-        console.log('Points to redeem:', pointsToRedeem, 'Max:', maxPoints);
+        console.log('✅ Step 1: Points validated -', pointsToRedeem, 'Max:', maxPoints);
         
         // Validation
         if (pointsToRedeem <= 0) {
@@ -2683,20 +2683,43 @@ function applyLoyaltyDiscount() {
         
         // Calculate discount
         const discount = pointsToRedeem * loyaltySettings.redemption_value;
-        console.log('Discount calculated:', discount);
+        console.log('✅ Step 2: Discount calculated -', discount);
+        
+        // Check if all required elements exist
+        const requiredElements = [
+            'loyalty_points_redeemed',
+            'loyalty_discount',
+            'redeemedPoints',
+            'redeemedValue',
+            'loyaltyRedeemed',
+            'loyaltyDiscountRow',
+            'loyaltyDiscountDisplay'
+        ];
+        
+        for (const elementId of requiredElements) {
+            if (!document.getElementById(elementId)) {
+                console.error(`❌ Missing element: ${elementId}`);
+                alert(`Error: Missing element "${elementId}". Please refresh the page.`);
+                return;
+            }
+        }
+        console.log('✅ Step 3: All required elements found');
         
         // Update hidden inputs
         document.getElementById('loyalty_points_redeemed').value = pointsToRedeem;
         document.getElementById('loyalty_discount').value = discount.toFixed(2);
+        console.log('✅ Step 4: Hidden inputs updated');
         
         // Update redeemed display
         document.getElementById('redeemedPoints').textContent = pointsToRedeem;
         document.getElementById('redeemedValue').textContent = discount.toFixed(2);
         document.getElementById('loyaltyRedeemed').style.display = 'block';
+        console.log('✅ Step 5: Redeemed display updated');
         
         // Show loyalty discount row in invoice
         document.getElementById('loyaltyDiscountRow').style.display = '';
         document.getElementById('loyaltyDiscountDisplay').textContent = `-₹${discount.toFixed(2)}`;
+        console.log('✅ Step 6: Loyalty discount row shown');
         
         console.log('Before deduction - customerLoyaltyData.points:', customerLoyaltyData.points);
         
@@ -2704,20 +2727,25 @@ function applyLoyaltyDiscount() {
         customerLoyaltyData.points -= pointsToRedeem;
         
         console.log('After deduction - customerLoyaltyData.points:', customerLoyaltyData.points);
+        console.log('✅ Step 7: Customer points deducted');
         
         updateLoyaltyDisplay();
+        console.log('✅ Step 8: Loyalty display updated');
         
         // Recalculate total (loyalty discount applied after manual discount and before GST)
         calculateTotalWithLoyalty();
+        console.log('✅ Step 9: Total recalculated');
         
-        console.log('✅ Loyalty discount applied successfully!');
+        console.log('✅ Step 10: Loyalty discount applied successfully!');
         
-        // Close modal - FORCE CLOSE
+        // Close modal
         closeRedeemModal();
+        console.log('✅ Step 11: Modal closed');
         
     } catch (error) {
         console.error('❌ Error in applyLoyaltyDiscount:', error);
-        alert('An error occurred. Please try again.');
+        console.error('Error stack:', error.stack);
+        alert(`Error: ${error.message}\n\nPlease check browser console (F12) for details.`);
     }
 }
 
