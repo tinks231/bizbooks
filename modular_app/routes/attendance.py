@@ -13,7 +13,7 @@ import os
 
 attendance_bp = Blueprint('attendance', __name__, url_prefix='/attendance')
 
-@attendance_bp.route('/')
+@attendance_bp.route('/', strict_slashes=False)  # PERFORMANCE: Prevent 308 redirects
 @require_tenant
 @check_license  # ← Check license/trial before allowing employee attendance
 def index():

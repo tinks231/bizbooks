@@ -24,7 +24,7 @@ def login_required(f):
     return decorated_function
 
 
-@gst_reports_bp.route('/')
+@gst_reports_bp.route('/', strict_slashes=False)  # PERFORMANCE: Prevent 308 redirects
 @require_tenant
 @check_license
 @login_required

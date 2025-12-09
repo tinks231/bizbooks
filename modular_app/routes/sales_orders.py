@@ -30,8 +30,8 @@ def check_auth():
         return redirect(url_for('admin.login'))
 
 
-@sales_order_bp.route('/')
-@sales_order_bp.route('/list')
+@sales_order_bp.route('/', strict_slashes=False)  # PERFORMANCE: Prevent 308 redirects
+@sales_order_bp.route('/list', strict_slashes=False)
 def list_orders():
     """List all sales orders with filters - OPTIMIZED with pagination"""
     tenant_id = session['tenant_admin_id']

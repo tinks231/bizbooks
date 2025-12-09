@@ -33,7 +33,7 @@ def login_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
-@accounts_bp.route('/', methods=['GET'])
+@accounts_bp.route('/', methods=['GET'], strict_slashes=False)  # PERFORMANCE: Prevent 308 redirects
 @require_tenant
 @login_required
 def list_accounts():
