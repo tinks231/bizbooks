@@ -299,14 +299,103 @@ def delete_tenant(tenant_id):
                         except Exception as e:
                             print(f"Failed to delete file {media_path}: {e}")
     
-    # Step 2: Delete the tenant
-    # ✅ CASCADE DELETE handles all related data automatically!
-    # All relationships in Tenant model have cascade='all, delete-orphan'
-    # This deletes: items, customers, invoices, employees, sites, tasks, etc.
-    # No need for manual deletion anymore!
-    
-    db.session.delete(tenant)
-    db.session.commit()
+    # Step 2: Delete all tenant data (manual cleanup due to FK constraint issues)
+    try:
+        from sqlalchemy import text
+        
+        # Execute raw SQL to delete all related data
+        # This avoids FK constraint issues with CASCADE
+        db.session.execute(text("""
+            -- Attendance & Payroll
+            DELETE FROM attendance WHERE tenant_id = :tenant_id;
+            DELETE FROM salary_slips WHERE tenant_id = :tenant_id;
+            DELETE FROM payroll_payments WHERE tenant_id = :tenant_id;
+            
+            -- Loyalty Program
+            DELETE FROM loyalty_transactions WHERE tenant_id = :tenant_id;
+            DELETE FROM customer_loyalty_points WHERE tenant_id = :tenant_id;
+            DELETE FROM loyalty_programs WHERE tenant_id = :tenant_id;
+            
+            -- Customer Orders & Subscriptions
+            DELETE FROM customer_orders WHERE tenant_id = :tenant_id;
+            DELETE FROM subscription_deliveries WHERE subscription_id IN (SELECT id FROM customer_subscriptions WHERE tenant_id = :tenant_id);
+            DELETE FROM subscription_payments WHERE subscription_id IN (SELECT id FROM customer_subscriptions WHERE tenant_id = :tenant_id);
+            DELETE FROM customer_subscriptions WHERE tenant_id = :tenant_id;
+            DELETE FROM delivery_day_notes WHERE tenant_id = :tenant_id;
+            
+            -- Invoices
+            DELETE FROM invoice_commissions WHERE tenant_id = :tenant_id;
+            DELETE FROM invoices WHERE tenant_id = :tenant_id;
+            
+            -- Sales Orders
+            DELETE FROM sales_order_items WHERE sales_order_id IN (SELECT id FROM sales_orders WHERE tenant_id = :tenant_id);
+            DELETE FROM sales_orders WHERE tenant_id = :tenant_id;
+            
+            -- Delivery Challans
+            DELETE FROM delivery_challan_items WHERE delivery_challan_id IN (SELECT id FROM delivery_challans WHERE tenant_id = :tenant_id);
+            DELETE FROM delivery_challans WHERE tenant_id = :tenant_id;
+            
+            -- Purchase Bills & Requests
+            DELETE FROM purchase_bill_items WHERE purchase_bill_id IN (SELECT id FROM purchase_bills WHERE tenant_id = :tenant_id);
+            DELETE FROM purchase_bills WHERE tenant_id = :tenant_id;
+            DELETE FROM purchase_requests WHERE tenant_id = :tenant_id;
+            
+            -- Vendor Payments
+            DELETE FROM vendor_payments WHERE tenant_id = :tenant_id;
+            
+            -- Inventory & Stock
+            DELETE FROM item_stock_movements WHERE tenant_id = :tenant_id;
+            DELETE FROM item_stocks WHERE tenant_id = :tenant_id;
+            DELETE FROM stock_movements WHERE tenant_id = :tenant_id;
+            DELETE FROM stocks WHERE tenant_id = :tenant_id;
+            DELETE FROM inventory_adjustments WHERE tenant_id = :tenant_id;
+            DELETE FROM transfers WHERE tenant_id = :tenant_id;
+            
+            -- Expenses
+            DELETE FROM expenses WHERE tenant_id = :tenant_id;
+            DELETE FROM expense_categories WHERE tenant_id = :tenant_id;
+            
+            -- Tasks
+            DELETE FROM tasks WHERE tenant_id = :tenant_id;
+            
+            -- Account Transactions
+            DELETE FROM account_transactions WHERE tenant_id = :tenant_id;
+            
+            -- Items & Materials
+            DELETE FROM items WHERE tenant_id = :tenant_id;
+            DELETE FROM item_groups WHERE tenant_id = :tenant_id;
+            DELETE FROM item_categories WHERE tenant_id = :tenant_id;
+            DELETE FROM materials WHERE tenant_id = :tenant_id;
+            
+            -- Customers
+            DELETE FROM customers WHERE tenant_id = :tenant_id;
+            
+            -- Vendors
+            DELETE FROM vendors WHERE tenant_id = :tenant_id;
+            
+            -- Commission Agents
+            DELETE FROM commission_agents WHERE tenant_id = :tenant_id;
+            
+            -- Employees
+            DELETE FROM employees WHERE tenant_id = :tenant_id;
+            
+            -- Sites
+            DELETE FROM sites WHERE tenant_id = :tenant_id;
+            
+            -- Bank Accounts
+            DELETE FROM bank_accounts WHERE tenant_id = :tenant_id;
+            
+            -- Finally, delete the tenant
+            DELETE FROM tenants WHERE id = :tenant_id;
+        """), {'tenant_id': tenant_id})
+        
+        db.session.commit()
+        
+    except Exception as e:
+        db.session.rollback()
+        from flask import flash
+        flash(f'❌ Error deleting tenant: {str(e)}', 'error')
+        return redirect(url_for('superadmin.dashboard'))
     
     from flask import flash
     if deleted_files > 0:
