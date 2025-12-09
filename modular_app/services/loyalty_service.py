@@ -209,14 +209,14 @@ class LoyaltyService:
     def get_transaction_history(customer_id, tenant_id, limit=50):
         """
         Get customer's loyalty transaction history
-        Returns list of transactions, newest first
+        Returns list of transaction objects, newest first
         """
         transactions = LoyaltyTransaction.query.filter_by(
             customer_id=customer_id,
             tenant_id=tenant_id
         ).order_by(LoyaltyTransaction.created_at.desc()).limit(limit).all()
         
-        return [t.to_dict() for t in transactions]
+        return transactions  # Return objects, not dicts, for template access
     
     @staticmethod
     def get_loyalty_stats(tenant_id):
