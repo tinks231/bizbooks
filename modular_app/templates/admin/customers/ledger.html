@@ -83,73 +83,82 @@
             <table class="table">
             <thead>
                 <tr>
-                    <th>Date</th>
-                    <th>Type</th>
-                    <th>Points</th>
-                    <th>Amount</th>
-                    <th>Invoice</th>
-                    <th>Description</th>
-                    <th>Balance After</th>
+                    <th style="width: 180px;">Date</th>
+                    <th style="width: 400px;">Transaction Details</th>
+                    <th style="width: 120px;">Invoice</th>
+                    <th style="width: 120px;">Balance After</th>
                 </tr>
             </thead>
             <tbody>
                 {% for transaction in loyalty_history %}
                 <tr>
-                    <td>{{ transaction.created_at.strftime('%d %b %Y %I:%M %p') }}</td>
-                    <td>
-                        {% if transaction.transaction_type in ['earned', 'bonus'] %}
-                        <span style="background: #d1fae5; color: #065f46; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 600;">
-                            ➕ EARNED
-                        </span>
-                        {% elif transaction.transaction_type == 'redeemed' %}
-                        <span style="background: #fee2e2; color: #991b1b; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 600;">
-                            ➖ REDEEMED
-                        </span>
-                        {% else %}
-                        <span style="background: #e5e7eb; color: #374151; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 600;">
-                            🔄 {{ transaction.transaction_type.upper() }}
-                        </span>
-                        {% endif %}
-                    </td>
-                    <td>
-                        {% if transaction.points > 0 %}
-                        <span style="color: #10b981; font-weight: 600;">+{{ transaction.points }}</span>
-                        {% else %}
-                        <span style="color: #ef4444; font-weight: 600;">{{ transaction.points }}</span>
-                        {% endif %}
+                    <td style="color: #6b7280; font-size: 14px;">
+                        {{ transaction.created_at.strftime('%d %b %Y') }}<br>
+                        <small style="color: #9ca3af;">{{ transaction.created_at.strftime('%I:%M %p') }}</small>
                     </td>
                     <td>
                         {% if transaction.transaction_type in ['earned', 'bonus'] %}
-                            {% if transaction.invoice_amount %}
-                            <span style="color: #059669; font-weight: 500;">
-                                📄 ₹{{ "%.2f"|format(transaction.invoice_amount) }}
-                            </span>
-                            <br><small style="color: #9ca3af; font-size: 11px;">Invoice Total</small>
-                            {% else %}
-                            -
-                            {% endif %}
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span style="color: #10b981; font-size: 20px;">➕</span>
+                            <div>
+                                <div style="font-weight: 600; color: #065f46; font-size: 15px;">
+                                    Earned <strong style="color: #059669;">{{ transaction.points }} pts</strong>
+                                    {% if transaction.invoice_amount %}
+                                    from ₹{{ "%.2f"|format(transaction.invoice_amount) }} invoice
+                                    {% endif %}
+                                </div>
+                                {% if transaction.description %}
+                                <div style="color: #6b7280; font-size: 13px; margin-top: 2px;">
+                                    {{ transaction.description }}
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
                         {% elif transaction.transaction_type == 'redeemed' %}
-                            {% set discount_amount = (transaction.points|abs) * loyalty_program.points_to_rupees_ratio %}
-                            <span style="color: #dc2626; font-weight: 500;">
-                                💰 -₹{{ "%.2f"|format(discount_amount) }}
-                            </span>
-                            <br><small style="color: #9ca3af; font-size: 11px;">Discount Applied</small>
+                        {% set discount_amount = (transaction.points|abs) * loyalty_program.points_to_rupees_ratio %}
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span style="color: #ef4444; font-size: 20px;">➖</span>
+                            <div>
+                                <div style="font-weight: 600; color: #991b1b; font-size: 15px;">
+                                    Redeemed <strong style="color: #dc2626;">{{ transaction.points|abs }} pts</strong>
+                                    • Saved ₹{{ "%.2f"|format(discount_amount) }}
+                                </div>
+                                {% if transaction.description %}
+                                <div style="color: #6b7280; font-size: 13px; margin-top: 2px;">
+                                    {{ transaction.description }}
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
                         {% else %}
-                        -
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span style="color: #6b7280; font-size: 20px;">🔄</span>
+                            <div>
+                                <div style="font-weight: 600; color: #374151; font-size: 15px;">
+                                    {{ transaction.transaction_type.upper() }} • {{ transaction.points }} pts
+                                </div>
+                                {% if transaction.description %}
+                                <div style="color: #6b7280; font-size: 13px; margin-top: 2px;">
+                                    {{ transaction.description }}
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
                         {% endif %}
                     </td>
                     <td>
                         {% if transaction.invoice_id %}
                         <a href="{{ url_for('invoices.view', invoice_id=transaction.invoice_id) }}" 
-                           style="color: #3b82f6; text-decoration: none; font-weight: 500;">
-                            {{ transaction.invoice_number or 'View Invoice' }}
+                           style="color: #3b82f6; text-decoration: none; font-weight: 500; font-size: 14px;">
+                            {{ transaction.invoice_number or 'View' }}
                         </a>
                         {% else %}
-                        -
+                        <span style="color: #9ca3af;">-</span>
                         {% endif %}
                     </td>
-                    <td style="color: #6b7280;">{{ transaction.description or '-' }}</td>
-                    <td style="font-weight: 600;">{{ transaction.points_after }} pts</td>
+                    <td style="font-weight: 600; color: #1f2937; font-size: 15px;">
+                        {{ transaction.points_after }} pts
+                    </td>
                 </tr>
                 {% endfor %}
             </tbody>
