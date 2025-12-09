@@ -481,7 +481,7 @@ def create():
                                 base_points=points_result.get('base_points', points_earned),
                                 bonus_points=points_result.get('bonus_points', 0),
                                 invoice_amount=float(invoice.total_amount),
-                                created_by=session.get('tenant_admin_id')
+                                created_by=None  # tenant_admin_id is not a user_id
                             )
                             
                             # Update invoice with earned points
