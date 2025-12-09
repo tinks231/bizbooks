@@ -50,9 +50,34 @@ def index():
     
     vendors = query.order_by(Vendor.vendor_code.desc()).all()
     
-    # Calculate purchase count for each vendor
-    for vendor in vendors:
-        vendor.purchase_count = vendor.get_total_purchases()
+    # PERFORMANCE OPTIMIZATION: Calculate purchase counts in ONE query instead of N queries
+    # Before: N vendors = N separate database queries (N+1 problem)
+    # After: 1 aggregated query for all vendors
+    from sqlalchemy import func, text
+    from models.purchase_request import PurchaseRequest
+    
+    if vendors:
+        # Get all vendor names in one list
+        vendor_names = [v.name for v in vendors]
+        
+        # Single query to get purchase counts for all vendors
+        purchase_counts_query = db.session.query(
+            PurchaseRequest.vendor_name,
+            func.count(PurchaseRequest.id).label('purchase_count')
+        ).filter(
+            PurchaseRequest.tenant_id == tenant_id,
+            PurchaseRequest.vendor_name.in_(vendor_names)
+        ).group_by(PurchaseRequest.vendor_name).all()
+        
+        # Create lookup dictionary for O(1) access
+        purchase_count_map = {
+            vendor_name: count 
+            for vendor_name, count in purchase_counts_query
+        }
+        
+        # Assign counts to vendors (fast in-memory operation)
+        for vendor in vendors:
+            vendor.purchase_count = purchase_count_map.get(vendor.name, 0)
     
     return render_template('admin/vendors/list.html',
                          tenant=g.tenant,

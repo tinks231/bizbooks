@@ -9,6 +9,7 @@ class PurchaseRequest(db.Model, TimestampMixin):
     __table_args__ = (
         db.Index('idx_tenant_status', 'tenant_id', 'status'),
         db.Index('idx_employee_requests', 'employee_id', 'created_at'),
+        db.Index('idx_tenant_vendor', 'tenant_id', 'vendor_name'),  # PERFORMANCE: For vendor count queries
     )
     
     id = db.Column(db.Integer, primary_key=True)
