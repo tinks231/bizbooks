@@ -32,7 +32,7 @@ def login_required(f):
     return decorated_function
 
 
-@customer_orders_bp.route('/')
+@customer_orders_bp.route('/', strict_slashes=False)  # PERFORMANCE: Prevent 308 redirects
 @require_tenant
 @login_required
 def index():

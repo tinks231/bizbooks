@@ -38,7 +38,7 @@ def login_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
-@invoices_bp.route('/')
+@invoices_bp.route('/', strict_slashes=False)  # PERFORMANCE: Prevent 308 redirects
 @require_tenant
 @login_required
 def index():

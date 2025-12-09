@@ -902,7 +902,7 @@ def mark_commission_unpaid(commission_id):
     return redirect(url_for('admin.commission_reports'))
 
 # Sites Management
-@admin_bp.route('/sites')
+@admin_bp.route('/sites', strict_slashes=False)  # PERFORMANCE: Prevent 308 redirects
 @require_tenant
 @login_required
 def sites():
@@ -1223,7 +1223,7 @@ def transfer_stock():
     return redirect(url_for('admin.inventory'))
 
 # Attendance Management
-@admin_bp.route('/attendance')
+@admin_bp.route('/attendance', strict_slashes=False)  # PERFORMANCE: Prevent 308 redirects
 @require_tenant
 @login_required
 def attendance():

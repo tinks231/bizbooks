@@ -31,7 +31,7 @@ def login_required(f):
 
 
 # ===== EXPENSES =====
-@expenses_bp.route('/')
+@expenses_bp.route('/', strict_slashes=False)  # PERFORMANCE: Prevent 308 redirects
 @require_tenant
 @login_required
 def index():

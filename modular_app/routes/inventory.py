@@ -7,7 +7,7 @@ from sqlalchemy import func
 
 inventory_bp = Blueprint('inventory', __name__, url_prefix='/inventory')
 
-@inventory_bp.route('/')
+@inventory_bp.route('/', strict_slashes=False)  # PERFORMANCE: Prevent 308 redirects
 def index():
     """View inventory (read-only for employees)"""
     # Get all materials with their stock across all sites

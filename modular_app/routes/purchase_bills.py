@@ -27,7 +27,7 @@ def check_auth():
         flash('Session expired. Please login again.', 'error')
         return redirect(url_for('admin.login'))
 
-@purchase_bills_bp.route('/')
+@purchase_bills_bp.route('/', strict_slashes=False)  # PERFORMANCE: Prevent 308 redirects
 @check_license
 def list_bills():
     """List all purchase bills - OPTIMIZED with pagination"""
