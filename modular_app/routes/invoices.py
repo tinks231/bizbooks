@@ -450,20 +450,24 @@ def create():
                         # Process redemption if points were redeemed
                         if loyalty_points_redeemed > 0:
                             LoyaltyService.redeem_points(
-                                tenant_id=tenant_id,
                                 customer_id=customer_id,
-                                points_to_redeem=loyalty_points_redeemed,
+                                tenant_id=tenant_id,
+                                points=loyalty_points_redeemed,
                                 invoice_id=invoice.id,
-                                discount_applied=loyalty_discount
+                                invoice_number=invoice.invoice_number,
+                                description=f'Points redeemed for invoice {invoice.invoice_number}',
+                                invoice_subtotal=subtotal,
+                                created_by=None
                             )
                             print(f"🎁 Loyalty: Redeemed {loyalty_points_redeemed} pts (₹{loyalty_discount}) for customer #{customer_id}")
                         
                         # Calculate and credit earned points (using final invoice total)
-                        points_earned = LoyaltyService.calculate_points_earned(
-                            tenant_id=tenant_id,
-                            invoice_total=invoice.total_amount,
-                            settings=loyalty_settings
+                        points_result = LoyaltyService.calculate_points_earned(
+                            invoice.total_amount,
+                            tenant_id
                         )
+                        
+                        points_earned = points_result['total_points'] if isinstance(points_result, dict) else points_result
                         
                         if points_earned > 0:
                             # Credit points to customer
