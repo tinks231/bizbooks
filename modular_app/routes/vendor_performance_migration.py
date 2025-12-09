@@ -2,7 +2,7 @@
 Vendor Performance Migration - Add vendor_name index to purchase_requests
 This migration adds a critical index to optimize vendor count queries
 """
-from flask import Blueprint, render_template, flash, redirect, url_for, session, g
+from flask import Blueprint, render_template, flash, redirect, url_for, session, g, request
 from models.database import db
 from sqlalchemy import text, inspect
 from decorators import superadmin_required
@@ -17,7 +17,7 @@ vendor_performance_bp = Blueprint('vendor_performance_migration', __name__, url_
 def run_migration():
     """Add vendor_name index to purchase_requests for performance optimization"""
     
-    if g.request.method == 'POST':
+    if request.method == 'POST':
         try:
             # Check current database engine
             inspector = inspect(db.engine)
