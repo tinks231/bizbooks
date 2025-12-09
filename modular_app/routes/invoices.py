@@ -444,9 +444,9 @@ def create():
                     from services.loyalty_service import LoyaltyService
                     
                     # Get loyalty settings
-                    loyalty_settings = LoyaltyService.get_loyalty_program_settings(tenant_id)
+                    loyalty_settings = LoyaltyService.get_loyalty_program(tenant_id)
                     
-                    if loyalty_settings and loyalty_settings.is_enabled:
+                    if loyalty_settings and loyalty_settings.is_active:
                         # Process redemption if points were redeemed
                         if loyalty_points_redeemed > 0:
                             LoyaltyService.redeem_points(
@@ -481,14 +481,15 @@ def create():
                                     tenant_id=tenant_id,
                                     customer_id=customer_id,
                                     current_points=0,
-                                    lifetime_points=0
+                                    lifetime_earned_points=0,
+                                    lifetime_redeemed_points=0
                                 )
                                 db.session.add(loyalty_record)
                             
                             # Credit points
                             loyalty_record.current_points += points_earned
-                            loyalty_record.lifetime_points += points_earned
-                            loyalty_record.last_activity_at = datetime.now(pytz.timezone('Asia/Kolkata'))
+                            loyalty_record.lifetime_earned_points += points_earned
+                            loyalty_record.last_earned_at = datetime.now(pytz.timezone('Asia/Kolkata'))
                             
                             # Create transaction record
                             transaction = LoyaltyTransaction(
