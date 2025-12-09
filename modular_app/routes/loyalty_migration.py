@@ -57,10 +57,24 @@ def run_loyalty_migration():
                     
                     -- Timestamps
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    
-                    UNIQUE(tenant_id)
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 );
+            """))
+            
+            print("Cleaning up duplicate loyalty programs (keep newest)...")
+            conn.execute(text("""
+                DELETE FROM loyalty_programs
+                WHERE id NOT IN (
+                    SELECT MAX(id)
+                    FROM loyalty_programs
+                    GROUP BY tenant_id
+                );
+            """))
+            
+            print("Ensuring UNIQUE constraint on tenant_id...")
+            conn.execute(text("""
+                CREATE UNIQUE INDEX IF NOT EXISTS loyalty_programs_tenant_id_unique 
+                ON loyalty_programs(tenant_id);
             """))
             
             # ============================================
