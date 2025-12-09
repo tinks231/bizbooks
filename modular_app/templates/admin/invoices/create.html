@@ -1457,15 +1457,19 @@
         
         const subtotalAfterDiscount = subtotal - discount;
         
-        // Recalculate GST after discount (only if GST is enabled)
-        if (gstEnabled && discount > 0) {
-            const discountRatio = subtotalAfterDiscount / (subtotal || 1);
+        // Apply loyalty discount (if any) BEFORE GST calculation
+        const loyaltyDiscount = parseFloat(document.getElementById('loyalty_discount').value) || 0;
+        const subtotalAfterAllDiscounts = subtotalAfterDiscount - loyaltyDiscount;
+        
+        // Recalculate GST after all discounts (only if GST is enabled)
+        if (gstEnabled && (discount > 0 || loyaltyDiscount > 0)) {
+            const discountRatio = subtotalAfterAllDiscounts / (subtotal || 1);
             totalCGST = totalCGST * discountRatio;
             totalSGST = totalSGST * discountRatio;
             totalIGST = totalIGST * discountRatio;
         }
         
-        const grossTotal = subtotalAfterDiscount + (gstEnabled ? (totalCGST + totalSGST + totalIGST) : 0);
+        const grossTotal = subtotalAfterAllDiscounts + (gstEnabled ? (totalCGST + totalSGST + totalIGST) : 0);
         const roundedTotal = Math.round(grossTotal);
         const roundOff = roundedTotal - grossTotal;
         
@@ -2519,7 +2523,11 @@ function calculatePointsPreview() {
         document.getElementById('bonusPointsPreview').style.display = 'none';
     }
     document.getElementById('totalPointsPreview').textContent = finalPoints;
-    document.getElementById('newBalancePreview').textContent = customerLoyaltyData.points + finalPoints;
+    
+    // FIX: Use current balance (after redemption) not original balance
+    const loyaltyPointsRedeemed = parseInt(document.getElementById('loyalty_points_redeemed').value) || 0;
+    const currentBalance = customerLoyaltyData.points; // This is already reduced if redemption was applied
+    document.getElementById('newBalancePreview').textContent = currentBalance + finalPoints;
     
     // Show preview
     document.getElementById('pointsPreview').style.display = 'flex';
@@ -2563,7 +2571,12 @@ function openRedeemModal() {
 }
 
 function closeRedeemModal() {
-    document.getElementById('redeemModal').style.display = 'none';
+    console.log('🚪 Closing redemption modal...');
+    const modal = document.getElementById('redeemModal');
+    if (modal) {
+        modal.style.display = 'none';
+        console.log('✅ Modal closed successfully');
+    }
 }
 
 function updateRedemptionPreview() {
@@ -2670,25 +2683,9 @@ function removeLoyaltyDiscount() {
 }
 
 function calculateTotalWithLoyalty() {
-    // First calculate normal total
+    // Loyalty discount is now integrated into calculateTotal()
+    // Just call it and update points preview
     calculateTotal();
-    
-    // Then subtract loyalty discount from gross total
-    const loyaltyDiscount = parseFloat(document.getElementById('loyalty_discount').value) || 0;
-    
-    if (loyaltyDiscount > 0) {
-        const currentGrossTotal = parseFloat(document.getElementById('grossTotalDisplay').textContent.replace('₹', '').replace(/,/g, '')) || 0;
-        const newGrossTotal = currentGrossTotal - loyaltyDiscount;
-        const roundedTotal = Math.round(newGrossTotal);
-        const roundOff = roundedTotal - newGrossTotal;
-        
-        // Update displays
-        document.getElementById('grossTotalDisplay').textContent = `₹${newGrossTotal.toFixed(2)}`;
-        document.getElementById('roundOffDisplay').textContent = roundOff >= 0 ? `₹${roundOff.toFixed(2)}` : `-₹${Math.abs(roundOff).toFixed(2)}`;
-        document.getElementById('totalDisplay').textContent = `₹${roundedTotal.toFixed(2)}`;
-    }
-    
-    // Recalculate points preview (loyalty discount affects points earned)
     calculatePointsPreview();
 }
 
