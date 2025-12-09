@@ -37,6 +37,9 @@ from .subscription import (
 )
 from .customer_order import CustomerOrder, CustomerOrderItem
 from .bank_account import BankAccount, AccountTransaction
+from .loyalty_program import LoyaltyProgram
+from .customer_loyalty_points import CustomerLoyaltyPoints
+from .loyalty_transaction import LoyaltyTransaction
 
 # Create Party alias for Customer (for unified party management)
 Party = Customer
@@ -60,6 +63,7 @@ __all__ = [
     'CommissionAgent', 'InvoiceCommission',
     'SubscriptionPlan', 'CustomerSubscription', 'SubscriptionPayment', 'SubscriptionDelivery', 'DeliveryDayNote',
     'CustomerOrder', 'CustomerOrderItem',
-    'BankAccount', 'AccountTransaction'
+    'BankAccount', 'AccountTransaction',
+    'LoyaltyProgram', 'CustomerLoyaltyPoints', 'LoyaltyTransaction'
 ]
 

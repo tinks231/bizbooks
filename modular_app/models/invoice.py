@@ -44,6 +44,11 @@ class Invoice(db.Model, TimestampMixin):
     discount_value = db.Column(db.Float, default=0)  # Percentage (10 = 10%) or flat amount (100 = ₹100)
     discount_amount = db.Column(db.Float, default=0)  # Calculated discount amount
     
+    # Loyalty Program Discount (separate from manual discount)
+    loyalty_discount = db.Column(db.Float, default=0)  # Discount from redeemed loyalty points
+    loyalty_points_redeemed = db.Column(db.Integer, default=0)  # Points used for discount
+    loyalty_points_earned = db.Column(db.Integer, default=0)  # Points earned from this invoice
+    
     # GST (can be toggled off)
     gst_enabled = db.Column(db.Boolean, default=True)  # Toggle GST on/off
     cgst_amount = db.Column(db.Float, default=0)  # Central GST (for same state)

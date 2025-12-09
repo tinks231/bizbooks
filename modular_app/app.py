@@ -125,6 +125,7 @@ from routes.site_default_migration import site_default_migration_bp  # NEW: Defa
 from routes.barcode_migration import barcode_migration_bp  # NEW: Barcode scanner feature
 from routes.barcode_api import barcode_api_bp  # NEW: Barcode API endpoints
 from routes.loyalty_migration import loyalty_migration_bp  # NEW: Loyalty program feature
+from routes.loyalty import loyalty_bp  # NEW: Loyalty program API & admin pages
 
 app.register_blueprint(registration_bp)
 app.register_blueprint(employee_portal_bp)  # Register unified portal
@@ -163,7 +164,8 @@ app.register_blueprint(mrp_discount_migration_bp)  # NEW: MRP & Discount feature
 app.register_blueprint(site_default_migration_bp)  # NEW: Default site feature
 app.register_blueprint(barcode_migration_bp)  # NEW: Barcode scanner feature
 app.register_blueprint(barcode_api_bp)  # NEW: Barcode API endpoints
-app.register_blueprint(loyalty_migration_bp)  # NEW: Loyalty program feature
+app.register_blueprint(loyalty_migration_bp)  # NEW: Loyalty program migration
+app.register_blueprint(loyalty_bp)  # NEW: Loyalty program API & admin pages
 
 # ============================================================
 # Main route

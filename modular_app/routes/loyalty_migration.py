@@ -9,7 +9,7 @@ from datetime import datetime
 
 loyalty_migration_bp = Blueprint('loyalty_migration', __name__)
 
-@loyalty_migration_bp.route('/run-loyalty-migration', methods=['POST'])
+@loyalty_migration_bp.route('/run-loyalty-migration', methods=['GET', 'POST'])
 def run_loyalty_migration():
     """
     Migration to add loyalty program tables and update existing tables

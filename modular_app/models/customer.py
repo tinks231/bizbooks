@@ -40,6 +40,11 @@ class Customer(db.Model):
     notes = db.Column(db.Text)
     delivery_special_instruction = db.Column(db.Text)  # Visible to delivery team
     delivery_comment = db.Column(db.Text)  # Internal admin comment
+    
+    # Loyalty Program (Optional fields for birthday/anniversary bonuses)
+    date_of_birth = db.Column(db.Date)  # For birthday bonus points
+    anniversary_date = db.Column(db.Date)  # For anniversary bonus points
+    
     is_active = db.Column(db.Boolean, default=True)
     
     # Timestamps
