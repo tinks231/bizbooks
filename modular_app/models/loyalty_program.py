@@ -9,7 +9,7 @@ class LoyaltyProgram(db.Model):
     __tablename__ = 'loyalty_programs'
     
     id = db.Column(db.Integer, primary_key=True)
-    tenant_id = db.Column(db.Integer, db.ForeignKey('tenants.id'), nullable=False)
+    tenant_id = db.Column(db.Integer, db.ForeignKey('tenants.id', ondelete='CASCADE'), nullable=False)
     
     # Basic Settings
     program_name = db.Column(db.String(100), default='Loyalty Program')
@@ -44,7 +44,7 @@ class LoyaltyProgram(db.Model):
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # Relationships
-    tenant = db.relationship('Tenant', backref='loyalty_program')
+    tenant = db.relationship('Tenant', backref=db.backref('loyalty_program', passive_deletes=True))
     
     def __repr__(self):
         return f'<LoyaltyProgram {self.program_name} - Tenant {self.tenant_id}>'

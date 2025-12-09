@@ -9,8 +9,8 @@ class CustomerLoyaltyPoints(db.Model):
     __tablename__ = 'customer_loyalty_points'
     
     id = db.Column(db.Integer, primary_key=True)
-    tenant_id = db.Column(db.Integer, db.ForeignKey('tenants.id'), nullable=False)
-    customer_id = db.Column(db.Integer, db.ForeignKey('customers.id'), nullable=False)
+    tenant_id = db.Column(db.Integer, db.ForeignKey('tenants.id', ondelete='CASCADE'), nullable=False)
+    customer_id = db.Column(db.Integer, db.ForeignKey('customers.id', ondelete='CASCADE'), nullable=False)
     
     # Points Balance
     current_points = db.Column(db.Integer, default=0)

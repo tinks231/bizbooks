@@ -9,8 +9,8 @@ class LoyaltyTransaction(db.Model):
     __tablename__ = 'loyalty_transactions'
     
     id = db.Column(db.Integer, primary_key=True)
-    tenant_id = db.Column(db.Integer, db.ForeignKey('tenants.id'), nullable=False)
-    customer_id = db.Column(db.Integer, db.ForeignKey('customers.id'), nullable=False)
+    tenant_id = db.Column(db.Integer, db.ForeignKey('tenants.id', ondelete='CASCADE'), nullable=False)
+    customer_id = db.Column(db.Integer, db.ForeignKey('customers.id', ondelete='CASCADE'), nullable=False)
     
     # Transaction Type
     transaction_type = db.Column(db.String(20), nullable=False)  # 'earned', 'redeemed', 'adjusted', 'bonus'
