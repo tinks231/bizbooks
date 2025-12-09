@@ -402,7 +402,7 @@ def dashboard():
     return html_result
 
 # Employees Management
-@admin_bp.route('/employees')
+@admin_bp.route('/employees', strict_slashes=False)  # PERFORMANCE: Prevent 308 redirects
 @require_tenant
 @login_required
 def employees():

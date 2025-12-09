@@ -21,7 +21,7 @@ def login_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
-@vendors_bp.route('/')
+@vendors_bp.route('/', strict_slashes=False)  # PERFORMANCE: Prevent 308 redirects
 @require_tenant
 @check_license
 @login_required
