@@ -18,19 +18,21 @@ def login_required(f):
     """Decorator to ensure user is logged in"""
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        if not hasattr(g, 'user') or not g.user:
-            flash('Please login to access this page', 'error')
-            return redirect(url_for('registration.index'))
+        from flask import session
+        if 'tenant_admin_id' not in session:
+            flash('Please login first', 'error')
+            return redirect(url_for('admin.login'))
         return f(*args, **kwargs)
     return decorated_function
 
 def admin_required(f):
-    """Decorator to ensure user is admin"""
+    """Decorator to ensure user is admin (same as login_required for now)"""
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        if not hasattr(g, 'user') or not g.user or g.user.role != 'admin':
+        from flask import session
+        if 'tenant_admin_id' not in session:
             flash('Admin access required', 'error')
-            return redirect(url_for('admin.dashboard'))
+            return redirect(url_for('admin.login'))
         return f(*args, **kwargs)
     return decorated_function
 
