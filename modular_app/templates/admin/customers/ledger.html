@@ -80,12 +80,13 @@
     {% if loyalty_history %}
     <h4 style="margin: 0 0 15px 0; color: #374151;">Transaction History</h4>
     <div style="overflow-x: auto;">
-        <table class="table">
+            <table class="table">
             <thead>
                 <tr>
                     <th>Date</th>
                     <th>Type</th>
                     <th>Points</th>
+                    <th>Amount</th>
                     <th>Invoice</th>
                     <th>Description</th>
                     <th>Balance After</th>
@@ -115,6 +116,26 @@
                         <span style="color: #10b981; font-weight: 600;">+{{ transaction.points }}</span>
                         {% else %}
                         <span style="color: #ef4444; font-weight: 600;">{{ transaction.points }}</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if transaction.transaction_type in ['earned', 'bonus'] %}
+                            {% if transaction.invoice_amount %}
+                            <span style="color: #059669; font-weight: 500;">
+                                📄 ₹{{ "%.2f"|format(transaction.invoice_amount) }}
+                            </span>
+                            <br><small style="color: #9ca3af; font-size: 11px;">Invoice Total</small>
+                            {% else %}
+                            -
+                            {% endif %}
+                        {% elif transaction.transaction_type == 'redeemed' %}
+                            {% set discount_amount = (transaction.points|abs) * loyalty_program.points_to_rupees_ratio %}
+                            <span style="color: #dc2626; font-weight: 500;">
+                                💰 -₹{{ "%.2f"|format(discount_amount) }}
+                            </span>
+                            <br><small style="color: #9ca3af; font-size: 11px;">Discount Applied</small>
+                        {% else %}
+                        -
                         {% endif %}
                     </td>
                     <td>
