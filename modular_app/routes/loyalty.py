@@ -65,7 +65,7 @@ def api_get_settings():
     try:
         program = LoyaltyService.get_loyalty_program(tenant_id)
         
-        if not program or not program.is_enabled:
+        if not program or not program.is_active:
             return jsonify({'enabled': False})
         
         # Build threshold bonuses array
