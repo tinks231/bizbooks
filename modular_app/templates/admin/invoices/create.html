@@ -1762,6 +1762,9 @@
         
         // Trigger state change for GST calculation
         document.getElementById('customer_state').dispatchEvent(new Event('change'));
+        
+        // Fetch loyalty data for this customer
+        fetchCustomerLoyalty(id);
     }
     
     function hideCustomerDropdown() {
@@ -2388,6 +2391,15 @@ let customerLoyaltyData = null;
 // Fetch loyalty settings on page load
 window.addEventListener('DOMContentLoaded', function() {
     fetchLoyaltySettings();
+    
+    // If editing invoice and customer already selected, fetch loyalty
+    const existingCustomerId = document.getElementById('customer_id').value;
+    if (existingCustomerId && existingCustomerId.trim() !== '') {
+        // Wait for settings to load first
+        setTimeout(() => {
+            fetchCustomerLoyalty(parseInt(existingCustomerId));
+        }, 500);
+    }
 });
 
 function fetchLoyaltySettings() {
@@ -2657,17 +2669,7 @@ function calculateTotalWithLoyalty() {
     calculatePointsPreview();
 }
 
-// Hook into customer selection
-const originalSelectCustomer = selectCustomerFromDropdown;
-selectCustomerFromDropdown = function(customerId, customerName, customerPhone, customerEmail, customerGstin, customerAddress, customerState) {
-    // Call original function
-    originalSelectCustomer(customerId, customerName, customerPhone, customerEmail, customerGstin, customerAddress, customerState);
-    
-    // Fetch loyalty data
-    fetchCustomerLoyalty(customerId);
-};
-
-// Also hook into calculate total to update points preview
+// Hook into calculate total to update points preview
 const originalCalculateTotal = calculateTotal;
 calculateTotal = function() {
     originalCalculateTotal();
