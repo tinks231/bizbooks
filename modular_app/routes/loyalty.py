@@ -12,7 +12,7 @@ from models.customer import Customer
 from services.loyalty_service import LoyaltyService
 from datetime import datetime
 
-loyalty_bp = Blueprint('loyalty', __name__, url_prefix='/admin/loyalty')
+loyalty_bp = Blueprint('loyalty', __name__)  # No prefix - we'll handle it per route
 
 def login_required(f):
     """Decorator to ensure user is logged in"""
@@ -37,10 +37,59 @@ def admin_required(f):
     return decorated_function
 
 # ============================================================
+# API Endpoints (for JavaScript)
+# ============================================================
+
+@loyalty_bp.route('/api/loyalty/settings')
+def api_get_settings():
+    """Get loyalty program settings for JavaScript"""
+    tenant_id = g.tenant.id if hasattr(g, 'tenant') else None
+    
+    if not tenant_id:
+        return jsonify({'enabled': False, 'error': 'Tenant not found'}), 400
+    
+    program = LoyaltyService.get_loyalty_program_settings(tenant_id)
+    
+    if not program or not program.is_enabled:
+        return jsonify({'enabled': False})
+    
+    # Build threshold bonuses array
+    threshold_bonuses = []
+    if program.enable_threshold_bonuses:
+        if program.threshold_1_amount and program.threshold_1_bonus_points:
+            threshold_bonuses.append({
+                'invoice_amount': program.threshold_1_amount,
+                'bonus_points': program.threshold_1_bonus_points
+            })
+        if program.threshold_2_amount and program.threshold_2_bonus_points:
+            threshold_bonuses.append({
+                'invoice_amount': program.threshold_2_amount,
+                'bonus_points': program.threshold_2_bonus_points
+            })
+        if program.threshold_3_amount and program.threshold_3_bonus_points:
+            threshold_bonuses.append({
+                'invoice_amount': program.threshold_3_amount,
+                'bonus_points': program.threshold_3_bonus_points
+            })
+    
+    return jsonify({
+        'enabled': True,
+        'points_earning_rate': program.points_per_100_rupees,
+        'points_earning_per_amount': 100.0,  # Points per 100 rupees
+        'redemption_value': program.points_to_rupees_ratio,
+        'min_redemption_points': program.minimum_points_to_redeem,
+        'max_redemption_percentage': program.maximum_discount_percent or 100,
+        'max_earning_per_invoice': program.maximum_points_per_invoice or 0,
+        'threshold_bonuses': threshold_bonuses,
+        'footer_note_enabled': program.show_points_on_invoice,
+        'footer_note_text': program.invoice_footer_text
+    })
+
+# ============================================================
 # Admin Settings Pages
 # ============================================================
 
-@loyalty_bp.route('/settings')
+@loyalty_bp.route('/admin/loyalty/settings')
 @login_required
 @admin_required
 def settings():
@@ -72,7 +121,7 @@ def settings():
     
     return render_template('admin/loyalty/settings.html', program=program)
 
-@loyalty_bp.route('/settings/update', methods=['POST'])
+@loyalty_bp.route('/admin/loyalty/settings/update', methods=['POST'])
 @login_required
 @admin_required
 def update_settings():
@@ -132,7 +181,7 @@ def update_settings():
 # Admin Reports & Analytics
 # ============================================================
 
-@loyalty_bp.route('/reports')
+@loyalty_bp.route('/admin/loyalty/reports')
 @login_required
 @admin_required
 def reports():
@@ -179,7 +228,7 @@ def reports():
 # Customer Points Management
 # ============================================================
 
-@loyalty_bp.route('/customer/<int:customer_id>/balance')
+@loyalty_bp.route('/api/loyalty/customer/<int:customer_id>/balance')
 @login_required
 def customer_balance(customer_id):
     """Get customer's loyalty points balance"""
@@ -191,14 +240,27 @@ def customer_balance(customer_id):
     loyalty = LoyaltyService.get_customer_balance(customer_id, tenant_id, auto_create=False)
     
     if not loyalty:
+        # Auto-create loyalty record for customer
+        from models.customer_loyalty_points import CustomerLoyaltyPoints
+        loyalty = CustomerLoyaltyPoints(
+            tenant_id=tenant_id,
+            customer_id=customer_id,
+            current_points=0,
+            lifetime_points=0
+        )
+        db.session.add(loyalty)
+        db.session.commit()
+        
         return jsonify({
+            'points': 0,  # JavaScript expects 'points' field
             'current_points': 0,
             'lifetime_earned': 0,
             'lifetime_redeemed': 0,
-            'is_member': False
+            'is_member': True  # Now they are a member!
         })
     
     return jsonify({
+        'points': loyalty.current_points,  # JavaScript expects 'points' field
         'current_points': loyalty.current_points,
         'lifetime_earned': loyalty.lifetime_earned_points,
         'lifetime_redeemed': loyalty.lifetime_redeemed_points,
@@ -207,7 +269,7 @@ def customer_balance(customer_id):
         'last_redeemed_at': loyalty.last_redeemed_at.isoformat() if loyalty.last_redeemed_at else None
     })
 
-@loyalty_bp.route('/customer/<int:customer_id>/history')
+@loyalty_bp.route('/api/loyalty/customer/<int:customer_id>/history')
 @login_required
 def customer_history(customer_id):
     """Get customer's loyalty transaction history"""

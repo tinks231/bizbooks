@@ -2420,26 +2420,49 @@ function fetchLoyaltySettings() {
 
 // Fetch customer loyalty balance when customer is selected
 function fetchCustomerLoyalty(customerId) {
-    if (!customerId || !loyaltySettings) {
+    console.log('🎁 fetchCustomerLoyalty called with ID:', customerId);
+    console.log('🎁 loyaltySettings:', loyaltySettings);
+    
+    if (!customerId) {
+        console.log('❌ No customer ID provided');
         document.getElementById('loyaltySection').style.display = 'none';
         customerLoyaltyData = null;
         return;
     }
     
+    if (!loyaltySettings) {
+        console.log('⚠️ Loyalty settings not loaded yet');
+        document.getElementById('loyaltySection').style.display = 'none';
+        customerLoyaltyData = null;
+        return;
+    }
+    
+    console.log('🔄 Fetching loyalty balance for customer:', customerId);
+    
     fetch(`/api/loyalty/customer/${customerId}/balance`)
-        .then(response => response.json())
+        .then(response => {
+            console.log('📡 API Response status:', response.status);
+            return response.json();
+        })
         .then(data => {
+            console.log('✅ Loyalty data received:', data);
+            
             if (data.points !== undefined) {
                 customerLoyaltyData = data;
                 updateLoyaltyDisplay();
                 document.getElementById('loyaltySection').style.display = 'block';
                 calculatePointsPreview(); // Calculate points for current invoice
+                console.log('💚 Loyalty section now visible!');
+            } else if (data.error) {
+                console.error('❌ API returned error:', data.error);
+                document.getElementById('loyaltySection').style.display = 'none';
             } else {
+                console.warn('⚠️ Unexpected API response format:', data);
                 document.getElementById('loyaltySection').style.display = 'none';
             }
         })
         .catch(error => {
-            console.error('Error fetching customer loyalty:', error);
+            console.error('❌ Error fetching customer loyalty:', error);
             document.getElementById('loyaltySection').style.display = 'none';
         });
 }
