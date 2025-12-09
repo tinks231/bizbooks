@@ -268,37 +268,44 @@ def customer_balance(customer_id):
     g.tenant = tenant
     tenant_id = tenant.id
     
-    loyalty = LoyaltyService.get_customer_balance(customer_id, tenant_id, auto_create=False)
-    
-    if not loyalty:
-        # Auto-create loyalty record for customer
-        from models.customer_loyalty_points import CustomerLoyaltyPoints
-        loyalty = CustomerLoyaltyPoints(
-            tenant_id=tenant_id,
-            customer_id=customer_id,
-            current_points=0,
-            lifetime_points=0
-        )
-        db.session.add(loyalty)
-        db.session.commit()
+    try:
+        loyalty = LoyaltyService.get_customer_balance(customer_id, tenant_id, auto_create=False)
+        
+        if not loyalty:
+            # Auto-create loyalty record for customer
+            from models.customer_loyalty_points import CustomerLoyaltyPoints
+            loyalty = CustomerLoyaltyPoints(
+                tenant_id=tenant_id,
+                customer_id=customer_id,
+                current_points=0,
+                lifetime_earned_points=0,
+                lifetime_redeemed_points=0
+            )
+            db.session.add(loyalty)
+            db.session.commit()
+            
+            return jsonify({
+                'points': 0,  # JavaScript expects 'points' field
+                'current_points': 0,
+                'lifetime_earned': 0,
+                'lifetime_redeemed': 0,
+                'is_member': True  # Now they are a member!
+            })
         
         return jsonify({
-            'points': 0,  # JavaScript expects 'points' field
-            'current_points': 0,
-            'lifetime_earned': 0,
-            'lifetime_redeemed': 0,
-            'is_member': True  # Now they are a member!
+            'points': loyalty.current_points,  # JavaScript expects 'points' field
+            'current_points': loyalty.current_points,
+            'lifetime_earned': loyalty.lifetime_earned_points,
+            'lifetime_redeemed': loyalty.lifetime_redeemed_points,
+            'is_member': True,
+            'last_earned_at': loyalty.last_earned_at.isoformat() if loyalty.last_earned_at else None,
+            'last_redeemed_at': loyalty.last_redeemed_at.isoformat() if loyalty.last_redeemed_at else None
         })
-    
-    return jsonify({
-        'points': loyalty.current_points,  # JavaScript expects 'points' field
-        'current_points': loyalty.current_points,
-        'lifetime_earned': loyalty.lifetime_earned_points,
-        'lifetime_redeemed': loyalty.lifetime_redeemed_points,
-        'is_member': True,
-        'last_earned_at': loyalty.last_earned_at.isoformat() if loyalty.last_earned_at else None,
-        'last_redeemed_at': loyalty.last_redeemed_at.isoformat() if loyalty.last_redeemed_at else None
-    })
+    except Exception as e:
+        print(f"❌ Error in customer_balance: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'points': 0, 'error': str(e)}), 200
 
 @loyalty_bp.route('/api/loyalty/customer/<int:customer_id>/history')
 @login_required
