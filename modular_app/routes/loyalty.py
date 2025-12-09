@@ -143,6 +143,13 @@ def reports():
         flash('Tenant not found', 'error')
         return redirect(url_for('admin.dashboard'))
     
+    # Get loyalty program
+    program = LoyaltyService.get_loyalty_program(tenant_id)
+    
+    if not program:
+        flash('Loyalty program not configured', 'warning')
+        return redirect(url_for('loyalty.settings'))
+    
     stats = LoyaltyService.get_loyalty_stats(tenant_id)
     
     if not stats:
@@ -164,6 +171,7 @@ def reports():
             })
     
     return render_template('admin/loyalty/reports.html', 
+                         program=program,
                          stats=stats, 
                          top_customers=top_customers_data)
 
