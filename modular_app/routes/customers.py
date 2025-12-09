@@ -210,8 +210,8 @@ def ledger(customer_id):
     loyalty_history = []
     
     if loyalty_program and loyalty_program.is_active:
-        customer_loyalty = LoyaltyService.get_customer_loyalty_balance(customer_id, tenant_id)
-        loyalty_history = LoyaltyService.get_customer_loyalty_history(customer_id, tenant_id)
+        customer_loyalty = LoyaltyService.get_customer_balance(customer_id, tenant_id)
+        loyalty_history = LoyaltyService.get_transaction_history(customer_id, tenant_id)
     
     # Get aging analysis (overdue invoices)
     today = datetime.now().date()
