@@ -470,47 +470,24 @@ def create():
                         points_earned = points_result['total_points'] if isinstance(points_result, dict) else points_result
                         
                         if points_earned > 0:
-                            # Credit points to customer
-                            from models import CustomerLoyaltyPoints, LoyaltyTransaction
-                            from sqlalchemy import text
-                            
-                            # Get or create customer loyalty record
-                            loyalty_record = CustomerLoyaltyPoints.query.filter_by(
-                                tenant_id=tenant_id,
-                                customer_id=customer_id
-                            ).first()
-                            
-                            if not loyalty_record:
-                                loyalty_record = CustomerLoyaltyPoints(
-                                    tenant_id=tenant_id,
-                                    customer_id=customer_id,
-                                    current_points=0,
-                                    lifetime_earned_points=0,
-                                    lifetime_redeemed_points=0
-                                )
-                                db.session.add(loyalty_record)
-                            
-                            # Credit points
-                            loyalty_record.current_points += points_earned
-                            loyalty_record.lifetime_earned_points += points_earned
-                            loyalty_record.last_earned_at = datetime.now(pytz.timezone('Asia/Kolkata'))
-                            
-                            # Create transaction record
-                            transaction = LoyaltyTransaction(
-                                tenant_id=tenant_id,
+                            # Credit points using the service method (creates proper transaction record)
+                            LoyaltyService.credit_points(
                                 customer_id=customer_id,
-                                type='earn',
-                                points_amount=points_earned,
+                                tenant_id=tenant_id,
+                                points=points_earned,
                                 invoice_id=invoice.id,
-                                description=f'Points earned from invoice {invoice.invoice_number}'
+                                invoice_number=invoice.invoice_number,
+                                description=f'Points earned from invoice {invoice.invoice_number}',
+                                base_points=points_result.get('base_points', points_earned),
+                                bonus_points=points_result.get('bonus_points', 0),
+                                invoice_amount=float(invoice.total_amount),
+                                created_by=session.get('tenant_admin_id')
                             )
-                            db.session.add(transaction)
                             
                             # Update invoice with earned points
                             invoice.loyalty_points_earned = points_earned
-                            
                             db.session.commit()
-                            print(f"🎁 Loyalty: Earned {points_earned} pts for customer #{customer_id}")
+                            print(f"🎁 Loyalty: Earned {points_earned} pts for customer #{customer_id} (₹{invoice.total_amount} invoice)")
                 except Exception as e:
                     print(f"⚠️ Error processing loyalty: {str(e)}")
                     # Don't fail invoice creation if loyalty fails
