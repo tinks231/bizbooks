@@ -48,7 +48,7 @@ def api_get_settings():
     if not tenant_id:
         return jsonify({'enabled': False, 'error': 'Tenant not found'}), 400
     
-    program = LoyaltyService.get_loyalty_program_settings(tenant_id)
+    program = LoyaltyService.get_loyalty_program(tenant_id)
     
     if not program or not program.is_enabled:
         return jsonify({'enabled': False})
