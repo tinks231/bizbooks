@@ -49,10 +49,25 @@ def index():
     
     customers = query.order_by(Customer.customer_code.desc()).all()
     
-    # Calculate outstanding for each customer
+    # Calculate outstanding for each customer (optimized with single query)
+    from sqlalchemy import func
+    invoice_stats = db.session.query(
+        Invoice.customer_id,
+        func.count(Invoice.id).label('invoice_count'),
+        func.sum(Invoice.total_amount - Invoice.paid_amount).label('outstanding')
+    ).filter(
+        Invoice.tenant_id == tenant_id,
+        Invoice.customer_id.in_([c.id for c in customers])
+    ).group_by(Invoice.customer_id).all()
+    
+    # Create lookup dict
+    stats_dict = {stat.customer_id: stat for stat in invoice_stats}
+    
+    # Assign to customers
     for customer in customers:
-        customer.outstanding = customer.get_outstanding_balance()
-        customer.invoice_count = customer.get_total_invoices()
+        stat = stats_dict.get(customer.id)
+        customer.outstanding = float(stat.outstanding) if stat and stat.outstanding else 0
+        customer.invoice_count = stat.invoice_count if stat else 0
     
     return render_template('admin/customers/list.html',
                          tenant=g.tenant,
