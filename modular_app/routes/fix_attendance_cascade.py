@@ -47,15 +47,72 @@ def fix_attendance_cascade():
                 ON DELETE CASCADE;
             """))
             
+            # Fix loyalty_programs foreign key (if table exists)
+            print("Fixing loyalty_programs.tenant_id foreign key...")
+            conn.execute(text("""
+                DO $$ 
+                BEGIN
+                    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'loyalty_programs') THEN
+                        ALTER TABLE loyalty_programs 
+                        DROP CONSTRAINT IF EXISTS loyalty_programs_tenant_id_fkey;
+                        
+                        ALTER TABLE loyalty_programs 
+                        ADD CONSTRAINT loyalty_programs_tenant_id_fkey 
+                        FOREIGN KEY (tenant_id) 
+                        REFERENCES tenants(id) 
+                        ON DELETE CASCADE;
+                    END IF;
+                END $$;
+            """))
+            
+            # Fix customer_loyalty_points foreign key (if table exists)
+            print("Fixing customer_loyalty_points.tenant_id foreign key...")
+            conn.execute(text("""
+                DO $$ 
+                BEGIN
+                    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'customer_loyalty_points') THEN
+                        ALTER TABLE customer_loyalty_points 
+                        DROP CONSTRAINT IF EXISTS customer_loyalty_points_tenant_id_fkey;
+                        
+                        ALTER TABLE customer_loyalty_points 
+                        ADD CONSTRAINT customer_loyalty_points_tenant_id_fkey 
+                        FOREIGN KEY (tenant_id) 
+                        REFERENCES tenants(id) 
+                        ON DELETE CASCADE;
+                    END IF;
+                END $$;
+            """))
+            
+            # Fix loyalty_transactions foreign key (if table exists)
+            print("Fixing loyalty_transactions.tenant_id foreign key...")
+            conn.execute(text("""
+                DO $$ 
+                BEGIN
+                    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'loyalty_transactions') THEN
+                        ALTER TABLE loyalty_transactions 
+                        DROP CONSTRAINT IF EXISTS loyalty_transactions_tenant_id_fkey;
+                        
+                        ALTER TABLE loyalty_transactions 
+                        ADD CONSTRAINT loyalty_transactions_tenant_id_fkey 
+                        FOREIGN KEY (tenant_id) 
+                        REFERENCES tenants(id) 
+                        ON DELETE CASCADE;
+                    END IF;
+                END $$;
+            """))
+            
         return jsonify({
             "status": "success",
-            "message": "✅ Attendance CASCADE constraints fixed!",
+            "message": "✅ All CASCADE constraints fixed!",
             "details": {
                 "fixed_constraints": [
                     "attendance.employee_id → ON DELETE CASCADE",
-                    "attendance.site_id → ON DELETE CASCADE"
+                    "attendance.site_id → ON DELETE CASCADE",
+                    "loyalty_programs.tenant_id → ON DELETE CASCADE",
+                    "customer_loyalty_points.tenant_id → ON DELETE CASCADE",
+                    "loyalty_transactions.tenant_id → ON DELETE CASCADE"
                 ],
-                "note": "Tenant deletion will now work properly. Attendance records will be deleted when employees/sites are deleted."
+                "note": "Tenant deletion will now work properly. All related records will cascade delete."
             }
         }), 200
         
