@@ -76,13 +76,21 @@
 
 <!-- Top Customers -->
 <div class="report-card">
-    <div class="card-header">
+    <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
         <h2>🏆 Top 10 Customers by Points</h2>
+        <div style="flex: 1; max-width: 350px;">
+            <input type="text" 
+                   id="customerSearch" 
+                   placeholder="🔍 Search by name or phone..." 
+                   class="form-control"
+                   style="padding: 10px 15px; border-radius: 8px; border: 1px solid #ddd;"
+                   oninput="filterCustomers(this.value)">
+        </div>
     </div>
     <div class="card-body">
         {% if top_customers %}
         <div class="table-responsive">
-            <table class="customers-table">
+            <table class="customers-table" id="customersTable">
                 <thead>
                     <tr>
                         <th>#</th>
@@ -378,5 +386,30 @@
     font-size: 13px;
 }
 </style>
+
+<script>
+// Filter customers by name or phone
+function filterCustomers(searchTerm) {
+    const table = document.getElementById('customersTable');
+    if (!table) return;
+    
+    const tbody = table.querySelector('tbody');
+    const rows = tbody.querySelectorAll('tr');
+    
+    const term = searchTerm.toLowerCase().trim();
+    
+    rows.forEach(row => {
+        const customerName = row.querySelector('td:nth-child(2)').textContent.toLowerCase();
+        const phone = row.querySelector('td:nth-child(3)').textContent.toLowerCase();
+        
+        if (customerName.includes(term) || phone.includes(term)) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    });
+}
+</script>
+
 {% endblock %}
 
