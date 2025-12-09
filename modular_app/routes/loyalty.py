@@ -20,7 +20,7 @@ def login_required(f):
     def decorated_function(*args, **kwargs):
         if not hasattr(g, 'user') or not g.user:
             flash('Please login to access this page', 'error')
-            return redirect(url_for('registration.login'))
+            return redirect(url_for('registration.index'))
         return f(*args, **kwargs)
     return decorated_function
 
