@@ -2337,10 +2337,28 @@
     content: ' *';
     color: #dc3545;
 }
+
+/* Modal Overlay Styles */
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+}
+
+.modal.modal-open {
+    display: flex !important;
+}
 </style>
 
 <!-- Loyalty Redemption Modal -->
-<div id="redeemModal" class="modal">
+<div id="redeemModal" class="modal" style="display: none;">
     <div class="modal-content" style="max-width: 500px;">
         <div class="modal-header">
             <h2 style="margin: 0; color: #2c3e50; font-size: 20px;">💰 Redeem Loyalty Points</h2>
@@ -2524,10 +2542,16 @@ function calculatePointsPreview() {
     }
     document.getElementById('totalPointsPreview').textContent = finalPoints;
     
-    // FIX: Use current balance (after redemption) not original balance
-    const loyaltyPointsRedeemed = parseInt(document.getElementById('loyalty_points_redeemed').value) || 0;
-    const currentBalance = customerLoyaltyData.points; // This is already reduced if redemption was applied
-    document.getElementById('newBalancePreview').textContent = currentBalance + finalPoints;
+    // FIX: Calculate new balance accounting for any pending redemptions
+    // Current balance shown is already reduced if redemption was applied
+    const newBalance = customerLoyaltyData.points + finalPoints;
+    document.getElementById('newBalancePreview').textContent = newBalance;
+    
+    console.log('📊 Points Preview:', {
+        currentBalance: customerLoyaltyData.points,
+        pointsToEarn: finalPoints,
+        newBalance: newBalance
+    });
     
     // Show preview
     document.getElementById('pointsPreview').style.display = 'flex';
@@ -2572,12 +2596,31 @@ function openRedeemModal() {
 
 function closeRedeemModal() {
     console.log('🚪 Closing redemption modal...');
+    
     const modal = document.getElementById('redeemModal');
     if (modal) {
         modal.style.display = 'none';
         console.log('✅ Modal closed successfully');
+    } else {
+        console.error('❌ Modal element not found!');
     }
 }
+
+// Close redeem modal on outside click
+document.addEventListener('click', function(event) {
+    const modal = document.getElementById('redeemModal');
+    if (modal && event.target === modal) {
+        closeRedeemModal();
+    }
+});
+
+// Close redeem modal on Escape key
+document.addEventListener('keydown', function(event) {
+    const modal = document.getElementById('redeemModal');
+    if (event.key === 'Escape' && modal && modal.style.display === 'flex') {
+        closeRedeemModal();
+    }
+});
 
 function updateRedemptionPreview() {
     const pointsToRedeem = parseInt(document.getElementById('pointsToRedeem').value) || 0;
@@ -2614,50 +2657,68 @@ function updateRedemptionPreview() {
 }
 
 function applyLoyaltyDiscount() {
-    const pointsToRedeem = parseInt(document.getElementById('pointsToRedeem').value) || 0;
-    const maxPoints = parseInt(document.getElementById('pointsToRedeem').max) || 0;
+    console.log('💰 Apply Loyalty Discount - START');
     
-    // Validation
-    if (pointsToRedeem <= 0) {
-        alert('Please enter points to redeem');
-        return;
+    try {
+        const pointsToRedeem = parseInt(document.getElementById('pointsToRedeem').value) || 0;
+        const maxPoints = parseInt(document.getElementById('pointsToRedeem').max) || 0;
+        
+        console.log('Points to redeem:', pointsToRedeem, 'Max:', maxPoints);
+        
+        // Validation
+        if (pointsToRedeem <= 0) {
+            alert('Please enter points to redeem');
+            return;
+        }
+        
+        if (pointsToRedeem > maxPoints) {
+            alert(`Cannot redeem more than ${maxPoints} points`);
+            return;
+        }
+        
+        if (pointsToRedeem < loyaltySettings.min_redemption_points) {
+            alert(`Minimum ${loyaltySettings.min_redemption_points} points required for redemption`);
+            return;
+        }
+        
+        // Calculate discount
+        const discount = pointsToRedeem * loyaltySettings.redemption_value;
+        console.log('Discount calculated:', discount);
+        
+        // Update hidden inputs
+        document.getElementById('loyalty_points_redeemed').value = pointsToRedeem;
+        document.getElementById('loyalty_discount').value = discount.toFixed(2);
+        
+        // Update redeemed display
+        document.getElementById('redeemedPoints').textContent = pointsToRedeem;
+        document.getElementById('redeemedValue').textContent = discount.toFixed(2);
+        document.getElementById('loyaltyRedeemed').style.display = 'block';
+        
+        // Show loyalty discount row in invoice
+        document.getElementById('loyaltyDiscountRow').style.display = '';
+        document.getElementById('loyaltyDiscountDisplay').textContent = `-₹${discount.toFixed(2)}`;
+        
+        console.log('Before deduction - customerLoyaltyData.points:', customerLoyaltyData.points);
+        
+        // Update customer display (deduct points temporarily)
+        customerLoyaltyData.points -= pointsToRedeem;
+        
+        console.log('After deduction - customerLoyaltyData.points:', customerLoyaltyData.points);
+        
+        updateLoyaltyDisplay();
+        
+        // Recalculate total (loyalty discount applied after manual discount and before GST)
+        calculateTotalWithLoyalty();
+        
+        console.log('✅ Loyalty discount applied successfully!');
+        
+        // Close modal - FORCE CLOSE
+        closeRedeemModal();
+        
+    } catch (error) {
+        console.error('❌ Error in applyLoyaltyDiscount:', error);
+        alert('An error occurred. Please try again.');
     }
-    
-    if (pointsToRedeem > maxPoints) {
-        alert(`Cannot redeem more than ${maxPoints} points`);
-        return;
-    }
-    
-    if (pointsToRedeem < loyaltySettings.min_redemption_points) {
-        alert(`Minimum ${loyaltySettings.min_redemption_points} points required for redemption`);
-        return;
-    }
-    
-    // Calculate discount
-    const discount = pointsToRedeem * loyaltySettings.redemption_value;
-    
-    // Update hidden inputs
-    document.getElementById('loyalty_points_redeemed').value = pointsToRedeem;
-    document.getElementById('loyalty_discount').value = discount.toFixed(2);
-    
-    // Update redeemed display
-    document.getElementById('redeemedPoints').textContent = pointsToRedeem;
-    document.getElementById('redeemedValue').textContent = discount.toFixed(2);
-    document.getElementById('loyaltyRedeemed').style.display = 'block';
-    
-    // Show loyalty discount row in invoice
-    document.getElementById('loyaltyDiscountRow').style.display = '';
-    document.getElementById('loyaltyDiscountDisplay').textContent = `-₹${discount.toFixed(2)}`;
-    
-    // Update customer display (deduct points temporarily)
-    customerLoyaltyData.points -= pointsToRedeem;
-    updateLoyaltyDisplay();
-    
-    // Recalculate total (loyalty discount applied after manual discount and before GST)
-    calculateTotalWithLoyalty();
-    
-    // Close modal
-    closeRedeemModal();
 }
 
 function removeLoyaltyDiscount() {
@@ -2705,4 +2766,5 @@ calculateTotal = function() {
 </script>
 
 {% endblock %}
+
 
