@@ -348,16 +348,22 @@ def create():
                 total_igst = total_igst * discount_ratio
                 subtotal = subtotal - discount
             
+            # Get loyalty discount (separate from manual discount)
+            loyalty_discount = float(request.form.get('loyalty_discount', 0) or 0)
+            loyalty_points_redeemed = int(request.form.get('loyalty_points_redeemed', 0) or 0)
+            
             # Calculate invoice totals
             invoice.subtotal = subtotal
             invoice.discount_amount = discount
+            invoice.loyalty_discount = loyalty_discount  # NEW: Loyalty discount
+            invoice.loyalty_points_redeemed = loyalty_points_redeemed  # NEW: Points redeemed
             invoice.cgst_amount = total_cgst
             invoice.sgst_amount = total_sgst
             invoice.igst_amount = total_igst
             invoice.gst_enabled = gst_enabled  # Save GST toggle state
             
-            # Round off to nearest rupee
-            total_before_rounding = subtotal + total_cgst + total_sgst + total_igst
+            # Round off to nearest rupee (including loyalty discount)
+            total_before_rounding = subtotal + total_cgst + total_sgst + total_igst - loyalty_discount
             invoice.total_amount = round(total_before_rounding)
             invoice.round_off = invoice.total_amount - total_before_rounding
             
@@ -431,6 +437,80 @@ def create():
                         })
             
             db.session.commit()
+            
+            # Process Loyalty Program (if enabled and customer linked)
+            if customer_id and customer_id > 0:
+                try:
+                    from services.loyalty_service import LoyaltyService
+                    
+                    # Get loyalty settings
+                    loyalty_settings = LoyaltyService.get_loyalty_program_settings(tenant_id)
+                    
+                    if loyalty_settings and loyalty_settings.is_enabled:
+                        # Process redemption if points were redeemed
+                        if loyalty_points_redeemed > 0:
+                            LoyaltyService.redeem_points(
+                                tenant_id=tenant_id,
+                                customer_id=customer_id,
+                                points_to_redeem=loyalty_points_redeemed,
+                                invoice_id=invoice.id,
+                                discount_applied=loyalty_discount
+                            )
+                            print(f"🎁 Loyalty: Redeemed {loyalty_points_redeemed} pts (₹{loyalty_discount}) for customer #{customer_id}")
+                        
+                        # Calculate and credit earned points (using final invoice total)
+                        points_earned = LoyaltyService.calculate_points_earned(
+                            tenant_id=tenant_id,
+                            invoice_total=invoice.total_amount,
+                            settings=loyalty_settings
+                        )
+                        
+                        if points_earned > 0:
+                            # Credit points to customer
+                            from models import CustomerLoyaltyPoints, LoyaltyTransaction
+                            from sqlalchemy import text
+                            
+                            # Get or create customer loyalty record
+                            loyalty_record = CustomerLoyaltyPoints.query.filter_by(
+                                tenant_id=tenant_id,
+                                customer_id=customer_id
+                            ).first()
+                            
+                            if not loyalty_record:
+                                loyalty_record = CustomerLoyaltyPoints(
+                                    tenant_id=tenant_id,
+                                    customer_id=customer_id,
+                                    current_points=0,
+                                    lifetime_points=0
+                                )
+                                db.session.add(loyalty_record)
+                            
+                            # Credit points
+                            loyalty_record.current_points += points_earned
+                            loyalty_record.lifetime_points += points_earned
+                            loyalty_record.last_activity_at = datetime.now(pytz.timezone('Asia/Kolkata'))
+                            
+                            # Create transaction record
+                            transaction = LoyaltyTransaction(
+                                tenant_id=tenant_id,
+                                customer_id=customer_id,
+                                type='earn',
+                                points_amount=points_earned,
+                                invoice_id=invoice.id,
+                                description=f'Points earned from invoice {invoice.invoice_number}'
+                            )
+                            db.session.add(transaction)
+                            
+                            # Update invoice with earned points
+                            invoice.loyalty_points_earned = points_earned
+                            
+                            db.session.commit()
+                            print(f"🎁 Loyalty: Earned {points_earned} pts for customer #{customer_id}")
+                except Exception as e:
+                    print(f"⚠️ Error processing loyalty: {str(e)}")
+                    # Don't fail invoice creation if loyalty fails
+                    import traceback
+                    traceback.print_exc()
             
             # Save Commission Data (if agent selected)
             if commission_agent_id and commission_agent_id.strip() and commission_percentage:
@@ -622,11 +702,39 @@ def view(invoice_id):
         BankAccount.account_name
     ).all()
     
+    # Check for loyalty footer note
+    loyalty_footer_note = None
+    if invoice.customer_id:
+        try:
+            from services.loyalty_service import LoyaltyService
+            from models import CustomerLoyaltyPoints
+            
+            loyalty_settings = LoyaltyService.get_loyalty_program_settings(tenant_id)
+            
+            if (loyalty_settings and loyalty_settings.is_enabled and 
+                loyalty_settings.footer_note_enabled and 
+                loyalty_settings.footer_note_text):
+                
+                # Get customer's current loyalty balance
+                loyalty_record = CustomerLoyaltyPoints.query.filter_by(
+                    tenant_id=tenant_id,
+                    customer_id=invoice.customer_id
+                ).first()
+                
+                if loyalty_record:
+                    # Replace placeholder with actual points
+                    loyalty_footer_note = loyalty_settings.footer_note_text.replace(
+                        '{{points}}', str(loyalty_record.current_points)
+                    )
+        except Exception as e:
+            print(f"⚠️ Error fetching loyalty footer: {str(e)}")
+    
     return render_template('admin/invoices/view.html',
                          tenant=g.tenant,
                          invoice=invoice,
                          tenant_settings=tenant_settings,
                          bank_accounts=bank_accounts,
+                         loyalty_footer_note=loyalty_footer_note,
                          today=date.today())
 
 

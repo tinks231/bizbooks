@@ -124,6 +124,55 @@
         </div>
     </div>
     
+    <!-- Loyalty Program Section -->
+    <div id="loyaltySection" class="card loyalty-card" style="display: none;">
+        <div class="card-header" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white;">
+            <h3 class="card-title">💰 Loyalty Points</h3>
+        </div>
+        <div class="card-body">
+            <div class="loyalty-info">
+                <div class="loyalty-balance">
+                    <div class="balance-label">Current Balance:</div>
+                    <div class="balance-value">
+                        <span id="loyaltyPoints">0</span> pts
+                        <span class="balance-subtext">(= ₹<span id="loyaltyValue">0</span>)</span>
+                    </div>
+                </div>
+                <div class="loyalty-actions">
+                    <button type="button" class="btn btn-success" id="redeemPointsBtn" onclick="openRedeemModal()">
+                        💰 Use Points for Discount
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Points to be earned (preview) -->
+            <div class="points-preview" id="pointsPreview" style="display: none;">
+                <div class="preview-icon">🎁</div>
+                <div class="preview-content">
+                    <strong>Points to be earned on this invoice:</strong>
+                    <div class="preview-details">
+                        <span id="basePointsPreview">0</span> pts (base)
+                        <span id="bonusPointsPreview" style="display: none;"> + <span id="bonusPoints">0</span> pts (bonus)</span>
+                        = <strong id="totalPointsPreview">0</strong> pts total
+                    </div>
+                    <small>New balance: <span id="newBalancePreview">0</span> pts</small>
+                </div>
+            </div>
+            
+            <!-- Redeemed points display -->
+            <div class="loyalty-redeemed" id="loyaltyRedeemed" style="display: none;">
+                <div class="redeemed-badge">
+                    ✅ <span id="redeemedPoints">0</span> points redeemed → ₹<span id="redeemedValue">0</span> discount
+                    <button type="button" class="btn-remove-loyalty" onclick="removeLoyaltyDiscount()">✕</button>
+                </div>
+            </div>
+            
+            <!-- Hidden inputs for loyalty -->
+            <input type="hidden" id="loyalty_points_redeemed" name="loyalty_points_redeemed" value="0">
+            <input type="hidden" id="loyalty_discount" name="loyalty_discount" value="0">
+        </div>
+    </div>
+    
     <!-- Invoice Details Card -->
     <div class="card">
         <div class="card-header">
@@ -293,6 +342,13 @@
                             <input type="hidden" id="discountAmount" name="discount" value="0">
                         </td>
                         <td><span id="discountDisplay">-₹0.00</span></td>
+                        <td></td>
+                    </tr>
+                    <tr id="loyaltyDiscountRow" style="display: none;">
+                        <td colspan="9" style="text-align: right; color: #10b981; font-weight: 600;">
+                            Loyalty Discount:
+                        </td>
+                        <td style="color: #10b981; font-weight: 600;"><span id="loyaltyDiscountDisplay">-₹0.00</span></td>
                         <td></td>
                     </tr>
                     <tr id="cgstRow">
@@ -538,6 +594,115 @@
         text-align: center;
         color: #999;
         font-size: 14px;
+    }
+    
+    /* Loyalty Program Styles */
+    .loyalty-card .card-body {
+        padding: 20px;
+    }
+    
+    .loyalty-info {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 20px;
+        background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+        border-radius: 12px;
+        margin-bottom: 15px;
+    }
+    
+    .loyalty-balance {
+        flex: 1;
+    }
+    
+    .balance-label {
+        font-size: 13px;
+        color: #059669;
+        font-weight: 600;
+        margin-bottom: 5px;
+    }
+    
+    .balance-value {
+        font-size: 28px;
+        font-weight: 700;
+        color: #10b981;
+    }
+    
+    .balance-subtext {
+        font-size: 16px;
+        color: #059669;
+        font-weight: 500;
+    }
+    
+    .loyalty-actions {
+        flex: 0 0 auto;
+    }
+    
+    .points-preview {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        padding: 15px;
+        background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+        border-radius: 8px;
+        border-left: 4px solid #f59e0b;
+        margin-bottom: 15px;
+    }
+    
+    .preview-icon {
+        font-size: 32px;
+        flex: 0 0 auto;
+    }
+    
+    .preview-content {
+        flex: 1;
+        font-size: 14px;
+    }
+    
+    .preview-content strong {
+        color: #b45309;
+    }
+    
+    .preview-details {
+        font-size: 16px;
+        margin: 5px 0;
+        color: #92400e;
+    }
+    
+    .preview-content small {
+        color: #92400e;
+        font-size: 13px;
+    }
+    
+    .loyalty-redeemed {
+        padding: 15px;
+        background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+        border-radius: 8px;
+        border-left: 4px solid #10b981;
+    }
+    
+    .redeemed-badge {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 15px;
+        font-weight: 600;
+        color: #059669;
+    }
+    
+    .btn-remove-loyalty {
+        background: none;
+        border: none;
+        color: #dc2626;
+        font-size: 18px;
+        cursor: pointer;
+        padding: 5px 10px;
+        border-radius: 4px;
+        transition: background 0.2s;
+    }
+    
+    .btn-remove-loyalty:hover {
+        background: rgba(220, 38, 38, 0.1);
     }
     
     @media (max-width: 768px) {
@@ -2166,6 +2331,356 @@
     color: #dc3545;
 }
 </style>
+
+<!-- Loyalty Redemption Modal -->
+<div id="redeemModal" class="modal">
+    <div class="modal-content" style="max-width: 500px;">
+        <div class="modal-header">
+            <h2 style="margin: 0; color: #2c3e50; font-size: 20px;">💰 Redeem Loyalty Points</h2>
+            <button type="button" onclick="closeRedeemModal()" class="modal-close" 
+                    style="background: none; border: none; font-size: 28px; color: #95a5a6; cursor: pointer; line-height: 1; padding: 0;">
+                ×
+            </button>
+        </div>
+        <div class="modal-body">
+            <div style="background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); padding: 20px; border-radius: 8px; margin-bottom: 20px; text-align: center;">
+                <div style="font-size: 14px; color: #059669; font-weight: 600; margin-bottom: 5px;">Available Balance</div>
+                <div style="font-size: 32px; font-weight: 700; color: #10b981;"><span id="modalAvailablePoints">0</span> pts</div>
+                <div style="font-size: 14px; color: #059669; margin-top: 5px;">= ₹<span id="modalAvailableValue">0</span></div>
+            </div>
+            
+            <div style="background: #fffbeb; padding: 15px; border-radius: 8px; border-left: 4px solid #f59e0b; margin-bottom: 20px;">
+                <div style="font-size: 13px; color: #92400e; font-weight: 600; margin-bottom: 5px;">Current Invoice Total</div>
+                <div style="font-size: 24px; font-weight: 700; color: #b45309;">₹<span id="modalInvoiceTotal">0</span></div>
+            </div>
+            
+            <div class="form-group">
+                <label class="field-label" style="font-weight: 600; margin-bottom: 8px; display: block;">Enter Points to Redeem</label>
+                <input type="number" id="pointsToRedeem" class="form-control" min="0" step="1" placeholder="Enter points" 
+                       oninput="updateRedemptionPreview()" 
+                       style="font-size: 18px; padding: 12px; text-align: center;">
+                <small class="help-text" style="margin-top: 8px; display: block; text-align: center;" id="redemptionHint">
+                    Enter points to see discount preview
+                </small>
+            </div>
+            
+            <div id="redemptionPreview" style="display: none; background: #ecfdf5; padding: 15px; border-radius: 8px; margin-top: 15px; text-align: center;">
+                <div style="font-size: 14px; color: #059669; margin-bottom: 5px;">Discount to be applied:</div>
+                <div style="font-size: 28px; font-weight: 700; color: #10b981;">₹<span id="discountPreview">0</span></div>
+                <div style="font-size: 13px; color: #059669; margin-top: 5px;">New invoice total: ₹<span id="newTotalPreview">0</span></div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" onclick="closeRedeemModal()" class="btn btn-secondary">Cancel</button>
+            <button type="button" onclick="applyLoyaltyDiscount()" class="btn btn-success" id="applyRedemptionBtn">Apply Discount</button>
+        </div>
+    </div>
+</div>
+
+<script>
+// ========================================
+// LOYALTY PROGRAM FUNCTIONS
+// ========================================
+
+let loyaltySettings = null;
+let customerLoyaltyData = null;
+
+// Fetch loyalty settings on page load
+window.addEventListener('DOMContentLoaded', function() {
+    fetchLoyaltySettings();
+});
+
+function fetchLoyaltySettings() {
+    fetch('/api/loyalty/settings')
+        .then(response => response.json())
+        .then(data => {
+            if (data.enabled) {
+                loyaltySettings = data;
+                console.log('✅ Loyalty program enabled:', data);
+            } else {
+                console.log('ℹ️ Loyalty program not enabled for this tenant');
+            }
+        })
+        .catch(error => {
+            console.error('Error fetching loyalty settings:', error);
+        });
+}
+
+// Fetch customer loyalty balance when customer is selected
+function fetchCustomerLoyalty(customerId) {
+    if (!customerId || !loyaltySettings) {
+        document.getElementById('loyaltySection').style.display = 'none';
+        customerLoyaltyData = null;
+        return;
+    }
+    
+    fetch(`/api/loyalty/customer/${customerId}/balance`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.points !== undefined) {
+                customerLoyaltyData = data;
+                updateLoyaltyDisplay();
+                document.getElementById('loyaltySection').style.display = 'block';
+                calculatePointsPreview(); // Calculate points for current invoice
+            } else {
+                document.getElementById('loyaltySection').style.display = 'none';
+            }
+        })
+        .catch(error => {
+            console.error('Error fetching customer loyalty:', error);
+            document.getElementById('loyaltySection').style.display = 'none';
+        });
+}
+
+function updateLoyaltyDisplay() {
+    if (!customerLoyaltyData) return;
+    
+    const pointsValue = (customerLoyaltyData.points * loyaltySettings.redemption_value).toFixed(2);
+    
+    document.getElementById('loyaltyPoints').textContent = customerLoyaltyData.points;
+    document.getElementById('loyaltyValue').textContent = pointsValue;
+}
+
+function calculatePointsPreview() {
+    if (!loyaltySettings || !customerLoyaltyData) return;
+    
+    // Get current invoice total (before loyalty discount)
+    const totalText = document.getElementById('totalDisplay').textContent;
+    const invoiceTotal = parseFloat(totalText.replace('₹', '').replace(/,/g, '')) || 0;
+    
+    if (invoiceTotal <= 0) {
+        document.getElementById('pointsPreview').style.display = 'none';
+        return;
+    }
+    
+    // Calculate base points
+    const basePoints = Math.floor((invoiceTotal / loyaltySettings.points_earning_per_amount) * loyaltySettings.points_earning_rate);
+    
+    // Apply threshold bonuses (from settings)
+    let bonusPoints = 0;
+    if (loyaltySettings.threshold_bonuses && loyaltySettings.threshold_bonuses.length > 0) {
+        // Find highest applicable threshold
+        const applicableThresholds = loyaltySettings.threshold_bonuses
+            .filter(t => invoiceTotal >= t.invoice_amount)
+            .sort((a, b) => b.invoice_amount - a.invoice_amount);
+        
+        if (applicableThresholds.length > 0) {
+            bonusPoints = applicableThresholds[0].bonus_points;
+        }
+    }
+    
+    const totalPoints = basePoints + bonusPoints;
+    
+    // Cap if max earning per invoice is set
+    const maxEarning = loyaltySettings.max_earning_per_invoice || 0;
+    const finalPoints = (maxEarning > 0 && totalPoints > maxEarning) ? maxEarning : totalPoints;
+    
+    // Update display
+    document.getElementById('basePointsPreview').textContent = basePoints;
+    if (bonusPoints > 0) {
+        document.getElementById('bonusPoints').textContent = bonusPoints;
+        document.getElementById('bonusPointsPreview').style.display = 'inline';
+    } else {
+        document.getElementById('bonusPointsPreview').style.display = 'none';
+    }
+    document.getElementById('totalPointsPreview').textContent = finalPoints;
+    document.getElementById('newBalancePreview').textContent = customerLoyaltyData.points + finalPoints;
+    
+    // Show preview
+    document.getElementById('pointsPreview').style.display = 'flex';
+}
+
+// Open redemption modal
+function openRedeemModal() {
+    if (!customerLoyaltyData || customerLoyaltyData.points <= 0) {
+        alert('Customer has no points to redeem');
+        return;
+    }
+    
+    // Get current invoice total
+    const totalText = document.getElementById('totalDisplay').textContent;
+    const invoiceTotal = parseFloat(totalText.replace('₹', '').replace(/,/g, '')) || 0;
+    
+    if (invoiceTotal <= 0) {
+        alert('Please add items to invoice first');
+        return;
+    }
+    
+    // Update modal values
+    document.getElementById('modalAvailablePoints').textContent = customerLoyaltyData.points;
+    document.getElementById('modalAvailableValue').textContent = (customerLoyaltyData.points * loyaltySettings.redemption_value).toFixed(2);
+    document.getElementById('modalInvoiceTotal').textContent = invoiceTotal.toFixed(2);
+    document.getElementById('pointsToRedeem').value = '';
+    document.getElementById('redemptionPreview').style.display = 'none';
+    document.getElementById('redemptionHint').textContent = 'Enter points to see discount preview';
+    
+    // Set max points (considering max redemption percentage)
+    const maxRedemptionPercent = loyaltySettings.max_redemption_percentage || 100;
+    const maxDiscountFromPercent = (invoiceTotal * maxRedemptionPercent) / 100;
+    const maxPointsFromPercent = Math.floor(maxDiscountFromPercent / loyaltySettings.redemption_value);
+    const maxPoints = Math.min(customerLoyaltyData.points, maxPointsFromPercent);
+    
+    document.getElementById('pointsToRedeem').max = maxPoints;
+    document.getElementById('redemptionHint').textContent = `Maximum redeemable: ${maxPoints} pts`;
+    
+    // Show modal
+    document.getElementById('redeemModal').style.display = 'flex';
+}
+
+function closeRedeemModal() {
+    document.getElementById('redeemModal').style.display = 'none';
+}
+
+function updateRedemptionPreview() {
+    const pointsToRedeem = parseInt(document.getElementById('pointsToRedeem').value) || 0;
+    const maxPoints = parseInt(document.getElementById('pointsToRedeem').max) || 0;
+    
+    if (pointsToRedeem <= 0) {
+        document.getElementById('redemptionPreview').style.display = 'none';
+        document.getElementById('redemptionHint').textContent = `Maximum redeemable: ${maxPoints} pts`;
+        return;
+    }
+    
+    if (pointsToRedeem > maxPoints) {
+        document.getElementById('redemptionPreview').style.display = 'none';
+        document.getElementById('redemptionHint').innerHTML = `<span style="color: #dc2626;">⚠️ Cannot redeem more than ${maxPoints} pts</span>`;
+        return;
+    }
+    
+    if (pointsToRedeem < loyaltySettings.min_redemption_points) {
+        document.getElementById('redemptionPreview').style.display = 'none';
+        document.getElementById('redemptionHint').innerHTML = `<span style="color: #dc2626;">⚠️ Minimum ${loyaltySettings.min_redemption_points} pts required</span>`;
+        return;
+    }
+    
+    // Calculate discount
+    const discount = pointsToRedeem * loyaltySettings.redemption_value;
+    const currentTotal = parseFloat(document.getElementById('modalInvoiceTotal').textContent);
+    const newTotal = Math.max(0, currentTotal - discount);
+    
+    // Update preview
+    document.getElementById('discountPreview').textContent = discount.toFixed(2);
+    document.getElementById('newTotalPreview').textContent = newTotal.toFixed(2);
+    document.getElementById('redemptionPreview').style.display = 'block';
+    document.getElementById('redemptionHint').textContent = `Redeeming ${pointsToRedeem} pts`;
+}
+
+function applyLoyaltyDiscount() {
+    const pointsToRedeem = parseInt(document.getElementById('pointsToRedeem').value) || 0;
+    const maxPoints = parseInt(document.getElementById('pointsToRedeem').max) || 0;
+    
+    // Validation
+    if (pointsToRedeem <= 0) {
+        alert('Please enter points to redeem');
+        return;
+    }
+    
+    if (pointsToRedeem > maxPoints) {
+        alert(`Cannot redeem more than ${maxPoints} points`);
+        return;
+    }
+    
+    if (pointsToRedeem < loyaltySettings.min_redemption_points) {
+        alert(`Minimum ${loyaltySettings.min_redemption_points} points required for redemption`);
+        return;
+    }
+    
+    // Calculate discount
+    const discount = pointsToRedeem * loyaltySettings.redemption_value;
+    
+    // Update hidden inputs
+    document.getElementById('loyalty_points_redeemed').value = pointsToRedeem;
+    document.getElementById('loyalty_discount').value = discount.toFixed(2);
+    
+    // Update redeemed display
+    document.getElementById('redeemedPoints').textContent = pointsToRedeem;
+    document.getElementById('redeemedValue').textContent = discount.toFixed(2);
+    document.getElementById('loyaltyRedeemed').style.display = 'block';
+    
+    // Show loyalty discount row in invoice
+    document.getElementById('loyaltyDiscountRow').style.display = '';
+    document.getElementById('loyaltyDiscountDisplay').textContent = `-₹${discount.toFixed(2)}`;
+    
+    // Update customer display (deduct points temporarily)
+    customerLoyaltyData.points -= pointsToRedeem;
+    updateLoyaltyDisplay();
+    
+    // Recalculate total (loyalty discount applied after manual discount and before GST)
+    calculateTotalWithLoyalty();
+    
+    // Close modal
+    closeRedeemModal();
+}
+
+function removeLoyaltyDiscount() {
+    const pointsRedeemed = parseInt(document.getElementById('loyalty_points_redeemed').value) || 0;
+    
+    // Reset hidden inputs
+    document.getElementById('loyalty_points_redeemed').value = '0';
+    document.getElementById('loyalty_discount').value = '0';
+    
+    // Hide redeemed display
+    document.getElementById('loyaltyRedeemed').style.display = 'none';
+    
+    // Hide loyalty discount row
+    document.getElementById('loyaltyDiscountRow').style.display = 'none';
+    
+    // Restore customer points
+    customerLoyaltyData.points += pointsRedeemed;
+    updateLoyaltyDisplay();
+    
+    // Recalculate total
+    calculateTotal();
+    calculatePointsPreview();
+}
+
+function calculateTotalWithLoyalty() {
+    // First calculate normal total
+    calculateTotal();
+    
+    // Then subtract loyalty discount from gross total
+    const loyaltyDiscount = parseFloat(document.getElementById('loyalty_discount').value) || 0;
+    
+    if (loyaltyDiscount > 0) {
+        const currentGrossTotal = parseFloat(document.getElementById('grossTotalDisplay').textContent.replace('₹', '').replace(/,/g, '')) || 0;
+        const newGrossTotal = currentGrossTotal - loyaltyDiscount;
+        const roundedTotal = Math.round(newGrossTotal);
+        const roundOff = roundedTotal - newGrossTotal;
+        
+        // Update displays
+        document.getElementById('grossTotalDisplay').textContent = `₹${newGrossTotal.toFixed(2)}`;
+        document.getElementById('roundOffDisplay').textContent = roundOff >= 0 ? `₹${roundOff.toFixed(2)}` : `-₹${Math.abs(roundOff).toFixed(2)}`;
+        document.getElementById('totalDisplay').textContent = `₹${roundedTotal.toFixed(2)}`;
+    }
+    
+    // Recalculate points preview (loyalty discount affects points earned)
+    calculatePointsPreview();
+}
+
+// Hook into customer selection
+const originalSelectCustomer = selectCustomerFromDropdown;
+selectCustomerFromDropdown = function(customerId, customerName, customerPhone, customerEmail, customerGstin, customerAddress, customerState) {
+    // Call original function
+    originalSelectCustomer(customerId, customerName, customerPhone, customerEmail, customerGstin, customerAddress, customerState);
+    
+    // Fetch loyalty data
+    fetchCustomerLoyalty(customerId);
+};
+
+// Also hook into calculate total to update points preview
+const originalCalculateTotal = calculateTotal;
+calculateTotal = function() {
+    originalCalculateTotal();
+    
+    // If loyalty discount is applied, recalculate with loyalty
+    const loyaltyDiscount = parseFloat(document.getElementById('loyalty_discount').value) || 0;
+    if (loyaltyDiscount > 0) {
+        calculateTotalWithLoyalty();
+    } else {
+        calculatePointsPreview();
+    }
+};
+</script>
 
 {% endblock %}
 

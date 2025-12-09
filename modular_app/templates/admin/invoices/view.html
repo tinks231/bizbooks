@@ -598,6 +598,9 @@ h1, h2, h3, h4 {
             {% if invoice.discount_amount and invoice.discount_amount > 0 %}
             <tr><td colspan="8" class="text-right"><strong>Discount</strong></td><td class="text-right" style="color:#e74c3c;">-₹{{ "%.2f"|format(invoice.discount_amount) }}</td></tr>
             {% endif %}
+            {% if invoice.loyalty_discount and invoice.loyalty_discount > 0 %}
+            <tr><td colspan="8" class="text-right" style="color:#10b981; font-weight: 600;"><strong>💰 Loyalty Discount</strong></td><td class="text-right" style="color:#10b981; font-weight: 600;">-₹{{ "%.2f"|format(invoice.loyalty_discount) }}</td></tr>
+            {% endif %}
             {% if invoice.cgst_amount > 0 %}
             <tr><td colspan="8" class="text-right">CGST</td><td class="text-right">₹{{ "%.2f"|format(invoice.cgst_amount) }}</td></tr>
             <tr><td colspan="8" class="text-right">SGST</td><td class="text-right">₹{{ "%.2f"|format(invoice.sgst_amount) }}</td></tr>
@@ -641,6 +644,10 @@ h1, h2, h3, h4 {
     <div class="footer">
         Thank you for your business!<br>
         <small>This is a computer-generated invoice.</small>
+        {% if loyalty_footer_note %}
+        <br><br>
+        <small style="color: #10b981; font-size: 11px;">{{ loyalty_footer_note }}</small>
+        {% endif %}
     </div>
 </div>
 
