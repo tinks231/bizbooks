@@ -828,6 +828,25 @@
                 </div>
             </div>
             
+            <!-- LOYALTY PROGRAM Section (Collapsible) -->
+            <div class="nav-section-collapsible">
+                <div class="nav-section-header">
+                    <div class="nav-section-label">
+                        <span class="nav-section-icon">🎁</span>
+                        <span>Loyalty Program</span>
+                    </div>
+                    <span class="nav-section-arrow">▶</span>
+                </div>
+                <div class="nav-section-content">
+                    <a href="{{ url_for('loyalty.settings') }}" class="nav-item {% if '/admin/loyalty/settings' in request.path %}active{% endif %}">
+                        <i>⚙️</i> Settings
+                    </a>
+                    <a href="{{ url_for('loyalty.reports') }}" class="nav-item {% if '/admin/loyalty/reports' in request.path %}active{% endif %}">
+                        <i>📊</i> Reports & Analytics
+                    </a>
+                </div>
+            </div>
+            
             <!-- PURCHASE & EXPENSES Section (Collapsible) -->
             <div class="nav-section-collapsible">
                 <div class="nav-section-header" onclick="toggleSection('purchase')">

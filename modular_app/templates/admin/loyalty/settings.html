@@ -1,0 +1,609 @@
+{% extends "base_sidebar.html" %}
+
+{% block title %}Loyalty Program Settings - {{ g.tenant.business_name }}{% endblock %}
+
+{% block content %}
+<div class="content-header">
+    <div class="header-left">
+        <h1>🎁 Loyalty Program Settings</h1>
+        <p>Configure your customer loyalty & rewards program</p>
+    </div>
+    <div class="header-right">
+        <a href="{{ url_for('loyalty.reports') }}" class="btn btn-secondary">
+            📊 View Reports
+        </a>
+    </div>
+</div>
+
+<form method="POST" action="{{ url_for('loyalty.update_settings') }}" class="loyalty-settings-form">
+    
+    <!-- Program Status Card -->
+    <div class="settings-card {% if program.is_active %}active{% endif %}">
+        <div class="card-header">
+            <h2>Program Status</h2>
+            <div class="toggle-switch">
+                <input type="checkbox" id="is_active" name="is_active" 
+                       {% if program.is_active %}checked{% endif %}>
+                <label for="is_active" class="toggle-label">
+                    <span class="toggle-inner"></span>
+                    <span class="toggle-switch-btn"></span>
+                </label>
+                <span class="toggle-status">
+                    {% if program.is_active %}
+                        <span class="status-active">🟢 Active</span>
+                    {% else %}
+                        <span class="status-inactive">🔴 Inactive</span>
+                    {% endif %}
+                </span>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="form-group">
+                <label>Program Name</label>
+                <input type="text" name="program_name" 
+                       value="{{ program.program_name }}" 
+                       placeholder="e.g., Loyalty Rewards Program">
+            </div>
+        </div>
+    </div>
+
+    <!-- Earning Rules Card -->
+    <div class="settings-card">
+        <div class="card-header">
+            <h2>💰 Earning Rules</h2>
+            <p>How customers earn points</p>
+        </div>
+        <div class="card-body">
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Points per ₹100 spent <span class="required">*</span></label>
+                    <input type="number" step="0.01" name="points_per_100_rupees" 
+                           value="{{ program.points_per_100_rupees }}" 
+                           required min="0.01">
+                    <small>e.g., 1 = slow growth, 10 = fast growth</small>
+                </div>
+                <div class="form-group">
+                    <label>Minimum Purchase (optional)</label>
+                    <input type="number" step="0.01" name="minimum_purchase_for_points" 
+                           value="{{ program.minimum_purchase_for_points }}">
+                    <small>₹0 = earn on all purchases</small>
+                </div>
+                <div class="form-group">
+                    <label>Max Points per Invoice (optional)</label>
+                    <input type="number" name="maximum_points_per_invoice" 
+                           value="{{ program.maximum_points_per_invoice or '' }}"
+                           placeholder="No limit">
+                    <small>Prevent gaming the system</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Threshold Bonuses Card -->
+    <div class="settings-card">
+        <div class="card-header">
+            <h2>🎉 Threshold Bonuses</h2>
+            <p>Bonus points when invoice exceeds certain amounts</p>
+            <div class="toggle-switch">
+                <input type="checkbox" id="enable_threshold_bonuses" 
+                       name="enable_threshold_bonuses"
+                       {% if program.enable_threshold_bonuses %}checked{% endif %}>
+                <label for="enable_threshold_bonuses" class="toggle-label">
+                    <span class="toggle-inner"></span>
+                    <span class="toggle-switch-btn"></span>
+                </label>
+            </div>
+        </div>
+        <div class="card-body threshold-bonuses" 
+             {% if not program.enable_threshold_bonuses %}style="display:none"{% endif %}>
+            
+            <div class="threshold-row">
+                <div class="threshold-number">1</div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>If invoice ≥</label>
+                        <div class="input-with-prefix">
+                            <span class="prefix">₹</span>
+                            <input type="number" step="0.01" name="threshold_1_amount" 
+                                   value="{{ program.threshold_1_amount or 5000 }}">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Give bonus</label>
+                        <div class="input-with-suffix">
+                            <input type="number" name="threshold_1_bonus_points" 
+                                   value="{{ program.threshold_1_bonus_points or 50 }}">
+                            <span class="suffix">pts</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="threshold-row">
+                <div class="threshold-number">2</div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>If invoice ≥</label>
+                        <div class="input-with-prefix">
+                            <span class="prefix">₹</span>
+                            <input type="number" step="0.01" name="threshold_2_amount" 
+                                   value="{{ program.threshold_2_amount or 10000 }}">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Give bonus</label>
+                        <div class="input-with-suffix">
+                            <input type="number" name="threshold_2_bonus_points" 
+                                   value="{{ program.threshold_2_bonus_points or 200 }}">
+                            <span class="suffix">pts</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="threshold-row">
+                <div class="threshold-number">3</div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>If invoice ≥</label>
+                        <div class="input-with-prefix">
+                            <span class="prefix">₹</span>
+                            <input type="number" step="0.01" name="threshold_3_amount" 
+                                   value="{{ program.threshold_3_amount or '' }}"
+                                   placeholder="Optional">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Give bonus</label>
+                        <div class="input-with-suffix">
+                            <input type="number" name="threshold_3_bonus_points" 
+                                   value="{{ program.threshold_3_bonus_points or '' }}"
+                                   placeholder="Optional">
+                            <span class="suffix">pts</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="info-box">
+                <strong>ℹ️ Note:</strong> Only the highest threshold bonus is awarded per invoice.
+                <br>Example: ₹12,000 invoice gets +200 pts (not +50 and +200)
+            </div>
+        </div>
+    </div>
+
+    <!-- Redemption Rules Card -->
+    <div class="settings-card">
+        <div class="card-header">
+            <h2>💳 Redemption Rules</h2>
+            <p>How customers redeem points for discounts</p>
+        </div>
+        <div class="card-body">
+            <div class="form-row">
+                <div class="form-group">
+                    <label>1 point = <span class="required">*</span></label>
+                    <div class="input-with-prefix">
+                        <span class="prefix">₹</span>
+                        <input type="number" step="0.01" name="points_to_rupees_ratio" 
+                               value="{{ program.points_to_rupees_ratio }}" 
+                               required min="0.01">
+                    </div>
+                    <small>Redemption value per point</small>
+                </div>
+                <div class="form-group">
+                    <label>Minimum Points to Redeem <span class="required">*</span></label>
+                    <input type="number" name="minimum_points_to_redeem" 
+                           value="{{ program.minimum_points_to_redeem }}" 
+                           required min="1">
+                    <small>Prevents tiny redemptions</small>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Max Discount % (optional)</label>
+                    <div class="input-with-suffix">
+                        <input type="number" step="0.01" name="maximum_discount_percent" 
+                               value="{{ program.maximum_discount_percent or '' }}"
+                               placeholder="No limit">
+                        <span class="suffix">%</span>
+                    </div>
+                    <small>Protect your margins</small>
+                </div>
+                <div class="form-group">
+                    <label>Max Points per Redemption (optional)</label>
+                    <input type="number" name="maximum_points_per_redemption" 
+                           value="{{ program.maximum_points_per_redemption or '' }}"
+                           placeholder="No limit">
+                    <small>Cap redemption amount</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Display Options Card -->
+    <div class="settings-card">
+        <div class="card-header">
+            <h2>🖨️ Invoice Display</h2>
+            <p>What customers see on printed invoice</p>
+        </div>
+        <div class="card-body">
+            <div class="form-group">
+                <div class="checkbox-group">
+                    <input type="checkbox" id="show_points_on_invoice" 
+                           name="show_points_on_invoice"
+                           {% if program.show_points_on_invoice %}checked{% endif %}>
+                    <label for="show_points_on_invoice">
+                        Show points balance on invoice footer
+                    </label>
+                </div>
+            </div>
+            <div class="form-group" id="footer_text_group" 
+                 {% if not program.show_points_on_invoice %}style="display:none"{% endif %}>
+                <label>Footer Text</label>
+                <input type="text" name="invoice_footer_text" 
+                       value="{{ program.invoice_footer_text }}"
+                       placeholder="Points Balance: {balance} pts | Next visit: ₹{value} off!">
+                <small>Use {balance} for points, {value} for rupees value</small>
+            </div>
+        </div>
+    </div>
+
+    <!-- Example Preview Card -->
+    <div class="settings-card preview-card">
+        <div class="card-header">
+            <h2>📊 Example Preview</h2>
+            <p>How it works with current settings</p>
+        </div>
+        <div class="card-body">
+            <div class="example-box">
+                <h3>Customer Journey Example:</h3>
+                <div class="journey-step">
+                    <strong>Purchase 1:</strong> ₹2,500
+                    <ul>
+                        <li>Base points: <span id="preview_base_1">25</span> pts (₹2,500 ÷ 100 × <span class="preview-rate">1</span>)</li>
+                        <li>Bonus: <span id="preview_bonus_1">0</span> pts</li>
+                        <li>Total earned: <span id="preview_total_1">25</span> pts</li>
+                    </ul>
+                </div>
+                <div class="journey-step">
+                    <strong>Purchase 2:</strong> ₹7,500
+                    <ul>
+                        <li>Base points: <span id="preview_base_2">75</span> pts</li>
+                        <li>Bonus: <span id="preview_bonus_2">+50</span> pts (≥ ₹<span class="preview-threshold-1">5,000</span>)</li>
+                        <li>Total earned: <span id="preview_total_2">125</span> pts</li>
+                    </ul>
+                </div>
+                <div class="journey-step">
+                    <strong>Total Balance:</strong> <span id="preview_balance">150</span> pts 
+                    = ₹<span id="preview_value">150</span> discount available
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="form-actions">
+        <button type="submit" class="btn btn-primary btn-large">
+            💾 Save Settings
+        </button>
+        <a href="{{ url_for('admin.dashboard') }}" class="btn btn-secondary">
+            Cancel
+        </a>
+    </div>
+</form>
+
+<style>
+.loyalty-settings-form {
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.settings-card {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    margin-bottom: 24px;
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.settings-card.active {
+    border: 2px solid #10b981;
+}
+
+.card-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.card-header h2 {
+    margin: 0;
+    font-size: 20px;
+}
+
+.card-header p {
+    margin: 4px 0 0 0;
+    opacity: 0.9;
+    font-size: 14px;
+}
+
+.card-body {
+    padding: 24px;
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+    margin-bottom: 20px;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+}
+
+.form-group label {
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: #374151;
+}
+
+.form-group input[type="text"],
+.form-group input[type="number"] {
+    padding: 10px;
+    border: 2px solid #e5e7eb;
+    border-radius: 6px;
+    font-size: 14px;
+    transition: border-color 0.2s;
+}
+
+.form-group input:focus {
+    outline: none;
+    border-color: #667eea;
+}
+
+.form-group small {
+    margin-top: 4px;
+    color: #6b7280;
+    font-size: 12px;
+}
+
+.required {
+    color: #ef4444;
+}
+
+/* Toggle Switch */
+.toggle-switch {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.toggle-switch input[type="checkbox"] {
+    display: none;
+}
+
+.toggle-label {
+    position: relative;
+    display: inline-block;
+    width: 52px;
+    height: 28px;
+    background-color: #cbd5e0;
+    border-radius: 28px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.toggle-inner {
+    display: none;
+}
+
+.toggle-switch-btn {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 24px;
+    height: 24px;
+    background: white;
+    border-radius: 50%;
+    transition: transform 0.3s;
+}
+
+input[type="checkbox"]:checked + .toggle-label {
+    background-color: #10b981;
+}
+
+input[type="checkbox"]:checked + .toggle-label .toggle-switch-btn {
+    transform: translateX(24px);
+}
+
+.status-active {
+    color: #10b981;
+    font-weight: 600;
+}
+
+.status-inactive {
+    color: #ef4444;
+    font-weight: 600;
+}
+
+/* Input with prefix/suffix */
+.input-with-prefix,
+.input-with-suffix {
+    display: flex;
+    align-items: center;
+    border: 2px solid #e5e7eb;
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+.input-with-prefix input,
+.input-with-suffix input {
+    border: none !important;
+    flex: 1;
+}
+
+.prefix,
+.suffix {
+    padding: 10px;
+    background: #f3f4f6;
+    color: #6b7280;
+    font-weight: 600;
+}
+
+/* Threshold Bonuses */
+.threshold-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 16px;
+    padding: 16px;
+    background: #f9fafb;
+    border-radius: 8px;
+}
+
+.threshold-number {
+    width: 32px;
+    height: 32px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    flex-shrink: 0;
+}
+
+.info-box {
+    background: #eff6ff;
+    border-left: 4px solid #3b82f6;
+    padding: 12px;
+    border-radius: 4px;
+    margin-top: 16px;
+}
+
+.checkbox-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.checkbox-group input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+}
+
+/* Preview Card */
+.preview-card .card-header {
+    background: linear-gradient(135deg, #f59e0b 0%, #ea580c 100%);
+}
+
+.example-box {
+    background: #fffbeb;
+    padding: 20px;
+    border-radius: 8px;
+    border: 2px solid #fcd34d;
+}
+
+.journey-step {
+    margin-bottom: 16px;
+    padding-bottom: 16px;
+    border-bottom: 1px dashed #fbbf24;
+}
+
+.journey-step:last-child {
+    border-bottom: none;
+    font-size: 18px;
+    color: #059669;
+    font-weight: 600;
+}
+
+.journey-step ul {
+    margin: 8px 0 0 0;
+    padding-left: 20px;
+}
+
+.journey-step li {
+    margin: 4px 0;
+}
+
+/* Action Buttons */
+.form-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    padding: 24px;
+}
+
+.btn-large {
+    padding: 14px 32px;
+    font-size: 16px;
+    font-weight: 600;
+}
+</style>
+
+<script>
+// Toggle threshold bonuses visibility
+document.getElementById('enable_threshold_bonuses').addEventListener('change', function() {
+    document.querySelector('.threshold-bonuses').style.display = this.checked ? 'block' : 'none';
+});
+
+// Toggle invoice footer text visibility
+document.getElementById('show_points_on_invoice').addEventListener('change', function() {
+    document.getElementById('footer_text_group').style.display = this.checked ? 'block' : 'none';
+});
+
+// Live preview update
+function updatePreview() {
+    const rate = parseFloat(document.querySelector('[name="points_per_100_rupees"]').value) || 1;
+    const threshold1 = parseFloat(document.querySelector('[name="threshold_1_amount"]').value) || 5000;
+    const bonus1 = parseInt(document.querySelector('[name="threshold_1_bonus_points"]').value) || 50;
+    const threshold2 = parseFloat(document.querySelector('[name="threshold_2_amount"]').value) || 10000;
+    const bonus2 = parseInt(document.querySelector('[name="threshold_2_bonus_points"]').value) || 200;
+    const ratio = parseFloat(document.querySelector('[name="points_to_rupees_ratio"]').value) || 1;
+    
+    // Purchase 1: ₹2,500
+    const base1 = Math.floor((2500 / 100) * rate);
+    const bonus_1 = 0; // Below threshold
+    const total1 = base1 + bonus_1;
+    
+    // Purchase 2: ₹7,500
+    const base2 = Math.floor((7500 / 100) * rate);
+    const bonus_2 = 7500 >= threshold1 ? bonus1 : 0;
+    const total2 = base2 + bonus_2;
+    
+    // Update preview
+    document.querySelector('.preview-rate').textContent = rate;
+    document.getElementById('preview_base_1').textContent = base1;
+    document.getElementById('preview_bonus_1').textContent = bonus_1;
+    document.getElementById('preview_total_1').textContent = total1;
+    
+    document.getElementById('preview_base_2').textContent = base2;
+    document.getElementById('preview_bonus_2').textContent = '+' + bonus_2;
+    document.getElementById('preview_total_2').textContent = total2;
+    
+    document.querySelector('.preview-threshold-1').textContent = threshold1.toLocaleString('en-IN');
+    
+    const totalBalance = total1 + total2;
+    const totalValue = totalBalance * ratio;
+    document.getElementById('preview_balance').textContent = totalBalance;
+    document.getElementById('preview_value').textContent = totalValue.toFixed(2);
+}
+
+// Update preview on input change
+document.querySelectorAll('input[type="number"]').forEach(input => {
+    input.addEventListener('input', updatePreview);
+});
+
+// Initial preview
+updatePreview();
+</script>
+{% endblock %}
+

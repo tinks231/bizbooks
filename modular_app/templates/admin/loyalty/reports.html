@@ -1,0 +1,382 @@
+{% extends "base_sidebar.html" %}
+
+{% block title %}Loyalty Program Reports - {{ g.tenant.business_name }}{% endblock %}
+
+{% block content %}
+<div class="content-header">
+    <div class="header-left">
+        <h1>📊 Loyalty Program Reports</h1>
+        <p>Analytics and insights for your loyalty program</p>
+    </div>
+    <div class="header-right">
+        <a href="{{ url_for('loyalty.settings') }}" class="btn btn-secondary">
+            ⚙️ Settings
+        </a>
+    </div>
+</div>
+
+{% if not stats or not stats.is_active %}
+<div class="alert alert-warning">
+    ⚠️ Loyalty program is not active. <a href="{{ url_for('loyalty.settings') }}">Enable it in settings</a>
+</div>
+{% else %}
+
+<!-- Overview Stats -->
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-icon">👥</div>
+        <div class="stat-content">
+            <div class="stat-value">{{ stats.total_members }}</div>
+            <div class="stat-label">Total Members</div>
+        </div>
+    </div>
+    
+    <div class="stat-card active">
+        <div class="stat-icon">🔥</div>
+        <div class="stat-content">
+            <div class="stat-value">{{ stats.active_members }}</div>
+            <div class="stat-label">Active Members</div>
+            <div class="stat-sublabel">Last 90 days</div>
+        </div>
+    </div>
+    
+    <div class="stat-card">
+        <div class="stat-icon">🎁</div>
+        <div class="stat-content">
+            <div class="stat-value">{{ "{:,}".format(stats.total_points_issued) }}</div>
+            <div class="stat-label">Points Issued</div>
+        </div>
+    </div>
+    
+    <div class="stat-card">
+        <div class="stat-icon">💰</div>
+        <div class="stat-content">
+            <div class="stat-value">{{ "{:,}".format(stats.total_points_redeemed) }}</div>
+            <div class="stat-label">Points Redeemed</div>
+        </div>
+    </div>
+    
+    <div class="stat-card">
+        <div class="stat-icon">💎</div>
+        <div class="stat-content">
+            <div class="stat-value">{{ "{:,}".format(stats.outstanding_points) }}</div>
+            <div class="stat-label">Outstanding Points</div>
+            <div class="stat-sublabel">Available to redeem</div>
+        </div>
+    </div>
+    
+    <div class="stat-card">
+        <div class="stat-icon">📈</div>
+        <div class="stat-content">
+            <div class="stat-value">{{ stats.redemption_rate }}%</div>
+            <div class="stat-label">Redemption Rate</div>
+        </div>
+    </div>
+</div>
+
+<!-- Top Customers -->
+<div class="report-card">
+    <div class="card-header">
+        <h2>🏆 Top 10 Customers by Points</h2>
+    </div>
+    <div class="card-body">
+        {% if top_customers %}
+        <div class="table-responsive">
+            <table class="customers-table">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Customer</th>
+                        <th>Phone</th>
+                        <th>Current Points</th>
+                        <th>Lifetime Earned</th>
+                        <th>Lifetime Redeemed</th>
+                        <th>Last Activity</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in top_customers %}
+                    <tr>
+                        <td>{{ loop.index }}</td>
+                        <td>
+                            <strong>{{ item.customer.name }}</strong>
+                            {% if item.customer.customer_code %}
+                            <br><small class="text-muted">{{ item.customer.customer_code }}</small>
+                            {% endif %}
+                        </td>
+                        <td>{{ item.customer.phone or '-' }}</td>
+                        <td>
+                            <span class="badge badge-success">
+                                {{ item.loyalty.current_points }} pts
+                            </span>
+                        </td>
+                        <td>{{ item.loyalty.lifetime_earned_points }} pts</td>
+                        <td>{{ item.loyalty.lifetime_redeemed_points }} pts</td>
+                        <td>
+                            {% if item.loyalty.last_earned_at %}
+                            {{ item.loyalty.last_earned_at.strftime('%d %b %Y') }}
+                            {% else %}
+                            -
+                            {% endif %}
+                        </td>
+                        <td>
+                            <a href="{{ url_for('customers.view', customer_id=item.customer.id) }}" 
+                               class="btn btn-sm btn-secondary">
+                                View
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <p>No loyalty members yet. Points will appear here once customers start earning!</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Insights -->
+<div class="insights-grid">
+    <div class="insight-card">
+        <h3>💡 Insights</h3>
+        <ul>
+            {% if stats.redemption_rate < 30 %}
+            <li class="insight-warning">
+                <strong>Low Redemption Rate:</strong> Only {{ stats.redemption_rate }}% of points redeemed. 
+                Consider reminding customers about their points!
+            </li>
+            {% elif stats.redemption_rate > 70 %}
+            <li class="insight-success">
+                <strong>High Engagement:</strong> {{ stats.redemption_rate }}% redemption rate shows customers love your loyalty program! 🎉
+            </li>
+            {% endif %}
+            
+            {% if stats.outstanding_points > stats.total_points_issued * 0.5 %}
+            <li class="insight-info">
+                <strong>High Outstanding Points:</strong> {{ "{:,}".format(stats.outstanding_points) }} points available. 
+                This is liability on your books - encourage redemption!
+            </li>
+            {% endif %}
+            
+            {% if stats.active_members < stats.total_members * 0.3 %}
+            <li class="insight-warning">
+                <strong>Low Active Members:</strong> Only {{ stats.active_members }} out of {{ stats.total_members }} members active. 
+                Run a campaign to re-engage!
+            </li>
+            {% endif %}
+            
+            <li class="insight-success">
+                <strong>Program Value:</strong> You've rewarded customers with 
+                ₹{{ "{:,}".format((stats.total_points_redeemed * program.points_to_rupees_ratio)|int) }} 
+                in discounts!
+            </li>
+        </ul>
+    </div>
+    
+    <div class="insight-card">
+        <h3>📈 Recommendations</h3>
+        <ul>
+            <li>Send SMS/Email to customers with pending points</li>
+            <li>Create threshold bonuses for festivals (Diwali, Christmas)</li>
+            <li>Reward your top 10 customers with bonus points</li>
+            <li>Add birthday/anniversary bonuses in Phase 2</li>
+            <li>Consider tiered membership for VIP customers</li>
+        </ul>
+    </div>
+</div>
+
+{% endif %}
+
+<style>
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+.stat-card {
+    background: white;
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    transition: transform 0.2s;
+}
+
+.stat-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.stat-card.active {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: white;
+}
+
+.stat-icon {
+    font-size: 48px;
+}
+
+.stat-content {
+    flex: 1;
+}
+
+.stat-value {
+    font-size: 32px;
+    font-weight: 700;
+    line-height: 1;
+}
+
+.stat-label {
+    font-size: 14px;
+    margin-top: 4px;
+    opacity: 0.8;
+}
+
+.stat-sublabel {
+    font-size: 12px;
+    margin-top: 2px;
+    opacity: 0.6;
+}
+
+.report-card {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    margin-bottom: 24px;
+    overflow: hidden;
+}
+
+.report-card .card-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 20px;
+}
+
+.report-card .card-header h2 {
+    margin: 0;
+    font-size: 20px;
+}
+
+.report-card .card-body {
+    padding: 24px;
+}
+
+.customers-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.customers-table th {
+    background: #f3f4f6;
+    padding: 12px;
+    text-align: left;
+    font-weight: 600;
+    font-size: 14px;
+    border-bottom: 2px solid #e5e7eb;
+}
+
+.customers-table td {
+    padding: 12px;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.customers-table tbody tr:hover {
+    background: #f9fafb;
+}
+
+.badge {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.badge-success {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+.text-muted {
+    color: #6b7280;
+}
+
+.insights-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+    gap: 20px;
+}
+
+.insight-card {
+    background: white;
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.insight-card h3 {
+    margin: 0 0 16px 0;
+    font-size: 18px;
+}
+
+.insight-card ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.insight-card li {
+    padding: 12px;
+    margin-bottom: 12px;
+    border-radius: 8px;
+    border-left: 4px solid;
+}
+
+.insight-success {
+    background: #d1fae5;
+    border-color: #10b981;
+}
+
+.insight-warning {
+    background: #fef3c7;
+    border-color: #f59e0b;
+}
+
+.insight-info {
+    background: #dbeafe;
+    border-color: #3b82f6;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 40px;
+    color: #6b7280;
+}
+
+.alert {
+    padding: 16px;
+    border-radius: 8px;
+    margin-bottom: 24px;
+}
+
+.alert-warning {
+    background: #fef3c7;
+    border: 1px solid #f59e0b;
+    color: #92400e;
+}
+
+.btn-sm {
+    padding: 6px 12px;
+    font-size: 13px;
+}
+</style>
+{% endblock %}
+
