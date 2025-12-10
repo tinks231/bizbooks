@@ -901,17 +901,22 @@ table tbody td b {
     height: 100%;
     background: rgba(0, 0, 0, 0.5);
     z-index: 10000; /* Higher than sidebar (1000) and header (100) */
-    overflow-y: auto;
+    overflow-y: auto; /* Allow scrolling the entire modal container if dialog is taller than viewport */
     display: none;
     pointer-events: none; /* Allows clicks to pass through when hidden */
 }
 
 .modal.show {
     display: flex;
-    align-items: center;
+    align-items: flex-start; /* Changed from center to allow scrolling from top */
     justify-content: center;
     padding: 20px;
     pointer-events: auto; /* Enable clicks when visible */
+}
+
+/* Prevent body scroll when modal is open */
+body.modal-open {
+    overflow: hidden;
 }
 
 /* Modal Dialog Container */
@@ -922,9 +927,12 @@ table tbody td b {
     width: 100%;
     box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
     animation: slideUp 0.3s ease;
-    margin: auto;
+    margin: 20px auto; /* Add margin for spacing */
     position: relative;
     z-index: 10001; /* Ensure dialog is above overlay */
+    max-height: calc(100vh - 40px); /* Ensure dialog doesn't exceed viewport */
+    display: flex;
+    flex-direction: column; /* Enable flex layout for scrollable body */
 }
 
 .modal-dialog--large {

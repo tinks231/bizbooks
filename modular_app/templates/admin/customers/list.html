@@ -305,10 +305,12 @@ document.addEventListener('DOMContentLoaded', function() {
 // Modal functions
 function openAddCustomerModal() {
     document.getElementById('addCustomerModal').classList.add('show');
+    document.body.classList.add('modal-open'); // Prevent body scroll
 }
 
 function closeAddCustomerModal() {
     document.getElementById('addCustomerModal').classList.remove('show');
+    document.body.classList.remove('modal-open'); // Re-enable body scroll
     document.getElementById('addCustomerForm').reset();
 }
 
@@ -428,6 +430,25 @@ document.addEventListener('keydown', function(event) {
                     <div class="form-group">
                         <label class="field-label">Payment Terms (Days)</label>
                         <input type="number" name="payment_terms_days" min="0" value="30" placeholder="30">
+                    </div>
+                </div>
+                
+                <!-- Loyalty Program Fields -->
+                <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #dee2e6;">
+                    <h4 style="font-size: 15px; color: #495057; margin-bottom: 15px;">🎁 Loyalty Program (Optional)</h4>
+                    <p style="color: #6c757d; font-size: 13px; margin-bottom: 15px;">For birthday/anniversary bonuses</p>
+                    
+                    <div class="modal-form-row">
+                        <div class="form-group">
+                            <label class="field-label">Date of Birth</label>
+                            <input type="date" name="date_of_birth">
+                            <small style="color: #666; font-size: 12px;">📅 For birthday bonus points</small>
+                        </div>
+                        <div class="form-group">
+                            <label class="field-label">Anniversary Date</label>
+                            <input type="date" name="anniversary_date">
+                            <small style="color: #666; font-size: 12px;">🎉 For anniversary bonus points</small>
+                        </div>
                     </div>
                 </div>
             </div>

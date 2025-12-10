@@ -85,9 +85,9 @@ def create_inventory_template():
     ws = wb.active
     ws.title = "Inventory Import"
     
-    # Headers
+    # Headers - Updated to include Cost, Selling, and MRP
     headers = ['Item Name*', 'SKU', 'Barcode', 'Category*', 'Group*', 'Unit*', 'Stock Quantity*', 
-               'Price', 'Tax Rate (%)', 'HSN Code', 'Description']
+               'Cost Price*', 'Selling Price*', 'MRP', 'Tax Rate (%)', 'HSN Code', 'Description']
     
     # Style headers
     header_fill = PatternFill(start_color="70AD47", end_color="70AD47", fill_type="solid")
@@ -99,24 +99,29 @@ def create_inventory_template():
         cell.font = header_font
         cell.alignment = Alignment(horizontal="center", vertical="center")
     
-    # Add sample data (row 2)
+    # Add sample data (row 2) - Clothing retail example
     sample_data = [
-        'Cement 50kg',
-        'CEM-001',
-        '8901234567890',  # Barcode
-        'Building Material',
-        'Construction',
-        'Bag',
-        '100',
-        '350',
-        '12',
-        '2523',
-        'Premium quality cement'
+        "Men's Cotton T-Shirt - White",  # Item Name
+        'TSH-MEN-WHT-001',              # SKU
+        '8901234567001',                 # Barcode
+        "Men's Wear",                    # Category
+        'T-Shirts',                      # Group
+        'Pcs',                          # Unit
+        50,                             # Stock Quantity (as number)
+        450,                            # Cost Price (as number)
+        599,                            # Selling Price (as number)
+        699,                            # MRP (as number)
+        12,                             # Tax Rate (as number)
+        '6109',                         # HSN Code
+        'Premium cotton t-shirt, comfortable fit'  # Description
     ]
     
     for col_num, value in enumerate(sample_data, 1):
         cell = ws.cell(row=2, column=col_num, value=value)
         cell.fill = PatternFill(start_color="E7E6E6", end_color="E7E6E6", fill_type="solid")
+        # Format number columns
+        if col_num in [7, 8, 9, 10, 11]:  # Stock, Cost, Selling, MRP, Tax Rate
+            cell.number_format = '0.00'
     
     # Add instructions
     ws.cell(row=4, column=1, value="INSTRUCTIONS:")
@@ -125,20 +130,25 @@ def create_inventory_template():
     ws.cell(row=7, column=1, value="3. Barcode is optional (for scanning). Leave blank if not applicable.")
     ws.cell(row=8, column=1, value="4. If Category/Group doesn't exist, it will be created")
     ws.cell(row=9, column=1, value="5. Unit examples: Pcs, Kg, Liter, Box, Bag, Meter")
-    ws.cell(row=10, column=1, value="6. Tax Rate is optional (default 18%)")
-    ws.cell(row=11, column=1, value="7. Delete row 2 (sample data) before uploading")
+    ws.cell(row=10, column=1, value="6. Stock Quantity, Cost Price, Selling Price must be numbers (no commas)")
+    ws.cell(row=11, column=1, value="7. MRP is optional (leave blank if not applicable)")
+    ws.cell(row=12, column=1, value="8. Tax Rate is optional (default 18%)")
+    ws.cell(row=13, column=1, value="9. Delete row 2 (sample data) before uploading")
     
     # Adjust column widths
-    ws.column_dimensions['A'].width = 25
-    ws.column_dimensions['B'].width = 12
-    ws.column_dimensions['C'].width = 20
-    ws.column_dimensions['D'].width = 18
-    ws.column_dimensions['E'].width = 10
-    ws.column_dimensions['F'].width = 15
-    ws.column_dimensions['G'].width = 12
-    ws.column_dimensions['H'].width = 12
-    ws.column_dimensions['I'].width = 12
-    ws.column_dimensions['J'].width = 30
+    ws.column_dimensions['A'].width = 30  # Item Name
+    ws.column_dimensions['B'].width = 18  # SKU
+    ws.column_dimensions['C'].width = 16  # Barcode
+    ws.column_dimensions['D'].width = 18  # Category
+    ws.column_dimensions['E'].width = 15  # Group
+    ws.column_dimensions['F'].width = 8   # Unit
+    ws.column_dimensions['G'].width = 12  # Stock Quantity
+    ws.column_dimensions['H'].width = 12  # Cost Price
+    ws.column_dimensions['I'].width = 12  # Selling Price
+    ws.column_dimensions['J'].width = 10  # MRP
+    ws.column_dimensions['K'].width = 12  # Tax Rate
+    ws.column_dimensions['L'].width = 12  # HSN Code
+    ws.column_dimensions['M'].width = 35  # Description
     
     # Save to BytesIO
     output = BytesIO()
@@ -261,9 +271,14 @@ def validate_employee_row(row_data, row_num):
 def validate_inventory_row(row_data, row_num):
     """
     Validate a single inventory row
+    Updated to handle new format: Item Name, SKU, Barcode, Category, Group, Unit, Stock, Cost, Selling, MRP, Tax, HSN, Description
     Returns: (is_valid, error_message)
     """
-    item_name, sku, category, group, unit, stock, price, tax_rate, hsn, description = row_data
+    # Unpack all 13 columns
+    if len(row_data) < 13:
+        row_data = list(row_data) + [None] * (13 - len(row_data))
+    
+    item_name, sku, barcode, category, group, unit, stock, cost_price, selling_price, mrp, tax_rate, hsn, description = row_data[:13]
     
     # Required fields
     if not item_name or str(item_name).strip() == '':
@@ -278,15 +293,47 @@ def validate_inventory_row(row_data, row_num):
     if not unit or str(unit).strip() == '':
         return False, f"Row {row_num}: Unit is required"
     
-    if stock is None or str(stock).strip() == '':
+    # Validate Stock Quantity
+    if stock is None or (isinstance(stock, str) and stock.strip() == ''):
         return False, f"Row {row_num}: Stock Quantity is required"
     
     try:
         stock_val = float(stock)
         if stock_val < 0:
             return False, f"Row {row_num}: Stock Quantity cannot be negative"
-    except:
-        return False, f"Row {row_num}: Stock Quantity must be a number"
+    except (ValueError, TypeError):
+        return False, f"Row {row_num}: Stock Quantity must be a number (found: {stock})"
+    
+    # Validate Cost Price
+    if cost_price is None or (isinstance(cost_price, str) and cost_price.strip() == ''):
+        return False, f"Row {row_num}: Cost Price is required"
+    
+    try:
+        cost_val = float(cost_price)
+        if cost_val < 0:
+            return False, f"Row {row_num}: Cost Price cannot be negative"
+    except (ValueError, TypeError):
+        return False, f"Row {row_num}: Cost Price must be a number"
+    
+    # Validate Selling Price
+    if selling_price is None or (isinstance(selling_price, str) and selling_price.strip() == ''):
+        return False, f"Row {row_num}: Selling Price is required"
+    
+    try:
+        selling_val = float(selling_price)
+        if selling_val < 0:
+            return False, f"Row {row_num}: Selling Price cannot be negative"
+    except (ValueError, TypeError):
+        return False, f"Row {row_num}: Selling Price must be a number"
+    
+    # Validate MRP (optional)
+    if mrp is not None and str(mrp).strip() != '':
+        try:
+            mrp_val = float(mrp)
+            if mrp_val < 0:
+                return False, f"Row {row_num}: MRP cannot be negative"
+        except (ValueError, TypeError):
+            return False, f"Row {row_num}: MRP must be a number"
     
     return True, None
 
@@ -476,12 +523,12 @@ def import_inventory_from_excel(file, tenant_id):
             if all(cell is None or str(cell).strip() == '' for cell in row):
                 continue
             
-            # Extract data (now with barcode column)
-            row_data = list(row) + [None] * (11 - len(row))
-            item_name, sku, barcode, category, group, unit, stock, price, tax_rate, hsn, description = row_data[:11]
+            # Extract data (now with 13 columns: Name, SKU, Barcode, Category, Group, Unit, Stock, Cost, Selling, MRP, Tax, HSN, Description)
+            row_data = list(row) + [None] * (13 - len(row))
+            item_name, sku, barcode, category, group, unit, stock, cost_price, selling_price, mrp, tax_rate, hsn, description = row_data[:13]
             
             # Validate
-            is_valid, error_msg = validate_inventory_row(row_data[:10], row_num)
+            is_valid, error_msg = validate_inventory_row(row_data[:13], row_num)
             if not is_valid:
                 errors.append(error_msg)
                 continue
@@ -541,16 +588,17 @@ def import_inventory_from_excel(file, tenant_id):
                     tenant_id=tenant_id,
                     name=str(item_name).strip(),
                     sku=sku,
-                    barcode=str(barcode).strip() if barcode else None,  # NEW: Barcode from Excel
+                    barcode=str(barcode).strip() if barcode else None,
                     category_id=category_obj.id,
                     item_group_id=group_obj.id,
                     unit=str(unit).strip(),
                     opening_stock=float(stock) if stock else 0.0,
-                    selling_price=float(price) if price else 0.0,
-                    cost_price=float(price) if price else 0.0,  # Same as selling for now
-                    hsn_code=str(hsn).strip() if hsn else None,  # NEW: HSN code from Excel
-                    gst_rate=float(tax_rate) if tax_rate else 18.0,  # NEW: GST rate as float
-                    tax_preference=f"GST {tax_rate}%" if tax_rate else "GST 18%",  # Keep for backward compatibility
+                    cost_price=float(cost_price) if cost_price else 0.0,
+                    selling_price=float(selling_price) if selling_price else 0.0,
+                    mrp=float(mrp) if mrp else None,  # MRP is optional
+                    hsn_code=str(hsn).strip() if hsn else None,
+                    gst_rate=float(tax_rate) if tax_rate else 18.0,
+                    tax_preference=f"GST {tax_rate}%" if tax_rate else "GST 18%",
                     sales_description=str(description).strip() if description else '',
                     purchase_description=str(description).strip() if description else ''
                 )
