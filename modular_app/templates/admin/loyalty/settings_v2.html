@@ -8,11 +8,6 @@
         <h1>🎁 Loyalty Program Settings</h1>
         <p>Configure your customer loyalty & rewards program</p>
     </div>
-    <div class="header-right">
-        <a href="{{ url_for('loyalty.reports') }}" class="btn btn-secondary">
-            📊 View Reports
-        </a>
-    </div>
 </div>
 
 <form method="POST" action="{{ url_for('loyalty.update_settings') }}" class="loyalty-settings-form">
@@ -27,19 +22,19 @@
             </div>
             <div class="status-right">
                 <div class="toggle-switch-large">
-                    <input type="checkbox" id="is_active" name="is_active" 
-                           {% if program.is_active %}checked{% endif %}>
-                    <label for="is_active" class="toggle-label">
-                        <span class="toggle-inner"></span>
-                        <span class="toggle-switch-btn"></span>
-                    </label>
-                    <span class="toggle-status">
+                    <span class="toggle-status" id="status-text">
                         {% if program.is_active %}
-                            <span class="status-active">🟢 Active</span>
+                            🟢 Active
                         {% else %}
-                            <span class="status-inactive">🔴 Inactive</span>
+                            🔴 Inactive
                         {% endif %}
                     </span>
+                    <input type="checkbox" id="is_active" name="is_active" 
+                           {% if program.is_active %}checked{% endif %}>
+                    <label for="is_active" class="toggle-label-large">
+                        <span class="toggle-inner-large"></span>
+                        <span class="toggle-switch-btn-large"></span>
+                    </label>
                 </div>
             </div>
         </div>
@@ -788,7 +783,7 @@
     font-size: 17px;
 }
 
-/* Toggle Switch */
+/* Toggle Switch (Small - for cards) */
 .toggle-switch {
     position: relative;
     display: inline-block;
@@ -836,17 +831,64 @@ input[type="checkbox"]:checked + .toggle-label .toggle-switch-btn {
     transform: translateX(24px);
 }
 
+/* Toggle Switch Large (for Program Status) */
+.toggle-switch-large {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.toggle-switch-large input[type="checkbox"] {
+    opacity: 0;
+    width: 0;
+    height: 0;
+    position: absolute;
+}
+
+.toggle-label-large {
+    position: relative;
+    display: inline-block;
+    width: 70px;
+    height: 36px;
+    background-color: rgba(255, 255, 255, 0.3);
+    border: 2px solid rgba(255, 255, 255, 0.5);
+    border-radius: 36px;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.toggle-inner-large {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+.toggle-switch-btn-large {
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 26px;
+    height: 26px;
+    background-color: white;
+    border-radius: 50%;
+    transition: transform 0.3s;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+input[type="checkbox"]:checked + .toggle-label-large {
+    background-color: rgba(255, 255, 255, 0.5);
+    border-color: rgba(255, 255, 255, 0.8);
+}
+
+input[type="checkbox"]:checked + .toggle-label-large .toggle-switch-btn-large {
+    transform: translateX(34px);
+}
+
 .toggle-status {
-    margin-left: 10px;
-    font-weight: 600;
-}
-
-.status-active {
-    color: #10b981;
-}
-
-.status-inactive {
-    color: #ef4444;
+    font-size: 18px;
+    font-weight: 700;
+    color: white;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.2);
 }
 
 /* Preview Card */
@@ -963,6 +1005,22 @@ document.querySelectorAll('input[type="number"]').forEach(input => {
 
 // Initial preview
 updatePreview();
+
+// Program Status Toggle - Update text and banner color dynamically
+document.getElementById('is_active').addEventListener('change', function() {
+    const statusText = document.getElementById('status-text');
+    const statusBanner = document.querySelector('.status-banner');
+    
+    if (this.checked) {
+        // Active
+        statusText.textContent = '🟢 Active';
+        statusBanner.classList.add('active');
+    } else {
+        // Inactive
+        statusText.textContent = '🔴 Inactive';
+        statusBanner.classList.remove('active');
+    }
+});
 </script>
 
 {% endblock %}
