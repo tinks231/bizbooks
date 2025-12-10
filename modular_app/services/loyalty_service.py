@@ -386,8 +386,10 @@ class LoyaltyService:
         """
         Check if customer has birthday or anniversary bonus today
         Returns dict with bonus_points and reason (or None)
+        Uses IST timezone for Indian customers
         """
         from models.customer import Customer
+        import pytz
         
         program = LoyaltyService.get_loyalty_program(tenant_id)
         customer = Customer.query.filter_by(id=customer_id, tenant_id=tenant_id).first()
@@ -395,7 +397,9 @@ class LoyaltyService:
         if not program or not customer:
             return None
         
-        today = datetime.now().date()
+        # Use IST timezone for Indian customers
+        ist = pytz.timezone('Asia/Kolkata')
+        today = datetime.now(ist).date()
         
         # Check birthday bonus
         if (program.enable_birthday_bonus and 
