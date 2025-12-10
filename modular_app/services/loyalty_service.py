@@ -22,22 +22,44 @@ class LoyaltyService:
         return program and program.is_active
     
     @staticmethod
-    def calculate_points_earned(invoice_amount, tenant_id):
+    def calculate_points_earned(invoice_amount, tenant_id, customer_id=None):
         """
         Calculate points earned for an invoice
-        Returns dict with base_points, bonus_points, and total_points
+        Returns dict with base_points, bonus_points, total_points, and tier_multiplier
+        If customer_id is provided, applies tier-based earning multiplier
         """
         program = LoyaltyService.get_loyalty_program(tenant_id)
         
         if not program or not program.is_active:
-            return {'base_points': 0, 'bonus_points': 0, 'total_points': 0}
+            return {'base_points': 0, 'bonus_points': 0, 'total_points': 0, 'tier_multiplier': 1.0}
         
         # Check minimum purchase requirement
         if invoice_amount < float(program.minimum_purchase_for_points or 0):
-            return {'base_points': 0, 'bonus_points': 0, 'total_points': 0}
+            return {'base_points': 0, 'bonus_points': 0, 'total_points': 0, 'tier_multiplier': 1.0}
+        
+        # Get tier multiplier if tiers are enabled and customer provided
+        tier_multiplier = 1.0
+        if customer_id and program.enable_membership_tiers:
+            loyalty = LoyaltyService.get_customer_balance(customer_id, tenant_id, auto_create=False)
+            if loyalty:
+                tier_info = LoyaltyService.calculate_customer_tier(loyalty.lifetime_earned_points, tenant_id)
+                if tier_info:
+                    # Get the earning multiplier for this tier
+                    tier_level = tier_info['tier_level']
+                    if tier_level == 4:  # Platinum
+                        tier_multiplier = float(program.tier_platinum_earning_multiplier or 2.0)
+                    elif tier_level == 3:  # Gold
+                        tier_multiplier = float(program.tier_gold_earning_multiplier or 1.5)
+                    elif tier_level == 2:  # Silver
+                        tier_multiplier = float(program.tier_silver_earning_multiplier or 1.2)
+                    else:  # Bronze (tier_level == 1)
+                        tier_multiplier = float(program.tier_bronze_earning_multiplier or 1.0)
         
         # Base points calculation
         base_points = int((invoice_amount / 100) * float(program.points_per_100_rupees))
+        
+        # Apply tier multiplier to base points
+        base_points = int(base_points * tier_multiplier)
         
         # Apply maximum points cap if set
         if program.maximum_points_per_invoice and base_points > program.maximum_points_per_invoice:
@@ -59,21 +81,82 @@ class LoyaltyService:
         return {
             'base_points': base_points,
             'bonus_points': bonus_points,
-            'total_points': total_points
+            'total_points': total_points,
+            'tier_multiplier': tier_multiplier
         }
     
     @staticmethod
-    def calculate_redemption_value(points, tenant_id):
+    def calculate_redemption_value(points, tenant_id, customer_id=None):
         """
         Calculate discount value when redeeming points
         Returns the discount amount in rupees
+        If customer_id is provided, applies tier-based redemption multiplier (higher tiers get better value!)
         """
         program = LoyaltyService.get_loyalty_program(tenant_id)
         
         if not program or not program.is_active:
             return 0
         
-        return float(points) * float(program.points_to_rupees_ratio)
+        # Base redemption value
+        base_value = float(points) * float(program.points_to_rupees_ratio)
+        
+        # Get tier multiplier if tiers are enabled and customer provided
+        tier_multiplier = 1.0
+        if customer_id and program.enable_membership_tiers:
+            loyalty = LoyaltyService.get_customer_balance(customer_id, tenant_id, auto_create=False)
+            if loyalty:
+                tier_info = LoyaltyService.calculate_customer_tier(loyalty.lifetime_earned_points, tenant_id)
+                if tier_info:
+                    # Get the redemption multiplier for this tier
+                    tier_level = tier_info['tier_level']
+                    if tier_level == 4:  # Platinum
+                        tier_multiplier = float(program.tier_platinum_redemption_multiplier or 1.5)
+                    elif tier_level == 3:  # Gold
+                        tier_multiplier = float(program.tier_gold_redemption_multiplier or 1.25)
+                    elif tier_level == 2:  # Silver
+                        tier_multiplier = float(program.tier_silver_redemption_multiplier or 1.1)
+                    else:  # Bronze (tier_level == 1)
+                        tier_multiplier = float(program.tier_bronze_redemption_multiplier or 1.0)
+        
+        # Apply tier multiplier to give higher tiers better redemption value
+        return base_value * tier_multiplier
+    
+    @staticmethod
+    def get_tier_max_discount_percent(customer_id, tenant_id):
+        """
+        Get the maximum discount percentage for customer's tier
+        Returns tier-specific max discount if set, otherwise global max discount
+        """
+        program = LoyaltyService.get_loyalty_program(tenant_id)
+        
+        if not program or not program.is_active or not program.enable_membership_tiers:
+            return float(program.maximum_discount_percent) if program and program.maximum_discount_percent else None
+        
+        loyalty = LoyaltyService.get_customer_balance(customer_id, tenant_id, auto_create=False)
+        if not loyalty:
+            return float(program.maximum_discount_percent) if program.maximum_discount_percent else None
+        
+        tier_info = LoyaltyService.calculate_customer_tier(loyalty.lifetime_earned_points, tenant_id)
+        if not tier_info:
+            return float(program.maximum_discount_percent) if program.maximum_discount_percent else None
+        
+        # Check tier-specific max discount (overrides global if set)
+        tier_level = tier_info['tier_level']
+        tier_max = None
+        
+        if tier_level == 4:  # Platinum
+            tier_max = program.tier_platinum_max_discount_percent
+        elif tier_level == 3:  # Gold
+            tier_max = program.tier_gold_max_discount_percent
+        elif tier_level == 2:  # Silver
+            tier_max = program.tier_silver_max_discount_percent
+        else:  # Bronze
+            tier_max = program.tier_bronze_max_discount_percent
+        
+        # Return tier-specific if set, otherwise fall back to global
+        if tier_max:
+            return float(tier_max)
+        return float(program.maximum_discount_percent) if program.maximum_discount_percent else None
     
     @staticmethod
     def get_customer_balance(customer_id, tenant_id, auto_create=True):
@@ -169,14 +252,15 @@ class LoyaltyService:
         if program.maximum_points_per_redemption and points > program.maximum_points_per_redemption:
             raise ValueError(f"Maximum {program.maximum_points_per_redemption} points per redemption")
         
-        # Calculate discount value
-        discount_value = LoyaltyService.calculate_redemption_value(points, tenant_id)
+        # Calculate discount value (with tier-based redemption multiplier if applicable)
+        discount_value = LoyaltyService.calculate_redemption_value(points, tenant_id, customer_id)
         
-        # Validate maximum discount percent (if set)
-        if program.maximum_discount_percent and invoice_subtotal > 0:
-            max_discount = invoice_subtotal * (float(program.maximum_discount_percent) / 100)
+        # Validate maximum discount percent (use tier-specific if set, otherwise global)
+        tier_max_discount = LoyaltyService.get_tier_max_discount_percent(customer_id, tenant_id)
+        if tier_max_discount and invoice_subtotal > 0:
+            max_discount = invoice_subtotal * (tier_max_discount / 100)
             if discount_value > max_discount:
-                raise ValueError(f"Discount exceeds maximum {program.maximum_discount_percent}% of invoice")
+                raise ValueError(f"Discount exceeds maximum {tier_max_discount}% of invoice for your tier")
         
         # Deduct points
         points_before = loyalty.current_points
