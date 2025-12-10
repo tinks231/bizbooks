@@ -135,6 +135,9 @@ class LoyaltyService:
         db.session.add(transaction)
         db.session.commit()
         
+        # Update customer tier if tiers are enabled
+        LoyaltyService.update_customer_tier(customer_id, tenant_id)
+        
         return loyalty
     
     @staticmethod
@@ -312,4 +315,140 @@ class LoyaltyService:
         db.session.commit()
         
         return loyalty
+    
+    @staticmethod
+    def calculate_customer_tier(lifetime_earned_points, tenant_id):
+        """
+        Calculate customer's membership tier based on lifetime earned points
+        Returns dict with tier_name, tier_icon, and tier_color
+        """
+        program = LoyaltyService.get_loyalty_program(tenant_id)
+        
+        if not program or not program.enable_membership_tiers:
+            return None
+        
+        # Determine tier based on thresholds (highest tier first)
+        if lifetime_earned_points >= (program.tier_platinum_min_points or 10000):
+            return {
+                'tier_name': program.tier_platinum_name or 'Platinum',
+                'tier_icon': '💎',
+                'tier_color': '#e5e7eb',  # Platinum/Silver color
+                'tier_level': 4
+            }
+        elif lifetime_earned_points >= (program.tier_gold_min_points or 5000):
+            return {
+                'tier_name': program.tier_gold_name or 'Gold',
+                'tier_icon': '🥇',
+                'tier_color': '#f59e0b',  # Gold color
+                'tier_level': 3
+            }
+        elif lifetime_earned_points >= (program.tier_silver_min_points or 1000):
+            return {
+                'tier_name': program.tier_silver_name or 'Silver',
+                'tier_icon': '🥈',
+                'tier_color': '#9ca3af',  # Silver color
+                'tier_level': 2
+            }
+        else:
+            return {
+                'tier_name': program.tier_bronze_name or 'Bronze',
+                'tier_icon': '🥉',
+                'tier_color': '#cd7f32',  # Bronze color
+                'tier_level': 1
+            }
+    
+    @staticmethod
+    def update_customer_tier(customer_id, tenant_id):
+        """
+        Update customer's tier based on their current lifetime points
+        Called automatically when points are earned
+        """
+        loyalty = LoyaltyService.get_customer_balance(customer_id, tenant_id, auto_create=False)
+        
+        if not loyalty:
+            return None
+        
+        tier_info = LoyaltyService.calculate_customer_tier(loyalty.lifetime_earned_points, tenant_id)
+        
+        if tier_info:
+            old_tier = loyalty.tier_level
+            loyalty.tier_level = tier_info['tier_name'].lower()
+            loyalty.tier_updated_at = datetime.utcnow()
+            db.session.commit()
+            
+            # Return True if tier changed (for notifications)
+            return tier_info['tier_name'] if old_tier != loyalty.tier_level else None
+        
+        return None
+    
+    @staticmethod
+    def check_special_day_bonus(customer_id, tenant_id):
+        """
+        Check if customer has birthday or anniversary bonus today
+        Returns dict with bonus_points and reason (or None)
+        """
+        from models.customer import Customer
+        
+        program = LoyaltyService.get_loyalty_program(tenant_id)
+        customer = Customer.query.filter_by(id=customer_id, tenant_id=tenant_id).first()
+        
+        if not program or not customer:
+            return None
+        
+        today = datetime.now().date()
+        
+        # Check birthday bonus
+        if (program.enable_birthday_bonus and 
+            customer.date_of_birth and 
+            customer.date_of_birth.month == today.month and 
+            customer.date_of_birth.day == today.day and
+            program.birthday_bonus_points > 0):
+            return {
+                'bonus_points': program.birthday_bonus_points,
+                'reason': 'birthday',
+                'message': f'🎂 Happy Birthday! You have {program.birthday_bonus_points} bonus points today!',
+                'expires_at': 'midnight tonight'
+            }
+        
+        # Check anniversary bonus
+        if (program.enable_anniversary_bonus and 
+            customer.anniversary_date and 
+            customer.anniversary_date.month == today.month and 
+            customer.anniversary_date.day == today.day and
+            program.anniversary_bonus_points > 0):
+            return {
+                'bonus_points': program.anniversary_bonus_points,
+                'reason': 'anniversary',
+                'message': f'🎉 Happy Anniversary! You have {program.anniversary_bonus_points} bonus points today!',
+                'expires_at': 'midnight tonight'
+            }
+        
+        return None
+    
+    @staticmethod
+    def get_customer_available_points(customer_id, tenant_id):
+        """
+        Get customer's total available points including any temporary bonuses
+        Returns dict with regular_points, bonus_points, total_points, and bonus_info
+        """
+        loyalty = LoyaltyService.get_customer_balance(customer_id, tenant_id, auto_create=False)
+        
+        if not loyalty:
+            return {
+                'regular_points': 0,
+                'bonus_points': 0,
+                'total_points': 0,
+                'bonus_info': None
+            }
+        
+        regular_points = loyalty.current_points
+        bonus_info = LoyaltyService.check_special_day_bonus(customer_id, tenant_id)
+        bonus_points = bonus_info['bonus_points'] if bonus_info else 0
+        
+        return {
+            'regular_points': regular_points,
+            'bonus_points': bonus_points,
+            'total_points': regular_points + bonus_points,
+            'bonus_info': bonus_info
+        }
 
