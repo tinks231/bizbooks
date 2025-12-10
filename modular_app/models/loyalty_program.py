@@ -49,12 +49,27 @@ class LoyaltyProgram(db.Model):
     enable_membership_tiers = db.Column(db.Boolean, default=False)
     tier_bronze_name = db.Column(db.String(50), default='Bronze')
     tier_bronze_min_points = db.Column(db.Integer, default=0)
+    tier_bronze_earning_multiplier = db.Column(db.Numeric(5, 2), default=1.0)  # 1.0 = same as base rate
+    tier_bronze_redemption_multiplier = db.Column(db.Numeric(5, 2), default=1.0)  # 1.0 = same redemption value
+    tier_bronze_max_discount_percent = db.Column(db.Numeric(5, 2))  # Optional override
+    
     tier_silver_name = db.Column(db.String(50), default='Silver')
     tier_silver_min_points = db.Column(db.Integer, default=1000)
+    tier_silver_earning_multiplier = db.Column(db.Numeric(5, 2), default=1.2)  # 1.2 = 20% bonus
+    tier_silver_redemption_multiplier = db.Column(db.Numeric(5, 2), default=1.1)  # 1.1 = 10% better value
+    tier_silver_max_discount_percent = db.Column(db.Numeric(5, 2))  # Optional override
+    
     tier_gold_name = db.Column(db.String(50), default='Gold')
     tier_gold_min_points = db.Column(db.Integer, default=5000)
+    tier_gold_earning_multiplier = db.Column(db.Numeric(5, 2), default=1.5)  # 1.5 = 50% bonus
+    tier_gold_redemption_multiplier = db.Column(db.Numeric(5, 2), default=1.25)  # 1.25 = 25% better value
+    tier_gold_max_discount_percent = db.Column(db.Numeric(5, 2))  # Optional override
+    
     tier_platinum_name = db.Column(db.String(50), default='Platinum')
     tier_platinum_min_points = db.Column(db.Integer, default=10000)
+    tier_platinum_earning_multiplier = db.Column(db.Numeric(5, 2), default=2.0)  # 2.0 = double points!
+    tier_platinum_redemption_multiplier = db.Column(db.Numeric(5, 2), default=1.5)  # 1.5 = 50% better value
+    tier_platinum_max_discount_percent = db.Column(db.Numeric(5, 2))  # Optional override
     
     # Timestamps
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
@@ -96,12 +111,24 @@ class LoyaltyProgram(db.Model):
             'enable_membership_tiers': self.enable_membership_tiers,
             'tier_bronze_name': self.tier_bronze_name,
             'tier_bronze_min_points': self.tier_bronze_min_points or 0,
+            'tier_bronze_earning_multiplier': float(self.tier_bronze_earning_multiplier) if self.tier_bronze_earning_multiplier else 1.0,
+            'tier_bronze_redemption_multiplier': float(self.tier_bronze_redemption_multiplier) if self.tier_bronze_redemption_multiplier else 1.0,
+            'tier_bronze_max_discount_percent': float(self.tier_bronze_max_discount_percent) if self.tier_bronze_max_discount_percent else None,
             'tier_silver_name': self.tier_silver_name,
             'tier_silver_min_points': self.tier_silver_min_points or 1000,
+            'tier_silver_earning_multiplier': float(self.tier_silver_earning_multiplier) if self.tier_silver_earning_multiplier else 1.2,
+            'tier_silver_redemption_multiplier': float(self.tier_silver_redemption_multiplier) if self.tier_silver_redemption_multiplier else 1.1,
+            'tier_silver_max_discount_percent': float(self.tier_silver_max_discount_percent) if self.tier_silver_max_discount_percent else None,
             'tier_gold_name': self.tier_gold_name,
             'tier_gold_min_points': self.tier_gold_min_points or 5000,
+            'tier_gold_earning_multiplier': float(self.tier_gold_earning_multiplier) if self.tier_gold_earning_multiplier else 1.5,
+            'tier_gold_redemption_multiplier': float(self.tier_gold_redemption_multiplier) if self.tier_gold_redemption_multiplier else 1.25,
+            'tier_gold_max_discount_percent': float(self.tier_gold_max_discount_percent) if self.tier_gold_max_discount_percent else None,
             'tier_platinum_name': self.tier_platinum_name,
             'tier_platinum_min_points': self.tier_platinum_min_points or 10000,
+            'tier_platinum_earning_multiplier': float(self.tier_platinum_earning_multiplier) if self.tier_platinum_earning_multiplier else 2.0,
+            'tier_platinum_redemption_multiplier': float(self.tier_platinum_redemption_multiplier) if self.tier_platinum_redemption_multiplier else 1.5,
+            'tier_platinum_max_discount_percent': float(self.tier_platinum_max_discount_percent) if self.tier_platinum_max_discount_percent else None,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None
         }

@@ -127,6 +127,7 @@ from routes.barcode_api import barcode_api_bp  # NEW: Barcode API endpoints
 from routes.loyalty_migration import loyalty_migration_bp  # NEW: Loyalty program feature
 from routes.loyalty import loyalty_bp  # NEW: Loyalty program API & admin pages
 from routes.loyalty_features_migration import loyalty_features_bp  # NEW: Loyalty birthday/anniversary + tiers
+from routes.tier_benefits_migration import tier_benefits_bp  # NEW: Tier benefits (earning/redemption multipliers)
 from routes.vendor_performance_migration import vendor_performance_bp  # NEW: Vendor performance optimization
 from routes.fix_attendance_cascade import fix_cascade_bp  # FIX: Attendance CASCADE delete
 
@@ -170,6 +171,7 @@ app.register_blueprint(barcode_api_bp)  # NEW: Barcode API endpoints
 app.register_blueprint(loyalty_migration_bp)  # NEW: Loyalty program migration
 app.register_blueprint(loyalty_bp)  # NEW: Loyalty program API & admin pages
 app.register_blueprint(loyalty_features_bp)  # NEW: Loyalty birthday/anniversary + tiers
+app.register_blueprint(tier_benefits_bp)  # NEW: Tier benefits (earning/redemption multipliers)
 app.register_blueprint(vendor_performance_bp)  # NEW: Vendor performance optimization
 app.register_blueprint(fix_cascade_bp)  # FIX: Attendance CASCADE delete issue
 
