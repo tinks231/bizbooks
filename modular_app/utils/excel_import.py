@@ -625,7 +625,7 @@ def import_inventory_from_excel(file, tenant_id):
                         item_id=item.id,
                         site_id=default_site.id,
                         quantity_available=float(stock) if stock else 0.0,
-                        stock_value=(float(stock) if stock else 0.0) * (float(price) if price else 0.0)
+                        stock_value=(float(stock) if stock else 0.0) * (float(cost_price) if cost_price else 0.0)
                     )
                     db.session.add(item_stock)
                 
