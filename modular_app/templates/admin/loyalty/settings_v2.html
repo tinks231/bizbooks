@@ -1,0 +1,969 @@
+{% extends "base_sidebar.html" %}
+
+{% block title %}Loyalty Program Settings - {{ g.tenant.business_name }}{% endblock %}
+
+{% block content %}
+<div class="content-header">
+    <div class="header-left">
+        <h1>🎁 Loyalty Program Settings</h1>
+        <p>Configure your customer loyalty & rewards program</p>
+    </div>
+    <div class="header-right">
+        <a href="{{ url_for('loyalty.reports') }}" class="btn btn-secondary">
+            📊 View Reports
+        </a>
+    </div>
+</div>
+
+<form method="POST" action="{{ url_for('loyalty.update_settings') }}" class="loyalty-settings-form">
+    
+    <!-- Program Status Banner (Always Visible) -->
+    <div class="status-banner {% if program.is_active %}active{% endif %}">
+        <div class="status-content">
+            <div class="status-left">
+                <h2>Program Status</h2>
+                <input type="text" name="program_name" value="{{ program.program_name }}" 
+                       placeholder="e.g., Loyalty Rewards Program" class="program-name-input">
+            </div>
+            <div class="status-right">
+                <div class="toggle-switch-large">
+                    <input type="checkbox" id="is_active" name="is_active" 
+                           {% if program.is_active %}checked{% endif %}>
+                    <label for="is_active" class="toggle-label">
+                        <span class="toggle-inner"></span>
+                        <span class="toggle-switch-btn"></span>
+                    </label>
+                    <span class="toggle-status">
+                        {% if program.is_active %}
+                            <span class="status-active">🟢 Active</span>
+                        {% else %}
+                            <span class="status-inactive">🔴 Inactive</span>
+                        {% endif %}
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tab Navigation -->
+    <div class="tabs-container">
+        <div class="tabs-nav">
+            <button type="button" class="tab-btn active" data-tab="basic">⚙️ Basic Settings</button>
+            <button type="button" class="tab-btn" data-tab="bonuses">🎉 Bonuses</button>
+            <button type="button" class="tab-btn" data-tab="tiers">🏆 Membership Tiers</button>
+            <button type="button" class="tab-btn" data-tab="display">🖨️ Display & Preview</button>
+        </div>
+
+        <!-- TAB 1: BASIC SETTINGS -->
+        <div class="tab-content active" id="tab-basic">
+            <div class="two-column-layout">
+                <!-- Left Column: Earning Rules -->
+                <div class="settings-card">
+                    <div class="card-header-compact">
+                        <h3>💰 Earning Rules</h3>
+                    </div>
+                    <div class="card-body-compact">
+                        <div class="form-group">
+                            <label>Points per ₹100 spent <span class="required">*</span></label>
+                            <input type="number" step="0.01" name="points_per_100_rupees" 
+                                   value="{{ program.points_per_100_rupees }}" required min="0.01">
+                            <small>e.g., 1 = slow, 10 = fast growth</small>
+                        </div>
+                        <div class="form-group">
+                            <label>Minimum Purchase</label>
+                            <input type="number" step="0.01" name="minimum_purchase_for_points" 
+                                   value="{{ program.minimum_purchase_for_points }}">
+                            <small>₹0 = earn on all purchases</small>
+                        </div>
+                        <div class="form-group">
+                            <label>Max Points per Invoice</label>
+                            <input type="number" name="maximum_points_per_invoice" 
+                                   value="{{ program.maximum_points_per_invoice or '' }}" placeholder="No limit">
+                            <small>Prevent gaming the system</small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Column: Redemption Rules -->
+                <div class="settings-card">
+                    <div class="card-header-compact">
+                        <h3>💳 Redemption Rules</h3>
+                    </div>
+                    <div class="card-body-compact">
+                        <div class="form-group">
+                            <label>1 point = ₹ <span class="required">*</span></label>
+                            <input type="number" step="0.01" name="points_to_rupees_ratio" 
+                                   value="{{ program.points_to_rupees_ratio }}" required min="0.01">
+                            <small>e.g., 1 = ₹1 per point</small>
+                        </div>
+                        <div class="form-group">
+                            <label>Minimum Points to Redeem</label>
+                            <input type="number" name="minimum_points_to_redeem" 
+                                   value="{{ program.minimum_points_to_redeem }}">
+                            <small>Prevent tiny redemptions</small>
+                        </div>
+                        <div class="form-group">
+                            <label>Max Discount %</label>
+                            <input type="number" step="0.1" name="maximum_discount_percent" 
+                                   value="{{ program.maximum_discount_percent or '' }}" placeholder="No limit">
+                            <small>% of invoice value</small>
+                        </div>
+                        <div class="form-group">
+                            <label>Max Points per Redemption</label>
+                            <input type="number" name="maximum_points_per_redemption" 
+                                   value="{{ program.maximum_points_per_redemption or '' }}" placeholder="No limit">
+                            <small>Cap per transaction</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 2: BONUSES -->
+        <div class="tab-content" id="tab-bonuses">
+            <div class="two-column-layout">
+                <!-- Left Column: Threshold Bonuses -->
+                <div class="settings-card">
+                    <div class="card-header-compact">
+                        <h3>🎉 Threshold Bonuses</h3>
+                        <div class="toggle-switch">
+                            <input type="checkbox" id="enable_threshold_bonuses" name="enable_threshold_bonuses"
+                                   {% if program.enable_threshold_bonuses %}checked{% endif %}>
+                            <label for="enable_threshold_bonuses" class="toggle-label">
+                                <span class="toggle-inner"></span>
+                                <span class="toggle-switch-btn"></span>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="card-body-compact threshold-bonuses" 
+                         {% if not program.enable_threshold_bonuses %}style="display:none"{% endif %}>
+                        <div class="threshold-compact">
+                            <span class="threshold-number">1</span>
+                            <input type="number" step="0.01" name="threshold_1_amount" 
+                                   value="{{ program.threshold_1_amount or '' }}" placeholder="₹ Amount">
+                            <span>→</span>
+                            <input type="number" name="threshold_1_bonus_points" 
+                                   value="{{ program.threshold_1_bonus_points or '' }}" placeholder="Bonus pts">
+                        </div>
+                        <div class="threshold-compact">
+                            <span class="threshold-number">2</span>
+                            <input type="number" step="0.01" name="threshold_2_amount" 
+                                   value="{{ program.threshold_2_amount or '' }}" placeholder="₹ Amount">
+                            <span>→</span>
+                            <input type="number" name="threshold_2_bonus_points" 
+                                   value="{{ program.threshold_2_bonus_points or '' }}" placeholder="Bonus pts">
+                        </div>
+                        <div class="threshold-compact">
+                            <span class="threshold-number">3</span>
+                            <input type="number" step="0.01" name="threshold_3_amount" 
+                                   value="{{ program.threshold_3_amount or '' }}" placeholder="₹ Amount">
+                            <span>→</span>
+                            <input type="number" name="threshold_3_bonus_points" 
+                                   value="{{ program.threshold_3_bonus_points or '' }}" placeholder="Bonus pts">
+                        </div>
+                        <small style="display:block; margin-top:10px; color:#6b7280;">
+                            Example: ₹5000 → +50 bonus points on top of regular points
+                        </small>
+                    </div>
+                </div>
+
+                <!-- Right Column: Birthday/Anniversary -->
+                <div class="settings-card">
+                    <div class="card-header-compact">
+                        <h3>🎂 Special Day Bonuses</h3>
+                    </div>
+                    <div class="card-body-compact">
+                        <div class="bonus-compact">
+                            <div class="bonus-toggle">
+                                <label>🎈 Birthday Bonus</label>
+                                <input type="checkbox" id="enable_birthday_bonus" name="enable_birthday_bonus"
+                                       {% if program.enable_birthday_bonus %}checked{% endif %}>
+                            </div>
+                            <input type="number" name="birthday_bonus_points" 
+                                   value="{{ program.birthday_bonus_points or 0 }}" min="0" 
+                                   placeholder="Bonus points" style="width:150px;">
+                            <small>Temporary points, expires at midnight IST</small>
+                        </div>
+
+                        <div class="bonus-compact" style="margin-top:20px;">
+                            <div class="bonus-toggle">
+                                <label>💝 Anniversary Bonus</label>
+                                <input type="checkbox" id="enable_anniversary_bonus" name="enable_anniversary_bonus"
+                                       {% if program.enable_anniversary_bonus %}checked{% endif %}>
+                            </div>
+                            <input type="number" name="anniversary_bonus_points" 
+                                   value="{{ program.anniversary_bonus_points or 0 }}" min="0" 
+                                   placeholder="Bonus points" style="width:150px;">
+                            <small>Temporary points, expires at midnight IST</small>
+                        </div>
+
+                        <div class="info-box-compact">
+                            💡 Customers must have DOB/Anniversary in their profile
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 3: MEMBERSHIP TIERS -->
+        <div class="tab-content" id="tab-tiers">
+            <div class="settings-card">
+                <div class="card-header-compact">
+                    <h3>🏆 Membership Tiers Configuration</h3>
+                    <div class="toggle-switch">
+                        <input type="checkbox" id="enable_membership_tiers" name="enable_membership_tiers"
+                               {% if program.enable_membership_tiers %}checked{% endif %}>
+                        <label for="enable_membership_tiers" class="toggle-label">
+                            <span class="toggle-inner"></span>
+                            <span class="toggle-switch-btn"></span>
+                        </label>
+                    </div>
+                </div>
+                <div class="card-body-compact membership-tiers" 
+                     {% if not program.enable_membership_tiers %}style="display:none"{% endif %}>
+                    
+                    <!-- Tiers Grid Layout -->
+                    <div class="tiers-grid">
+                        <!-- Bronze Tier -->
+                        <div class="tier-card">
+                            <div class="tier-header">
+                                <span class="tier-icon-large">🥉</span>
+                                <input type="text" name="tier_bronze_name" value="{{ program.tier_bronze_name or 'Bronze' }}" 
+                                       class="tier-name-input">
+                            </div>
+                            <div class="tier-threshold">
+                                <label>Min Points:</label>
+                                <input type="number" name="tier_bronze_min_points" value="{{ program.tier_bronze_min_points or 0 }}">
+                            </div>
+                            <div class="tier-benefits-compact">
+                                <div class="benefit-item">
+                                    <label>Earning:</label>
+                                    <input type="number" step="0.01" name="tier_bronze_earning_multiplier" 
+                                           value="{{ program.tier_bronze_earning_multiplier or 1.0 }}">
+                                    <span>x</span>
+                                </div>
+                                <div class="benefit-item">
+                                    <label>Redemption:</label>
+                                    <input type="number" step="0.01" name="tier_bronze_redemption_multiplier" 
+                                           value="{{ program.tier_bronze_redemption_multiplier or 1.0 }}">
+                                    <span>x</span>
+                                </div>
+                                <div class="benefit-item">
+                                    <label>Max Discount:</label>
+                                    <input type="number" step="0.1" name="tier_bronze_max_discount_percent" 
+                                           value="{{ program.tier_bronze_max_discount_percent or '' }}" placeholder="Default">
+                                    <span>%</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Silver Tier -->
+                        <div class="tier-card silver">
+                            <div class="tier-header">
+                                <span class="tier-icon-large">🥈</span>
+                                <input type="text" name="tier_silver_name" value="{{ program.tier_silver_name or 'Silver' }}" 
+                                       class="tier-name-input">
+                            </div>
+                            <div class="tier-threshold">
+                                <label>Min Points:</label>
+                                <input type="number" name="tier_silver_min_points" value="{{ program.tier_silver_min_points or 1000 }}">
+                            </div>
+                            <div class="tier-benefits-compact">
+                                <div class="benefit-item">
+                                    <label>Earning:</label>
+                                    <input type="number" step="0.01" name="tier_silver_earning_multiplier" 
+                                           value="{{ program.tier_silver_earning_multiplier or 1.2 }}">
+                                    <span>x</span>
+                                </div>
+                                <div class="benefit-item">
+                                    <label>Redemption:</label>
+                                    <input type="number" step="0.01" name="tier_silver_redemption_multiplier" 
+                                           value="{{ program.tier_silver_redemption_multiplier or 1.1 }}">
+                                    <span>x</span>
+                                </div>
+                                <div class="benefit-item">
+                                    <label>Max Discount:</label>
+                                    <input type="number" step="0.1" name="tier_silver_max_discount_percent" 
+                                           value="{{ program.tier_silver_max_discount_percent or '' }}" placeholder="Default">
+                                    <span>%</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Gold Tier -->
+                        <div class="tier-card gold">
+                            <div class="tier-header">
+                                <span class="tier-icon-large">🥇</span>
+                                <input type="text" name="tier_gold_name" value="{{ program.tier_gold_name or 'Gold' }}" 
+                                       class="tier-name-input">
+                            </div>
+                            <div class="tier-threshold">
+                                <label>Min Points:</label>
+                                <input type="number" name="tier_gold_min_points" value="{{ program.tier_gold_min_points or 5000 }}">
+                            </div>
+                            <div class="tier-benefits-compact">
+                                <div class="benefit-item">
+                                    <label>Earning:</label>
+                                    <input type="number" step="0.01" name="tier_gold_earning_multiplier" 
+                                           value="{{ program.tier_gold_earning_multiplier or 1.5 }}">
+                                    <span>x</span>
+                                </div>
+                                <div class="benefit-item">
+                                    <label>Redemption:</label>
+                                    <input type="number" step="0.01" name="tier_gold_redemption_multiplier" 
+                                           value="{{ program.tier_gold_redemption_multiplier or 1.25 }}">
+                                    <span>x</span>
+                                </div>
+                                <div class="benefit-item">
+                                    <label>Max Discount:</label>
+                                    <input type="number" step="0.1" name="tier_gold_max_discount_percent" 
+                                           value="{{ program.tier_gold_max_discount_percent or '' }}" placeholder="Default">
+                                    <span>%</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Platinum Tier -->
+                        <div class="tier-card platinum">
+                            <div class="tier-header">
+                                <span class="tier-icon-large">💎</span>
+                                <input type="text" name="tier_platinum_name" value="{{ program.tier_platinum_name or 'Platinum' }}" 
+                                       class="tier-name-input">
+                            </div>
+                            <div class="tier-threshold">
+                                <label>Min Points:</label>
+                                <input type="number" name="tier_platinum_min_points" value="{{ program.tier_platinum_min_points or 10000 }}">
+                            </div>
+                            <div class="tier-benefits-compact">
+                                <div class="benefit-item">
+                                    <label>Earning:</label>
+                                    <input type="number" step="0.01" name="tier_platinum_earning_multiplier" 
+                                           value="{{ program.tier_platinum_earning_multiplier or 2.0 }}">
+                                    <span>x</span>
+                                </div>
+                                <div class="benefit-item">
+                                    <label>Redemption:</label>
+                                    <input type="number" step="0.01" name="tier_platinum_redemption_multiplier" 
+                                           value="{{ program.tier_platinum_redemption_multiplier or 1.5 }}">
+                                    <span>x</span>
+                                </div>
+                                <div class="benefit-item">
+                                    <label>Max Discount:</label>
+                                    <input type="number" step="0.1" name="tier_platinum_max_discount_percent" 
+                                           value="{{ program.tier_platinum_max_discount_percent or '' }}" placeholder="Default">
+                                    <span>%</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="info-box-compact">
+                        💡 <strong>Tiers auto-assign based on lifetime earned points.</strong> Higher tiers earn MORE points and get BETTER redemption value!
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 4: DISPLAY & PREVIEW -->
+        <div class="tab-content" id="tab-display">
+            <div class="two-column-layout">
+                <!-- Left: Display Options -->
+                <div class="settings-card">
+                    <div class="card-header-compact">
+                        <h3>🖨️ Invoice Display</h3>
+                    </div>
+                    <div class="card-body-compact">
+                        <div class="form-group">
+                            <label class="checkbox-inline">
+                                <input type="checkbox" id="show_points_on_invoice" name="show_points_on_invoice"
+                                       {% if program.show_points_on_invoice %}checked{% endif %}>
+                                Show points balance on printed invoice
+                            </label>
+                        </div>
+                        
+                        <div id="footer_text_group" {% if not program.show_points_on_invoice %}style="display:none"{% endif %}>
+                            <div class="form-group">
+                                <label>Footer Text</label>
+                                <input type="text" name="invoice_footer_text" 
+                                       value="{{ program.invoice_footer_text }}"
+                                       placeholder="Points Balance: {balance} pts | Next visit: ₹{value} off!">
+                                <small>Use {balance} for points, {value} for rupee value</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right: Live Preview -->
+                <div class="settings-card preview-card">
+                    <div class="card-header-compact">
+                        <h3>📊 Example Preview</h3>
+                    </div>
+                    <div class="card-body-compact">
+                        <div class="preview-scenario">
+                            <strong>Scenario: Bronze Customer</strong>
+                            <div class="preview-calc">
+                                Purchase ₹2,500 →
+                                <span id="preview_base_1">25</span> base pts
+                            </div>
+                            <div class="preview-calc">
+                                Purchase ₹7,500 →
+                                <span id="preview_base_2">75</span> base pts +
+                                <span id="preview_bonus_2">+50</span> bonus = 
+                                <span id="preview_total_2">125</span> pts
+                            </div>
+                            <div class="preview-balance">
+                                Total: <span id="preview_balance">150</span> pts = 
+                                ₹<span id="preview_value">150.00</span> discount
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Save Button (Always Visible) -->
+    <div class="form-actions-sticky">
+        <button type="submit" class="btn btn-primary btn-large">
+            💾 Save All Settings
+        </button>
+        <a href="{{ url_for('admin.dashboard') }}" class="btn btn-secondary">
+            Cancel
+        </a>
+    </div>
+</form>
+
+<style>
+/* Modern Compact Design */
+.loyalty-settings-form {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding-bottom: 80px;
+}
+
+/* Status Banner */
+.status-banner {
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    color: white;
+    border-radius: 12px;
+    padding: 20px 30px;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.status-banner.active {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+}
+
+.status-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.status-left h2 {
+    margin: 0 0 10px 0;
+    font-size: 24px;
+}
+
+.program-name-input {
+    background: rgba(255,255,255,0.2);
+    border: 1px solid rgba(255,255,255,0.3);
+    color: white;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 16px;
+    width: 350px;
+}
+
+.program-name-input::placeholder {
+    color: rgba(255,255,255,0.7);
+}
+
+/* Tab Navigation */
+.tabs-container {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    overflow: hidden;
+}
+
+.tabs-nav {
+    display: flex;
+    background: #f3f4f6;
+    border-bottom: 2px solid #e5e7eb;
+}
+
+.tab-btn {
+    flex: 1;
+    padding: 15px 20px;
+    background: none;
+    border: none;
+    font-size: 15px;
+    font-weight: 500;
+    color: #6b7280;
+    cursor: pointer;
+    transition: all 0.2s;
+    border-bottom: 3px solid transparent;
+}
+
+.tab-btn:hover {
+    background: #e5e7eb;
+    color: #111827;
+}
+
+.tab-btn.active {
+    background: white;
+    color: #667eea;
+    border-bottom-color: #667eea;
+}
+
+.tab-content {
+    display: none;
+    padding: 30px;
+    min-height: 500px;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+/* Two Column Layout */
+.two-column-layout {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+}
+
+/* Compact Cards */
+.settings-card {
+    background: #f9fafb;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+}
+
+.card-header-compact {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 12px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.card-header-compact h3 {
+    margin: 0;
+    font-size: 16px;
+}
+
+.card-body-compact {
+    padding: 20px;
+}
+
+/* Threshold Bonuses Compact */
+.threshold-compact {
+    display: grid;
+    grid-template-columns: 30px 1fr 30px 1fr;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.threshold-number {
+    background: #667eea;
+    color: white;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 14px;
+}
+
+/* Bonus Compact */
+.bonus-compact {
+    padding: 15px;
+    background: white;
+    border-radius: 6px;
+    border: 1px solid #e5e7eb;
+}
+
+.bonus-toggle {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.bonus-toggle label {
+    font-weight: 600;
+    margin: 0;
+    flex: 1;
+}
+
+.bonus-toggle input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+}
+
+/* Tiers Grid */
+.tiers-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+    margin-bottom: 20px;
+}
+
+.tier-card {
+    background: white;
+    border: 2px solid #cd7f32;
+    border-radius: 10px;
+    padding: 20px;
+}
+
+.tier-card.silver { border-color: #9ca3af; }
+.tier-card.gold { border-color: #f59e0b; }
+.tier-card.platinum { border-color: #a855f7; }
+
+.tier-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+.tier-icon-large {
+    font-size: 36px;
+}
+
+.tier-name-input {
+    flex: 1;
+    font-size: 18px;
+    font-weight: 600;
+    border: none;
+    border-bottom: 2px solid #e5e7eb;
+    padding: 5px;
+}
+
+.tier-threshold {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 15px;
+    padding: 10px;
+    background: #f3f4f6;
+    border-radius: 6px;
+}
+
+.tier-threshold label {
+    font-weight: 600;
+    margin: 0;
+}
+
+.tier-threshold input {
+    flex: 1;
+}
+
+.tier-benefits-compact {
+    background: #f9fafb;
+    padding: 15px;
+    border-radius: 6px;
+    border: 1px dashed #d1d5db;
+}
+
+.benefit-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+
+.benefit-item label {
+    font-size: 13px;
+    font-weight: 600;
+    width: 90px;
+    margin: 0;
+}
+
+.benefit-item input {
+    flex: 1;
+    padding: 6px 10px;
+}
+
+.benefit-item span {
+    font-weight: bold;
+    color: #667eea;
+}
+
+/* Info Boxes */
+.info-box-compact {
+    background: #eff6ff;
+    border: 1px solid #3b82f6;
+    border-radius: 6px;
+    padding: 12px;
+    color: #1e40af;
+    font-size: 14px;
+    margin-top: 15px;
+}
+
+/* Form Groups */
+.form-group {
+    margin-bottom: 15px;
+}
+
+.form-group label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 5px;
+    color: #374151;
+    font-size: 14px;
+}
+
+.form-group input,
+.form-group select {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    font-size: 14px;
+}
+
+.form-group small {
+    display: block;
+    color: #6b7280;
+    font-size: 12px;
+    margin-top: 4px;
+}
+
+.required {
+    color: #ef4444;
+}
+
+/* Sticky Action Buttons */
+.form-actions-sticky {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: white;
+    padding: 15px 30px;
+    box-shadow: 0 -4px 12px rgba(0,0,0,0.1);
+    display: flex;
+    gap: 15px;
+    z-index: 1000;
+    justify-content: center;
+}
+
+.btn {
+    padding: 12px 30px;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.btn-secondary {
+    background: #e5e7eb;
+    color: #374151;
+    text-decoration: none;
+    display: inline-block;
+}
+
+.btn-large {
+    padding: 14px 40px;
+    font-size: 17px;
+}
+
+/* Toggle Switch */
+.toggle-switch {
+    position: relative;
+    display: inline-block;
+}
+
+.toggle-switch input[type="checkbox"] {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.toggle-label {
+    position: relative;
+    display: inline-block;
+    width: 50px;
+    height: 26px;
+    background-color: #cbd5e1;
+    border-radius: 26px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.toggle-inner {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+.toggle-switch-btn {
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 20px;
+    height: 20px;
+    background-color: white;
+    border-radius: 50%;
+    transition: transform 0.3s;
+}
+
+input[type="checkbox"]:checked + .toggle-label {
+    background-color: #10b981;
+}
+
+input[type="checkbox"]:checked + .toggle-label .toggle-switch-btn {
+    transform: translateX(24px);
+}
+
+.toggle-status {
+    margin-left: 10px;
+    font-weight: 600;
+}
+
+.status-active {
+    color: #10b981;
+}
+
+.status-inactive {
+    color: #ef4444;
+}
+
+/* Preview Card */
+.preview-card .card-header-compact {
+    background: linear-gradient(135deg, #f59e0b 0%, #ea580c 100%);
+}
+
+.preview-scenario {
+    background: #fffbeb;
+    padding: 15px;
+    border-radius: 6px;
+    border: 1px solid #fbbf24;
+}
+
+.preview-calc {
+    padding: 8px 0;
+    color: #92400e;
+}
+
+.preview-balance {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 2px solid #fbbf24;
+    font-size: 18px;
+    font-weight: 600;
+    color: #92400e;
+}
+
+.preview-balance span {
+    color: #ea580c;
+}
+
+/* Checkbox Inline */
+.checkbox-inline {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+}
+
+.checkbox-inline input {
+    width: 20px;
+    height: 20px;
+    margin: 0;
+}
+
+/* Responsive */
+@media (max-width: 1200px) {
+    .two-column-layout {
+        grid-template-columns: 1fr;
+    }
+    .tiers-grid {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
+
+<script>
+// Tab Switching
+document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+        // Remove active from all tabs
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        
+        // Add active to clicked tab
+        this.classList.add('active');
+        const tabId = 'tab-' + this.dataset.tab;
+        document.getElementById(tabId).classList.add('active');
+    });
+});
+
+// Toggle threshold bonuses visibility
+document.getElementById('enable_threshold_bonuses').addEventListener('change', function() {
+    document.querySelector('.threshold-bonuses').style.display = this.checked ? 'block' : 'none';
+});
+
+// Toggle invoice footer text visibility
+document.getElementById('show_points_on_invoice').addEventListener('change', function() {
+    document.getElementById('footer_text_group').style.display = this.checked ? 'block' : 'none';
+});
+
+// Toggle membership tiers visibility
+document.getElementById('enable_membership_tiers').addEventListener('change', function() {
+    document.querySelector('.membership-tiers').style.display = this.checked ? 'block' : 'none';
+});
+
+// Live preview update (simplified)
+function updatePreview() {
+    const rate = parseFloat(document.querySelector('[name="points_per_100_rupees"]').value) || 1;
+    const ratio = parseFloat(document.querySelector('[name="points_to_rupees_ratio"]').value) || 1;
+    const threshold1 = parseFloat(document.querySelector('[name="threshold_1_amount"]').value) || 5000;
+    const bonus_1 = parseFloat(document.querySelector('[name="threshold_1_bonus_points"]').value) || 50;
+    
+    const base1 = Math.floor((2500 / 100) * rate);
+    const base2 = Math.floor((7500 / 100) * rate);
+    const total2 = base2 + bonus_1;
+    
+    document.getElementById('preview_base_1').textContent = base1;
+    document.getElementById('preview_base_2').textContent = base2;
+    document.getElementById('preview_bonus_2').textContent = '+' + bonus_1;
+    document.getElementById('preview_total_2').textContent = total2;
+    
+    const totalBalance = base1 + total2;
+    const totalValue = totalBalance * ratio;
+    document.getElementById('preview_balance').textContent = totalBalance;
+    document.getElementById('preview_value').textContent = totalValue.toFixed(2);
+}
+
+// Update preview on input change
+document.querySelectorAll('input[type="number"]').forEach(input => {
+    input.addEventListener('input', updatePreview);
+});
+
+// Initial preview
+updatePreview();
+</script>
+
+{% endblock %}
+

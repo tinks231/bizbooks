@@ -139,7 +139,7 @@ def settings():
         db.session.add(program)
         db.session.commit()
     
-    return render_template('admin/loyalty/settings.html', program=program)
+    return render_template('admin/loyalty/settings_v2.html', program=program)
 
 @loyalty_bp.route('/admin/loyalty/settings/update', methods=['POST'])
 @login_required
