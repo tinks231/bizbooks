@@ -185,6 +185,23 @@ def update_settings():
         program.show_points_on_invoice = request.form.get('show_points_on_invoice') == 'on'
         program.invoice_footer_text = request.form.get('invoice_footer_text', 'Points Balance: {balance} pts | Next visit: ₹{value} off!')
         
+        # Birthday/Anniversary bonuses
+        program.enable_birthday_bonus = request.form.get('enable_birthday_bonus') == 'on'
+        program.birthday_bonus_points = int(request.form.get('birthday_bonus_points', 0))
+        program.enable_anniversary_bonus = request.form.get('enable_anniversary_bonus') == 'on'
+        program.anniversary_bonus_points = int(request.form.get('anniversary_bonus_points', 0))
+        
+        # Membership tiers
+        program.enable_membership_tiers = request.form.get('enable_membership_tiers') == 'on'
+        program.tier_bronze_name = request.form.get('tier_bronze_name', 'Bronze')
+        program.tier_bronze_min_points = int(request.form.get('tier_bronze_min_points', 0))
+        program.tier_silver_name = request.form.get('tier_silver_name', 'Silver')
+        program.tier_silver_min_points = int(request.form.get('tier_silver_min_points', 1000))
+        program.tier_gold_name = request.form.get('tier_gold_name', 'Gold')
+        program.tier_gold_min_points = int(request.form.get('tier_gold_min_points', 5000))
+        program.tier_platinum_name = request.form.get('tier_platinum_name', 'Platinum')
+        program.tier_platinum_min_points = int(request.form.get('tier_platinum_min_points', 10000))
+        
         program.updated_at = datetime.utcnow()
         
         db.session.commit()

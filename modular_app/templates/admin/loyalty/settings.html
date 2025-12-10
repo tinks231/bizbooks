@@ -281,6 +281,173 @@
         </div>
     </div>
 
+    <!-- Birthday/Anniversary Bonuses Card -->
+    <div class="settings-card">
+        <div class="card-header">
+            <h2>🎂 Birthday & Anniversary Bonuses</h2>
+            <p>Give temporary bonus points on special occasions</p>
+        </div>
+        <div class="card-body">
+            <div class="bonus-section">
+                <div class="bonus-header">
+                    <h3>🎈 Birthday Bonus</h3>
+                    <div class="toggle-switch">
+                        <input type="checkbox" id="enable_birthday_bonus" 
+                               name="enable_birthday_bonus"
+                               {% if program.enable_birthday_bonus %}checked{% endif %}>
+                        <label for="enable_birthday_bonus" class="toggle-label">
+                            <span class="toggle-inner"></span>
+                            <span class="toggle-switch-btn"></span>
+                        </label>
+                    </div>
+                </div>
+                <div class="bonus-config" {% if not program.enable_birthday_bonus %}style="display:none"{% endif %}>
+                    <div class="form-group">
+                        <label>Bonus Points on Birthday</label>
+                        <input type="number" name="birthday_bonus_points" 
+                               value="{{ program.birthday_bonus_points or 0 }}" min="0">
+                        <small>⏰ Points are temporary and expire at midnight if not used</small>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bonus-section" style="margin-top: 20px;">
+                <div class="bonus-header">
+                    <h3>💝 Anniversary Bonus</h3>
+                    <div class="toggle-switch">
+                        <input type="checkbox" id="enable_anniversary_bonus" 
+                               name="enable_anniversary_bonus"
+                               {% if program.enable_anniversary_bonus %}checked{% endif %}>
+                        <label for="enable_anniversary_bonus" class="toggle-label">
+                            <span class="toggle-inner"></span>
+                            <span class="toggle-switch-btn"></span>
+                        </label>
+                    </div>
+                </div>
+                <div class="bonus-config" {% if not program.enable_anniversary_bonus %}style="display:none"{% endif %}>
+                    <div class="form-group">
+                        <label>Bonus Points on Anniversary</label>
+                        <input type="number" name="anniversary_bonus_points" 
+                               value="{{ program.anniversary_bonus_points or 0 }}" min="0">
+                        <small>⏰ Points are temporary and expire at midnight if not used</small>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="info-box" style="margin-top: 20px;">
+                <strong>💡 How it works:</strong>
+                <ul style="margin: 10px 0 0 20px;">
+                    <li>Bonus points are added to customer's balance on their special day</li>
+                    <li>They can use these points along with their regular points</li>
+                    <li>If not used by midnight, bonus points expire automatically</li>
+                    <li>Customers must have DOB/Anniversary date in their profile</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Membership Tiers Card -->
+    <div class="settings-card">
+        <div class="card-header">
+            <h2>🏆 Membership Tiers</h2>
+            <p>Auto-assign tiers based on lifetime earned points</p>
+            <div class="toggle-switch">
+                <input type="checkbox" id="enable_membership_tiers" 
+                       name="enable_membership_tiers"
+                       {% if program.enable_membership_tiers %}checked{% endif %}>
+                <label for="enable_membership_tiers" class="toggle-label">
+                    <span class="toggle-inner"></span>
+                    <span class="toggle-switch-btn"></span>
+                </label>
+            </div>
+        </div>
+        <div class="card-body membership-tiers" 
+             {% if not program.enable_membership_tiers %}style="display:none"{% endif %}>
+            
+            <div class="tier-row">
+                <div class="tier-icon">🥉</div>
+                <div class="tier-config">
+                    <div class="form-group">
+                        <label>Tier 1 Name</label>
+                        <input type="text" name="tier_bronze_name" 
+                               value="{{ program.tier_bronze_name or 'Bronze' }}"
+                               placeholder="Bronze">
+                    </div>
+                    <div class="form-group">
+                        <label>Minimum Points</label>
+                        <input type="number" name="tier_bronze_min_points" 
+                               value="{{ program.tier_bronze_min_points or 0 }}" min="0">
+                        <small>Starting tier (usually 0)</small>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="tier-row">
+                <div class="tier-icon">🥈</div>
+                <div class="tier-config">
+                    <div class="form-group">
+                        <label>Tier 2 Name</label>
+                        <input type="text" name="tier_silver_name" 
+                               value="{{ program.tier_silver_name or 'Silver' }}"
+                               placeholder="Silver">
+                    </div>
+                    <div class="form-group">
+                        <label>Minimum Points</label>
+                        <input type="number" name="tier_silver_min_points" 
+                               value="{{ program.tier_silver_min_points or 1000 }}" min="0">
+                        <small>e.g., 1000 points</small>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="tier-row">
+                <div class="tier-icon">🥇</div>
+                <div class="tier-config">
+                    <div class="form-group">
+                        <label>Tier 3 Name</label>
+                        <input type="text" name="tier_gold_name" 
+                               value="{{ program.tier_gold_name or 'Gold' }}"
+                               placeholder="Gold">
+                    </div>
+                    <div class="form-group">
+                        <label>Minimum Points</label>
+                        <input type="number" name="tier_gold_min_points" 
+                               value="{{ program.tier_gold_min_points or 5000 }}" min="0">
+                        <small>e.g., 5000 points</small>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="tier-row">
+                <div class="tier-icon">💎</div>
+                <div class="tier-config">
+                    <div class="form-group">
+                        <label>Tier 4 Name</label>
+                        <input type="text" name="tier_platinum_name" 
+                               value="{{ program.tier_platinum_name or 'Platinum' }}"
+                               placeholder="Platinum">
+                    </div>
+                    <div class="form-group">
+                        <label>Minimum Points</label>
+                        <input type="number" name="tier_platinum_min_points" 
+                               value="{{ program.tier_platinum_min_points or 10000 }}" min="0">
+                        <small>e.g., 10000 points</small>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="info-box" style="margin-top: 20px;">
+                <strong>💡 How it works:</strong>
+                <ul style="margin: 10px 0 0 20px;">
+                    <li>Tiers are based on <strong>lifetime earned points</strong> (not current balance)</li>
+                    <li>Customers automatically move up tiers as they earn more</li>
+                    <li>Tier badges are shown on customer profiles and invoices</li>
+                    <li>Once earned, tier level never goes down (even after redemptions)</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
     <!-- Action Buttons -->
     <div class="form-actions">
         <button type="submit" class="btn btn-primary btn-large">
@@ -547,6 +714,77 @@ input[type="checkbox"]:checked + .toggle-label .toggle-switch-btn {
     font-size: 16px;
     font-weight: 600;
 }
+
+/* Bonus Sections */
+.bonus-section {
+    padding: 15px;
+    background: #f9fafb;
+    border-radius: 8px;
+    border: 1px solid #e5e7eb;
+}
+
+.bonus-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.bonus-header h3 {
+    margin: 0;
+    font-size: 18px;
+    color: #1f2937;
+}
+
+.bonus-config {
+    margin-top: 15px;
+}
+
+/* Tier Rows */
+.tier-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 20px;
+    padding: 20px;
+    background: #f9fafb;
+    border-radius: 8px;
+    border: 1px solid #e5e7eb;
+    margin-bottom: 15px;
+}
+
+.tier-icon {
+    font-size: 48px;
+    min-width: 60px;
+    text-align: center;
+}
+
+.tier-config {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+}
+
+/* Info Box */
+.info-box {
+    background: #eff6ff;
+    border: 1px solid #3b82f6;
+    border-radius: 8px;
+    padding: 15px;
+    color: #1e40af;
+}
+
+.info-box strong {
+    color: #1e3a8a;
+}
+
+.info-box ul {
+    color: #1e40af;
+}
+
+.info-box li {
+    margin-bottom: 5px;
+}
 </style>
 
 <script>
@@ -558,6 +796,21 @@ document.getElementById('enable_threshold_bonuses').addEventListener('change', f
 // Toggle invoice footer text visibility
 document.getElementById('show_points_on_invoice').addEventListener('change', function() {
     document.getElementById('footer_text_group').style.display = this.checked ? 'block' : 'none';
+});
+
+// Toggle birthday bonus visibility
+document.getElementById('enable_birthday_bonus').addEventListener('change', function() {
+    this.closest('.bonus-section').querySelector('.bonus-config').style.display = this.checked ? 'block' : 'none';
+});
+
+// Toggle anniversary bonus visibility
+document.getElementById('enable_anniversary_bonus').addEventListener('change', function() {
+    this.closest('.bonus-section').querySelector('.bonus-config').style.display = this.checked ? 'block' : 'none';
+});
+
+// Toggle membership tiers visibility
+document.getElementById('enable_membership_tiers').addEventListener('change', function() {
+    document.querySelector('.membership-tiers').style.display = this.checked ? 'block' : 'none';
 });
 
 // Live preview update
