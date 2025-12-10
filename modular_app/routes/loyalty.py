@@ -195,12 +195,27 @@ def update_settings():
         program.enable_membership_tiers = request.form.get('enable_membership_tiers') == 'on'
         program.tier_bronze_name = request.form.get('tier_bronze_name', 'Bronze')
         program.tier_bronze_min_points = int(request.form.get('tier_bronze_min_points', 0))
+        program.tier_bronze_earning_multiplier = float(request.form.get('tier_bronze_earning_multiplier', 1.0))
+        program.tier_bronze_redemption_multiplier = float(request.form.get('tier_bronze_redemption_multiplier', 1.0))
+        program.tier_bronze_max_discount_percent = float(request.form.get('tier_bronze_max_discount_percent')) if request.form.get('tier_bronze_max_discount_percent') else None
+        
         program.tier_silver_name = request.form.get('tier_silver_name', 'Silver')
         program.tier_silver_min_points = int(request.form.get('tier_silver_min_points', 1000))
+        program.tier_silver_earning_multiplier = float(request.form.get('tier_silver_earning_multiplier', 1.2))
+        program.tier_silver_redemption_multiplier = float(request.form.get('tier_silver_redemption_multiplier', 1.1))
+        program.tier_silver_max_discount_percent = float(request.form.get('tier_silver_max_discount_percent')) if request.form.get('tier_silver_max_discount_percent') else None
+        
         program.tier_gold_name = request.form.get('tier_gold_name', 'Gold')
         program.tier_gold_min_points = int(request.form.get('tier_gold_min_points', 5000))
+        program.tier_gold_earning_multiplier = float(request.form.get('tier_gold_earning_multiplier', 1.5))
+        program.tier_gold_redemption_multiplier = float(request.form.get('tier_gold_redemption_multiplier', 1.25))
+        program.tier_gold_max_discount_percent = float(request.form.get('tier_gold_max_discount_percent')) if request.form.get('tier_gold_max_discount_percent') else None
+        
         program.tier_platinum_name = request.form.get('tier_platinum_name', 'Platinum')
         program.tier_platinum_min_points = int(request.form.get('tier_platinum_min_points', 10000))
+        program.tier_platinum_earning_multiplier = float(request.form.get('tier_platinum_earning_multiplier', 2.0))
+        program.tier_platinum_redemption_multiplier = float(request.form.get('tier_platinum_redemption_multiplier', 1.5))
+        program.tier_platinum_max_discount_percent = float(request.form.get('tier_platinum_max_discount_percent')) if request.form.get('tier_platinum_max_discount_percent') else None
         
         program.updated_at = datetime.utcnow()
         

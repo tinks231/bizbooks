@@ -366,83 +366,188 @@
             
             <div class="tier-row">
                 <div class="tier-icon">🥉</div>
-                <div class="tier-config">
-                    <div class="form-group">
-                        <label>Tier 1 Name</label>
-                        <input type="text" name="tier_bronze_name" 
-                               value="{{ program.tier_bronze_name or 'Bronze' }}"
-                               placeholder="Bronze">
+                <div class="tier-config-full">
+                    <div class="tier-basic">
+                        <div class="form-group">
+                            <label>Tier 1 Name</label>
+                            <input type="text" name="tier_bronze_name" 
+                                   value="{{ program.tier_bronze_name or 'Bronze' }}"
+                                   placeholder="Bronze">
+                        </div>
+                        <div class="form-group">
+                            <label>Minimum Points</label>
+                            <input type="number" name="tier_bronze_min_points" 
+                                   value="{{ program.tier_bronze_min_points or 0 }}" min="0">
+                            <small>Starting tier (usually 0)</small>
+                        </div>
                     </div>
-                    <div class="form-group">
-                        <label>Minimum Points</label>
-                        <input type="number" name="tier_bronze_min_points" 
-                               value="{{ program.tier_bronze_min_points or 0 }}" min="0">
-                        <small>Starting tier (usually 0)</small>
+                    <div class="tier-benefits">
+                        <h4>🎁 Tier Benefits:</h4>
+                        <div class="benefit-row">
+                            <div class="form-group">
+                                <label>Earning Multiplier</label>
+                                <input type="number" step="0.1" name="tier_bronze_earning_multiplier" 
+                                       value="{{ program.tier_bronze_earning_multiplier or 1.0 }}" min="0.1">
+                                <small>1.0 = normal rate (e.g., 1.5 = 50% bonus points)</small>
+                            </div>
+                            <div class="form-group">
+                                <label>Redemption Multiplier</label>
+                                <input type="number" step="0.1" name="tier_bronze_redemption_multiplier" 
+                                       value="{{ program.tier_bronze_redemption_multiplier or 1.0 }}" min="0.1">
+                                <small>1.0 = normal value (e.g., 1.2 = 20% better value)</small>
+                            </div>
+                            <div class="form-group">
+                                <label>Max Discount % (optional)</label>
+                                <input type="number" step="0.1" name="tier_bronze_max_discount_percent" 
+                                       value="{{ program.tier_bronze_max_discount_percent or '' }}"
+                                       placeholder="Use global setting">
+                                <small>Override global max redemption %</small>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
             
             <div class="tier-row">
                 <div class="tier-icon">🥈</div>
-                <div class="tier-config">
-                    <div class="form-group">
-                        <label>Tier 2 Name</label>
-                        <input type="text" name="tier_silver_name" 
-                               value="{{ program.tier_silver_name or 'Silver' }}"
-                               placeholder="Silver">
+                <div class="tier-config-full">
+                    <div class="tier-basic">
+                        <div class="form-group">
+                            <label>Tier 2 Name</label>
+                            <input type="text" name="tier_silver_name" 
+                                   value="{{ program.tier_silver_name or 'Silver' }}"
+                                   placeholder="Silver">
+                        </div>
+                        <div class="form-group">
+                            <label>Minimum Points</label>
+                            <input type="number" name="tier_silver_min_points" 
+                                   value="{{ program.tier_silver_min_points or 1000 }}" min="0">
+                            <small>e.g., 1000 points</small>
+                        </div>
                     </div>
-                    <div class="form-group">
-                        <label>Minimum Points</label>
-                        <input type="number" name="tier_silver_min_points" 
-                               value="{{ program.tier_silver_min_points or 1000 }}" min="0">
-                        <small>e.g., 1000 points</small>
+                    <div class="tier-benefits">
+                        <h4>🎁 Tier Benefits:</h4>
+                        <div class="benefit-row">
+                            <div class="form-group">
+                                <label>Earning Multiplier</label>
+                                <input type="number" step="0.1" name="tier_silver_earning_multiplier" 
+                                       value="{{ program.tier_silver_earning_multiplier or 1.2 }}" min="0.1">
+                                <small>1.2 = 20% bonus points (recommended)</small>
+                            </div>
+                            <div class="form-group">
+                                <label>Redemption Multiplier</label>
+                                <input type="number" step="0.1" name="tier_silver_redemption_multiplier" 
+                                       value="{{ program.tier_silver_redemption_multiplier or 1.1 }}" min="0.1">
+                                <small>1.1 = 10% better value (recommended)</small>
+                            </div>
+                            <div class="form-group">
+                                <label>Max Discount % (optional)</label>
+                                <input type="number" step="0.1" name="tier_silver_max_discount_percent" 
+                                       value="{{ program.tier_silver_max_discount_percent or '' }}"
+                                       placeholder="Use global setting">
+                                <small>Override global max redemption %</small>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
             
             <div class="tier-row">
                 <div class="tier-icon">🥇</div>
-                <div class="tier-config">
-                    <div class="form-group">
-                        <label>Tier 3 Name</label>
-                        <input type="text" name="tier_gold_name" 
-                               value="{{ program.tier_gold_name or 'Gold' }}"
-                               placeholder="Gold">
+                <div class="tier-config-full">
+                    <div class="tier-basic">
+                        <div class="form-group">
+                            <label>Tier 3 Name</label>
+                            <input type="text" name="tier_gold_name" 
+                                   value="{{ program.tier_gold_name or 'Gold' }}"
+                                   placeholder="Gold">
+                        </div>
+                        <div class="form-group">
+                            <label>Minimum Points</label>
+                            <input type="number" name="tier_gold_min_points" 
+                                   value="{{ program.tier_gold_min_points or 5000 }}" min="0">
+                            <small>e.g., 5000 points</small>
+                        </div>
                     </div>
-                    <div class="form-group">
-                        <label>Minimum Points</label>
-                        <input type="number" name="tier_gold_min_points" 
-                               value="{{ program.tier_gold_min_points or 5000 }}" min="0">
-                        <small>e.g., 5000 points</small>
+                    <div class="tier-benefits">
+                        <h4>🎁 Tier Benefits:</h4>
+                        <div class="benefit-row">
+                            <div class="form-group">
+                                <label>Earning Multiplier</label>
+                                <input type="number" step="0.1" name="tier_gold_earning_multiplier" 
+                                       value="{{ program.tier_gold_earning_multiplier or 1.5 }}" min="0.1">
+                                <small>1.5 = 50% bonus points (recommended)</small>
+                            </div>
+                            <div class="form-group">
+                                <label>Redemption Multiplier</label>
+                                <input type="number" step="0.1" name="tier_gold_redemption_multiplier" 
+                                       value="{{ program.tier_gold_redemption_multiplier or 1.25 }}" min="0.1">
+                                <small>1.25 = 25% better value (recommended)</small>
+                            </div>
+                            <div class="form-group">
+                                <label>Max Discount % (optional)</label>
+                                <input type="number" step="0.1" name="tier_gold_max_discount_percent" 
+                                       value="{{ program.tier_gold_max_discount_percent or '' }}"
+                                       placeholder="Use global setting">
+                                <small>Override global max redemption %</small>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
             
             <div class="tier-row">
                 <div class="tier-icon">💎</div>
-                <div class="tier-config">
-                    <div class="form-group">
-                        <label>Tier 4 Name</label>
-                        <input type="text" name="tier_platinum_name" 
-                               value="{{ program.tier_platinum_name or 'Platinum' }}"
-                               placeholder="Platinum">
+                <div class="tier-config-full">
+                    <div class="tier-basic">
+                        <div class="form-group">
+                            <label>Tier 4 Name</label>
+                            <input type="text" name="tier_platinum_name" 
+                                   value="{{ program.tier_platinum_name or 'Platinum' }}"
+                                   placeholder="Platinum">
+                        </div>
+                        <div class="form-group">
+                            <label>Minimum Points</label>
+                            <input type="number" name="tier_platinum_min_points" 
+                                   value="{{ program.tier_platinum_min_points or 10000 }}" min="0">
+                            <small>e.g., 10000 points</small>
+                        </div>
                     </div>
-                    <div class="form-group">
-                        <label>Minimum Points</label>
-                        <input type="number" name="tier_platinum_min_points" 
-                               value="{{ program.tier_platinum_min_points or 10000 }}" min="0">
-                        <small>e.g., 10000 points</small>
+                    <div class="tier-benefits">
+                        <h4>🎁 Tier Benefits:</h4>
+                        <div class="benefit-row">
+                            <div class="form-group">
+                                <label>Earning Multiplier</label>
+                                <input type="number" step="0.1" name="tier_platinum_earning_multiplier" 
+                                       value="{{ program.tier_platinum_earning_multiplier or 2.0 }}" min="0.1">
+                                <small>2.0 = DOUBLE points! (recommended)</small>
+                            </div>
+                            <div class="form-group">
+                                <label>Redemption Multiplier</label>
+                                <input type="number" step="0.1" name="tier_platinum_redemption_multiplier" 
+                                       value="{{ program.tier_platinum_redemption_multiplier or 1.5 }}" min="0.1">
+                                <small>1.5 = 50% better value (recommended)</small>
+                            </div>
+                            <div class="form-group">
+                                <label>Max Discount % (optional)</label>
+                                <input type="number" step="0.1" name="tier_platinum_max_discount_percent" 
+                                       value="{{ program.tier_platinum_max_discount_percent or '' }}"
+                                       placeholder="Use global setting">
+                                <small>Override global max redemption %</small>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
             
             <div class="info-box" style="margin-top: 20px;">
-                <strong>💡 How it works:</strong>
+                <strong>💡 How Tier Benefits Work:</strong>
                 <ul style="margin: 10px 0 0 20px;">
-                    <li>Tiers are based on <strong>lifetime earned points</strong> (not current balance)</li>
-                    <li>Customers automatically move up tiers as they earn more</li>
-                    <li>Tier badges are shown on customer profiles and invoices</li>
-                    <li>Once earned, tier level never goes down (even after redemptions)</li>
+                    <li><strong>Tier Assignment:</strong> Based on <strong>lifetime earned points</strong> (never goes down)</li>
+                    <li><strong>Earning Multiplier:</strong> Higher tiers earn MORE points per purchase (e.g., Silver 1.2x = 20% bonus)</li>
+                    <li><strong>Redemption Multiplier:</strong> Higher tiers get BETTER value when redeeming (e.g., Gold 1.25x = 25% more savings)</li>
+                    <li><strong>Max Discount Override:</strong> Optionally let VIP tiers redeem more % per invoice</li>
+                    <li><strong>Example:</strong> Bronze earns 10pts, Silver earns 12pts (1.2x), Gold earns 15pts (1.5x) on same ₹100 purchase!</li>
                 </ul>
             </div>
         </div>
@@ -762,6 +867,34 @@ input[type="checkbox"]:checked + .toggle-label .toggle-switch-btn {
     flex: 1;
     display: grid;
     grid-template-columns: 1fr 1fr;
+    gap: 20px;
+}
+
+.tier-config-full {
+    flex: 1;
+}
+
+.tier-basic {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin-bottom: 20px;
+}
+
+.tier-benefits {
+    border-top: 2px solid #e5e7eb;
+    padding-top: 15px;
+}
+
+.tier-benefits h4 {
+    margin: 0 0 15px 0;
+    color: #10b981;
+    font-size: 16px;
+}
+
+.benefit-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
     gap: 20px;
 }
 
