@@ -902,6 +902,7 @@ table tbody td b {
     background: rgba(0, 0, 0, 0.5);
     z-index: 10000; /* Higher than sidebar (1000) and header (100) */
     overflow-y: auto; /* Allow scrolling the entire modal container if dialog is taller than viewport */
+    -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS/Chrome */
     display: none;
     pointer-events: none; /* Allows clicks to pass through when hidden */
 }
@@ -911,12 +912,16 @@ table tbody td b {
     align-items: flex-start; /* Changed from center to allow scrolling from top */
     justify-content: center;
     padding: 20px;
+    padding-top: 40px; /* Extra top padding for better Chrome scroll */
+    padding-bottom: 40px; /* Extra bottom padding */
     pointer-events: auto; /* Enable clicks when visible */
 }
 
 /* Prevent body scroll when modal is open */
 body.modal-open {
-    overflow: hidden;
+    overflow: hidden !important; /* Force override for Chrome */
+    position: fixed; /* Prevent background scroll in Chrome */
+    width: 100%; /* Prevent layout shift */
 }
 
 /* Modal Dialog Container */
@@ -927,12 +932,13 @@ body.modal-open {
     width: 100%;
     box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
     animation: slideUp 0.3s ease;
-    margin: 20px auto; /* Add margin for spacing */
+    margin: 0 auto; /* Center horizontally, vertical margin handled by padding on .modal.show */
     position: relative;
     z-index: 10001; /* Ensure dialog is above overlay */
-    max-height: calc(100vh - 40px); /* Ensure dialog doesn't exceed viewport */
+    max-height: calc(100vh - 80px); /* Leave space for padding */
     display: flex;
     flex-direction: column; /* Enable flex layout for scrollable body */
+    overflow: hidden; /* Prevent double scrollbars */
 }
 
 .modal-dialog--large {
@@ -995,8 +1001,11 @@ body.modal-open {
 /* Modal Body */
 .modal-body {
     padding: 25px;
-    max-height: calc(100vh - 200px);
+    max-height: calc(100vh - 220px); /* Account for header + footer + padding */
     overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS/Chrome */
+    flex: 1 1 auto; /* Allow body to grow and shrink */
 }
 
 /* Ensure all form elements inside modal are interactive */

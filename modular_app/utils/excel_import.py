@@ -167,8 +167,9 @@ def create_customer_template():
     ws = wb.active
     ws.title = "Customer Import"
     
-    # Headers - match Customer model fields
-    headers = ['Customer Name*', 'Phone*', 'Email', 'GSTIN', 'Address', 'State', 'Credit Limit', 'Payment Terms (Days)', 'Opening Balance', 'Notes']
+    # Headers - match Customer model fields (including loyalty program fields)
+    headers = ['Customer Name*', 'Phone*', 'Email', 'GSTIN', 'Address', 'State', 'Credit Limit', 
+               'Payment Terms (Days)', 'Opening Balance', 'Date of Birth', 'Anniversary Date', 'Notes']
     
     # Style headers
     header_fill = PatternFill(start_color="FFC000", end_color="FFC000", fill_type="solid")
@@ -191,6 +192,8 @@ def create_customer_template():
         '50000',  # Credit Limit
         '30',  # Payment Terms (Days)
         '0',  # Opening Balance
+        '1990-05-15',  # Date of Birth (YYYY-MM-DD format)
+        '2020-01-10',  # Anniversary Date (YYYY-MM-DD format)
         'VIP Customer'  # Notes
     ]
     
@@ -206,7 +209,8 @@ def create_customer_template():
     ws.cell(row=8, column=1, value="4. Customer code will be auto-generated (CUST-0001, CUST-0002, etc.)")
     ws.cell(row=9, column=1, value="5. Credit Limit, Payment Terms, Opening Balance are optional (default: 0, 30, 0)")
     ws.cell(row=10, column=1, value="6. Payment Terms is in days (e.g., 30 = payment due in 30 days)")
-    ws.cell(row=11, column=1, value="7. Delete row 2 (sample data) before uploading")
+    ws.cell(row=11, column=1, value="7. Date of Birth & Anniversary Date: Format YYYY-MM-DD (e.g., 1990-05-15) - Optional, for loyalty bonuses")
+    ws.cell(row=12, column=1, value="8. Delete row 2 (sample data) before uploading")
     
     # Adjust column widths
     ws.column_dimensions['A'].width = 25  # Customer Name
@@ -218,7 +222,9 @@ def create_customer_template():
     ws.column_dimensions['G'].width = 15  # Credit Limit
     ws.column_dimensions['H'].width = 20  # Payment Terms
     ws.column_dimensions['I'].width = 18  # Opening Balance
-    ws.column_dimensions['J'].width = 25  # Notes
+    ws.column_dimensions['J'].width = 16  # Date of Birth
+    ws.column_dimensions['K'].width = 16  # Anniversary Date
+    ws.column_dimensions['L'].width = 25  # Notes
     
     # Save to BytesIO
     output = BytesIO()
@@ -340,10 +346,14 @@ def validate_inventory_row(row_data, row_num):
 
 def validate_customer_row(row_data, row_num):
     """
-    Validate a single customer row
+    Validate a single customer row (now with DOB and Anniversary)
     Returns: (is_valid, error_message)
     """
-    name, phone, email, gstin, address, state, credit_limit, payment_terms, opening_balance, notes = row_data
+    # Pad row_data to 12 fields if needed
+    if len(row_data) < 12:
+        row_data = list(row_data) + [None] * (12 - len(row_data))
+    
+    name, phone, email, gstin, address, state, credit_limit, payment_terms, opening_balance, date_of_birth, anniversary_date, notes = row_data[:12]
     
     # Required fields
     if not name or str(name).strip() == '':
@@ -663,12 +673,12 @@ def import_customers_from_excel(file, tenant_id):
             if all(cell is None or str(cell).strip() == '' for cell in row):
                 continue
             
-            # Extract data - match new template format
-            row_data = list(row) + [None] * (10 - len(row))
-            name, phone, email, gstin, address, state, credit_limit, payment_terms, opening_balance, notes = row_data[:10]
+            # Extract data - match new template format (now with DOB and Anniversary)
+            row_data = list(row) + [None] * (12 - len(row))
+            name, phone, email, gstin, address, state, credit_limit, payment_terms, opening_balance, date_of_birth, anniversary_date, notes = row_data[:12]
             
             # Validate
-            is_valid, error_msg = validate_customer_row(row_data[:10], row_num)
+            is_valid, error_msg = validate_customer_row(row_data[:12], row_num)
             if not is_valid:
                 errors.append(error_msg)
                 continue
@@ -696,6 +706,38 @@ def import_customers_from_excel(file, tenant_id):
                 # Handle phone as float (Excel issue)
                 phone_final = str(int(phone) if isinstance(phone, float) else phone).strip()
                 
+                # Parse dates (format: YYYY-MM-DD or DD-MM-YYYY or MM/DD/YYYY)
+                from datetime import datetime
+                
+                dob_final = None
+                if date_of_birth and str(date_of_birth).strip():
+                    try:
+                        dob_str = str(date_of_birth).strip()
+                        # Try YYYY-MM-DD format first
+                        if '-' in dob_str and len(dob_str.split('-')[0]) == 4:
+                            dob_final = datetime.strptime(dob_str, '%Y-%m-%d').date()
+                        # Try DD-MM-YYYY
+                        elif '-' in dob_str:
+                            dob_final = datetime.strptime(dob_str, '%d-%m-%Y').date()
+                        # Try MM/DD/YYYY
+                        elif '/' in dob_str:
+                            dob_final = datetime.strptime(dob_str, '%m/%d/%Y').date()
+                    except:
+                        pass  # If parsing fails, leave as None
+                
+                anniversary_final = None
+                if anniversary_date and str(anniversary_date).strip():
+                    try:
+                        ann_str = str(anniversary_date).strip()
+                        if '-' in ann_str and len(ann_str.split('-')[0]) == 4:
+                            anniversary_final = datetime.strptime(ann_str, '%Y-%m-%d').date()
+                        elif '-' in ann_str:
+                            anniversary_final = datetime.strptime(ann_str, '%d-%m-%Y').date()
+                        elif '/' in ann_str:
+                            anniversary_final = datetime.strptime(ann_str, '%m/%d/%Y').date()
+                    except:
+                        pass
+                
                 # Create customer with all fields
                 customer = Customer(
                     tenant_id=tenant_id,
@@ -709,6 +751,8 @@ def import_customers_from_excel(file, tenant_id):
                     credit_limit=float(credit_limit) if credit_limit else 0,
                     payment_terms_days=int(payment_terms) if payment_terms else 30,
                     opening_balance=float(opening_balance) if opening_balance else 0,
+                    date_of_birth=dob_final,
+                    anniversary_date=anniversary_final,
                     notes=str(notes).strip() if notes else ''
                 )
                 
