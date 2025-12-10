@@ -689,25 +689,33 @@ def view(invoice_id):
     if invoice.customer_id:
         try:
             from services.loyalty_service import LoyaltyService
-            from models import CustomerLoyaltyPoints
+            from models.loyalty_program import LoyaltyProgram
             
-            loyalty_settings = LoyaltyService.get_loyalty_program_settings(tenant_id)
+            # Get loyalty program settings
+            loyalty_program = LoyaltyProgram.query.filter_by(tenant_id=tenant_id).first()
             
-            if (loyalty_settings and loyalty_settings.is_enabled and 
-                loyalty_settings.footer_note_enabled and 
-                loyalty_settings.footer_note_text):
+            if (loyalty_program and loyalty_program.is_active and 
+                loyalty_program.show_points_on_invoice and 
+                loyalty_program.invoice_footer_text):
                 
-                # Get customer's current loyalty balance
-                loyalty_record = CustomerLoyaltyPoints.query.filter_by(
-                    tenant_id=tenant_id,
-                    customer_id=invoice.customer_id
-                ).first()
+                # Get customer's current available points (includes bonuses)
+                available_points = LoyaltyService.get_customer_available_points(
+                    invoice.customer_id, 
+                    tenant_id
+                )
                 
-                if loyalty_record:
-                    # Replace placeholder with actual points
-                    loyalty_footer_note = loyalty_settings.footer_note_text.replace(
-                        '{{points}}', str(loyalty_record.current_points)
-                    )
+                # Calculate rupee value
+                redemption_value = LoyaltyService.calculate_redemption_value(
+                    available_points,
+                    tenant_id,
+                    invoice.customer_id
+                )
+                
+                # Replace placeholders
+                loyalty_footer_note = loyalty_program.invoice_footer_text
+                loyalty_footer_note = loyalty_footer_note.replace('{balance}', str(available_points))
+                loyalty_footer_note = loyalty_footer_note.replace('{value}', f'{redemption_value:.2f}')
+                
         except Exception as e:
             print(f"⚠️ Error fetching loyalty footer: {str(e)}")
     
