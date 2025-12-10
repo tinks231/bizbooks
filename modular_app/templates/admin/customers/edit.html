@@ -203,6 +203,30 @@
         </div>
     </div>
     
+    <!-- Loyalty Program Details Card (Optional) -->
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">🎁 Loyalty Program (Optional)</h3>
+            <p style="color: #6c757d; font-size: 14px; margin-top: 8px;">For birthday/anniversary bonuses (if loyalty program is enabled)</p>
+        </div>
+        
+        <div class="form-row">
+            <div class="form-group">
+                <label class="field-label" for="date_of_birth">Date of Birth</label>
+                <input type="date" id="date_of_birth" name="date_of_birth" 
+                       value="{{ customer.date_of_birth.strftime('%Y-%m-%d') if customer.date_of_birth else '' }}">
+                <small class="help-text">📅 Used for birthday bonus rewards</small>
+            </div>
+            
+            <div class="form-group">
+                <label class="field-label" for="anniversary_date">Anniversary Date</label>
+                <input type="date" id="anniversary_date" name="anniversary_date"
+                       value="{{ customer.anniversary_date.strftime('%Y-%m-%d') if customer.anniversary_date else '' }}">
+                <small class="help-text">🎉 Used for anniversary bonus rewards</small>
+            </div>
+        </div>
+    </div>
+    
     <!-- Submit Buttons -->
     <div class="form-actions" style="margin-bottom: 30px;">
         <button type="submit" class="btn btn-primary" style="flex: 1;">

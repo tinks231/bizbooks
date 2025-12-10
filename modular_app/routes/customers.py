@@ -104,6 +104,11 @@ def add():
                     return jsonify({'success': False, 'error': f'Customer code {customer_code} already exists!'}), 400
                 return redirect(url_for('customers.add'))
             
+            # Parse loyalty program dates
+            from datetime import datetime
+            date_of_birth = request.form.get('date_of_birth')
+            anniversary_date = request.form.get('anniversary_date')
+            
             # Create customer
             customer = Customer(
                 tenant_id=tenant_id,
@@ -119,6 +124,8 @@ def add():
                 opening_balance=float(request.form.get('opening_balance', 0) or 0),
                 notes=request.form.get('notes'),
                 pin=request.form.get('pin', '').strip() or None,  # Customer portal PIN
+                date_of_birth=datetime.strptime(date_of_birth, '%Y-%m-%d').date() if date_of_birth else None,
+                anniversary_date=datetime.strptime(anniversary_date, '%Y-%m-%d').date() if anniversary_date else None,
                 is_active=True
             )
             
@@ -184,6 +191,13 @@ def edit(customer_id):
             customer.notes = request.form.get('notes')
             customer.pin = request.form.get('pin', '').strip() or None  # Customer portal PIN
             customer.is_active = request.form.get('is_active') == 'on'
+            
+            # Update loyalty program dates
+            date_of_birth = request.form.get('date_of_birth')
+            anniversary_date = request.form.get('anniversary_date')
+            customer.date_of_birth = datetime.strptime(date_of_birth, '%Y-%m-%d').date() if date_of_birth else None
+            customer.anniversary_date = datetime.strptime(anniversary_date, '%Y-%m-%d').date() if anniversary_date else None
+            
             customer.updated_at = datetime.utcnow()
             
             db.session.commit()

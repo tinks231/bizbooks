@@ -39,6 +39,23 @@ class LoyaltyProgram(db.Model):
     show_points_on_invoice = db.Column(db.Boolean, default=True)
     invoice_footer_text = db.Column(db.String(255), default='Points Balance: {balance} pts | Next visit: ₹{value} off!')
     
+    # Birthday/Anniversary Bonuses (Temporary balance - expires same day)
+    enable_birthday_bonus = db.Column(db.Boolean, default=False)
+    birthday_bonus_rupees = db.Column(db.Numeric(10, 2), default=0)  # Bonus amount in rupees (not points!)
+    enable_anniversary_bonus = db.Column(db.Boolean, default=False)
+    anniversary_bonus_rupees = db.Column(db.Numeric(10, 2), default=0)  # Bonus amount in rupees (not points!)
+    
+    # Membership Tiers (Based on lifetime earned points)
+    enable_membership_tiers = db.Column(db.Boolean, default=False)
+    tier_bronze_name = db.Column(db.String(50), default='Bronze')
+    tier_bronze_min_points = db.Column(db.Integer, default=0)
+    tier_silver_name = db.Column(db.String(50), default='Silver')
+    tier_silver_min_points = db.Column(db.Integer, default=1000)
+    tier_gold_name = db.Column(db.String(50), default='Gold')
+    tier_gold_min_points = db.Column(db.Integer, default=5000)
+    tier_platinum_name = db.Column(db.String(50), default='Platinum')
+    tier_platinum_min_points = db.Column(db.Integer, default=10000)
+    
     # Timestamps
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -72,6 +89,19 @@ class LoyaltyProgram(db.Model):
             'maximum_points_per_redemption': self.maximum_points_per_redemption,
             'show_points_on_invoice': self.show_points_on_invoice,
             'invoice_footer_text': self.invoice_footer_text,
+            'enable_birthday_bonus': self.enable_birthday_bonus,
+            'birthday_bonus_rupees': float(self.birthday_bonus_rupees) if self.birthday_bonus_rupees else 0,
+            'enable_anniversary_bonus': self.enable_anniversary_bonus,
+            'anniversary_bonus_rupees': float(self.anniversary_bonus_rupees) if self.anniversary_bonus_rupees else 0,
+            'enable_membership_tiers': self.enable_membership_tiers,
+            'tier_bronze_name': self.tier_bronze_name,
+            'tier_bronze_min_points': self.tier_bronze_min_points or 0,
+            'tier_silver_name': self.tier_silver_name,
+            'tier_silver_min_points': self.tier_silver_min_points or 1000,
+            'tier_gold_name': self.tier_gold_name,
+            'tier_gold_min_points': self.tier_gold_min_points or 5000,
+            'tier_platinum_name': self.tier_platinum_name,
+            'tier_platinum_min_points': self.tier_platinum_min_points or 10000,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None
         }
