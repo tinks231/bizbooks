@@ -28,15 +28,15 @@ def run_migration():
             
             columns_to_add = []
             
-            # Birthday/Anniversary bonus columns
+            # Birthday/Anniversary bonus columns (in POINTS, not rupees!)
             if 'enable_birthday_bonus' not in existing_columns:
                 columns_to_add.append("ALTER TABLE loyalty_programs ADD COLUMN enable_birthday_bonus BOOLEAN DEFAULT false;")
-            if 'birthday_bonus_rupees' not in existing_columns:
-                columns_to_add.append("ALTER TABLE loyalty_programs ADD COLUMN birthday_bonus_rupees NUMERIC(10, 2) DEFAULT 0;")
+            if 'birthday_bonus_points' not in existing_columns:
+                columns_to_add.append("ALTER TABLE loyalty_programs ADD COLUMN birthday_bonus_points INTEGER DEFAULT 0;")
             if 'enable_anniversary_bonus' not in existing_columns:
                 columns_to_add.append("ALTER TABLE loyalty_programs ADD COLUMN enable_anniversary_bonus BOOLEAN DEFAULT false;")
-            if 'anniversary_bonus_rupees' not in existing_columns:
-                columns_to_add.append("ALTER TABLE loyalty_programs ADD COLUMN anniversary_bonus_rupees NUMERIC(10, 2) DEFAULT 0;")
+            if 'anniversary_bonus_points' not in existing_columns:
+                columns_to_add.append("ALTER TABLE loyalty_programs ADD COLUMN anniversary_bonus_points INTEGER DEFAULT 0;")
             
             # Membership tier columns
             if 'enable_membership_tiers' not in existing_columns:
@@ -98,9 +98,9 @@ def run_migration():
                 # Columns don't exist, add them
                 columns_to_add = [
                     "ALTER TABLE loyalty_programs ADD COLUMN enable_birthday_bonus BOOLEAN DEFAULT 0;",
-                    "ALTER TABLE loyalty_programs ADD COLUMN birthday_bonus_rupees NUMERIC(10, 2) DEFAULT 0;",
+                    "ALTER TABLE loyalty_programs ADD COLUMN birthday_bonus_points INTEGER DEFAULT 0;",
                     "ALTER TABLE loyalty_programs ADD COLUMN enable_anniversary_bonus BOOLEAN DEFAULT 0;",
-                    "ALTER TABLE loyalty_programs ADD COLUMN anniversary_bonus_rupees NUMERIC(10, 2) DEFAULT 0;",
+                    "ALTER TABLE loyalty_programs ADD COLUMN anniversary_bonus_points INTEGER DEFAULT 0;",
                     "ALTER TABLE loyalty_programs ADD COLUMN enable_membership_tiers BOOLEAN DEFAULT 0;",
                     "ALTER TABLE loyalty_programs ADD COLUMN tier_bronze_name VARCHAR(50) DEFAULT 'Bronze';",
                     "ALTER TABLE loyalty_programs ADD COLUMN tier_bronze_min_points INTEGER DEFAULT 0;",

@@ -39,11 +39,11 @@ class LoyaltyProgram(db.Model):
     show_points_on_invoice = db.Column(db.Boolean, default=True)
     invoice_footer_text = db.Column(db.String(255), default='Points Balance: {balance} pts | Next visit: ₹{value} off!')
     
-    # Birthday/Anniversary Bonuses (Temporary balance - expires same day)
+    # Birthday/Anniversary Bonuses (Temporary points - expires same day if not used)
     enable_birthday_bonus = db.Column(db.Boolean, default=False)
-    birthday_bonus_rupees = db.Column(db.Numeric(10, 2), default=0)  # Bonus amount in rupees (not points!)
+    birthday_bonus_points = db.Column(db.Integer, default=0)  # Bonus points on customer's birthday
     enable_anniversary_bonus = db.Column(db.Boolean, default=False)
-    anniversary_bonus_rupees = db.Column(db.Numeric(10, 2), default=0)  # Bonus amount in rupees (not points!)
+    anniversary_bonus_points = db.Column(db.Integer, default=0)  # Bonus points on customer's anniversary
     
     # Membership Tiers (Based on lifetime earned points)
     enable_membership_tiers = db.Column(db.Boolean, default=False)
@@ -90,9 +90,9 @@ class LoyaltyProgram(db.Model):
             'show_points_on_invoice': self.show_points_on_invoice,
             'invoice_footer_text': self.invoice_footer_text,
             'enable_birthday_bonus': self.enable_birthday_bonus,
-            'birthday_bonus_rupees': float(self.birthday_bonus_rupees) if self.birthday_bonus_rupees else 0,
+            'birthday_bonus_points': self.birthday_bonus_points or 0,
             'enable_anniversary_bonus': self.enable_anniversary_bonus,
-            'anniversary_bonus_rupees': float(self.anniversary_bonus_rupees) if self.anniversary_bonus_rupees else 0,
+            'anniversary_bonus_points': self.anniversary_bonus_points or 0,
             'enable_membership_tiers': self.enable_membership_tiers,
             'tier_bronze_name': self.tier_bronze_name,
             'tier_bronze_min_points': self.tier_bronze_min_points or 0,
