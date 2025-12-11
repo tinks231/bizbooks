@@ -2076,6 +2076,7 @@ def trial_balance():
     # - 'opening_balance_inventory_equity' (for inventory opening)
     equity_entries = db.session.execute(text("""
         SELECT 
+            transaction_type,
             narration,
             SUM(credit_amount - debit_amount) as net_credit
         FROM account_transactions
@@ -2083,14 +2084,28 @@ def trial_balance():
         AND account_id IS NULL
         AND transaction_type IN ('opening_balance_equity', 'opening_balance_inventory_equity')
         AND transaction_date <= :as_of_date
-        GROUP BY narration
+        GROUP BY transaction_type, narration
+        ORDER BY transaction_type, narration
     """), {'tenant_id': tenant_id, 'as_of_date': as_of_date}).fetchall()
     
     for equity in equity_entries:
-        net_amount = Decimal(str(equity[1]))
+        transaction_type = equity[0]
+        narration = equity[1]
+        net_amount = Decimal(str(equity[2]))
+        
         if net_amount != 0:
+            # Create descriptive account name based on narration
+            if 'Inventory' in narration or transaction_type == 'opening_balance_inventory_equity':
+                account_label = "Owner's Capital - Inventory Opening"
+            elif 'Cash' in narration or 'cash' in narration.lower():
+                account_label = "Owner's Capital - Cash Opening"
+            elif 'Bank' in narration or any(bank in narration for bank in ['ICICI', 'HDFC', 'SBI', 'Axis']):
+                account_label = "Owner's Capital - Bank Opening"
+            else:
+                account_label = "Owner's Capital - Opening Balance"
+            
             accounts.append({
-                'account_name': "Owner's Capital (Opening Balance)",
+                'account_name': account_label,
                 'category': 'Liabilities',  # Equity is treated as liability in trial balance
                 'debit': abs(net_amount) if net_amount < 0 else Decimal('0'),
                 'credit': net_amount if net_amount > 0 else Decimal('0')
