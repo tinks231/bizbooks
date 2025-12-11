@@ -172,6 +172,8 @@ app.register_blueprint(loyalty_migration_bp)  # NEW: Loyalty program migration
 app.register_blueprint(loyalty_bp)  # NEW: Loyalty program API & admin pages
 app.register_blueprint(loyalty_features_bp)  # NEW: Loyalty birthday/anniversary + tiers
 app.register_blueprint(tier_benefits_bp)  # NEW: Tier benefits (earning/redemption multipliers)
+from routes.fix_inventory_equity import fix_inventory_equity_bp
+app.register_blueprint(fix_inventory_equity_bp)  # FIX: Create missing inventory equity entries
 app.register_blueprint(vendor_performance_bp)  # NEW: Vendor performance optimization
 app.register_blueprint(fix_cascade_bp)  # FIX: Attendance CASCADE delete issue
 
