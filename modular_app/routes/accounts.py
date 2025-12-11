@@ -1592,10 +1592,14 @@ def balance_sheet():
     accounts_receivable_total = sum(Decimal(str(acc[1])) for acc in accounts_receivable) if accounts_receivable else Decimal('0')
     
     # 3. Inventory/Stock Value
-    # NOTE: Currently not tracked with proper costing
-    # Future: Implement inventory valuation with purchase costs
-    # For now, query stocks table for quantity only (no pricing available)
-    inventory_value = Decimal('0')  # Placeholder until inventory costing is implemented
+    # Calculate total inventory value across all sites using item_stocks table
+    inventory_value_result = db.session.execute(text("""
+        SELECT COALESCE(SUM(ist.stock_value), 0) as total_value
+        FROM item_stocks ist
+        WHERE ist.tenant_id = :tenant_id
+    """), {'tenant_id': tenant_id, 'as_of_date': as_of_date}).fetchone()
+    
+    inventory_value = Decimal(str(inventory_value_result[0] if inventory_value_result else 0))
     
     # Total Current Assets
     total_current_assets = cash_and_bank_total + accounts_receivable_total + Decimal(str(inventory_value))
@@ -1935,19 +1939,22 @@ def trial_balance():
         })
     
     # 3. Inventory (Assets - Debit Balance)
-    # NOTE: Currently not tracked with proper costing
-    # Future: Implement inventory valuation with purchase costs
-    # For now, set to 0 until inventory costing is implemented
-    inventory_value = Decimal('0')
+    # Calculate total inventory value across all sites
+    inventory_value_result = db.session.execute(text("""
+        SELECT COALESCE(SUM(ist.stock_value), 0) as total_value
+        FROM item_stocks ist
+        WHERE ist.tenant_id = :tenant_id
+    """), {'tenant_id': tenant_id}).fetchone()
     
-    # Uncomment when inventory costing is available:
-    # if inventory_value > 0:
-    #     accounts.append({
-    #         'account_name': 'Inventory (Stock)',
-    #         'category': 'Assets',
-    #         'debit': inventory_value,
-    #         'credit': Decimal('0')
-    #     })
+    inventory_value = Decimal(str(inventory_value_result[0] if inventory_value_result else 0))
+    
+    if inventory_value > 0:
+        accounts.append({
+            'account_name': 'Inventory (Stock on Hand)',
+            'category': 'Assets',
+            'debit': inventory_value,
+            'credit': Decimal('0')
+        })
     
     # 4. Accounts Payable (Liabilities - Credit Balance)
     payables = db.session.execute(text("""
