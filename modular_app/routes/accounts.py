@@ -2063,6 +2063,30 @@ def trial_balance():
             'credit': Decimal('0')
         })
     
+    # 10. Owner's Equity / Capital (from Opening Balance Equity - Credit Balance)
+    # These are entries with account_id = NULL and transaction_type = 'opening_balance_equity'
+    equity_entries = db.session.execute(text("""
+        SELECT 
+            narration,
+            SUM(credit_amount - debit_amount) as net_credit
+        FROM account_transactions
+        WHERE tenant_id = :tenant_id 
+        AND account_id IS NULL
+        AND transaction_type = 'opening_balance_equity'
+        AND transaction_date <= :as_of_date
+        GROUP BY narration
+    """), {'tenant_id': tenant_id, 'as_of_date': as_of_date}).fetchall()
+    
+    for equity in equity_entries:
+        net_amount = Decimal(str(equity[1]))
+        if net_amount != 0:
+            accounts.append({
+                'account_name': "Owner's Capital (Opening Balance)",
+                'category': 'Liabilities',  # Equity is treated as liability in trial balance
+                'debit': abs(net_amount) if net_amount < 0 else Decimal('0'),
+                'credit': net_amount if net_amount > 0 else Decimal('0')
+            })
+    
     # ====================
     # CALCULATE TOTALS
     # ====================

@@ -12,6 +12,9 @@
    - Name: `bizbooks-us-east`
    - Password: (create strong one)
    - **Region: East US (North Virginia)** ⭐
+     - This matches Vercel's iad1 (Washington DC)
+     - Same AWS region: us-east-1
+     - Co-located for best performance!
 4. Click "Create"
 5. Wait 2 minutes
 
