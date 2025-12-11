@@ -138,6 +138,34 @@ def pay_salary():
                     WHERE id = :account_id AND tenant_id = :tenant_id
                 """), {'account_id': int(account_id), 'tenant_id': tenant_id}).fetchone()
                 
+                # ═══════════════════════════════════════════════════════════════════
+                # 📊 DOUBLE-ENTRY ACCOUNTING: Salary Payment
+                # ═══════════════════════════════════════════════════════════════════
+                # When salaries are paid:
+                # 1. DEBIT:  Salary Expense (Expense) - Cost incurred
+                # 2. CREDIT: Cash/Bank (Asset) - Money goes out
+                # ═══════════════════════════════════════════════════════════════════
+                
+                # Entry 1: DEBIT Salary Expense (Expense increases)
+                db.session.execute(text("""
+                    INSERT INTO account_transactions
+                    (tenant_id, account_id, transaction_date, transaction_type,
+                     debit_amount, credit_amount, balance_after, reference_type, reference_id,
+                     voucher_number, narration, created_at, created_by)
+                    VALUES (:tenant_id, NULL, :date, 'salary_expense',
+                            :debit, 0.00, :debit, 'payroll', :ref_id,
+                            :voucher, :narration, :created_at, NULL)
+                """), {
+                    'tenant_id': tenant_id,
+                    'date': payment_date,
+                    'debit': float(total_amount),  # Salary expense = Debit
+                    'ref_id': payroll_id,
+                    'voucher': f'SAL-{selected_year}-{selected_month:02d}',
+                    'narration': f'Salary expense for {selected_month}/{selected_year} - {len(employees_to_pay)} employees',
+                    'created_at': now
+                })
+                
+                # Entry 2: CREDIT Cash/Bank (Asset decreases)
                 new_balance = Decimal(str(account[1])) - total_amount
                 
                 # Update account balance
@@ -147,30 +175,30 @@ def pay_salary():
                     WHERE id = :account_id AND tenant_id = :tenant_id
                 """), {'new_balance': float(new_balance), 'account_id': int(account_id), 'tenant_id': tenant_id})
                 
-                # Create account transaction
+                # Create account transaction for cash/bank side
                 db.session.execute(text("""
                     INSERT INTO account_transactions
                     (tenant_id, account_id, transaction_date, transaction_type,
                      debit_amount, credit_amount, balance_after, reference_type, reference_id,
                      voucher_number, narration, created_at, created_by)
-                    VALUES (:tenant_id, :account_id, :date, :type,
-                            :debit, :credit, :balance, :ref_type, :ref_id,
-                            :voucher, :narration, :created_at, :created_by)
+                    VALUES (:tenant_id, :account_id, :date, 'salary_payment',
+                            0.00, :credit, :balance, 'payroll', :ref_id,
+                            :voucher, :narration, :created_at, NULL)
                 """), {
                     'tenant_id': tenant_id,
                     'account_id': int(account_id),
                     'date': payment_date,
-                    'type': 'salary_payment',
-                    'debit': 0.00,
-                    'credit': float(total_amount),
+                    'credit': float(total_amount),  # Money paid = Credit
                     'balance': float(new_balance),
-                    'ref_type': 'payroll',
                     'ref_id': payroll_id,
                     'voucher': f'SAL-{selected_year}-{selected_month:02d}',
-                    'narration': f'Salary payment for {selected_month}/{selected_year} - {len(employees_to_pay)} employees',
-                    'created_at': now,
-                    'created_by': None
+                    'narration': f'Salary paid from {account[0]} for {selected_month}/{selected_year}',
+                    'created_at': now
                 })
+                
+                print(f"✅ Double-entry for salary payment SAL-{selected_year}-{selected_month:02d}")
+                print(f"   DEBIT:  Salary Expense  ₹{total_amount:,.2f}")
+                print(f"   CREDIT: {account[0]}  ₹{total_amount:,.2f}")
             
             db.session.commit()
             

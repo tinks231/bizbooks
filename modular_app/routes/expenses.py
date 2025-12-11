@@ -172,8 +172,41 @@ def add():
         db.session.add(expense)
         db.session.flush()  # Get expense ID
         
-        # Create account transaction (Money OUT - Credit account)
+        # ═══════════════════════════════════════════════════════════════════
+        # 📊 DOUBLE-ENTRY ACCOUNTING: Operating Expense
+        # ═══════════════════════════════════════════════════════════════════
+        # When an expense is paid:
+        # 1. DEBIT:  Expense Account (Expense) - Cost incurred
+        # 2. CREDIT: Cash/Bank (Asset) - Money goes out
+        # ═══════════════════════════════════════════════════════════════════
+        
         now = datetime.now(ist)
+        
+        # Get expense category name for better reporting
+        from models import ExpenseCategory
+        category = ExpenseCategory.query.get(expense.category_id) if expense.category_id else None
+        expense_category_name = category.name if category else 'General Expenses'
+        
+        # Entry 1: DEBIT Expense Account (Expense increases)
+        db.session.execute(text("""
+            INSERT INTO account_transactions
+            (tenant_id, account_id, transaction_date, transaction_type,
+             debit_amount, credit_amount, balance_after, reference_type, reference_id,
+             voucher_number, narration, created_at, created_by)
+            VALUES (:tenant_id, NULL, :txn_date, 'operating_expense',
+                    :debit, 0.00, :debit, 'expense', :ref_id,
+                    :voucher, :narration, :created_at, NULL)
+        """), {
+            'tenant_id': tenant_id,
+            'txn_date': expense_date,
+            'debit': float(amount),  # Expense incurred = Debit
+            'ref_id': expense.id,
+            'voucher': f'EXP-{expense.id}',
+            'narration': f'{expense_category_name}: {expense.description[:80]}',
+            'created_at': now
+        })
+        
+        # Entry 2: CREDIT Cash/Bank (Asset decreases)
         new_balance = Decimal(str(account.current_balance)) - amount
         
         db.session.execute(text("""
@@ -181,24 +214,24 @@ def add():
             (tenant_id, account_id, transaction_date, transaction_type,
              debit_amount, credit_amount, balance_after, reference_type, reference_id,
              voucher_number, narration, created_at, created_by)
-            VALUES (:tenant_id, :account_id, :txn_date, :txn_type,
-                    :debit, :credit, :balance, :ref_type, :ref_id,
-                    :voucher, :narration, :created_at, :created_by)
+            VALUES (:tenant_id, :account_id, :txn_date, 'expense',
+                    0.00, :credit, :balance, 'expense', :ref_id,
+                    :voucher, :narration, :created_at, NULL)
         """), {
             'tenant_id': tenant_id,
             'account_id': account_id,
             'txn_date': expense_date,
-            'txn_type': 'expense',
-            'debit': Decimal('0.00'),
-            'credit': amount,  # Money spent = Credit
-            'balance': new_balance,
-            'ref_type': 'expense',
+            'credit': float(amount),  # Money spent = Credit
+            'balance': float(new_balance),
             'ref_id': expense.id,
             'voucher': f'EXP-{expense.id}',
-            'narration': f'{expense.description[:100]} - {expense.vendor_name or "Business Expense"}',
-            'created_at': now,
-            'created_by': None  # FIX: Set to NULL instead of tenant_admin_id
+            'narration': f'{expense_category_name} paid from {account.account_name}',
+            'created_at': now
         })
+        
+        print(f"✅ Double-entry for expense EXP-{expense.id}")
+        print(f"   DEBIT:  {expense_category_name}  ₹{amount:,.2f}")
+        print(f"   CREDIT: {account.account_name}  ₹{amount:,.2f}")
         
         # Update account balance
         db.session.execute(text("""
