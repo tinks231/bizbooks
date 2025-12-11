@@ -1988,6 +1988,26 @@ def trial_balance():
             'credit': Decimal('0')
         })
     
+    # 3.5. Input Tax Credit / ITC (Asset - Debit Balance)
+    # GST paid on purchases that can be claimed back from government
+    itc_from_transactions = db.session.execute(text("""
+        SELECT COALESCE(SUM(debit_amount), 0)
+        FROM account_transactions
+        WHERE tenant_id = :tenant_id
+        AND transaction_type = 'input_tax_credit'
+        AND transaction_date <= :as_of_date
+    """), {'tenant_id': tenant_id, 'as_of_date': as_of_date}).fetchone()[0]
+    
+    itc_total = Decimal(str(itc_from_transactions or 0))
+    
+    if itc_total > 0:
+        accounts.append({
+            'account_name': 'Input Tax Credit (ITC)',
+            'category': 'Assets',
+            'debit': itc_total,
+            'credit': Decimal('0')
+        })
+    
     # 4. Accounts Payable (Liabilities - Credit Balance)
     # NEW: Calculate from account_transactions (double-entry system)
     # Formula: CREDITS (bills created) - DEBITS (payments made) = Outstanding

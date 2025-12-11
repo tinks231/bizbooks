@@ -335,17 +335,23 @@ def create_bill():
             db.session.flush()  # Get bill ID before creating accounting entries
             
             # ═══════════════════════════════════════════════════════════════════
-            # 📊 DOUBLE-ENTRY ACCOUNTING: Purchase Bill Created
+            # 📊 DOUBLE-ENTRY ACCOUNTING: Purchase Bill Created (with GST)
             # ═══════════════════════════════════════════════════════════════════
             # When a purchase bill is created (even if unpaid), we need to record:
-            # 1. DEBIT:  Inventory (Asset) - Stock increases
-            # 2. CREDIT: Accounts Payable (Liability) - We owe the vendor
+            # 1. DEBIT:  Inventory (Asset) - Stock cost (BEFORE GST)
+            # 2. DEBIT:  Input Tax Credit (Asset) - GST we can claim back
+            # 3. CREDIT: Accounts Payable (Liability) - Total amount we owe (WITH GST)
+            # 
+            # GST is NOT an expense! It's an asset (ITC - Input Tax Credit)
             # ═══════════════════════════════════════════════════════════════════
             
             ist = pytz.timezone('Asia/Kolkata')
             now = datetime.now(ist)
             
-            # Entry 1: DEBIT Inventory (Asset increases)
+            # Calculate GST amount (CGST + SGST + IGST)
+            gst_amount = (bill.cgst_amount or 0) + (bill.sgst_amount or 0) + (bill.igst_amount or 0)
+            
+            # Entry 1: DEBIT Inventory (Asset increases - cost BEFORE GST)
             db.session.execute(text("""
                 INSERT INTO account_transactions
                 (tenant_id, account_id, transaction_date, transaction_type,
@@ -357,14 +363,34 @@ def create_bill():
             """), {
                 'tenant_id': tenant_id,
                 'transaction_date': bill.bill_date,
-                'debit_amount': float(bill.total_amount),
+                'debit_amount': float(bill.subtotal),  # Cost BEFORE GST
                 'bill_id': bill.id,
                 'voucher': bill.bill_number,
                 'narration': f'Inventory purchase from {bill.vendor_name} - {bill.bill_number}',
                 'created_at': now
             })
             
-            # Entry 2: CREDIT Accounts Payable (Liability increases)
+            # Entry 2: DEBIT Input Tax Credit / ITC (Asset - GST we can claim back)
+            if gst_amount > 0:
+                db.session.execute(text("""
+                    INSERT INTO account_transactions
+                    (tenant_id, account_id, transaction_date, transaction_type,
+                     debit_amount, credit_amount, balance_after, reference_type, reference_id,
+                     voucher_number, narration, created_at, created_by)
+                    VALUES (:tenant_id, NULL, :transaction_date, 'input_tax_credit',
+                            :debit_amount, 0.00, :debit_amount, 'purchase_bill', :bill_id,
+                            :voucher, :narration, :created_at, NULL)
+                """), {
+                    'tenant_id': tenant_id,
+                    'transaction_date': bill.bill_date,
+                    'debit_amount': float(gst_amount),  # GST to claim back
+                    'bill_id': bill.id,
+                    'voucher': bill.bill_number,
+                    'narration': f'ITC on purchase from {bill.vendor_name} - {bill.bill_number}',
+                    'created_at': now
+                })
+            
+            # Entry 3: CREDIT Accounts Payable (Liability increases - total WITH GST)
             db.session.execute(text("""
                 INSERT INTO account_transactions
                 (tenant_id, account_id, transaction_date, transaction_type,
@@ -376,7 +402,7 @@ def create_bill():
             """), {
                 'tenant_id': tenant_id,
                 'transaction_date': bill.bill_date,
-                'credit_amount': float(bill.total_amount),
+                'credit_amount': float(bill.total_amount),  # Total WITH GST
                 'bill_id': bill.id,
                 'voucher': bill.bill_number,
                 'narration': f'Payable to {bill.vendor_name} - {bill.bill_number}',
@@ -384,8 +410,11 @@ def create_bill():
             })
             
             print(f"✅ Double-entry accounting created for purchase bill {bill.bill_number}")
-            print(f"   DEBIT:  Inventory         ₹{bill.total_amount:,.2f}")
-            print(f"   CREDIT: Accounts Payable  ₹{bill.total_amount:,.2f}")
+            print(f"   DEBIT:  Inventory         ₹{bill.subtotal:,.2f} (before GST)")
+            if gst_amount > 0:
+                print(f"   DEBIT:  Input Tax Credit  ₹{gst_amount:,.2f} (GST-ITC)")
+            print(f"   CREDIT: Accounts Payable  ₹{bill.total_amount:,.2f} (total)")
+            print(f"   Verification: ₹{bill.subtotal:,.2f} + ₹{gst_amount:,.2f} = ₹{bill.total_amount:,.2f} ✅")
             
             db.session.commit()
             
