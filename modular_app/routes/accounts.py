@@ -1742,23 +1742,49 @@ def profit_loss():
     # EXPENSES CALCULATION
     # ====================
     
-    # 1. Cost of Goods Sold (Purchase Bills)
+    # 1. Cost of Goods Sold (COGS - from double-entry accounting)
+    # IMPORTANT: COGS is calculated when items are SOLD, not when purchased
+    # Uses account_transactions with transaction_type = 'cogs'
+    cogs_from_transactions = db.session.execute(text("""
+        SELECT COALESCE(SUM(debit_amount), 0)
+        FROM account_transactions
+        WHERE tenant_id = :tenant_id
+        AND transaction_type = 'cogs'
+        AND transaction_date BETWEEN :start_date AND :end_date
+    """), {'tenant_id': tenant_id, 'start_date': start_date, 'end_date': end_date}).fetchone()[0]
+    
+    total_cogs = Decimal(str(cogs_from_transactions or 0))
+    
+    # Get COGS details for display (which invoices contributed to COGS)
     purchase_expenses_detail = db.session.execute(text("""
         SELECT 
-            bill_number,
-            vendor_name,
-            bill_date,
-            total_amount,
-            payment_status
-        FROM purchase_bills
+            voucher_number as invoice_number,
+            narration,
+            transaction_date,
+            debit_amount,
+            'COGS' as type
+        FROM account_transactions
         WHERE tenant_id = :tenant_id 
-        AND bill_date BETWEEN :start_date AND :end_date
-        ORDER BY bill_date DESC, bill_number DESC
+        AND transaction_type = 'cogs'
+        AND transaction_date BETWEEN :start_date AND :end_date
+        ORDER BY transaction_date DESC, voucher_number DESC
     """), {'tenant_id': tenant_id, 'start_date': start_date, 'end_date': end_date}).fetchall()
     
-    total_purchases = sum(Decimal(str(bill[3])) for bill in purchase_expenses_detail)
+    total_purchases = total_cogs  # For backward compatibility with template
     
-    # 2. Operating Expenses (from Expenses table with category JOIN)
+    # 2. Operating Expenses (from double-entry accounting)
+    # Uses account_transactions with transaction_type = 'operating_expense'
+    operating_expenses_from_transactions = db.session.execute(text("""
+        SELECT COALESCE(SUM(debit_amount), 0)
+        FROM account_transactions
+        WHERE tenant_id = :tenant_id
+        AND transaction_type = 'operating_expense'
+        AND transaction_date BETWEEN :start_date AND :end_date
+    """), {'tenant_id': tenant_id, 'start_date': start_date, 'end_date': end_date}).fetchone()[0]
+    
+    total_operating_expenses = Decimal(str(operating_expenses_from_transactions or 0))
+    
+    # Get details for display (using old expenses table for backward compatibility)
     operating_expenses_detail = db.session.execute(text("""
         SELECT 
             e.expense_date,
@@ -1781,8 +1807,6 @@ def profit_loss():
             operating_expenses_by_category[category] = Decimal('0')
         operating_expenses_by_category[category] += Decimal(str(exp[2]))
     
-    total_operating_expenses = sum(Decimal(str(exp[2])) for exp in operating_expenses_detail)
-    
     # 3. Employee Expenses (from Employee Cash Advances used)
     employee_expenses_detail = db.session.execute(text("""
         SELECT 
@@ -1801,9 +1825,19 @@ def profit_loss():
     
     total_employee_expenses = sum(Decimal(str(emp[1])) for emp in employee_expenses_detail)
     
-    # 4. Salary Expenses (from Payroll)
-    # Uses payment_month/payment_year for accrual accounting
-    # (Salary belongs to the month worked, not when it was paid)
+    # 4. Salary Expenses (from double-entry accounting)
+    # Uses account_transactions with transaction_type = 'salary_expense'
+    salary_expenses_from_transactions = db.session.execute(text("""
+        SELECT COALESCE(SUM(debit_amount), 0)
+        FROM account_transactions
+        WHERE tenant_id = :tenant_id
+        AND transaction_type = 'salary_expense'
+        AND transaction_date BETWEEN :start_date AND :end_date
+    """), {'tenant_id': tenant_id, 'start_date': start_date, 'end_date': end_date}).fetchone()[0]
+    
+    total_salary_expenses = Decimal(str(salary_expenses_from_transactions or 0))
+    
+    # Get details for display (using old salary_slips table for backward compatibility)
     start_year = start_date.year
     start_month = start_date.month
     end_year = end_date.year
@@ -1828,10 +1862,8 @@ def profit_loss():
         'end_month': end_month
     }).fetchall()
     
-    total_salary_expenses = sum(Decimal(str(emp[2])) for emp in salary_expenses_detail) if salary_expenses_detail else Decimal('0')
-    
     # Total Expenses
-    total_expenses = total_purchases + total_operating_expenses + total_employee_expenses + total_salary_expenses
+    total_expenses = total_cogs + total_operating_expenses + total_employee_expenses + total_salary_expenses
     
     # ====================
     # PROFIT CALCULATION
