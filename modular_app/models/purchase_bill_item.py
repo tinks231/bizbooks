@@ -40,9 +40,17 @@ class PurchaseBillItem(db.Model, TimestampMixin):
     expiry_date = db.Column(db.Date)
     notes = db.Column(db.Text)
     
+    # NEW: Fields for creating new items from purchase bill
+    is_new_item = db.Column(db.Boolean, default=False)  # Flag: Should this create a new item?
+    sku = db.Column(db.String(100))  # SKU/Barcode for new item
+    selling_price = db.Column(db.Numeric(15, 2))  # Selling price for new item
+    mrp = db.Column(db.Numeric(15, 2))  # MRP for new item
+    category_id = db.Column(db.Integer, db.ForeignKey('item_categories.id'), nullable=True)  # Category for new item
+    
     # Relationships
     item = db.relationship('Item', backref='purchase_bill_items', foreign_keys=[item_id])
     site = db.relationship('Site', backref='purchase_bill_items', foreign_keys=[site_id])
+    category = db.relationship('ItemCategory', backref='purchase_bill_items', foreign_keys=[category_id])
     
     def __repr__(self):
         return f'<PurchaseBillItem {self.item_name} - {self.quantity}>'

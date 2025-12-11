@@ -691,9 +691,79 @@ def approve_bill(bill_id):
             return redirect(url_for('purchase_bills.view_bill', bill_id=bill.id))
         
         inventory_updates = []
+        items_created = []
         
         # Process each line item and update inventory
         for line_item in bill.items:
+            # STEP 1: Handle NEW ITEM CREATION
+            if not line_item.item_id and line_item.is_new_item:
+                # Create new item from purchase bill line item
+                print(f"\n🆕 Creating new item: {line_item.item_name}")
+                
+                # Check for duplicate items by name (prevent accidental duplicates)
+                existing_item = Item.query.filter(
+                    Item.tenant_id == tenant_id,
+                    db.func.lower(Item.name) == line_item.item_name.lower().strip()
+                ).first()
+                
+                if existing_item:
+                    print(f"⚠️ Item '{line_item.item_name}' already exists! Linking to existing item.")
+                    line_item.item_id = existing_item.id
+                    item = existing_item
+                else:
+                    # Create brand new item
+                    new_item = Item()
+                    new_item.tenant_id = tenant_id
+                    new_item.name = line_item.item_name.strip()
+                    new_item.sku = line_item.sku or ''
+                    
+                    # Generate SKU if not provided
+                    if not new_item.sku:
+                        # Auto-generate SKU: ITM-{next_number}
+                        last_item = Item.query.filter_by(tenant_id=tenant_id).order_by(Item.id.desc()).first()
+                        next_num = (last_item.id + 1) if last_item else 1
+                        new_item.sku = f'ITM-{next_num:05d}'
+                    
+                    # Pricing from purchase bill
+                    new_item.cost_price = float(line_item.rate)  # Cost from bill
+                    new_item.selling_price = float(line_item.selling_price) if line_item.selling_price else float(line_item.rate) * 1.2  # 20% markup if not provided
+                    new_item.mrp = float(line_item.mrp) if line_item.mrp else float(line_item.selling_price or 0) * 1.1  # 10% above selling
+                    
+                    # Tax details from line item
+                    new_item.hsn_code = line_item.hsn_code or ''
+                    new_item.gst_rate = float(line_item.gst_rate) if line_item.gst_rate else 18.0
+                    new_item.tax_preference = f"GST@{new_item.gst_rate:.0f}%"
+                    
+                    # Category
+                    new_item.category_id = line_item.category_id
+                    
+                    # Inventory tracking
+                    new_item.track_inventory = True
+                    new_item.unit = line_item.unit or 'pcs'
+                    new_item.is_active = True
+                    
+                    # Meta
+                    new_item.created_by = session.get('username', 'Admin')
+                    
+                    db.session.add(new_item)
+                    db.session.flush()  # Get new item ID
+                    
+                    # Link line item to new item
+                    line_item.item_id = new_item.id
+                    item = new_item
+                    
+                    items_created.append({
+                        'name': new_item.name,
+                        'sku': new_item.sku,
+                        'cost': new_item.cost_price,
+                        'selling': new_item.selling_price,
+                        'mrp': new_item.mrp
+                    })
+                    
+                    print(f"✅ Created item: {new_item.name} (SKU: {new_item.sku})")
+                    print(f"   Cost: ₹{new_item.cost_price:.2f}, Selling: ₹{new_item.selling_price:.2f}, MRP: ₹{new_item.mrp:.2f}")
+            
+            # STEP 2: Get item (either existing or newly created)
             if not line_item.item_id:
                 # Skip items not linked to inventory
                 print(f"⏭️ Skipping '{line_item.item_name}' - not linked to inventory item")
@@ -725,7 +795,19 @@ def approve_bill(bill_id):
                 db.session.flush()  # Get stock ID
                 print(f"📦 Created new stock record for {item.name}")
             
-            # Calculate Weighted Average Cost
+            # STEP 3: Update item details from purchase bill (if provided and different)
+            # This allows purchase bills to update selling price, MRP if they've changed
+            if line_item.selling_price and line_item.selling_price != item.selling_price:
+                old_selling = item.selling_price
+                item.selling_price = float(line_item.selling_price)
+                print(f"   Updated selling price: ₹{old_selling:.2f} → ₹{item.selling_price:.2f}")
+            
+            if line_item.mrp and line_item.mrp != item.mrp:
+                old_mrp = item.mrp
+                item.mrp = float(line_item.mrp)
+                print(f"   Updated MRP: ₹{old_mrp:.2f} → ₹{item.mrp:.2f}")
+            
+            # STEP 4: Calculate Weighted Average Cost
             old_qty = float(stock.quantity_available)
             old_cost = float(item.cost_price or 0)
             old_value = old_qty * old_cost
@@ -793,11 +875,17 @@ def approve_bill(bill_id):
         db.session.commit()
         
         # Build success message
+        success_parts = []
+        if items_created:
+            success_parts.append(f"Created {len(items_created)} new item(s)")
         if inventory_updates:
-            update_summary = f"Updated inventory for {len(inventory_updates)} items using Weighted Average Cost"
-            flash(f'✅ Purchase Bill {bill.bill_number} approved! {update_summary}', 'success')
+            success_parts.append(f"Updated inventory for {len(inventory_updates)} item(s)")
+        
+        if success_parts:
+            summary = " • ".join(success_parts)
+            flash(f'✅ Purchase Bill {bill.bill_number} approved! {summary}', 'success')
         else:
-            flash(f'✅ Purchase Bill {bill.bill_number} approved! (No inventory items to update)', 'success')
+            flash(f'✅ Purchase Bill {bill.bill_number} approved!', 'success')
             
     except Exception as e:
         db.session.rollback()
