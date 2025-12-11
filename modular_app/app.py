@@ -176,6 +176,8 @@ from routes.fix_inventory_equity import fix_inventory_equity_bp
 app.register_blueprint(fix_inventory_equity_bp)  # FIX: Create missing inventory equity entries
 app.register_blueprint(vendor_performance_bp)  # NEW: Vendor performance optimization
 app.register_blueprint(fix_cascade_bp)  # FIX: Attendance CASCADE delete issue
+from routes.migrate_double_entry import migrate_double_entry_bp
+app.register_blueprint(migrate_double_entry_bp)  # MIGRATION: Convert to double-entry accounting
 
 # ============================================================
 # Main route
