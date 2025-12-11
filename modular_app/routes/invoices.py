@@ -5,7 +5,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash,
 from models import db, Invoice, InvoiceItem, Item, ItemStock, ItemStockMovement, Site, Tenant
 from utils.tenant_middleware import require_tenant, get_current_tenant_id
 from utils.license_check import check_license
-from sqlalchemy import func, desc
+from sqlalchemy import func, desc, text
 from datetime import datetime, date
 from decimal import Decimal
 import pytz
@@ -379,10 +379,133 @@ def create():
             db.session.add(invoice)
             db.session.flush()  # Get invoice ID before commit
             
-            # NEW: Create account transaction if payment received
+            # ═══════════════════════════════════════════════════════════════════
+            # 📊 DOUBLE-ENTRY ACCOUNTING: Sales Invoice Created
+            # ═══════════════════════════════════════════════════════════════════
+            # When an invoice is created (even if unpaid), we need to record:
+            # 1. DEBIT:  Accounts Receivable OR Cash (Asset) - Money owed/received
+            # 2. CREDIT: Sales Income (Income) - Revenue earned
+            # 3. DEBIT:  Cost of Goods Sold (Expense) - Cost of items sold
+            # 4. CREDIT: Inventory (Asset) - Stock reduction
+            # ═══════════════════════════════════════════════════════════════════
+            
+            ist = pytz.timezone('Asia/Kolkata')
+            now = datetime.now(ist)
+            
+            # STEP 1: Calculate COGS (Cost of Goods Sold)
+            # Get the cost price of each item sold
+            cogs_total = Decimal('0')
+            
+            for invoice_item in invoice.items:
+                if invoice_item.item_id:  # Only for linked inventory items
+                    item = Item.query.filter_by(
+                        id=invoice_item.item_id,
+                        tenant_id=tenant_id
+                    ).first()
+                    
+                    if item and item.cost_price:
+                        item_cogs = Decimal(str(item.cost_price)) * Decimal(str(invoice_item.quantity))
+                        cogs_total += item_cogs
+                        print(f"  📦 {item.name}: Qty {invoice_item.quantity} × Cost ₹{item.cost_price} = COGS ₹{item_cogs:,.2f}")
+            
+            print(f"\n💰 Invoice {invoice.invoice_number} - Total COGS: ₹{cogs_total:,.2f}")
+            print(f"💰 Invoice {invoice.invoice_number} - Sales: ₹{invoice.total_amount:,.2f}")
+            print(f"💰 Invoice {invoice.invoice_number} - Gross Profit: ₹{invoice.total_amount - float(cogs_total):,.2f}")
+            
+            # STEP 2: Create Double-Entry Accounting Transactions
+            
+            # Entry 1: DEBIT Accounts Receivable (if credit sale) OR Cash (if paid)
+            if payment_received == 'yes':
+                # Cash sale - will be handled below in the existing payment logic
+                # We'll update that section to use proper double-entry
+                pass
+            else:
+                # Credit sale - create receivable
+                db.session.execute(text("""
+                    INSERT INTO account_transactions
+                    (tenant_id, account_id, transaction_date, transaction_type,
+                     debit_amount, credit_amount, balance_after, reference_type, reference_id,
+                     voucher_number, narration, created_at, created_by)
+                    VALUES (:tenant_id, NULL, :transaction_date, 'accounts_receivable',
+                            :debit_amount, 0.00, :debit_amount, 'invoice', :invoice_id,
+                            :voucher, :narration, :created_at, NULL)
+                """), {
+                    'tenant_id': tenant_id,
+                    'transaction_date': invoice_date,
+                    'debit_amount': float(invoice.total_amount),
+                    'invoice_id': invoice.id,
+                    'voucher': invoice.invoice_number,
+                    'narration': f'Credit sale to {invoice.customer_name} - {invoice.invoice_number}',
+                    'created_at': now
+                })
+                print(f"   DEBIT:  Accounts Receivable  ₹{invoice.total_amount:,.2f}")
+            
+            # Entry 2: CREDIT Sales Income (for all sales)
+            db.session.execute(text("""
+                INSERT INTO account_transactions
+                (tenant_id, account_id, transaction_date, transaction_type,
+                 debit_amount, credit_amount, balance_after, reference_type, reference_id,
+                 voucher_number, narration, created_at, created_by)
+                VALUES (:tenant_id, NULL, :transaction_date, 'sales_income',
+                        0.00, :credit_amount, :credit_amount, 'invoice', :invoice_id,
+                        :voucher, :narration, :created_at, NULL)
+            """), {
+                'tenant_id': tenant_id,
+                'transaction_date': invoice_date,
+                'credit_amount': float(invoice.total_amount),
+                'invoice_id': invoice.id,
+                'voucher': invoice.invoice_number,
+                'narration': f'Sales income from {invoice.customer_name} - {invoice.invoice_number}',
+                'created_at': now
+            })
+            print(f"   CREDIT: Sales Income         ₹{invoice.total_amount:,.2f}")
+            
+            # Entry 3: DEBIT Cost of Goods Sold (COGS)
+            if cogs_total > 0:
+                db.session.execute(text("""
+                    INSERT INTO account_transactions
+                    (tenant_id, account_id, transaction_date, transaction_type,
+                     debit_amount, credit_amount, balance_after, reference_type, reference_id,
+                     voucher_number, narration, created_at, created_by)
+                    VALUES (:tenant_id, NULL, :transaction_date, 'cogs',
+                            :debit_amount, 0.00, :debit_amount, 'invoice', :invoice_id,
+                            :voucher, :narration, :created_at, NULL)
+                """), {
+                    'tenant_id': tenant_id,
+                    'transaction_date': invoice_date,
+                    'debit_amount': float(cogs_total),
+                    'invoice_id': invoice.id,
+                    'voucher': invoice.invoice_number,
+                    'narration': f'COGS for {invoice.invoice_number}',
+                    'created_at': now
+                })
+                print(f"   DEBIT:  COGS                 ₹{cogs_total:,.2f}")
+                
+                # Entry 4: CREDIT Inventory (reduce asset)
+                db.session.execute(text("""
+                    INSERT INTO account_transactions
+                    (tenant_id, account_id, transaction_date, transaction_type,
+                     debit_amount, credit_amount, balance_after, reference_type, reference_id,
+                     voucher_number, narration, created_at, created_by)
+                    VALUES (:tenant_id, NULL, :transaction_date, 'inventory_sale',
+                            0.00, :credit_amount, 0.00, 'invoice', :invoice_id,
+                            :voucher, :narration, :created_at, NULL)
+                """), {
+                    'tenant_id': tenant_id,
+                    'transaction_date': invoice_date,
+                    'credit_amount': float(cogs_total),
+                    'invoice_id': invoice.id,
+                    'voucher': invoice.invoice_number,
+                    'narration': f'Inventory reduction for {invoice.invoice_number}',
+                    'created_at': now
+                })
+                print(f"   CREDIT: Inventory            ₹{cogs_total:,.2f}\n")
+            
+            print(f"✅ Double-entry accounting created for invoice {invoice.invoice_number}")
+            
+            # STEP 3: Handle Cash/Bank Transaction (if payment received immediately)
             if payment_received == 'yes':
                 from models import BankAccount
-                from sqlalchemy import text
                 
                 account_id = request.form.get('payment_account_id')
                 
@@ -394,9 +517,8 @@ def create():
                     ).first()
                     
                     if account:
-                        # Create account transaction (Money IN - Debit account)
-                        ist = pytz.timezone('Asia/Kolkata')
-                        now = datetime.now(ist)
+                        # For cash sales: DEBIT Cash/Bank (money received)
+                        # Note: CREDIT Sales Income was already created above
                         amount = Decimal(str(invoice.total_amount))
                         new_balance = Decimal(str(account.current_balance)) + amount
                         
@@ -405,23 +527,19 @@ def create():
                             (tenant_id, account_id, transaction_date, transaction_type,
                              debit_amount, credit_amount, balance_after, reference_type, reference_id,
                              voucher_number, narration, created_at, created_by)
-                            VALUES (:tenant_id, :account_id, :txn_date, :txn_type,
-                                    :debit, :credit, :balance, :ref_type, :ref_id,
-                                    :voucher, :narration, :created_at, :created_by)
+                            VALUES (:tenant_id, :account_id, :txn_date, 'invoice_payment',
+                                    :debit, 0.00, :balance, 'invoice', :ref_id,
+                                    :voucher, :narration, :created_at, NULL)
                         """), {
                             'tenant_id': tenant_id,
                             'account_id': account_id,
                             'txn_date': invoice_date,
-                            'txn_type': 'invoice_payment',
-                            'debit': amount,  # Money received = Debit
-                            'credit': Decimal('0.00'),
-                            'balance': new_balance,
-                            'ref_type': 'invoice',
+                            'debit': float(amount),  # Money received = Debit
+                            'balance': float(new_balance),
                             'ref_id': invoice.id,
                             'voucher': invoice.invoice_number,
-                            'narration': f'Payment received for {invoice.invoice_number} from {invoice.customer_name}',
-                            'created_at': now,
-                            'created_by': None  # FIX: Set to NULL instead of tenant_admin_id
+                            'narration': f'Cash sale - {invoice.invoice_number} from {invoice.customer_name}',
+                            'created_at': now
                         })
                         
                         # Update account balance
@@ -430,11 +548,13 @@ def create():
                             SET current_balance = :new_balance, updated_at = :updated_at
                             WHERE id = :account_id AND tenant_id = :tenant_id
                         """), {
-                            'new_balance': new_balance,
+                            'new_balance': float(new_balance),
                             'updated_at': now,
                             'account_id': account_id,
                             'tenant_id': tenant_id
                         })
+                        
+                        print(f"   DEBIT:  {account.account_name}  ₹{amount:,.2f} (Cash sale)")
             
             db.session.commit()
             
@@ -1085,11 +1205,19 @@ def record_payment(invoice_id):
         else:
             invoice.payment_status = 'unpaid'
         
-        # Create account transaction (Money IN - Debit account)
+        # ═══════════════════════════════════════════════════════════════════
+        # 📊 DOUBLE-ENTRY ACCOUNTING: Customer Payment Received
+        # ═══════════════════════════════════════════════════════════════════
+        # When a customer pays for a credit sale:
+        # 1. DEBIT:  Cash/Bank (Asset) - Money received
+        # 2. CREDIT: Accounts Receivable (Asset) - Customer no longer owes
+        # ═══════════════════════════════════════════════════════════════════
+        
         ist = pytz.timezone('Asia/Kolkata')
         now = datetime.now(ist)
         today = now.date()
         
+        # Entry 1: DEBIT Cash/Bank (Money IN)
         new_balance = Decimal(str(account.current_balance)) + amount
         
         db.session.execute(text("""
@@ -1097,24 +1225,43 @@ def record_payment(invoice_id):
             (tenant_id, account_id, transaction_date, transaction_type,
              debit_amount, credit_amount, balance_after, reference_type, reference_id,
              voucher_number, narration, created_at, created_by)
-            VALUES (:tenant_id, :account_id, :txn_date, :txn_type,
-                    :debit, :credit, :balance, :ref_type, :ref_id,
-                    :voucher, :narration, :created_at, :created_by)
+            VALUES (:tenant_id, :account_id, :txn_date, 'invoice_payment',
+                    :debit, 0.00, :balance, 'invoice', :ref_id,
+                    :voucher, :narration, :created_at, NULL)
         """), {
             'tenant_id': tenant_id,
             'account_id': account_id,
             'txn_date': today,
-            'txn_type': 'invoice_payment',
-            'debit': amount,  # Money received = Debit
-            'credit': Decimal('0.00'),
-            'balance': new_balance,
-            'ref_type': 'invoice',
+            'debit': float(amount),  # Money received = Debit
+            'balance': float(new_balance),
             'ref_id': invoice_id,
             'voucher': invoice.invoice_number,
             'narration': f'Payment received for {invoice.invoice_number} from {invoice.customer_name}',
-            'created_at': now,
-            'created_by': None  # FIX: Set to NULL instead of tenant_admin_id
+            'created_at': now
         })
+        
+        # Entry 2: CREDIT Accounts Receivable (Customer paid, we owe them less)
+        db.session.execute(text("""
+            INSERT INTO account_transactions
+            (tenant_id, account_id, transaction_date, transaction_type,
+             debit_amount, credit_amount, balance_after, reference_type, reference_id,
+             voucher_number, narration, created_at, created_by)
+            VALUES (:tenant_id, NULL, :txn_date, 'accounts_receivable_payment',
+                    0.00, :credit, 0.00, 'invoice', :ref_id,
+                    :voucher, :narration, :created_at, NULL)
+        """), {
+            'tenant_id': tenant_id,
+            'txn_date': today,
+            'credit': float(amount),  # Reduce receivable = Credit
+            'ref_id': invoice_id,
+            'voucher': invoice.invoice_number,
+            'narration': f'Received payment from {invoice.customer_name} for {invoice.invoice_number}',
+            'created_at': now
+        })
+        
+        print(f"✅ Double-entry for payment on {invoice.invoice_number}")
+        print(f"   DEBIT:  {account.account_name}  ₹{amount:,.2f}")
+        print(f"   CREDIT: Accounts Receivable  ₹{amount:,.2f}")
         
         # Update account balance
         db.session.execute(text("""
