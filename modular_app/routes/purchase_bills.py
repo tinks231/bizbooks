@@ -257,8 +257,16 @@ def create_bill():
             total_sgst = Decimal('0')
             total_igst = Decimal('0')
             
-            # Determine if IGST or CGST/SGST
-            use_igst = (bill.vendor_state and bill.vendor_state.lower() != 'maharashtra')
+            # Determine if IGST or CGST/SGST based on business state vs vendor state
+            # Get business state from tenant settings
+            import json
+            tenant_settings = json.loads(g.tenant.settings) if g.tenant.settings else {}
+            business_state = tenant_settings.get('state', '').lower().strip() if tenant_settings.get('state') else ''
+            vendor_state = bill.vendor_state.lower().strip() if bill.vendor_state else ''
+            
+            # If states are DIFFERENT → Inter-state → IGST
+            # If states are SAME → Intra-state → CGST + SGST
+            use_igst = (business_state != vendor_state) if business_state and vendor_state else False
             
             for i in range(len(item_names)):
                 if not item_names[i].strip():
@@ -546,7 +554,15 @@ def edit_bill(bill_id):
             total_sgst = Decimal('0')
             total_igst = Decimal('0')
             
-            use_igst = (bill.vendor_state and bill.vendor_state.lower() != 'maharashtra')
+            # Determine if IGST or CGST/SGST based on business state vs vendor state
+            import json
+            tenant_settings = json.loads(g.tenant.settings) if g.tenant.settings else {}
+            business_state = tenant_settings.get('state', '').lower().strip() if tenant_settings.get('state') else ''
+            vendor_state = bill.vendor_state.lower().strip() if bill.vendor_state else ''
+            
+            # If states are DIFFERENT → Inter-state → IGST
+            # If states are SAME → Intra-state → CGST + SGST
+            use_igst = (business_state != vendor_state) if business_state and vendor_state else False
             
             for i in range(len(item_names)):
                 if not item_names[i].strip():

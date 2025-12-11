@@ -197,7 +197,8 @@ def create():
             # Get tenant's state from settings
             tenant_settings = json.loads(g.tenant.settings) if g.tenant.settings else {}
             tenant_state = tenant_settings.get('state', 'Maharashtra')
-            is_same_state = (customer_state or 'Maharashtra') == tenant_state
+            # Default customer state to tenant state (most common case - same state transaction)
+            is_same_state = (customer_state or tenant_state) == tenant_state
             
             # Process invoice items
             item_names = request.form.getlist('item_name[]')
@@ -901,7 +902,8 @@ def edit(invoice_id):
             # Add updated items (same logic as create)
             tenant_settings = json.loads(g.tenant.settings) if g.tenant.settings else {}
             tenant_state = tenant_settings.get('state', 'Maharashtra')
-            is_same_state = (invoice.customer_state or 'Maharashtra') == tenant_state
+            # Default customer state to tenant state (most common case - same state transaction)
+            is_same_state = (invoice.customer_state or tenant_state) == tenant_state
             
             # Process invoice items (same as create)
             item_names = request.form.getlist('item_name[]')
