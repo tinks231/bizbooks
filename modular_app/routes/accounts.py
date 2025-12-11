@@ -2071,7 +2071,9 @@ def trial_balance():
         })
     
     # 10. Owner's Equity / Capital (from Opening Balance Equity - Credit Balance)
-    # These are entries with account_id = NULL and transaction_type = 'opening_balance_equity'
+    # These are entries with account_id = NULL and transaction_type in:
+    # - 'opening_balance_equity' (for cash/bank opening)
+    # - 'opening_balance_inventory_equity' (for inventory opening)
     equity_entries = db.session.execute(text("""
         SELECT 
             narration,
@@ -2079,7 +2081,7 @@ def trial_balance():
         FROM account_transactions
         WHERE tenant_id = :tenant_id 
         AND account_id IS NULL
-        AND transaction_type = 'opening_balance_equity'
+        AND transaction_type IN ('opening_balance_equity', 'opening_balance_inventory_equity')
         AND transaction_date <= :as_of_date
         GROUP BY narration
     """), {'tenant_id': tenant_id, 'as_of_date': as_of_date}).fetchall()
