@@ -178,6 +178,8 @@ app.register_blueprint(vendor_performance_bp)  # NEW: Vendor performance optimiz
 app.register_blueprint(fix_cascade_bp)  # FIX: Attendance CASCADE delete issue
 from routes.migrate_double_entry import migrate_double_entry_bp
 app.register_blueprint(migrate_double_entry_bp)  # MIGRATION: Convert to double-entry accounting
+from routes.fix_vendor_payment_constraint import fix_vendor_payment_bp
+app.register_blueprint(fix_vendor_payment_bp)  # FIX: Vendor payment constraint (tenant-specific)
 
 # ============================================================
 # Main route
