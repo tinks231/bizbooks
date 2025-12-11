@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, g, jsonify, session
 from models import db, PurchaseBill, PurchaseBillItem, Vendor, Item, ItemStock, Site, Tenant, VendorPayment, PaymentAllocation
-from sqlalchemy import func
+from sqlalchemy import func, text
 from utils.tenant_middleware import get_current_tenant_id
 from utils.license_check import check_license
 from datetime import datetime, date
@@ -332,6 +332,61 @@ def create_bill():
             bill.payment_status = 'unpaid'
             
             db.session.add(bill)
+            db.session.flush()  # Get bill ID before creating accounting entries
+            
+            # ═══════════════════════════════════════════════════════════════════
+            # 📊 DOUBLE-ENTRY ACCOUNTING: Purchase Bill Created
+            # ═══════════════════════════════════════════════════════════════════
+            # When a purchase bill is created (even if unpaid), we need to record:
+            # 1. DEBIT:  Inventory (Asset) - Stock increases
+            # 2. CREDIT: Accounts Payable (Liability) - We owe the vendor
+            # ═══════════════════════════════════════════════════════════════════
+            
+            ist = pytz.timezone('Asia/Kolkata')
+            now = datetime.now(ist)
+            
+            # Entry 1: DEBIT Inventory (Asset increases)
+            db.session.execute(text("""
+                INSERT INTO account_transactions
+                (tenant_id, account_id, transaction_date, transaction_type,
+                 debit_amount, credit_amount, balance_after, reference_type, reference_id,
+                 voucher_number, narration, created_at, created_by)
+                VALUES (:tenant_id, NULL, :transaction_date, 'inventory_purchase',
+                        :debit_amount, 0.00, :debit_amount, 'purchase_bill', :bill_id,
+                        :voucher, :narration, :created_at, NULL)
+            """), {
+                'tenant_id': tenant_id,
+                'transaction_date': bill.bill_date,
+                'debit_amount': float(bill.total_amount),
+                'bill_id': bill.id,
+                'voucher': bill.bill_number,
+                'narration': f'Inventory purchase from {bill.vendor_name} - {bill.bill_number}',
+                'created_at': now
+            })
+            
+            # Entry 2: CREDIT Accounts Payable (Liability increases)
+            db.session.execute(text("""
+                INSERT INTO account_transactions
+                (tenant_id, account_id, transaction_date, transaction_type,
+                 debit_amount, credit_amount, balance_after, reference_type, reference_id,
+                 voucher_number, narration, created_at, created_by)
+                VALUES (:tenant_id, NULL, :transaction_date, 'accounts_payable',
+                        0.00, :credit_amount, :credit_amount, 'purchase_bill', :bill_id,
+                        :voucher, :narration, :created_at, NULL)
+            """), {
+                'tenant_id': tenant_id,
+                'transaction_date': bill.bill_date,
+                'credit_amount': float(bill.total_amount),
+                'bill_id': bill.id,
+                'voucher': bill.bill_number,
+                'narration': f'Payable to {bill.vendor_name} - {bill.bill_number}',
+                'created_at': now
+            })
+            
+            print(f"✅ Double-entry accounting created for purchase bill {bill.bill_number}")
+            print(f"   DEBIT:  Inventory         ₹{bill.total_amount:,.2f}")
+            print(f"   CREDIT: Accounts Payable  ₹{bill.total_amount:,.2f}")
+            
             db.session.commit()
             
             flash(f'✅ Purchase Bill {bill.bill_number} created successfully!', 'success')
@@ -894,10 +949,37 @@ def record_payment_form(bill_id):
             elif bill.paid_amount > 0:
                 bill.payment_status = 'partial'
             
-            # Create account transaction (Money OUT - Credit account)
+            # ═══════════════════════════════════════════════════════════════════
+            # 📊 DOUBLE-ENTRY ACCOUNTING: Vendor Payment
+            # ═══════════════════════════════════════════════════════════════════
+            # When we pay a vendor for a purchase bill:
+            # 1. DEBIT:  Accounts Payable (Liability) - We owe less now
+            # 2. CREDIT: Cash/Bank (Asset) - Money goes out
+            # ═══════════════════════════════════════════════════════════════════
+            
             ist = pytz.timezone('Asia/Kolkata')
             now = datetime.now(ist)
             
+            # Entry 1: DEBIT Accounts Payable (Liability decreases)
+            db.session.execute(text("""
+                INSERT INTO account_transactions
+                (tenant_id, account_id, transaction_date, transaction_type,
+                 debit_amount, credit_amount, balance_after, reference_type, reference_id,
+                 voucher_number, narration, created_at, created_by)
+                VALUES (:tenant_id, NULL, :txn_date, 'accounts_payable_payment',
+                        :debit, 0.00, 0.00, 'vendor_payment', :payment_id,
+                        :voucher, :narration, :created_at, NULL)
+            """), {
+                'tenant_id': tenant_id,
+                'txn_date': payment_date,
+                'debit': float(amount),  # Reduce liability = Debit
+                'payment_id': payment.id,
+                'voucher': payment.payment_number,
+                'narration': f'Payment to {bill.vendor_name} for {bill.bill_number}',
+                'created_at': now
+            })
+            
+            # Entry 2: CREDIT Cash/Bank (Asset decreases)
             new_balance = Decimal(str(account.current_balance)) - amount
             
             db.session.execute(text("""
@@ -905,24 +987,24 @@ def record_payment_form(bill_id):
                 (tenant_id, account_id, transaction_date, transaction_type,
                  debit_amount, credit_amount, balance_after, reference_type, reference_id,
                  voucher_number, narration, created_at, created_by)
-                VALUES (:tenant_id, :account_id, :txn_date, :txn_type,
-                        :debit, :credit, :balance, :ref_type, :ref_id,
-                        :voucher, :narration, :created_at, :created_by)
+                VALUES (:tenant_id, :account_id, :txn_date, 'bill_payment',
+                        0.00, :credit, :balance, 'vendor_payment', :payment_id,
+                        :voucher, :narration, :created_at, NULL)
             """), {
                 'tenant_id': tenant_id,
                 'account_id': account_id,
                 'txn_date': payment_date,
-                'txn_type': 'bill_payment',
-                'debit': Decimal('0.00'),
-                'credit': amount,  # Money paid = Credit
-                'balance': new_balance,
-                'ref_type': 'purchase_bill',
-                'ref_id': bill.id,
+                'credit': float(amount),  # Money paid = Credit
+                'balance': float(new_balance),
+                'payment_id': payment.id,
                 'voucher': payment.payment_number,
-                'narration': f'Payment to {bill.vendor_name} for {bill.bill_number}',
-                'created_at': now,
-                'created_by': None  # FIX: Set to NULL instead of tenant_admin_id
+                'narration': f'Payment to {bill.vendor_name} from {account.account_name}',
+                'created_at': now
             })
+            
+            print(f"✅ Double-entry accounting for vendor payment {payment.payment_number}")
+            print(f"   DEBIT:  Accounts Payable  ₹{amount:,.2f}")
+            print(f"   CREDIT: {account.account_name}  ₹{amount:,.2f}")
             
             # Update account balance
             db.session.execute(text("""
