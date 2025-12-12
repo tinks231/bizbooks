@@ -510,8 +510,13 @@ def create_bill():
         for vendor in vendors
     ]
     
+    # Get tenant settings for state
+    import json
+    tenant_settings = json.loads(g.tenant.settings) if g.tenant.settings else {}
+    
     return render_template('admin/purchase_bills/create.html',
                          tenant=g.tenant,
+                         tenant_settings=tenant_settings,
                          vendors=vendors_json,
                          sites=sites,
                          items=items_json,

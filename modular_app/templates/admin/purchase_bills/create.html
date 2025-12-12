@@ -478,6 +478,9 @@ console.log('Purchase Bill form loaded successfully');
 const items = {{ items|tojson|safe }} || [];
 const vendors = {{ vendors|tojson|safe }} || [];
 
+// Tenant's state for GST calculation
+const tenantState = "{{ tenant_settings.get('state', 'Maharashtra') }}".toLowerCase();
+
 console.log('=== PURCHASE BILLS AUTOCOMPLETE DEBUG ===');
 console.log('✅ Loaded items:', items.length, items);
 console.log('✅ Loaded vendors:', vendors.length, vendors);
@@ -865,8 +868,8 @@ function calculateRow(input) {
     const gst_rate = parseFloat(row.querySelector('.gst-input').value) || 0;
     
     const taxable = qty * rate;
-    const vendor_state = document.getElementById('vendor_state').value.toLowerCase();
-    const use_igst = (vendor_state !== 'maharashtra');
+    const vendor_state = document.getElementById('vendor_state').value.toLowerCase().trim();
+    const use_igst = (vendor_state && vendor_state !== tenantState);
     
     let gst_amount;
     if (use_igst) {
@@ -888,8 +891,8 @@ function calculateTotal() {
     let total_sgst = 0;
     let total_igst = 0;
     
-    const vendor_state = document.getElementById('vendor_state').value.toLowerCase();
-    const use_igst = (vendor_state !== 'maharashtra');
+    const vendor_state = document.getElementById('vendor_state').value.toLowerCase().trim();
+    const use_igst = (vendor_state && vendor_state !== tenantState);
     
     document.querySelectorAll('.item-row').forEach(row => {
         const qty = parseFloat(row.querySelector('.qty-input').value) || 0;
