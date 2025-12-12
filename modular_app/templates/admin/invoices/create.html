@@ -1761,7 +1761,7 @@
         document.getElementById('customer_email').value = email || '';
         document.getElementById('customer_address').value = address || '';
         document.getElementById('customer_gstin').value = gstin || '';
-        document.getElementById('customer_state').value = state || 'Maharashtra';
+        document.getElementById('customer_state').value = state || tenantState;  // FIX: Use tenant's state, not hardcoded
         
         // Clear and update search field
         document.getElementById('customer_search').value = `${customerCode} - ${name}`;
