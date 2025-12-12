@@ -844,9 +844,20 @@ def commission_reports():
     # Get all active agents for filter dropdown
     all_agents = CommissionAgent.query.filter_by(tenant_id=tenant_id, is_active=True).order_by(CommissionAgent.name).all()
     
-    # Get all active bank accounts for payment selection
+    # Get active accounts for payment selection
     from models import BankAccount
-    bank_accounts = BankAccount.query.filter_by(tenant_id=tenant_id, is_active=True).order_by(BankAccount.account_name).all()
+    # Separate cash and bank accounts
+    cash_accounts = BankAccount.query.filter_by(
+        tenant_id=tenant_id, 
+        is_active=True,
+        account_type='cash'
+    ).order_by(BankAccount.account_name).all()
+    
+    bank_accounts = BankAccount.query.filter(
+        BankAccount.tenant_id == tenant_id,
+        BankAccount.is_active == True,
+        BankAccount.account_type.in_(['bank', 'savings', 'current', 'overdraft'])
+    ).order_by(BankAccount.account_name).all()
     
     from datetime import date
     return render_template('admin/commission_reports.html',
@@ -854,6 +865,7 @@ def commission_reports():
                          commissions=commissions,
                          agent_summary=agent_summary,
                          all_agents=all_agents,
+                         cash_accounts=cash_accounts,
                          bank_accounts=bank_accounts,
                          total_commission=total_commission,
                          paid_commission=paid_commission,
