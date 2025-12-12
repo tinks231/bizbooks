@@ -1,4 +1,4 @@
-# Vercel entry point
+# Vercel entry point - Updated: 2025-12-13 to force rebuild
 import sys
 import os
 
