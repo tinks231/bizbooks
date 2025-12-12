@@ -427,9 +427,11 @@
                                                    class="form-control" readonly>
                                         </div>
                                         <div class="col-md-6">
-                                            <label>SKU (auto-generated)</label>
+                                            <label>SKU <span class="text-danger">*</span></label>
                                             <input type="text" id="modal_new_sku" 
-                                                   class="form-control" readonly>
+                                                   class="form-control" 
+                                                   placeholder="e.g., AS-SH-WHT-38">
+                                            <small class="text-muted">Auto-suggested, but you can edit</small>
                                         </div>
                                     </div>
                                     <div class="row mt-2">
@@ -823,8 +825,8 @@ function applyItemAction() {
         const newCategory = document.getElementById('modal_new_category').value;
         
         // Validate required fields
-        if (!newName || !newSelling || !newMrp) {
-            alert('⚠️ Please fill in all required fields (Name, Selling Price, MRP)');
+        if (!newName || !newSku || !newSelling || !newMrp) {
+            alert('⚠️ Please fill in all required fields (Name, SKU, Selling Price, MRP)');
             return;
         }
         
