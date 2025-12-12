@@ -1,5 +1,5 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, g, jsonify, session
-from models import db, PurchaseBill, PurchaseBillItem, Vendor, Item, ItemStock, Site, Tenant, VendorPayment, PaymentAllocation, Category
+from models import db, PurchaseBill, PurchaseBillItem, Vendor, Item, ItemStock, Site, Tenant, VendorPayment, PaymentAllocation, ItemCategory
 from sqlalchemy import func, text
 from utils.tenant_middleware import get_current_tenant_id
 from utils.license_check import check_license
@@ -473,7 +473,7 @@ def create_bill():
     vendors = Vendor.query.filter_by(tenant_id=tenant_id, is_active=True).order_by(Vendor.name).all()
     sites = Site.query.filter_by(tenant_id=tenant_id).all()
     items = Item.query.filter_by(tenant_id=tenant_id).all()
-    categories = Category.query.filter_by(tenant_id=tenant_id).order_by(Category.name).all()
+    categories = ItemCategory.query.filter_by(tenant_id=tenant_id).order_by(ItemCategory.name).all()
     
     # Convert items to JSON-serializable format
     items_json = [
