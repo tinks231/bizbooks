@@ -472,7 +472,8 @@
 
 <script>
 // Purchase Bill Form - Initialization
-console.log('Purchase Bill form loaded successfully');
+const SCRIPT_VERSION = '2025-12-12-v3';  // Cache busting version
+console.log('🔧 Purchase Bill form loaded - Version:', SCRIPT_VERSION);
 
 // Load items and vendors into JavaScript
 const items = {{ items|tojson|safe }} || [];
@@ -814,7 +815,13 @@ function applyItemAction() {
         // Show visual indicator
         currentItemRow.querySelector('.item-search').value = '🔗 ' + itemName + ' (linked)';
         currentItemRow.querySelector('.item-search').style.backgroundColor = '#e8f5e9';
-        currentItemRow.querySelector('.item-search').removeAttribute('required');  // Remove required since hidden field is set
+        
+        // CRITICAL: Remove 'required' attribute to allow form submission
+        const searchInput = currentItemRow.querySelector('.item-search');
+        searchInput.removeAttribute('required');
+        searchInput.required = false;  // Also set the property directly
+        
+        console.log('✅ Linked item - removed required attribute:', searchInput.required);
         
     } else if (action === 'create_new') {
         // Create new item
@@ -843,7 +850,13 @@ function applyItemAction() {
         // Show visual indicator
         currentItemRow.querySelector('.item-search').value = '🆕 ' + newName;
         currentItemRow.querySelector('.item-search').style.backgroundColor = '#fff3cd';
-        currentItemRow.querySelector('.item-search').removeAttribute('required');  // Remove required since hidden field is set
+        
+        // CRITICAL: Remove 'required' attribute to allow form submission
+        const searchInput = currentItemRow.querySelector('.item-search');
+        searchInput.removeAttribute('required');
+        searchInput.required = false;  // Also set the property directly
+        
+        console.log('✅ New item - removed required attribute:', searchInput.required);
     }
     
     // Fill in other row details
@@ -1075,6 +1088,8 @@ function clearDocument() {
 
 // Form validation before submit - ensures all item_name fields are filled
 function validatePurchaseBillForm() {
+    console.log('🔍 Validating purchase bill form...');
+    
     // Get all item rows
     const allRows = document.querySelectorAll('.item-row');
     
@@ -1101,6 +1116,14 @@ function validatePurchaseBillForm() {
         const qty = qtyInput ? parseFloat(qtyInput.value) || 0 : 0;
         const rate = rateInput ? parseFloat(rateInput.value) || 0 : 0;
         
+        console.log(`Row ${index}:`, {
+            searchValue: itemSearchValue,
+            hiddenName: itemNameValue,
+            qty: qty,
+            rate: rate,
+            required: itemSearch ? itemSearch.required : 'N/A'
+        });
+        
         // If row has search text OR quantity OR rate, it should be saved
         if (itemSearchValue || qty > 0 || rate > 0) {
             // Ensure hidden field is populated
@@ -1117,11 +1140,14 @@ function validatePurchaseBillForm() {
         }
     });
     
+    console.log('✅ Validation result:', { hasItems, itemCount, itemNames: allItemNames });
+    
     if (!hasItems) {
         alert('⚠️ Please add at least one item with name, quantity and rate!');
         return false;
     }
     
+    console.log('✅ Validation passed! Form will submit.');
     return true;
 }
 
