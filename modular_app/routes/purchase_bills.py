@@ -489,7 +489,7 @@ def create_bill():
             'unit': item.unit or 'nos',  # Default is 'nos' in model
             'tax_preference': item.tax_preference or 'GST@18%',
             'gst_rate': float(item.gst_rate or 18.0),
-            'stock_quantity': float(item.stock_quantity or 0),  # NEW: Stock
+            'stock_quantity': float(item.get_total_stock()),  # NEW: Stock (from ItemStock)
             'barcode': item.barcode or ''  # NEW: Barcode
         }
         for item in items
