@@ -844,12 +844,17 @@ def commission_reports():
     # Get all active agents for filter dropdown
     all_agents = CommissionAgent.query.filter_by(tenant_id=tenant_id, is_active=True).order_by(CommissionAgent.name).all()
     
+    # Get all active bank accounts for payment selection
+    from models import BankAccount
+    bank_accounts = BankAccount.query.filter_by(tenant_id=tenant_id, is_active=True).order_by(BankAccount.account_name).all()
+    
     from datetime import date
     return render_template('admin/commission_reports.html',
                          tenant=g.tenant,
                          commissions=commissions,
                          agent_summary=agent_summary,
                          all_agents=all_agents,
+                         bank_accounts=bank_accounts,
                          total_commission=total_commission,
                          paid_commission=paid_commission,
                          unpaid_commission=unpaid_commission,
