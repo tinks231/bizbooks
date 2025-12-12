@@ -922,17 +922,17 @@ def mark_commission_paid(commission_id):
             account_name = 'Cash in Hand'
         
         # Entry 1: DEBIT Commission Expense (Operating Expense)
+        # NOTE: account_id is NULL for expense entries - they don't belong to a specific bank/cash account
         db.session.execute(text("""
             INSERT INTO account_transactions
             (tenant_id, account_id, transaction_date, transaction_type,
              debit_amount, credit_amount, balance_after, reference_type, reference_id,
              voucher_number, narration, created_at, created_by)
-            VALUES (:tenant_id, :account_id, :transaction_date, 'commission_expense',
+            VALUES (:tenant_id, NULL, :transaction_date, 'commission_expense',
                     :debit_amount, 0.00, :debit_amount, 'commission_payment', :commission_id,
                     :voucher, :narration, :created_at, NULL)
         """), {
             'tenant_id': tenant_id,
-            'account_id': int(account_id) if account_id else None,
             'transaction_date': commission.paid_date,
             'debit_amount': float(commission.commission_amount),
             'commission_id': commission.id,
