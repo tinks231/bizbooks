@@ -41,14 +41,24 @@ def fix_vendor_payment_constraint():
         """))
         print("✅ Old constraint dropped\n")
         
-        # Add new tenant-specific constraint
+        # Add new tenant-specific constraint (if not exists)
         print("📝 Adding tenant-specific constraint...")
-        db.session.execute(text("""
-            ALTER TABLE vendor_payments 
-            ADD CONSTRAINT vendor_payments_tenant_payment_number_key 
-                UNIQUE (tenant_id, payment_number)
-        """))
-        print("✅ New constraint added\n")
+        
+        # Check if constraint already exists
+        constraint_exists = db.session.execute(text("""
+            SELECT 1 FROM pg_constraint 
+            WHERE conname = 'vendor_payments_tenant_payment_number_key'
+        """)).fetchone()
+        
+        if constraint_exists:
+            print("⚠️ Constraint already exists! Skipping...\n")
+        else:
+            db.session.execute(text("""
+                ALTER TABLE vendor_payments 
+                ADD CONSTRAINT vendor_payments_tenant_payment_number_key 
+                    UNIQUE (tenant_id, payment_number)
+            """))
+            print("✅ New constraint added\n")
         
         db.session.commit()
         
