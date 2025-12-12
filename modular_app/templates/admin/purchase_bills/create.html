@@ -814,6 +814,7 @@ function applyItemAction() {
         // Show visual indicator
         currentItemRow.querySelector('.item-search').value = '🔗 ' + itemName + ' (linked)';
         currentItemRow.querySelector('.item-search').style.backgroundColor = '#e8f5e9';
+        currentItemRow.querySelector('.item-search').removeAttribute('required');  // Remove required since hidden field is set
         
     } else if (action === 'create_new') {
         // Create new item
@@ -842,6 +843,7 @@ function applyItemAction() {
         // Show visual indicator
         currentItemRow.querySelector('.item-search').value = '🆕 ' + newName;
         currentItemRow.querySelector('.item-search').style.backgroundColor = '#fff3cd';
+        currentItemRow.querySelector('.item-search').removeAttribute('required');  // Remove required since hidden field is set
     }
     
     // Fill in other row details
