@@ -863,43 +863,151 @@ def commission_reports():
 @require_tenant
 @login_required
 def mark_commission_paid(commission_id):
-    """Mark commission as paid"""
-    from models import InvoiceCommission
+    """Mark commission as paid with double-entry accounting"""
+    from models import InvoiceCommission, BankAccount
     from datetime import date
+    from sqlalchemy import text
+    import pytz
     
     tenant_id = get_current_tenant_id()
     commission = InvoiceCommission.query.filter_by(tenant_id=tenant_id, id=commission_id).first_or_404()
     
+    if commission.is_paid:
+        flash('⚠️ Commission is already marked as paid!', 'warning')
+        return redirect(url_for('admin.commission_reports'))
+    
     payment_date = request.form.get('payment_date')
+    payment_method = request.form.get('payment_method', 'cash')  # 'cash' or 'bank'
+    account_id = request.form.get('account_id')  # Bank account if payment_method = 'bank'
     payment_notes = request.form.get('payment_notes')
     
-    commission.is_paid = True
-    commission.paid_date = datetime.strptime(payment_date, '%Y-%m-%d').date() if payment_date else date.today()
-    commission.payment_notes = payment_notes
-    
-    db.session.commit()
-    
-    flash(f'✅ Commission of ₹{commission.commission_amount:.2f} marked as paid to {commission.agent_name}!', 'success')
-    return redirect(url_for('admin.commission_reports'))
+    try:
+        # Mark as paid
+        commission.is_paid = True
+        commission.paid_date = datetime.strptime(payment_date, '%Y-%m-%d').date() if payment_date else date.today()
+        commission.payment_notes = payment_notes
+        
+        # ═══════════════════════════════════════════════════════════════════
+        # DOUBLE-ENTRY ACCOUNTING FOR COMMISSION PAYMENT
+        # ═══════════════════════════════════════════════════════════════════
+        # Entry 1: DEBIT Commission Expense (Operating Expense increases)
+        # Entry 2: CREDIT Cash/Bank (Asset decreases - money goes out)
+        # ═══════════════════════════════════════════════════════════════════
+        
+        ist = pytz.timezone('Asia/Kolkata')
+        now = datetime.now(ist)
+        
+        # Determine account name
+        if payment_method == 'bank' and account_id:
+            account = BankAccount.query.get(account_id)
+            account_name = account.account_name if account else 'Bank Account'
+        else:
+            account_name = 'Cash in Hand'
+        
+        # Entry 1: DEBIT Commission Expense (Operating Expense)
+        db.session.execute(text("""
+            INSERT INTO account_transactions
+            (tenant_id, account_id, transaction_date, transaction_type,
+             debit_amount, credit_amount, balance_after, reference_type, reference_id,
+             voucher_number, narration, created_at, created_by)
+            VALUES (:tenant_id, :account_id, :transaction_date, 'commission_expense',
+                    :debit_amount, 0.00, :debit_amount, 'commission_payment', :commission_id,
+                    :voucher, :narration, :created_at, NULL)
+        """), {
+            'tenant_id': tenant_id,
+            'account_id': int(account_id) if account_id else None,
+            'transaction_date': commission.paid_date,
+            'debit_amount': float(commission.commission_amount),
+            'commission_id': commission.id,
+            'voucher': f'COMM-{commission.id}',
+            'narration': f'Commission paid to {commission.agent_name} for Invoice #{commission.invoice_id}',
+            'created_at': now
+        })
+        
+        # Entry 2: CREDIT Cash/Bank (Asset - money out)
+        db.session.execute(text("""
+            INSERT INTO account_transactions
+            (tenant_id, account_id, transaction_date, transaction_type,
+             debit_amount, credit_amount, balance_after, reference_type, reference_id,
+             voucher_number, narration, created_at, created_by)
+            VALUES (:tenant_id, :account_id, :transaction_date, :transaction_type,
+                    0.00, :credit_amount, :credit_amount, 'commission_payment', :commission_id,
+                    :voucher, :narration, :created_at, NULL)
+        """), {
+            'tenant_id': tenant_id,
+            'account_id': int(account_id) if account_id else None,
+            'transaction_date': commission.paid_date,
+            'transaction_type': 'cash_payment' if payment_method == 'cash' else 'bank_payment',
+            'credit_amount': float(commission.commission_amount),
+            'commission_id': commission.id,
+            'voucher': f'COMM-{commission.id}',
+            'narration': f'Commission payment to {commission.agent_name} via {account_name}',
+            'created_at': now
+        })
+        
+        db.session.commit()
+        
+        print(f"\n✅ Double-entry for commission payment:")
+        print(f"   DEBIT:  Commission Expense  ₹{commission.commission_amount:.2f}")
+        print(f"   CREDIT: {account_name}       ₹{commission.commission_amount:.2f}\n")
+        
+        flash(f'✅ Commission of ₹{commission.commission_amount:.2f} paid to {commission.agent_name}!', 'success')
+        return redirect(url_for('admin.commission_reports'))
+        
+    except Exception as e:
+        db.session.rollback()
+        print(f"❌ Error paying commission: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        flash(f'❌ Error paying commission: {str(e)}', 'error')
+        return redirect(url_for('admin.commission_reports'))
 
 @admin_bp.route('/commission/mark-unpaid/<int:commission_id>', methods=['POST'])
 @require_tenant
 @login_required
 def mark_commission_unpaid(commission_id):
-    """Mark commission as unpaid (undo payment)"""
+    """Mark commission as unpaid and reverse accounting entries"""
     from models import InvoiceCommission
+    from sqlalchemy import text
     
     tenant_id = get_current_tenant_id()
     commission = InvoiceCommission.query.filter_by(tenant_id=tenant_id, id=commission_id).first_or_404()
     
-    commission.is_paid = False
-    commission.paid_date = None
-    commission.payment_notes = None
+    if not commission.is_paid:
+        flash('⚠️ Commission is already marked as unpaid!', 'warning')
+        return redirect(url_for('admin.commission_reports'))
     
-    db.session.commit()
-    
-    flash(f'Commission of ₹{commission.commission_amount:.2f} marked as unpaid.', 'success')
-    return redirect(url_for('admin.commission_reports'))
+    try:
+        # Delete related accounting entries
+        result = db.session.execute(text("""
+            DELETE FROM account_transactions
+            WHERE tenant_id = :tenant_id
+            AND reference_type = 'commission_payment'
+            AND reference_id = :commission_id
+        """), {
+            'tenant_id': tenant_id,
+            'commission_id': commission.id
+        })
+        
+        print(f"🗑️ Deleted {result.rowcount} accounting entries for commission #{commission.id}")
+        
+        # Mark as unpaid
+        commission.is_paid = False
+        commission.paid_date = None
+        commission.payment_notes = None
+        
+        db.session.commit()
+        
+        flash(f'✅ Commission of ₹{commission.commission_amount:.2f} marked as unpaid (accounting entries reversed).', 'success')
+        return redirect(url_for('admin.commission_reports'))
+        
+    except Exception as e:
+        db.session.rollback()
+        print(f"❌ Error unmarking commission: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        flash(f'❌ Error unmarking commission: {str(e)}', 'error')
+        return redirect(url_for('admin.commission_reports'))
 
 # Sites Management
 @admin_bp.route('/sites', strict_slashes=False)  # PERFORMANCE: Prevent 308 redirects

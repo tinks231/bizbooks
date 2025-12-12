@@ -1862,15 +1862,41 @@ def profit_loss():
         'end_month': end_month
     }).fetchall()
     
+    # 5. Commission Expenses (from double-entry accounting)
+    # Uses account_transactions with transaction_type = 'commission_expense'
+    commission_expenses_from_transactions = db.session.execute(text("""
+        SELECT COALESCE(SUM(debit_amount), 0)
+        FROM account_transactions
+        WHERE tenant_id = :tenant_id
+        AND transaction_type = 'commission_expense'
+        AND transaction_date BETWEEN :start_date AND :end_date
+    """), {'tenant_id': tenant_id, 'start_date': start_date, 'end_date': end_date}).fetchone()[0]
+    
+    total_commission_expenses = Decimal(str(commission_expenses_from_transactions or 0))
+    
+    # Get commission details for display
+    commission_expenses_detail = db.session.execute(text("""
+        SELECT 
+            at.transaction_date,
+            at.narration,
+            at.debit_amount,
+            at.voucher_number
+        FROM account_transactions at
+        WHERE at.tenant_id = :tenant_id 
+        AND at.transaction_type = 'commission_expense'
+        AND at.transaction_date BETWEEN :start_date AND :end_date
+        ORDER BY at.transaction_date DESC
+    """), {'tenant_id': tenant_id, 'start_date': start_date, 'end_date': end_date}).fetchall()
+    
     # Total Expenses
-    total_expenses = total_cogs + total_operating_expenses + total_employee_expenses + total_salary_expenses
+    total_expenses = total_cogs + total_operating_expenses + total_employee_expenses + total_salary_expenses + total_commission_expenses
     
     # ====================
     # PROFIT CALCULATION
     # ====================
     
     gross_profit = total_income - total_purchases  # Revenue - COGS
-    net_profit = gross_profit - (total_operating_expenses + total_employee_expenses + total_salary_expenses)  # Gross Profit - Operating Expenses
+    net_profit = gross_profit - (total_operating_expenses + total_employee_expenses + total_salary_expenses + total_commission_expenses)  # Gross Profit - Operating Expenses
     
     # Profit Margin
     profit_margin = (net_profit / total_income * 100) if total_income > 0 else Decimal('0')
@@ -1894,6 +1920,8 @@ def profit_loss():
                         total_employee_expenses=float(total_employee_expenses),
                         salary_expenses_detail=salary_expenses_detail,
                         total_salary_expenses=float(total_salary_expenses),
+                        commission_expenses_detail=commission_expenses_detail,
+                        total_commission_expenses=float(total_commission_expenses),
                         total_expenses=float(total_expenses),
                          # Profit
                          gross_profit=float(gross_profit),
