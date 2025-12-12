@@ -962,6 +962,18 @@ def mark_commission_paid(commission_id):
             'created_at': now
         })
         
+        # Update bank/cash account balance (reduce balance - money going out)
+        if account_id:
+            db.session.execute(text("""
+                UPDATE bank_accounts
+                SET current_balance = current_balance - :amount
+                WHERE id = :account_id AND tenant_id = :tenant_id
+            """), {
+                'amount': float(commission.commission_amount),
+                'account_id': int(account_id),
+                'tenant_id': tenant_id
+            })
+        
         db.session.commit()
         
         print(f"\n✅ Double-entry for commission payment:")

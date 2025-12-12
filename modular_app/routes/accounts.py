@@ -2226,7 +2226,27 @@ def trial_balance():
             'credit': Decimal('0')
         })
     
-    # 10. Owner's Equity / Capital (from Opening Balance Equity - Credit Balance)
+    # 10. Commission Expenses (Expense - Debit Balance)
+    # Calculate from account_transactions (double-entry system)
+    commission_from_transactions = db.session.execute(text("""
+        SELECT COALESCE(SUM(debit_amount), 0)
+        FROM account_transactions
+        WHERE tenant_id = :tenant_id
+        AND transaction_type = 'commission_expense'
+        AND transaction_date <= :as_of_date
+    """), {'tenant_id': tenant_id, 'as_of_date': as_of_date}).fetchone()[0]
+    
+    commission_total = Decimal(str(commission_from_transactions or 0))
+    
+    if commission_total > 0:
+        accounts.append({
+            'account_name': 'Commission Expenses',
+            'category': 'Expenses',
+            'debit': commission_total,
+            'credit': Decimal('0')
+        })
+    
+    # 11. Owner's Equity / Capital (from Opening Balance Equity - Credit Balance)
     # These are entries with account_id = NULL and transaction_type in:
     # - 'opening_balance_equity' (for cash/bank opening)
     # - 'opening_balance_inventory_equity' (for inventory opening)
