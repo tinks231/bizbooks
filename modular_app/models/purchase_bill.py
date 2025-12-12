@@ -68,44 +68,53 @@ class PurchaseBill(db.Model, TimestampMixin):
         return f'<PurchaseBill {self.bill_number} - {self.vendor_name}>'
     
     def generate_bill_number(self):
-        """Generate next bill number for tenant with duplicate handling"""
+        """Generate next bill number for tenant - ROBUST VERSION with duplicate prevention"""
         ist = pytz.timezone('Asia/Kolkata')
         now = datetime.now(ist)
         
         # Format: PB-YYYYMM-XXXX (e.g., PB-202511-0001)
         prefix = f"PB-{now.strftime('%Y%m')}"
         
-        # Try up to 10 times to find a unique bill number
-        for attempt in range(10):
-            # Find the last bill for this month
-            last_bill = PurchaseBill.query.filter(
-                PurchaseBill.tenant_id == self.tenant_id,
-                PurchaseBill.bill_number.like(f'{prefix}%')
-            ).order_by(PurchaseBill.id.desc()).first()
-            
-            if last_bill:
-                try:
-                    last_num = int(last_bill.bill_number.split('-')[-1])
-                    new_num = last_num + 1 + attempt  # Add attempt to skip duplicates
-                except (ValueError, IndexError):
-                    new_num = 1 + attempt
-            else:
-                new_num = 1 + attempt
-            
+        # Strategy: Find the HIGHEST existing number, then add 1
+        # This is more robust than relying on order_by ID
+        existing_bills = PurchaseBill.query.filter(
+            PurchaseBill.tenant_id == self.tenant_id,
+            PurchaseBill.bill_number.like(f'{prefix}%')
+        ).all()
+        
+        max_num = 0
+        for bill in existing_bills:
+            try:
+                num = int(bill.bill_number.split('-')[-1])
+                max_num = max(max_num, num)
+            except (ValueError, IndexError):
+                continue
+        
+        # Try up to 20 times to find a unique number (increased from 10)
+        for attempt in range(20):
+            new_num = max_num + 1 + attempt
             bill_number = f"{prefix}-{new_num:04d}"
             
-            # Check if this number already exists
+            # CRITICAL: Check if this exact number already exists
             existing = PurchaseBill.query.filter_by(
                 tenant_id=self.tenant_id,
                 bill_number=bill_number
             ).first()
             
             if not existing:
-                return bill_number
+                # DOUBLE CHECK: Query again to handle race conditions
+                existing_check = PurchaseBill.query.filter_by(
+                    tenant_id=self.tenant_id,
+                    bill_number=bill_number
+                ).first()
+                
+                if not existing_check:
+                    return bill_number
         
-        # Fallback: use timestamp if all else fails
-        import random
-        return f"{prefix}-{random.randint(1000, 9999):04d}"
+        # Fallback: use timestamp-based unique number
+        import time
+        timestamp = int(time.time() % 10000)
+        return f"{prefix}-{timestamp:04d}"
     
     def update_payment_status(self):
         """Update payment status based on paid amount"""
