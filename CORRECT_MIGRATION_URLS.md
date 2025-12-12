@@ -24,6 +24,25 @@ https://mahaveerelectricals.bizbooks.co.in/migration/fix-vendor-payment-constrai
 
 ---
 
+## 🔧 **Migration 1.5: Fix Purchase Bill Constraint** 🆕
+
+### **CORRECT URL:**
+```
+https://bizbooks.co.in/migration/fix-purchase-bill-constraint
+```
+
+**OR for specific tenant:**
+```
+https://mahaveerelectricals.bizbooks.co.in/migration/fix-purchase-bill-constraint
+```
+
+**What it does:**
+- Makes bill numbers tenant-specific
+- Allows PB-202512-0001 to exist for multiple tenants
+- **CRITICAL:** This fixes the duplicate bill number error!
+
+---
+
 ## 🔧 **Migration 2: Add Purchase Bill Item Fields**
 
 ### **CORRECT URL:**
@@ -124,6 +143,7 @@ Visit: https://mahaveerelectricals.bizbooks.co.in/migration/fix-inventory-equity
 **For mahaveerelectricals tenant:**
 ```
 https://mahaveerelectricals.bizbooks.co.in/migration/fix-vendor-payment-constraint
+https://mahaveerelectricals.bizbooks.co.in/migration/fix-purchase-bill-constraint
 https://mahaveerelectricals.bizbooks.co.in/migration/add-purchase-bill-item-fields
 https://mahaveerelectricals.bizbooks.co.in/migration/to-double-entry
 https://mahaveerelectricals.bizbooks.co.in/migration/fix-inventory-equity
@@ -132,6 +152,7 @@ https://mahaveerelectricals.bizbooks.co.in/migration/fix-inventory-equity
 **For ayushi tenant:**
 ```
 https://ayushi.bizbooks.co.in/migration/fix-vendor-payment-constraint
+https://ayushi.bizbooks.co.in/migration/fix-purchase-bill-constraint
 https://ayushi.bizbooks.co.in/migration/add-purchase-bill-item-fields
 https://ayushi.bizbooks.co.in/migration/to-double-entry
 https://ayushi.bizbooks.co.in/migration/fix-inventory-equity

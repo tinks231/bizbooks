@@ -180,6 +180,8 @@ from routes.migrate_double_entry import migrate_double_entry_bp
 app.register_blueprint(migrate_double_entry_bp)  # MIGRATION: Convert to double-entry accounting
 from routes.fix_vendor_payment_constraint import fix_vendor_payment_bp
 app.register_blueprint(fix_vendor_payment_bp)  # FIX: Vendor payment constraint (tenant-specific)
+from routes.fix_purchase_bill_constraint import fix_purchase_bill_bp
+app.register_blueprint(fix_purchase_bill_bp)  # FIX: Purchase bill constraint (tenant-specific)
 from routes.migration_add_purchase_bill_item_fields import migration_purchase_bill_items_bp
 app.register_blueprint(migration_purchase_bill_items_bp)  # MIGRATION: Add fields for creating items from purchase bills
 
