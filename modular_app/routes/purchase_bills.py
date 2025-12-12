@@ -1,5 +1,5 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, g, jsonify, session
-from models import db, PurchaseBill, PurchaseBillItem, Vendor, Item, ItemStock, Site, Tenant, VendorPayment, PaymentAllocation
+from models import db, PurchaseBill, PurchaseBillItem, Vendor, Item, ItemStock, Site, Tenant, VendorPayment, PaymentAllocation, Category
 from sqlalchemy import func, text
 from utils.tenant_middleware import get_current_tenant_id
 from utils.license_check import check_license
@@ -251,6 +251,22 @@ def create_bill():
             rates = request.form.getlist('rate[]')
             gst_rates = request.form.getlist('gst_rate[]')
             
+            # NEW: Item action fields
+            item_actions = request.form.getlist('item_action[]')  # "link" or "create_new"
+            is_new_items = request.form.getlist('is_new_item[]')  # "0" or "1"
+            
+            # NEW: For creating new items
+            new_item_skus = request.form.getlist('new_item_sku[]')
+            new_item_sellings = request.form.getlist('new_item_selling[]')
+            new_item_mrps = request.form.getlist('new_item_mrp[]')
+            new_item_categories = request.form.getlist('new_item_category[]')
+            
+            # NEW: For updating existing items
+            update_selling_flags = request.form.getlist('update_selling_price[]')
+            update_mrp_flags = request.form.getlist('update_mrp[]')
+            updated_selling_values = request.form.getlist('updated_selling_value[]')
+            updated_mrp_values = request.form.getlist('updated_mrp_value[]')
+            
             # Calculate totals
             subtotal = Decimal('0')
             total_cgst = Decimal('0')
@@ -295,9 +311,28 @@ def create_bill():
                 line_item = PurchaseBillItem()
                 line_item.tenant_id = tenant_id
                 
-                # Link to inventory item if selected
-                if item_ids[i] and item_ids[i].isdigit():
-                    line_item.item_id = int(item_ids[i])
+                # Check if this is a new item or link to existing
+                is_new_item = (i < len(is_new_items) and is_new_items[i] == '1')
+                
+                if is_new_item:
+                    # Creating new item - store the data for later
+                    line_item.is_new_item = True
+                    line_item.sku = new_item_skus[i] if i < len(new_item_skus) else ''
+                    line_item.selling_price = Decimal(new_item_sellings[i]) if (i < len(new_item_sellings) and new_item_sellings[i]) else None
+                    line_item.mrp = Decimal(new_item_mrps[i]) if (i < len(new_item_mrps) and new_item_mrps[i]) else None
+                    line_item.category_id = int(new_item_categories[i]) if (i < len(new_item_categories) and new_item_categories[i]) else None
+                    line_item.item_id = None  # No existing item
+                else:
+                    # Link to existing item
+                    line_item.is_new_item = False
+                    if item_ids[i] and item_ids[i].isdigit():
+                        line_item.item_id = int(item_ids[i])
+                    
+                    # Check if updating prices
+                    if i < len(update_selling_flags) and update_selling_flags[i] == '1':
+                        line_item.selling_price = Decimal(updated_selling_values[i]) if (i < len(updated_selling_values) and updated_selling_values[i]) else None
+                    if i < len(update_mrp_flags) and update_mrp_flags[i] == '1':
+                        line_item.mrp = Decimal(updated_mrp_values[i]) if (i < len(updated_mrp_values) and updated_mrp_values[i]) else None
                 
                 line_item.item_name = item_names[i].strip()
                 line_item.description = descriptions[i].strip() if i < len(descriptions) else ''
@@ -438,6 +473,7 @@ def create_bill():
     vendors = Vendor.query.filter_by(tenant_id=tenant_id, is_active=True).order_by(Vendor.name).all()
     sites = Site.query.filter_by(tenant_id=tenant_id).all()
     items = Item.query.filter_by(tenant_id=tenant_id).all()
+    categories = Category.query.filter_by(tenant_id=tenant_id).order_by(Category.name).all()
     
     # Convert items to JSON-serializable format
     items_json = [
@@ -447,10 +483,14 @@ def create_bill():
             'item_code': item.sku or '',  # Use sku field
             'purchase_price': float(item.cost_price or 0),  # Use cost_price field
             'sale_price': float(item.selling_price or 0),  # Use selling_price field
+            'selling_price': float(item.selling_price or 0),  # Duplicate for compatibility
+            'mrp': float(item.mrp or 0),  # NEW: MRP
             'hsn_code': item.hsn_code or '',
             'unit': item.unit or 'nos',  # Default is 'nos' in model
             'tax_preference': item.tax_preference or 'GST@18%',
-            'gst_rate': float(item.gst_rate or 18.0)
+            'gst_rate': float(item.gst_rate or 18.0),
+            'stock_quantity': float(item.stock_quantity or 0),  # NEW: Stock
+            'barcode': item.barcode or ''  # NEW: Barcode
         }
         for item in items
     ]
@@ -475,6 +515,7 @@ def create_bill():
                          vendors=vendors_json,
                          sites=sites,
                          items=items_json,
+                         categories=categories,
                          today=date.today().strftime('%Y-%m-%d'))
 
 @purchase_bills_bp.route('/<int:bill_id>')
