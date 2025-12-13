@@ -184,6 +184,8 @@ from routes.fix_purchase_bill_constraint import fix_purchase_bill_bp
 app.register_blueprint(fix_purchase_bill_bp)  # FIX: Purchase bill constraint (tenant-specific)
 from routes.migration_add_purchase_bill_item_fields import migration_purchase_bill_items_bp
 app.register_blueprint(migration_purchase_bill_items_bp)  # MIGRATION: Add fields for creating items from purchase bills
+from routes.migration_create_returns_tables import migration_returns_bp
+app.register_blueprint(migration_returns_bp)  # MIGRATION: Create returns & refunds tables
 
 # ============================================================
 # Main route
