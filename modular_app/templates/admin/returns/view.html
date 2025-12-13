@@ -8,12 +8,6 @@
 <a href="{{ url_for('returns.index') }}" class="btn btn-secondary">
     ← Back to Returns
 </a>
-{% if return_obj.status == 'approved' and return_obj.credit_note_number %}
-<a href="{{ url_for('returns.print_credit_note', return_id=return_obj.id) }}" 
-   class="btn btn-info" target="_blank">
-    🖨️ Print Credit Note
-</a>
-{% endif %}
 {% endblock %}
 
 {% block content %}
