@@ -1,5 +1,5 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, g, jsonify, session
-from models import db, PurchaseBill, PurchaseBillItem, Vendor, Item, ItemStock, Site, Tenant, VendorPayment, PaymentAllocation, ItemCategory
+from models import db, PurchaseBill, PurchaseBillItem, Vendor, Item, ItemStock, Site, Tenant, VendorPayment, PaymentAllocation, ItemCategory, AccountTransaction
 from sqlalchemy import func, text
 from utils.tenant_middleware import get_current_tenant_id
 from utils.license_check import check_license
@@ -974,10 +974,20 @@ def delete_bill(bill_id):
         return redirect(url_for('purchase_bills.view_bill', bill_id=bill.id))
     
     try:
+        bill_number = bill.bill_number
+        
+        # CASCADE DELETE: Remove all accounting entries first
+        AccountTransaction.query.filter_by(
+            tenant_id=tenant_id,
+            reference_type='purchase_bill',
+            reference_id=bill_id
+        ).delete()
+        
+        # Then delete the bill (cascade will handle bill items)
         db.session.delete(bill)
         db.session.commit()
         
-        flash(f'✅ Purchase Bill {bill.bill_number} deleted successfully!', 'success')
+        flash(f'✅ Purchase Bill {bill_number} deleted successfully (including accounting entries)!', 'success')
         return redirect(url_for('purchase_bills.list_bills'))
     except Exception as e:
         db.session.rollback()
