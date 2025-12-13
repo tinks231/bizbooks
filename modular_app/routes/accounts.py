@@ -1612,12 +1612,14 @@ def balance_sheet():
     # ====================
     
     # 1. Accounts Payable (Unpaid Purchase Bills)
+    # IMPORTANT: Only count APPROVED bills (draft bills shouldn't appear in accounting)
     accounts_payable = db.session.execute(text("""
         SELECT 
             vendor_name,
             SUM(total_amount - COALESCE(paid_amount, 0)) as outstanding
         FROM purchase_bills
         WHERE tenant_id = :tenant_id 
+        AND status = 'approved'
         AND payment_status != 'paid'
         AND bill_date <= :as_of_date
         GROUP BY vendor_name
@@ -2049,11 +2051,13 @@ def trial_balance():
     
     # FALLBACK: If no double-entry entries exist yet, calculate from purchase_bills table
     # (This handles old data before migration)
+    # IMPORTANT: Only count APPROVED bills (draft bills shouldn't appear in accounting)
     if not payables_from_transactions or Decimal(str(payables_from_transactions)) == 0:
         payables = db.session.execute(text("""
             SELECT SUM(total_amount - COALESCE(paid_amount, 0)) as outstanding
             FROM purchase_bills
             WHERE tenant_id = :tenant_id 
+            AND status = 'approved'
             AND payment_status != 'paid'
             AND bill_date <= :as_of_date
         """), {'tenant_id': tenant_id, 'as_of_date': as_of_date}).fetchone()
@@ -2448,6 +2452,7 @@ def payables_aging():
     today = datetime.now(ist).date()
     
     # Get all unpaid/partially paid bills
+    # IMPORTANT: Only count APPROVED bills (draft bills shouldn't appear in accounting)
     bills = db.session.execute(text("""
         SELECT 
             id,
@@ -2460,6 +2465,7 @@ def payables_aging():
             payment_status
         FROM purchase_bills
         WHERE tenant_id = :tenant_id 
+        AND status = 'approved'
         AND payment_status != 'paid'
         ORDER BY vendor_name, bill_date
     """), {'tenant_id': tenant_id}).fetchall()
