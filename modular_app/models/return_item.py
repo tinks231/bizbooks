@@ -1,5 +1,6 @@
 from models.database import db, TimestampMixin
 from datetime import datetime
+from decimal import Decimal
 import pytz
 
 class ReturnItem(db.Model, TimestampMixin):
@@ -61,21 +62,21 @@ class ReturnItem(db.Model, TimestampMixin):
     def calculate_amounts(self, is_same_state=True):
         """Calculate all amounts based on quantity, rate, and GST"""
         # Calculate taxable amount
-        self.taxable_amount = float(self.quantity_returned) * float(self.unit_price)
+        self.taxable_amount = Decimal(str(self.quantity_returned)) * Decimal(str(self.unit_price))
         
         # Calculate GST
-        gst_amount = self.taxable_amount * (float(self.gst_rate) / 100)
+        gst_amount = self.taxable_amount * (Decimal(str(self.gst_rate)) / Decimal('100'))
         
         if is_same_state:
             # Same state: Split into CGST & SGST
-            self.cgst_amount = gst_amount / 2
-            self.sgst_amount = gst_amount / 2
-            self.igst_amount = 0
+            self.cgst_amount = gst_amount / Decimal('2')
+            self.sgst_amount = gst_amount / Decimal('2')
+            self.igst_amount = Decimal('0')
         else:
             # Different state: IGST
             self.igst_amount = gst_amount
-            self.cgst_amount = 0
-            self.sgst_amount = 0
+            self.cgst_amount = Decimal('0')
+            self.sgst_amount = Decimal('0')
         
         # Calculate total
         self.total_amount = self.taxable_amount + gst_amount
