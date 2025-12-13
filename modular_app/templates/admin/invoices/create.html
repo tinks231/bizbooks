@@ -1388,8 +1388,11 @@
         document.getElementById(`amount_${rowId}`).textContent = `₹${total.toFixed(2)}`;
         
         // Store calculated values as data attributes for total calculation
+        // IMPORTANT: Store CGST/SGST separately to avoid rounding errors when dividing total GST
         row.setAttribute('data-taxable', taxableValue.toFixed(2));
         row.setAttribute('data-gst', gstAmount.toFixed(2));
+        row.setAttribute('data-cgst', (gstAmount / 2).toFixed(2));  // Calculate CGST at row level
+        row.setAttribute('data-sgst', (gstAmount / 2).toFixed(2));  // Calculate SGST at row level
         row.setAttribute('data-total', total.toFixed(2));
         
         calculateTotal();
@@ -1425,6 +1428,8 @@
         rows.forEach(row => {
             const taxableValue = parseFloat(row.getAttribute('data-taxable')) || 0;
             const gstAmount = parseFloat(row.getAttribute('data-gst')) || 0;
+            const cgst = parseFloat(row.getAttribute('data-cgst')) || 0;
+            const sgst = parseFloat(row.getAttribute('data-sgst')) || 0;
             
             subtotal += taxableValue;
             
@@ -1433,8 +1438,9 @@
                 totalGSTAmount += gstAmount;
                 
                 if (isSameState) {
-                    totalCGST += gstAmount / 2;
-                    totalSGST += gstAmount / 2;
+                    // Use pre-calculated CGST/SGST (already rounded at row level)
+                    totalCGST += cgst;
+                    totalSGST += sgst;
                 } else {
                     totalIGST += gstAmount;
                 }
