@@ -645,6 +645,8 @@ def edit_bill(bill_id):
 def approve_bill(bill_id):
     """Approve purchase bill and update inventory using Weighted Average Cost"""
     from models import Item, ItemStock, ItemStockMovement, Site
+    import pytz
+    from sqlalchemy import text
     
     tenant_id = get_current_tenant_id()
     bill = PurchaseBill.query.filter_by(id=bill_id, tenant_id=tenant_id).first_or_404()
@@ -850,9 +852,6 @@ def approve_bill(bill_id):
         # ============================================================
         # CREATE DOUBLE-ENTRY ACCOUNTING (Only on Approval!)
         # ============================================================
-        import pytz
-        from sqlalchemy import text
-        
         ist = pytz.timezone('Asia/Kolkata')
         now = datetime.now(ist)
         
