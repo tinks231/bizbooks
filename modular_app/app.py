@@ -147,6 +147,8 @@ app.register_blueprint(admin_purchase_bp)  # NEW: Admin purchase management
 app.register_blueprint(customers_bp)  # NEW: Customer management
 app.register_blueprint(vendors_bp)  # NEW: Vendor management
 app.register_blueprint(invoices_bp)  # NEW: GST invoicing
+from routes.returns import returns_bp
+app.register_blueprint(returns_bp)  # NEW: Returns & Refunds management
 app.register_blueprint(tasks_bp)  # NEW: Task management (admin)
 app.register_blueprint(employee_tasks_bp)  # NEW: Task management (employee)
 app.register_blueprint(sales_order_bp)  # NEW: Sales Order management
