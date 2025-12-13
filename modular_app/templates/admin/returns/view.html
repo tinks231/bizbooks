@@ -1,0 +1,483 @@
+{% extends 'base_sidebar.html' %}
+
+{% block title %}Return {{ return_obj.return_number }} - {{ tenant.name }}{% endblock %}
+
+{% block page_title %}Return Details{% endblock %}
+
+{% block header_actions %}
+<a href="{{ url_for('returns.index') }}" class="btn btn-secondary">
+    ← Back to Returns
+</a>
+{% if return_obj.status == 'approved' and return_obj.credit_note_number %}
+<a href="{{ url_for('returns.print_credit_note', return_id=return_obj.id) }}" 
+   class="btn btn-info" target="_blank">
+    🖨️ Print Credit Note
+</a>
+{% endif %}
+{% endblock %}
+
+{% block content %}
+
+<!-- Return Header -->
+<div class="card" style="margin-bottom: 25px;">
+    <div style="display: flex; justify-content: space-between; align-items: start; flex-wrap: wrap; gap: 20px;">
+        <div>
+            <h2 style="margin: 0 0 10px 0; color: #2c3e50;">
+                📦 {{ return_obj.return_number }}
+            </h2>
+            <div style="color: #7f8c8d; margin-bottom: 5px;">
+                📅 Return Date: <strong>{{ return_obj.return_date.strftime('%d-%b-%Y') }}</strong>
+            </div>
+            {% if return_obj.invoice_number %}
+            <div style="color: #7f8c8d; margin-bottom: 5px;">
+                📄 Original Invoice: 
+                <a href="{{ url_for('invoices.view', invoice_id=return_obj.invoice_id) }}" 
+                   style="color: #3498db; font-weight: 600;">
+                    {{ return_obj.invoice_number }}
+                </a>
+                ({{ return_obj.invoice_date.strftime('%d-%b-%Y') }})
+            </div>
+            {% endif %}
+        </div>
+        
+        <div style="text-align: right;">
+            {% if return_obj.status == 'pending' %}
+            <span class="badge" style="background: #f39c12; font-size: 16px; padding: 8px 16px;">⏳ PENDING APPROVAL</span>
+            {% elif return_obj.status == 'approved' %}
+            <span class="badge" style="background: #2ecc71; font-size: 16px; padding: 8px 16px;">✅ APPROVED</span>
+            {% elif return_obj.status == 'rejected' %}
+            <span class="badge" style="background: #e74c3c; font-size: 16px; padding: 8px 16px;">❌ REJECTED</span>
+            {% elif return_obj.status == 'completed' %}
+            <span class="badge" style="background: #27ae60; font-size: 16px; padding: 8px 16px;">🎉 COMPLETED</span>
+            {% endif %}
+            
+            {% if return_obj.credit_note_number %}
+            <div style="margin-top: 8px; color: #27ae60; font-weight: 600;">
+                Credit Note: {{ return_obj.credit_note_number }}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Customer Details -->
+<div class="card" style="margin-bottom: 25px;">
+    <h3 style="margin-top: 0; color: #2c3e50;">👤 Customer Details</h3>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px;">
+        <div>
+            <div style="color: #7f8c8d; font-size: 12px; margin-bottom: 4px;">Customer Name</div>
+            <div style="font-weight: 600;">{{ return_obj.customer_name }}</div>
+        </div>
+        {% if return_obj.invoice %}
+        <div>
+            <div style="color: #7f8c8d; font-size: 12px; margin-bottom: 4px;">Payment Status</div>
+            <div style="font-weight: 600;">
+                {% if return_obj.invoice.payment_status == 'paid' %}
+                <span style="color: #27ae60;">✅ Paid</span>
+                {% elif return_obj.invoice.payment_status == 'partial' %}
+                <span style="color: #f39c12;">⚠️ Partial</span>
+                {% else %}
+                <span style="color: #e74c3c;">⏳ Unpaid</span>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Returned Items -->
+<div class="card" style="margin-bottom: 25px;">
+    <h3 style="margin-top: 0; color: #2c3e50;">📦 Returned Items</h3>
+    <div style="overflow-x: auto;">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Item Name</th>
+                    <th>HSN Code</th>
+                    <th>Qty Returned</th>
+                    <th>Unit Price</th>
+                    <th>Taxable Value</th>
+                    <th>GST</th>
+                    <th>Total</th>
+                    <th>Condition</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in return_obj.items %}
+                <tr>
+                    <td style="font-weight: 600;">{{ item.product_name }}</td>
+                    <td>{{ item.hsn_code }}</td>
+                    <td>{{ item.quantity_returned }} {{ item.unit }}</td>
+                    <td>₹{{ "%.2f"|format(item.unit_price) }}</td>
+                    <td>₹{{ "%.2f"|format(item.taxable_amount) }}</td>
+                    <td>
+                        {% if item.cgst_amount %}
+                        CGST: ₹{{ "%.2f"|format(item.cgst_amount) }}<br>
+                        SGST: ₹{{ "%.2f"|format(item.sgst_amount) }}
+                        {% elif item.igst_amount %}
+                        IGST: ₹{{ "%.2f"|format(item.igst_amount) }}
+                        {% else %}
+                        -
+                        {% endif %}
+                    </td>
+                    <td style="font-weight: 600;">₹{{ "%.2f"|format(item.total_amount) }}</td>
+                    <td>
+                        {% if item.item_condition == 'resellable' %}
+                        <span class="badge" style="background: #27ae60;">✅ Resellable</span>
+                        {% elif item.item_condition == 'damaged' %}
+                        <span class="badge" style="background: #e74c3c;">⚠️ Damaged</span>
+                        {% elif item.item_condition == 'defective' %}
+                        <span class="badge" style="background: #c0392b;">❌ Defective</span>
+                        {% else %}
+                        <span class="badge" style="background: #95a5a6;">📦 {{ item.item_condition }}</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Financial Summary -->
+<div class="card" style="margin-bottom: 25px;">
+    <h3 style="margin-top: 0; color: #2c3e50;">💰 Financial Summary</h3>
+    <div style="max-width: 500px; margin-left: auto;">
+        <table style="width: 100%;">
+            <tr>
+                <td style="padding: 8px; color: #7f8c8d;">Taxable Amount:</td>
+                <td style="padding: 8px; text-align: right; font-weight: 600;">₹{{ "%.2f"|format(return_obj.taxable_amount) }}</td>
+            </tr>
+            {% if return_obj.cgst_amount %}
+            <tr>
+                <td style="padding: 8px; color: #7f8c8d;">CGST:</td>
+                <td style="padding: 8px; text-align: right; font-weight: 600;">₹{{ "%.2f"|format(return_obj.cgst_amount) }}</td>
+            </tr>
+            <tr>
+                <td style="padding: 8px; color: #7f8c8d;">SGST:</td>
+                <td style="padding: 8px; text-align: right; font-weight: 600;">₹{{ "%.2f"|format(return_obj.sgst_amount) }}</td>
+            </tr>
+            {% endif %}
+            {% if return_obj.igst_amount %}
+            <tr>
+                <td style="padding: 8px; color: #7f8c8d;">IGST:</td>
+                <td style="padding: 8px; text-align: right; font-weight: 600;">₹{{ "%.2f"|format(return_obj.igst_amount) }}</td>
+            </tr>
+            {% endif %}
+            <tr style="border-top: 2px solid #e0e0e0;">
+                <td style="padding: 12px; font-weight: 700; font-size: 16px; color: #e74c3c;">TOTAL REFUND:</td>
+                <td style="padding: 12px; text-align: right; font-weight: 700; font-size: 18px; color: #e74c3c;">
+                    ₹{{ "%.2f"|format(return_obj.total_amount) }}
+                </td>
+            </tr>
+        </table>
+        
+        {% if return_obj.refund_method %}
+        <div style="margin-top: 15px; padding: 12px; background: #ecf0f1; border-radius: 8px;">
+            <div style="font-size: 12px; color: #7f8c8d; margin-bottom: 4px;">Refund Method:</div>
+            <div style="font-weight: 600;">
+                {% if return_obj.refund_method == 'cash' %}
+                💵 Cash Refund
+                {% elif return_obj.refund_method == 'bank' %}
+                🏦 Bank Transfer
+                {% elif return_obj.refund_method == 'credit_note' %}
+                📝 Store Credit Only
+                {% elif return_obj.refund_method == 'exchange' %}
+                🔄 Exchange
+                {% endif %}
+            </div>
+            {% if return_obj.payment_reference %}
+            <div style="font-size: 12px; color: #666; margin-top: 4px;">
+                Ref: {{ return_obj.payment_reference }}
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Return Reason & Notes -->
+<div class="card" style="margin-bottom: 25px;">
+    <h3 style="margin-top: 0; color: #2c3e50;">📝 Return Details</h3>
+    
+    {% if return_obj.return_reason %}
+    <div style="margin-bottom: 15px;">
+        <div style="color: #7f8c8d; font-size: 12px; margin-bottom: 4px;">Reason:</div>
+        <div style="font-weight: 600; text-transform: capitalize;">
+            {{ return_obj.return_reason.replace('_', ' ') }}
+        </div>
+    </div>
+    {% endif %}
+    
+    {% if return_obj.reason_details %}
+    <div style="margin-bottom: 15px;">
+        <div style="color: #7f8c8d; font-size: 12px; margin-bottom: 4px;">Details:</div>
+        <div style="background: #f8f9fa; padding: 12px; border-radius: 6px; border-left: 3px solid #3498db;">
+            {{ return_obj.reason_details }}
+        </div>
+    </div>
+    {% endif %}
+    
+    {% if return_obj.customer_notes %}
+    <div style="margin-bottom: 15px;">
+        <div style="color: #7f8c8d; font-size: 12px; margin-bottom: 4px;">Customer Notes:</div>
+        <div style="background: #fff3cd; padding: 12px; border-radius: 6px; border-left: 3px solid #f39c12;">
+            {{ return_obj.customer_notes }}
+        </div>
+    </div>
+    {% endif %}
+    
+    {% if return_obj.notes %}
+    <div>
+        <div style="color: #7f8c8d; font-size: 12px; margin-bottom: 4px;">Internal Notes:</div>
+        <div style="background: #e8f5e9; padding: 12px; border-radius: 6px; border-left: 3px solid #27ae60;">
+            {{ return_obj.notes }}
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Approval Actions (Only if Pending) -->
+{% if return_obj.status == 'pending' %}
+<div class="card" style="margin-bottom: 25px; background: #fff3cd; border-left: 4px solid #f39c12;">
+    <h3 style="margin-top: 0; color: #2c3e50;">⚠️ Action Required</h3>
+    <p style="margin-bottom: 20px; color: #666;">
+        This return is pending approval. Please review the items and refund amount before proceeding.
+    </p>
+    
+    <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+        <button type="button" class="btn btn-success" onclick="showApproveModal()" style="font-size: 16px; padding: 12px 24px;">
+            ✅ Approve Return
+        </button>
+        <button type="button" class="btn btn-danger" onclick="showRejectModal()" style="font-size: 16px; padding: 12px 24px;">
+            ❌ Reject Return
+        </button>
+    </div>
+</div>
+{% endif %}
+
+<!-- Approval History -->
+{% if return_obj.status in ['approved', 'rejected', 'completed'] %}
+<div class="card">
+    <h3 style="margin-top: 0; color: #2c3e50;">📋 Approval History</h3>
+    <div style="background: #f8f9fa; padding: 15px; border-radius: 8px;">
+        <div style="margin-bottom: 10px;">
+            <span style="color: #7f8c8d;">Status:</span>
+            <strong>
+                {% if return_obj.status == 'approved' %}
+                <span style="color: #27ae60;">✅ Approved</span>
+                {% elif return_obj.status == 'rejected' %}
+                <span style="color: #e74c3c;">❌ Rejected</span>
+                {% elif return_obj.status == 'completed' %}
+                <span style="color: #2ecc71;">🎉 Completed</span>
+                {% endif %}
+            </strong>
+        </div>
+        
+        {% if return_obj.approved_at %}
+        <div style="margin-bottom: 10px;">
+            <span style="color: #7f8c8d;">Processed on:</span>
+            <strong>{{ return_obj.approved_at.strftime('%d-%b-%Y %I:%M %p') }}</strong>
+        </div>
+        {% endif %}
+        
+        {% if return_obj.refund_processed_date %}
+        <div style="margin-bottom: 10px;">
+            <span style="color: #7f8c8d;">Refund processed:</span>
+            <strong>{{ return_obj.refund_processed_date.strftime('%d-%b-%Y') }}</strong>
+        </div>
+        {% endif %}
+        
+        {% if return_obj.rejection_reason %}
+        <div style="margin-top: 15px; padding: 12px; background: #fee; border-left: 3px solid #e74c3c; border-radius: 4px;">
+            <div style="color: #7f8c8d; font-size: 12px; margin-bottom: 4px;">Rejection Reason:</div>
+            <div>{{ return_obj.rejection_reason }}</div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+
+<!-- Approve Modal -->
+<div id="approveModal" class="modal" style="display: none;">
+    <div class="modal-content" style="max-width: 500px;">
+        <div class="modal-header">
+            <h3 style="margin: 0;">✅ Approve Return</h3>
+            <button type="button" class="close" onclick="hideApproveModal()">&times;</button>
+        </div>
+        
+        <form method="POST" action="{{ url_for('returns.approve', return_id=return_obj.id) }}">
+            <div class="modal-body">
+                <p style="margin-bottom: 20px;">
+                    Approving this return will:
+                </p>
+                <ul style="margin-bottom: 20px; color: #666;">
+                    <li>✅ Restock inventory ({{ return_obj.items|length }} item(s))</li>
+                    {% if return_obj.invoice and return_obj.invoice.payment_status == 'paid' %}
+                    <li>💸 Process refund of ₹{{ "%.2f"|format(return_obj.total_amount) }}</li>
+                    {% else %}
+                    <li>📝 Adjust invoice amount (reduce receivable)</li>
+                    {% endif %}
+                    <li>📄 Generate GST credit note</li>
+                    <li>🎁 Reverse loyalty points (if applicable)</li>
+                </ul>
+                
+                {% if return_obj.refund_method in ['cash', 'bank'] %}
+                <div class="form-group">
+                    <label for="payment_account_id">Select Account for Refund *</label>
+                    <select id="payment_account_id" name="payment_account_id" class="form-control" required>
+                        <option value="">-- Select Account --</option>
+                        {% for account in bank_accounts %}
+                        <option value="{{ account.id }}">
+                            {% if account.account_type == 'cash' %}💵{% else %}🏦{% endif %}
+                            {{ account.account_name }} (Balance: ₹{{ "%.2f"|format(account.current_balance) }})
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="payment_reference">Payment Reference (Optional)</label>
+                    <input type="text" id="payment_reference" name="payment_reference" 
+                           class="form-control" placeholder="Cheque #, NEFT Ref, etc.">
+                </div>
+                {% endif %}
+            </div>
+            
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="hideApproveModal()">Cancel</button>
+                <button type="submit" class="btn btn-success">
+                    ✅ Confirm Approval
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Reject Modal -->
+<div id="rejectModal" class="modal" style="display: none;">
+    <div class="modal-content" style="max-width: 500px;">
+        <div class="modal-header">
+            <h3 style="margin: 0;">❌ Reject Return</h3>
+            <button type="button" class="close" onclick="hideRejectModal()">&times;</button>
+        </div>
+        
+        <form method="POST" action="{{ url_for('returns.reject', return_id=return_obj.id) }}">
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="rejection_reason">Rejection Reason *</label>
+                    <textarea id="rejection_reason" name="rejection_reason" 
+                              class="form-control" rows="4" required
+                              placeholder="Explain why this return is being rejected..."></textarea>
+                </div>
+                
+                <div style="background: #fee; padding: 12px; border-radius: 6px; border-left: 3px solid #e74c3c;">
+                    <strong>⚠️ Warning:</strong> Rejecting this return will NOT restock inventory or process any refunds.
+                </div>
+            </div>
+            
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="hideRejectModal()">Cancel</button>
+                <button type="submit" class="btn btn-danger">
+                    ❌ Confirm Rejection
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<style>
+.modal {
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-content {
+    background-color: white;
+    border-radius: 12px;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+    width: 90%;
+    max-width: 600px;
+}
+
+.modal-header {
+    padding: 20px 25px;
+    border-bottom: 1px solid #e0e0e0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.modal-body {
+    padding: 25px;
+}
+
+.modal-footer {
+    padding: 15px 25px;
+    border-top: 1px solid #e0e0e0;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+.close {
+    background: none;
+    border: none;
+    font-size: 28px;
+    font-weight: 300;
+    color: #999;
+    cursor: pointer;
+    padding: 0;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.close:hover {
+    color: #333;
+}
+</style>
+
+<script>
+function showApproveModal() {
+    document.getElementById('approveModal').style.display = 'flex';
+}
+
+function hideApproveModal() {
+    document.getElementById('approveModal').style.display = 'none';
+}
+
+function showRejectModal() {
+    document.getElementById('rejectModal').style.display = 'flex';
+}
+
+function hideRejectModal() {
+    document.getElementById('rejectModal').style.display = 'none';
+}
+
+// Close modal when clicking outside
+window.onclick = function(event) {
+    const approveModal = document.getElementById('approveModal');
+    const rejectModal = document.getElementById('rejectModal');
+    
+    if (event.target == approveModal) {
+        hideApproveModal();
+    }
+    if (event.target == rejectModal) {
+        hideRejectModal();
+    }
+}
+</script>
+
+{% endblock %}
+
