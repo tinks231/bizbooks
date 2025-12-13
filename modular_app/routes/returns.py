@@ -583,7 +583,7 @@ def _reverse_loyalty_points(ret, tenant_id):
         return  # Customer doesn't have loyalty account
     
     # Deduct points
-    loyalty_points.current_balance -= points_to_deduct
+    loyalty_points.current_points -= points_to_deduct
     
     # Create transaction record
     loyalty_txn = LoyaltyTransaction()
@@ -594,7 +594,7 @@ def _reverse_loyalty_points(ret, tenant_id):
     loyalty_txn.reference_type = 'return'
     loyalty_txn.reference_id = ret.id
     loyalty_txn.description = f'Points reversed for return {ret.return_number}'
-    loyalty_txn.balance_after = loyalty_points.current_balance
+    loyalty_txn.balance_after = loyalty_points.current_points
     
     db.session.add(loyalty_txn)
     
