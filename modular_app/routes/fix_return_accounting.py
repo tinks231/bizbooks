@@ -423,6 +423,87 @@ def fix_return_accounting():
                 print(f"   ✅ Added inventory debit entry\n")
                 inventory_fixed_count += 1
         
+        # ============================================================
+        # PART 5: Fix Missing Round-off Entries
+        # ============================================================
+        
+        print("\n" + "-"*80)
+        print("🔧 CHECKING FOR MISSING ROUND-OFF ENTRIES")
+        print("-"*80 + "\n")
+        
+        roundoff_fixed_count = 0
+        
+        # Find approved returns missing round-off entries
+        returns_with_roundoff = db.session.execute(text("""
+            SELECT 
+                r.id,
+                r.return_number,
+                r.return_date,
+                r.total_amount,
+                r.taxable_amount,
+                r.cgst_amount,
+                r.sgst_amount,
+                r.igst_amount
+            FROM returns r
+            WHERE r.tenant_id = :tenant_id
+            AND r.status = 'approved'
+            AND NOT EXISTS (
+                SELECT 1 FROM account_transactions at
+                WHERE at.tenant_id = :tenant_id
+                AND at.reference_type = 'return'
+                AND at.reference_id = r.id
+                AND at.transaction_type = 'round_off_expense'
+            )
+            ORDER BY r.created_at
+        """), {'tenant_id': tenant_id}).fetchall()
+        
+        if not returns_with_roundoff:
+            print("✅ All returns have round-off entries (or no round-off needed)!\n")
+        else:
+            print(f"Checking {len(returns_with_roundoff)} return(s) for round-off:\n")
+            
+            for ret_ro in returns_with_roundoff:
+                ret_id = ret_ro[0]
+                ret_num = ret_ro[1]
+                ret_date = ret_ro[2]
+                total_amt = Decimal(str(ret_ro[3]))
+                taxable = Decimal(str(ret_ro[4]))
+                cgst = Decimal(str(ret_ro[5] or 0))
+                sgst = Decimal(str(ret_ro[6] or 0))
+                igst = Decimal(str(ret_ro[7] or 0))
+                
+                # Calculate round-off
+                gross = taxable + cgst + sgst + igst
+                round_off = total_amt - gross
+                
+                if round_off == 0:
+                    print(f"   ⚠️  {ret_num}: No round-off needed - skipping")
+                    continue
+                
+                print(f"   📦 {ret_num}: Adding round-off entry for ₹{round_off}")
+                
+                # Create round-off entry
+                db.session.execute(text("""
+                    INSERT INTO account_transactions
+                    (tenant_id, account_id, transaction_date, transaction_type,
+                     debit_amount, credit_amount, balance_after, reference_type, reference_id,
+                     voucher_number, narration, created_at, created_by)
+                    VALUES (:tenant_id, NULL, :transaction_date, 'round_off_expense',
+                            :debit_amount, 0.00, :debit_amount, 'return', :return_id,
+                            :voucher, :narration, :created_at, NULL)
+                """), {
+                    'tenant_id': tenant_id,
+                    'transaction_date': ret_date,
+                    'debit_amount': float(abs(round_off)),
+                    'return_id': ret_id,
+                    'voucher': ret_num,
+                    'narration': f'Round-off on return {ret_num} (Migration Fix)',
+                    'created_at': now
+                })
+                
+                print(f"   ✅ Added round-off entry\n")
+                roundoff_fixed_count += 1
+        
         # Commit all changes
         db.session.commit()
         
@@ -432,6 +513,7 @@ def fix_return_accounting():
         print(f"   COGS reversal entries fixed: {cogs_fixed_count}")
         print(f"   Commission reversal entries fixed: {commission_fixed_count}")
         print(f"   Inventory debit entries fixed: {inventory_fixed_count}")
+        print(f"   Round-off entries fixed: {roundoff_fixed_count}")
         print("="*80)
         print("\n✅ Trial Balance should now be PERFECTLY BALANCED!\n")
         
@@ -442,7 +524,8 @@ def fix_return_accounting():
             'cogs_reversal_entries_fixed': cogs_fixed_count,
             'commission_reversal_entries_fixed': commission_fixed_count,
             'inventory_debit_entries_fixed': inventory_fixed_count,
-            'total_returns_fixed': max(fixed_count, cogs_fixed_count, commission_fixed_count, inventory_fixed_count)
+            'round_off_entries_fixed': roundoff_fixed_count,
+            'total_returns_fixed': max(fixed_count, cogs_fixed_count, commission_fixed_count, inventory_fixed_count, roundoff_fixed_count)
         })
         
     except Exception as e:

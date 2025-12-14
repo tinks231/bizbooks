@@ -2251,6 +2251,25 @@ def trial_balance():
             'credit': Decimal('0')
         })
     
+    # 6.6. Round-off Expense (from returns) (Expense - Debit Balance)
+    round_off_from_returns = db.session.execute(text("""
+        SELECT COALESCE(SUM(debit_amount), 0)
+        FROM account_transactions
+        WHERE tenant_id = :tenant_id
+        AND transaction_type = 'round_off_expense'
+        AND transaction_date <= :as_of_date
+    """), {'tenant_id': tenant_id, 'as_of_date': as_of_date}).fetchone()[0]
+    
+    round_off_total = Decimal(str(round_off_from_returns or 0))
+    
+    if round_off_total > 0:
+        accounts.append({
+            'account_name': 'Round-off Expense',
+            'category': 'Expenses',
+            'debit': round_off_total,
+            'credit': Decimal('0')
+        })
+    
     # 7. Operating Expenses (Expense - Debit Balance)
     # NEW: Calculate from account_transactions (double-entry system)
     # The expenses.py route already creates entries with transaction_type='expense'
