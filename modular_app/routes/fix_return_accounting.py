@@ -48,12 +48,7 @@ def fix_return_accounting():
         """), {'tenant_id': tenant_id}).fetchall()
         
         if not returns_to_fix:
-            print("✅ No returns need fixing - all have complete accounting entries!")
-            return jsonify({
-                'status': 'success',
-                'message': 'No returns need fixing',
-                'returns_fixed': 0
-            })
+            print("✅ No returns missing refund_payment entries")
         
         print(f"Found {len(returns_to_fix)} return(s) to fix:\n")
         
@@ -161,6 +156,8 @@ def fix_return_accounting():
         print("🔧 CHECKING FOR MISSING COGS REVERSAL ENTRIES")
         print("-"*80 + "\n")
         
+        cogs_fixed_count = 0
+        
         # Find approved returns missing cogs_reversal entries
         returns_missing_cogs = db.session.execute(text("""
             SELECT 
@@ -238,26 +235,24 @@ def fix_return_accounting():
                 })
                 
                 print(f"   ✅ Added COGS reversal entry\n")
+                cogs_fixed_count += 1
         
         # Commit all changes
         db.session.commit()
         
         print("="*80)
-        print(f"🎉 SUCCESS! Fixed {fixed_count} return(s)")
+        print(f"🎉 SUCCESS!")
+        print(f"   Refund entries fixed: {fixed_count}")
+        print(f"   COGS reversal entries fixed: {cogs_fixed_count}")
         print("="*80)
         print("\n✅ Trial Balance should now be BALANCED!\n")
         
         return jsonify({
             'status': 'success',
-            'message': f'Successfully fixed {fixed_count} return(s)',
-            'returns_fixed': fixed_count,
-            'details': [
-                {
-                    'return_number': ret[1],
-                    'amount': float(ret[2]),
-                    'customer': ret[6]
-                } for ret in returns_to_fix[:fixed_count]
-            ]
+            'message': f'Successfully fixed returns',
+            'refund_entries_fixed': fixed_count,
+            'cogs_reversal_entries_fixed': cogs_fixed_count,
+            'total_returns_fixed': max(fixed_count, cogs_fixed_count)
         })
         
     except Exception as e:
