@@ -161,24 +161,24 @@
                 <!-- Total Income -->
                 <tr style="background: #c3e6cb; border-top: 2px solid #28a745;">
                     <td style="padding: 12px; font-weight: 700; font-size: 15px; color: #155724;">
-                        TOTAL INCOME
+                        NET SALES REVENUE
                     </td>
                     <td style="padding: 12px; text-align: right; font-weight: 700; font-size: 16px; font-family: 'Courier New', monospace; color: #155724;">
                         {{ "{:,.2f}".format(total_income) }}
                     </td>
                 </tr>
                 
-                <!-- ========== EXPENSES SECTION ========== -->
-                <tr style="background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%); border-top: 3px solid #000;">
-                    <td colspan="2" style="padding: 12px; font-weight: 700; font-size: 15px; color: #721c24; border-bottom: 2px solid #dc3545;">
-                        📉 EXPENSES
+                <!-- ========== COST OF GOODS SOLD SECTION ========== -->
+                <tr style="background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%); border-top: 3px solid #000;">
+                    <td colspan="2" style="padding: 12px; font-weight: 700; font-size: 15px; color: #856404; border-bottom: 2px solid #ffc107;">
+                        📦 COST OF GOODS SOLD
                     </td>
                 </tr>
                 
-                <!-- Cost of Goods Sold (Purchases) -->
+                <!-- Purchase Bills (COGS Details) -->
                 <tr>
                     <td style="padding: 8px 10px 4px 20px; font-weight: 600; font-size: 13px; color: #666; border-bottom: 1px solid #f0f0f0;">
-                        Cost of Goods Sold (Purchase Bills):
+                        Purchase Bills:
                     </td>
                     <td style="padding: 8px 10px 4px 10px; border-bottom: 1px solid #f0f0f0;"></td>
                 </tr>
@@ -207,27 +207,37 @@
                         </td>
                     </tr>
                 {% endif %}
-                <tr style="background: #f8d7da;">
-                    <td style="padding: 8px 10px; font-weight: 700; font-size: 13px; color: #000; border-bottom: 2px solid #ddd;">
-                        Total COGS
+                <tr style="background: #ffeaa7;">
+                    <td style="padding: 8px 10px; font-weight: 700; font-size: 13px; color: #856404; border-bottom: 2px solid #ffc107;">
+                        Total Cost of Goods Sold
                     </td>
-                    <td style="padding: 8px 10px; text-align: right; font-weight: 700; font-size: 14px; font-family: 'Courier New', monospace; color: #dc3545; border-bottom: 2px solid #ddd;">
+                    <td style="padding: 8px 10px; text-align: right; font-weight: 700; font-size: 14px; font-family: 'Courier New', monospace; color: #856404; border-bottom: 2px solid #ffc107;">
                         {{ "{:,.2f}".format(total_purchases) }}
                     </td>
                 </tr>
                 
-                <!-- Gross Profit -->
-                <tr style="background: {% if gross_profit >= 0 %}#d1ecf1{% else %}#f8d7da{% endif %}; border-top: 2px solid #000;">
-                    <td style="padding: 10px 10px 10px 20px; font-weight: 700; font-size: 14px; color: #000;">
-                        GROSS PROFIT (Income - COGS)
+                <!-- Gross Profit (Clear Subtotal) -->
+                <tr style="background: {% if gross_profit >= 0 %}#d4edda{% else %}#f8d7da{% endif %}; border-top: 3px solid #000; border-bottom: 3px solid #000;">
+                    <td style="padding: 14px 10px 14px 20px; font-weight: 700; font-size: 16px; color: #000;">
+                        💰 GROSS PROFIT
+                        <small style="font-weight: 400; font-size: 12px; color: #666; display: block; margin-top: 4px;">
+                            (Net Sales - Cost of Goods Sold)
+                        </small>
                     </td>
-                    <td style="padding: 10px; text-align: right; font-weight: 700; font-size: 15px; font-family: 'Courier New', monospace; color: {% if gross_profit >= 0 %}#17a2b8{% else %}#dc3545{% endif %};">
+                    <td style="padding: 14px 10px; text-align: right; font-weight: 700; font-size: 17px; font-family: 'Courier New', monospace; color: {% if gross_profit >= 0 %}#28a745{% else %}#dc3545{% endif %};">
                         {{ "{:,.2f}".format(gross_profit) }}
                     </td>
                 </tr>
                 
-                <!-- Operating Expenses -->
-                <tr style="border-top: 2px solid #ddd;">
+                <!-- ========== OPERATING EXPENSES SECTION ========== -->
+                <tr style="background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%); border-top: 3px solid #000;">
+                    <td colspan="2" style="padding: 12px; font-weight: 700; font-size: 15px; color: #721c24; border-bottom: 2px solid #dc3545;">
+                        📉 OPERATING EXPENSES
+                    </td>
+                </tr>
+                
+                <!-- Operating Expenses Details -->
+                <tr style="border-top: 2px solid #f0f0f0;">
                     <td style="padding: 8px 10px 4px 20px; font-weight: 600; font-size: 13px; color: #666; border-bottom: 1px solid #f0f0f0;">
                         Operating Expenses:
                     </td>
@@ -344,23 +354,23 @@
                 </tr>
                 {% endif %}
                 
-                <!-- Total Expenses -->
+                <!-- Total Operating Expenses -->
                 <tr style="background: #f5c6cb; border-top: 2px solid #dc3545;">
                     <td style="padding: 12px; font-weight: 700; font-size: 15px; color: #721c24;">
-                        TOTAL EXPENSES
+                        TOTAL OPERATING EXPENSES
                     </td>
                     <td style="padding: 12px; text-align: right; font-weight: 700; font-size: 16px; font-family: 'Courier New', monospace; color: #721c24;">
-                        {{ "{:,.2f}".format(total_expenses) }}
+                        {{ "{:,.2f}".format(total_operating_expenses + total_employee_expenses + total_salary_expenses + total_commission_expenses) }}
                     </td>
                 </tr>
                 
                 <!-- ========== NET PROFIT ========== -->
-                <tr style="background: {% if net_profit >= 0 %}linear-gradient(135deg, #c3e6cb 0%, #a5d6a7 100%){% else %}linear-gradient(135deg, #f5c6cb 0%, #f8b4b4 100%){% endif %}; border-top: 3px solid #000;">
+                <tr style="background: {% if net_profit >= 0 %}linear-gradient(135deg, #c3e6cb 0%, #a5d6a7 100%){% else %}linear-gradient(135deg, #f5c6cb 0%, #f8b4b4 100%){% endif %}; border-top: 3px solid #000; border-bottom: 3px solid #000;">
                     <td style="padding: 15px; font-weight: 700; font-size: 17px; color: #000;">
                         {% if net_profit >= 0 %}✅ NET PROFIT{% else %}❌ NET LOSS{% endif %}
                         <br>
                         <small style="font-size: 12px; font-weight: 400; color: #555;">
-                            Profit Margin: {{ "{:.2f}".format(profit_margin) }}%
+                            (Gross Profit - Operating Expenses) | Profit Margin: {{ "{:.2f}".format(profit_margin) }}%
                         </small>
                     </td>
                     <td style="padding: 15px; text-align: right; font-weight: 700; font-size: 18px; font-family: 'Courier New', monospace; color: {% if net_profit >= 0 %}#155724{% else %}#721c24{% endif %};">
