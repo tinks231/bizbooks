@@ -247,8 +247,8 @@ def fix_return_accounting():
         
         commission_fixed_count = 0
         
-        # Find approved returns that have commission but no commission_reversal entry
-        # IMPORTANT: Check ALL returns with commission, not just paid ones!
+        # Find approved returns that have commission_reversal BUT NO commission_recoverable
+        # This catches returns where we added CREDIT but forgot the DEBIT!
         returns_missing_commission = db.session.execute(text("""
             SELECT 
                 r.id,
@@ -265,12 +265,19 @@ def fix_return_accounting():
                 WHERE ic.invoice_id = r.invoice_id
                 AND ic.tenant_id = :tenant_id
             )
-            AND NOT EXISTS (
+            AND EXISTS (
                 SELECT 1 FROM account_transactions at
                 WHERE at.tenant_id = :tenant_id
                 AND at.reference_type = 'return'
                 AND at.reference_id = r.id
                 AND at.transaction_type = 'commission_reversal'
+            )
+            AND NOT EXISTS (
+                SELECT 1 FROM account_transactions at
+                WHERE at.tenant_id = :tenant_id
+                AND at.reference_type = 'return'
+                AND at.reference_id = r.id
+                AND at.transaction_type = 'commission_recoverable'
             )
             ORDER BY r.created_at
         """), {'tenant_id': tenant_id}).fetchall()
