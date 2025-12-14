@@ -927,23 +927,49 @@ def api_search_invoice():
 @returns_bp.route('/api/invoice/<int:invoice_id>/items')
 def api_get_invoice_items(invoice_id):
     """API endpoint to get invoice items for return"""
+    from sqlalchemy import text
+    from decimal import Decimal
+    
     tenant_id = get_current_tenant_id()
     invoice = Invoice.query.filter_by(id=invoice_id, tenant_id=tenant_id).first()
     
     if not invoice:
         return jsonify({'error': 'Invoice not found'}), 404
     
+    # Get all returned quantities for this invoice from APPROVED returns only
+    returned_quantities_result = db.session.execute(text("""
+        SELECT 
+            ri.invoice_item_id,
+            SUM(ri.quantity_returned) as total_returned
+        FROM return_items ri
+        JOIN returns r ON ri.return_id = r.id
+        WHERE r.invoice_id = :invoice_id
+        AND r.tenant_id = :tenant_id
+        AND r.status = 'approved'
+        GROUP BY ri.invoice_item_id
+    """), {'invoice_id': invoice_id, 'tenant_id': tenant_id}).fetchall()
+    
+    # Create a dict for easy lookup: {invoice_item_id: total_returned}
+    returned_quantities = {row[0]: float(row[1]) for row in returned_quantities_result}
+    
     items = []
     for item in invoice.items:
+        qty_sold = float(item.quantity)
+        qty_already_returned = returned_quantities.get(item.id, 0.0)
+        qty_available_for_return = qty_sold - qty_already_returned
+        
         items.append({
             'id': item.id,
             'item_name': item.item_name,
             'hsn_code': item.hsn_code or '',
-            'quantity': float(item.quantity),
+            'quantity': qty_sold,  # Original quantity sold
+            'quantity_already_returned': qty_already_returned,  # Already returned
+            'quantity_available': qty_available_for_return,  # Remaining returnable
             'unit': item.unit,
-            'rate': float(item.rate),
+            'rate': float(item.rate),  # ORIGINAL invoice rate (not current item price!)
             'gst_rate': float(item.gst_rate),
-            'total_amount': float(item.total_amount)
+            'total_amount': float(item.total_amount),  # ORIGINAL invoice amount
+            'is_fully_returned': (qty_available_for_return <= 0)
         })
     
     return jsonify({

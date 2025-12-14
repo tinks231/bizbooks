@@ -343,36 +343,61 @@ function displayInvoiceItems(data) {
     data.items.forEach((item, index) => {
         const row = document.createElement('tr');
         row.id = `item_row_${index}`;
+        
+        // Check if item is fully returned
+        const isFullyReturned = item.is_fully_returned;
+        const availableQty = item.quantity_available;
+        const alreadyReturned = item.quantity_already_returned;
+        
+        // Build quantity display with warning for fully returned items
+        let qtyDisplay = `<strong>${item.quantity}</strong> ${item.unit}`;
+        if (alreadyReturned > 0) {
+            qtyDisplay += `<br><small style="color: #ff9800;">Returned: ${alreadyReturned}</small>`;
+        }
+        if (isFullyReturned) {
+            qtyDisplay += `<br><small style="color: #f44336; font-weight: 600;">✅ FULLY RETURNED</small>`;
+        }
+        
         row.innerHTML = `
             <td>
                 <input type="checkbox" id="select_${index}" onchange="toggleItemRow(${index})" 
-                       style="width: 18px; height: 18px; cursor: pointer;">
+                       style="width: 18px; height: 18px; cursor: pointer;"
+                       ${isFullyReturned ? 'disabled' : ''}>
             </td>
-            <td style="font-weight: 600;">${item.item_name}</td>
+            <td style="font-weight: 600; ${isFullyReturned ? 'color: #999; text-decoration: line-through;' : ''}">${item.item_name}</td>
             <td>${item.hsn_code}</td>
-            <td><strong>${item.quantity}</strong> ${item.unit}</td>
+            <td>${qtyDisplay}</td>
             <td>
                 <input type="number" id="qty_${index}" name="return_quantity[]" 
-                       class="form-control" min="1" max="${item.quantity}" 
-                       value="${item.quantity}" disabled
-                       style="width: 100px;" oninput="calculateRefund()">
+                       class="form-control" min="1" max="${availableQty}" 
+                       value="${availableQty > 0 ? availableQty : 0}" disabled
+                       style="width: 100px; ${isFullyReturned ? 'background: #f5f5f5; color: #999;' : ''}" 
+                       oninput="calculateRefund()"
+                       ${isFullyReturned ? 'readonly' : ''}>
                 <input type="hidden" name="return_item_id[]" value="${item.id}">
             </td>
-            <td>₹${item.rate.toFixed(2)}</td>
+            <td style="${isFullyReturned ? 'color: #999;' : ''}">₹${item.rate.toFixed(2)}</td>
             <td>
                 <select id="condition_${index}" name="item_condition[]" 
-                        class="form-control" disabled style="width: 150px;">
+                        class="form-control" disabled style="width: 150px; ${isFullyReturned ? 'background: #f5f5f5; color: #999;' : ''}">
                     <option value="resellable">✅ Resellable</option>
                     <option value="damaged">⚠️ Damaged</option>
                     <option value="defective">❌ Defective</option>
                     <option value="opened_package">📦 Opened</option>
                 </select>
             </td>
-            <td style="font-weight: 700; color: #e74c3c;">
+            <td style="font-weight: 700; color: ${isFullyReturned ? '#999' : '#e74c3c'};">
                 ₹<span id="amount_${index}">0.00</span>
             </td>
         </tr>
         `;
+        
+        // Apply greyed-out style for fully returned items
+        if (isFullyReturned) {
+            row.style.background = '#f5f5f5';
+            row.style.opacity = '0.6';
+        }
+        
         tbody.appendChild(row);
         
         // Store item data
@@ -421,16 +446,24 @@ function calculateRefund() {
         
         const itemData = JSON.parse(row.getAttribute('data-item'));
         const qtyReturned = parseFloat(document.getElementById(`qty_${index}`).value) || 0;
+        const qtySold = itemData.quantity;  // ORIGINAL sold quantity
         
         if (qtyReturned <= 0) {
             document.getElementById(`amount_${index}`).textContent = '0.00';
             return;
         }
         
-        // Calculate amounts
-        const itemTaxable = qtyReturned * itemData.rate / (1 + itemData.gst_rate/100);
-        const itemGST = qtyReturned * itemData.rate - itemTaxable;
-        const itemTotal = qtyReturned * itemData.rate;
+        // CRITICAL FIX: Calculate proportionally from ORIGINAL invoice item amounts
+        // This ensures we use the ORIGINAL invoice prices, not current item prices!
+        const proportion = qtyReturned / qtySold;
+        
+        // Use ORIGINAL invoice total_amount (which includes GST) for this item
+        const originalItemTotal = itemData.total_amount;  // From invoice, not current price!
+        const itemTotal = originalItemTotal * proportion;
+        
+        // Calculate taxable and GST from the proportional total
+        const itemTaxable = itemTotal / (1 + itemData.gst_rate/100);
+        const itemGST = itemTotal - itemTaxable;
         
         totalTaxable += itemTaxable;
         totalGST += itemGST;
