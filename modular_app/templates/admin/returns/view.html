@@ -246,6 +246,9 @@
         <button type="button" class="btn btn-danger" onclick="showRejectModal()" style="font-size: 16px; padding: 12px 24px;">
             ❌ Reject Return
         </button>
+        <button type="button" class="btn btn-warning" onclick="showDeleteModal()" style="font-size: 16px; padding: 12px 24px;">
+            🗑️ Delete Return
+        </button>
     </div>
 </div>
 {% endif %}
@@ -288,6 +291,16 @@
             <div>{{ return_obj.rejection_reason }}</div>
         </div>
         {% endif %}
+        
+        <!-- Delete button for processed returns -->
+        <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #dee2e6;">
+            <button type="button" class="btn btn-warning" onclick="showDeleteModal()" style="font-size: 14px; padding: 10px 20px;">
+                🗑️ Delete This Return
+            </button>
+            <p style="margin-top: 10px; font-size: 13px; color: #7f8c8d;">
+                <strong>Note:</strong> Deleting will reverse all accounting entries and inventory changes.
+            </p>
+        </div>
     </div>
 </div>
 {% endif %}
@@ -380,6 +393,45 @@
     </div>
 </div>
 
+<!-- Delete Modal -->
+<div id="deleteModal" class="modal" style="display: none;">
+    <div class="modal-content" style="max-width: 500px;">
+        <div class="modal-header">
+            <h3 style="margin: 0;">🗑️ Delete Return</h3>
+            <button type="button" class="close" onclick="hideDeleteModal()">&times;</button>
+        </div>
+        
+        <form method="POST" action="{{ url_for('returns.delete', return_id=return_obj.id) }}">
+            <div class="modal-body">
+                <div style="background: #fff3cd; padding: 15px; border-radius: 6px; border-left: 3px solid #f39c12; margin-bottom: 15px;">
+                    <strong>⚠️ Warning:</strong> This action will:
+                    <ul style="margin-top: 10px; margin-bottom: 0;">
+                        <li>Delete the return record permanently</li>
+                        {% if return_obj.status == 'approved' %}
+                        <li>Reverse inventory changes (remove returned items from stock)</li>
+                        <li>Reverse refund (add money back to account)</li>
+                        <li>Reverse invoice adjustments</li>
+                        <li>Reverse commission adjustments</li>
+                        <li>Delete all accounting entries</li>
+                        {% endif %}
+                    </ul>
+                </div>
+                
+                <p style="margin-bottom: 0;">
+                    Are you sure you want to delete return <strong>{{ return_obj.return_number }}</strong>?
+                </p>
+            </div>
+            
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="hideDeleteModal()">Cancel</button>
+                <button type="submit" class="btn btn-danger">
+                    🗑️ Confirm Delete
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <style>
 .modal {
     position: fixed;
@@ -459,16 +511,28 @@ function hideRejectModal() {
     document.getElementById('rejectModal').style.display = 'none';
 }
 
+function showDeleteModal() {
+    document.getElementById('deleteModal').style.display = 'flex';
+}
+
+function hideDeleteModal() {
+    document.getElementById('deleteModal').style.display = 'none';
+}
+
 // Close modal when clicking outside
 window.onclick = function(event) {
     const approveModal = document.getElementById('approveModal');
     const rejectModal = document.getElementById('rejectModal');
+    const deleteModal = document.getElementById('deleteModal');
     
     if (event.target == approveModal) {
         hideApproveModal();
     }
     if (event.target == rejectModal) {
         hideRejectModal();
+    }
+    if (event.target == deleteModal) {
+        hideDeleteModal();
     }
 }
 </script>

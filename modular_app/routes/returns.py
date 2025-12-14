@@ -342,6 +342,110 @@ def reject(return_id):
         return redirect(url_for('returns.view', return_id=return_id))
 
 
+@returns_bp.route('/<int:return_id>/delete', methods=['POST'])
+def delete(return_id):
+    """Delete return (and reverse accounting if approved)"""
+    tenant_id = get_current_tenant_id()
+    ret = Return.query.filter_by(id=return_id, tenant_id=tenant_id).first_or_404()
+    
+    try:
+        return_number = ret.return_number
+        was_approved = (ret.status == 'approved')
+        
+        # If return was approved, we need to reverse everything
+        if was_approved:
+            # Reverse inventory restocking
+            for return_item in ret.items:
+                if return_item.return_to_inventory and return_item.product_id:
+                    item_stock = ItemStock.query.filter_by(
+                        item_id=return_item.product_id,
+                        tenant_id=tenant_id
+                    ).first()
+                    
+                    if item_stock:
+                        # Reduce stock back
+                        qty_to_remove = int(return_item.quantity_returned)
+                        item_stock.quantity_available -= qty_to_remove
+                        
+                        # Reduce stock value
+                        item = Item.query.get(return_item.product_id)
+                        if item and item.cost_price:
+                            cost_value = Decimal(str(item.cost_price)) * Decimal(str(return_item.quantity_returned))
+                            item_stock.stock_value = Decimal(str(item_stock.stock_value)) - cost_value
+            
+            # Reverse refund (add money back to account)
+            if ret.refund_method in ['cash', 'bank'] and ret.payment_account_id:
+                account = BankAccount.query.get(ret.payment_account_id)
+                if account:
+                    account.current_balance = float(account.current_balance) + float(ret.total_amount)
+            
+            # Reverse invoice adjustment (add amounts back)
+            if ret.invoice and ret.invoice.payment_status != 'paid':
+                invoice = ret.invoice
+                invoice.subtotal = float(invoice.subtotal) + float(ret.taxable_amount)
+                invoice.cgst_amount = float(invoice.cgst_amount or 0) + float(ret.cgst_amount or 0)
+                invoice.sgst_amount = float(invoice.sgst_amount or 0) + float(ret.sgst_amount or 0)
+                invoice.igst_amount = float(invoice.igst_amount or 0) + float(ret.igst_amount or 0)
+                invoice.total_amount = float(invoice.total_amount) + float(ret.total_amount)
+                
+                if invoice.payment_status == 'partial':
+                    invoice.balance_due = invoice.total_amount - invoice.paid_amount
+            
+            # Reverse commission adjustments
+            if ret.invoice_id:
+                from models import InvoiceCommission
+                commissions = InvoiceCommission.query.filter_by(
+                    invoice_id=ret.invoice_id,
+                    tenant_id=tenant_id
+                ).all()
+                
+                for commission in commissions:
+                    # Add back the commission amount
+                    commission_on_return = (Decimal(str(ret.total_amount)) * Decimal(str(commission.commission_percentage))) / 100
+                    commission.invoice_amount = float(commission.invoice_amount) + float(ret.total_amount)
+                    commission.commission_amount = float(commission.commission_amount) + float(commission_on_return)
+        
+        # Delete all accounting entries related to this return
+        from sqlalchemy import text
+        db.session.execute(text("""
+            DELETE FROM account_transactions
+            WHERE tenant_id = :tenant_id
+            AND reference_type = 'return'
+            AND reference_id = :return_id
+        """), {'tenant_id': tenant_id, 'return_id': ret.id})
+        
+        # Delete loyalty transaction if exists
+        from models import LoyaltyTransaction
+        LoyaltyTransaction.query.filter_by(
+            tenant_id=tenant_id,
+            reference_type='return',
+            reference_id=ret.id
+        ).delete()
+        
+        # Delete stock movements
+        from models import ItemStockMovement
+        ItemStockMovement.query.filter_by(
+            tenant_id=tenant_id,
+            reference_type='return',
+            reference_id=ret.id
+        ).delete()
+        
+        # Delete the return (cascade will delete return_items)
+        db.session.delete(ret)
+        db.session.commit()
+        
+        flash(f'✅ Return {return_number} deleted successfully!', 'success')
+        return redirect(url_for('returns.index'))
+        
+    except Exception as e:
+        db.session.rollback()
+        flash(f'❌ Error deleting return: {str(e)}', 'error')
+        print(f"Error deleting return: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return redirect(url_for('returns.view', return_id=return_id))
+
+
 # ============================================================
 # HELPER FUNCTIONS
 # ============================================================
