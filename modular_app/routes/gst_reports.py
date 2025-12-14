@@ -144,6 +144,97 @@ def gstr1():
         flash(f'Error processing invoices: {str(e)}', 'error')
         return redirect(url_for('gst_reports.index'))
     
+    # ========== PROCESS RETURNS (Credit Notes) ==========
+    from models.return_model import Return
+    from models.return_item import ReturnItem
+    
+    returns = Return.query.filter_by(tenant_id=tenant_id).filter(
+        Return.return_date >= start_date,
+        Return.return_date <= end_date,
+        Return.status == 'approved'  # Only approved returns
+    ).order_by(Return.return_date.desc()).all()
+    
+    # Initialize return totals
+    total_return_taxable = Decimal('0')
+    total_return_cgst = Decimal('0')
+    total_return_sgst = Decimal('0')
+    total_return_igst = Decimal('0')
+    total_return_tax = Decimal('0')
+    total_return_value = Decimal('0')
+    
+    return_list = []  # For displaying in template
+    
+    try:
+        for ret in returns:
+            # Calculate return totals from items
+            ret_taxable = Decimal('0')
+            ret_cgst = Decimal('0')
+            ret_sgst = Decimal('0')
+            ret_igst = Decimal('0')
+            
+            for item in ret.items:
+                ret_taxable += Decimal(str(item.taxable_amount)) if item.taxable_amount else Decimal('0')
+                ret_cgst += Decimal(str(item.cgst_amount)) if item.cgst_amount else Decimal('0')
+                ret_sgst += Decimal(str(item.sgst_amount)) if item.sgst_amount else Decimal('0')
+                ret_igst += Decimal(str(item.igst_amount)) if item.igst_amount else Decimal('0')
+                
+                # Subtract from GST summary by rate
+                try:
+                    gst_rate = float(item.gst_rate or 0)
+                    if gst_rate in gst_summary:
+                        taxable_val = Decimal(str(item.taxable_amount)) if item.taxable_amount else Decimal('0')
+                        cgst_val = Decimal(str(item.cgst_amount)) if item.cgst_amount else Decimal('0')
+                        sgst_val = Decimal(str(item.sgst_amount)) if item.sgst_amount else Decimal('0')
+                        igst_val = Decimal(str(item.igst_amount)) if item.igst_amount else Decimal('0')
+                        
+                        gst_summary[gst_rate]['taxable_value'] -= taxable_val
+                        gst_summary[gst_rate]['cgst'] -= cgst_val
+                        gst_summary[gst_rate]['sgst'] -= sgst_val
+                        gst_summary[gst_rate]['igst'] -= igst_val
+                        gst_summary[gst_rate]['total_tax'] -= (cgst_val + sgst_val + igst_val)
+                except Exception as item_error:
+                    print(f"⚠️  Error processing return item: {str(item_error)}")
+                    continue
+            
+            ret_tax = ret_cgst + ret_sgst + ret_igst
+            ret_total = ret_taxable + ret_tax
+            
+            # Add to totals
+            total_return_taxable += ret_taxable
+            total_return_cgst += ret_cgst
+            total_return_sgst += ret_sgst
+            total_return_igst += ret_igst
+            total_return_tax += ret_tax
+            total_return_value += ret_total
+            
+            # Store for display
+            return_list.append({
+                'return_number': ret.return_number,
+                'credit_note_number': ret.credit_note_number,
+                'return_date': ret.return_date,
+                'customer_name': ret.customer.name if ret.customer else 'Unknown',
+                'invoice_number': ret.invoice.invoice_number if ret.invoice else 'N/A',
+                'taxable': ret_taxable,
+                'cgst': ret_cgst,
+                'sgst': ret_sgst,
+                'igst': ret_igst,
+                'total': ret_total
+            })
+            
+    except Exception as e:
+        print(f"⚠️  Error processing returns: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        # Continue even if returns processing fails
+    
+    # ========== CALCULATE NET AMOUNTS (After Returns) ==========
+    net_taxable = total_taxable - total_return_taxable
+    net_cgst = total_cgst - total_return_cgst
+    net_sgst = total_sgst - total_return_sgst
+    net_igst = total_igst - total_return_igst
+    net_tax = total_tax - total_return_tax
+    net_invoice_value = total_invoice_value - total_return_value
+    
     # Sort GST summary by rate
     gst_summary = dict(sorted(gst_summary.items()))
     
@@ -159,7 +250,22 @@ def gstr1():
                          total_sgst=total_sgst,
                          total_igst=total_igst,
                          total_tax=total_tax,
-                         total_invoice_value=total_invoice_value)
+                         total_invoice_value=total_invoice_value,
+                         # Returns data
+                         returns=return_list,
+                         total_return_taxable=total_return_taxable,
+                         total_return_cgst=total_return_cgst,
+                         total_return_sgst=total_return_sgst,
+                         total_return_igst=total_return_igst,
+                         total_return_tax=total_return_tax,
+                         total_return_value=total_return_value,
+                         # Net amounts (after returns)
+                         net_taxable=net_taxable,
+                         net_cgst=net_cgst,
+                         net_sgst=net_sgst,
+                         net_igst=net_igst,
+                         net_tax=net_tax,
+                         net_invoice_value=net_invoice_value)
 
 
 @gst_reports_bp.route('/gstr3b')
