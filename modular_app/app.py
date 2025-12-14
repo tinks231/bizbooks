@@ -192,6 +192,9 @@ app.register_blueprint(diagnose_returns_bp)  # DIAGNOSTIC: Check returns account
 from routes.diagnose_commission import diagnose_commission_bp
 app.register_blueprint(diagnose_commission_bp)  # DIAGNOSTIC: Check commission status
 
+from routes.restore_commission_data import restore_commission_bp
+app.register_blueprint(restore_commission_bp)  # MIGRATION: Restore commission data after incorrect updates
+
 from routes.diagnose_return_amounts import diagnose_return_amounts_bp
 app.register_blueprint(diagnose_return_amounts_bp)  # DIAGNOSTIC: Check return amounts and rounding
 from routes.diagnose_trial_balance import diagnose_trial_bp
