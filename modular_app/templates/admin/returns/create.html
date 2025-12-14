@@ -490,9 +490,13 @@ document.getElementById('returnForm').addEventListener('submit', function(e) {
     // CRITICAL FIX: Set quantity to 0 for unchecked items
     // Backend will skip items with qty_returned <= 0
     const allCheckboxes = document.querySelectorAll('#itemsTableBody input[type="checkbox"]');
+    const debugInfo = [];
+    
     allCheckboxes.forEach((checkbox, index) => {
         const qtyInput = document.getElementById(`qty_${index}`);
         const conditionSelect = document.getElementById(`condition_${index}`);
+        const row = document.getElementById(`item_row_${index}`);
+        const itemData = JSON.parse(row.getAttribute('data-item'));
         
         if (!checkbox.checked) {
             // Enable the fields so they submit, but set qty to 0
@@ -500,12 +504,28 @@ document.getElementById('returnForm').addEventListener('submit', function(e) {
             qtyInput.disabled = false;
             qtyInput.value = 0;
             conditionSelect.disabled = false;
+            
+            debugInfo.push(`❌ ${itemData.item_name}: Qty=0 (WILL BE SKIPPED)`);
         } else {
             // Ensure checked items are enabled
             qtyInput.disabled = false;
             conditionSelect.disabled = false;
+            
+            debugInfo.push(`✅ ${itemData.item_name}: Qty=${qtyInput.value} (WILL BE ADDED)`);
         }
     });
+    
+    // Show debug info
+    console.log('=== RETURN SUBMISSION DEBUG ===');
+    console.log(debugInfo.join('\n'));
+    console.log('================================');
+    
+    // Show alert with what will be submitted
+    const confirmMsg = 'Items being submitted:\n\n' + debugInfo.join('\n') + '\n\nContinue with return creation?';
+    if (!confirm(confirmMsg)) {
+        e.preventDefault();
+        return false;
+    }
     
     return true;
 });
