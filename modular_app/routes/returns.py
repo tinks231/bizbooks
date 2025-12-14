@@ -147,6 +147,11 @@ def create():
             is_same_state = (invoice.customer_state == tenant_state)
             
             for idx, item_id in enumerate(item_ids):
+                # Safety check: Ensure idx is within bounds for quantities list
+                if idx >= len(quantities):
+                    print(f"⚠️ Warning: Missing quantity for item_id {item_id} at index {idx}")
+                    continue
+                
                 qty_returned = int(quantities[idx])
                 if qty_returned <= 0:
                     continue
