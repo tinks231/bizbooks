@@ -153,13 +153,21 @@ def create():
                     continue
                 
                 qty_returned = int(quantities[idx])
+                
+                # DEBUG: Log item processing
+                print(f"Processing item {idx}: ID={item_id}, Qty={qty_returned}")
+                
                 if qty_returned <= 0:
+                    print(f"  ⏭️ Skipping (qty <= 0)")
                     continue
                 
                 # Get original invoice item
                 invoice_item = InvoiceItem.query.get(item_id)
                 if not invoice_item:
+                    print(f"  ⚠️ Invoice item not found!")
                     continue
+                
+                print(f"  ✅ Adding return item: {invoice_item.item_name} (qty: {qty_returned})")
                 
                 # Create return item
                 return_item = ReturnItem()

@@ -487,12 +487,23 @@ document.getElementById('returnForm').addEventListener('submit', function(e) {
         return false;
     }
     
-    // Disable unchecked items (don't submit them)
+    // CRITICAL FIX: Set quantity to 0 for unchecked items
+    // Backend will skip items with qty_returned <= 0
     const allCheckboxes = document.querySelectorAll('#itemsTableBody input[type="checkbox"]');
     allCheckboxes.forEach((checkbox, index) => {
+        const qtyInput = document.getElementById(`qty_${index}`);
+        const conditionSelect = document.getElementById(`condition_${index}`);
+        
         if (!checkbox.checked) {
-            document.getElementById(`qty_${index}`).disabled = true;
-            document.getElementById(`condition_${index}`).disabled = true;
+            // Enable the fields so they submit, but set qty to 0
+            // Backend will skip items with qty <= 0
+            qtyInput.disabled = false;
+            qtyInput.value = 0;
+            conditionSelect.disabled = false;
+        } else {
+            // Ensure checked items are enabled
+            qtyInput.disabled = false;
+            conditionSelect.disabled = false;
         }
     });
     
