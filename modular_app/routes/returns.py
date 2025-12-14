@@ -404,6 +404,21 @@ def delete(return_id):
                     commission_on_return = (Decimal(str(ret.total_amount)) * Decimal(str(commission.commission_percentage))) / 100
                     commission.invoice_amount = float(commission.invoice_amount) + float(ret.total_amount)
                     commission.commission_amount = float(commission.commission_amount) + float(commission_on_return)
+            
+            # Reverse loyalty points deduction (add points back)
+            if ret.customer_id:
+                from models import CustomerLoyaltyPoints
+                loyalty_points = CustomerLoyaltyPoints.query.filter_by(
+                    customer_id=ret.customer_id,
+                    tenant_id=tenant_id
+                ).first()
+                
+                if loyalty_points:
+                    # Calculate how many points were deducted
+                    points_to_restore = ret.calculate_loyalty_points_to_reverse()
+                    if points_to_restore > 0:
+                        loyalty_points.current_points += points_to_restore
+                        print(f"✅ Restored {points_to_restore} loyalty points to customer")
         
         # Delete all accounting entries related to this return
         from sqlalchemy import text
@@ -416,11 +431,12 @@ def delete(return_id):
         
         # Delete loyalty transaction if exists
         from models import LoyaltyTransaction
-        LoyaltyTransaction.query.filter_by(
-            tenant_id=tenant_id,
-            reference_type='return',
-            reference_id=ret.id
-        ).delete()
+        if ret.customer_id:
+            LoyaltyTransaction.query.filter(
+                LoyaltyTransaction.tenant_id == tenant_id,
+                LoyaltyTransaction.customer_id == ret.customer_id,
+                LoyaltyTransaction.description.like(f'%{ret.return_number}%')
+            ).delete(synchronize_session=False)
         
         # Delete stock movements
         from models import ItemStockMovement
@@ -740,8 +756,7 @@ def _reverse_loyalty_points(ret, tenant_id):
     loyalty_txn.tenant_id = tenant_id
     loyalty_txn.transaction_type = 'DEDUCTION'
     loyalty_txn.points = -points_to_deduct  # Negative for deduction
-    loyalty_txn.reference_type = 'return'
-    loyalty_txn.reference_id = ret.id
+    loyalty_txn.invoice_id = ret.invoice_id  # Link to original invoice
     loyalty_txn.description = f'Points reversed for return {ret.return_number}'
     loyalty_txn.balance_after = loyalty_points.current_points
     
