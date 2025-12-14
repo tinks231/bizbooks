@@ -177,12 +177,12 @@ def create():
                 # Add to return
                 ret.items.append(return_item)
                 
-                # Accumulate totals
-                total_amount += return_item.total_amount
-                taxable_amount += return_item.taxable_amount
-                cgst_amount += return_item.cgst_amount or Decimal('0')
-                sgst_amount += return_item.sgst_amount or Decimal('0')
-                igst_amount += return_item.igst_amount or Decimal('0')
+                # Accumulate totals (ensure all are Decimal)
+                total_amount += Decimal(str(return_item.total_amount))
+                taxable_amount += Decimal(str(return_item.taxable_amount))
+                cgst_amount += Decimal(str(return_item.cgst_amount or 0))
+                sgst_amount += Decimal(str(return_item.sgst_amount or 0))
+                igst_amount += Decimal(str(return_item.igst_amount or 0))
             
             # Set return totals
             ret.total_amount = total_amount
@@ -371,13 +371,14 @@ def _restock_inventory(ret, tenant_id):
             db.session.add(item_stock)
         
         # Increase stock
-        item_stock.quantity_available += return_item.quantity_returned
+        quantity_to_add = int(return_item.quantity_returned) if isinstance(return_item.quantity_returned, (int, float)) else int(Decimal(str(return_item.quantity_returned)))
+        item_stock.quantity_available += quantity_to_add
         
         # Update stock value (add back the cost)
         item = Item.query.get(return_item.product_id)
         if item and item.cost_price:
-            cost_value = Decimal(str(item.cost_price)) * return_item.quantity_returned
-            item_stock.stock_value += cost_value
+            cost_value = Decimal(str(item.cost_price)) * Decimal(str(return_item.quantity_returned))
+            item_stock.stock_value = Decimal(str(item_stock.stock_value)) + cost_value
             total_cost_value += cost_value
         
         # Create stock movement record
@@ -563,12 +564,12 @@ def _adjust_unpaid_invoice(ret, tenant_id):
     if not invoice:
         return
     
-    # Reduce invoice amounts
-    invoice.subtotal -= float(ret.taxable_amount)
-    invoice.cgst_amount -= float(ret.cgst_amount or 0)
-    invoice.sgst_amount -= float(ret.sgst_amount or 0)
-    invoice.igst_amount -= float(ret.igst_amount or 0)
-    invoice.total_amount -= float(ret.total_amount)
+    # Reduce invoice amounts (ensure type consistency)
+    invoice.subtotal = float(invoice.subtotal) - float(ret.taxable_amount)
+    invoice.cgst_amount = float(invoice.cgst_amount or 0) - float(ret.cgst_amount or 0)
+    invoice.sgst_amount = float(invoice.sgst_amount or 0) - float(ret.sgst_amount or 0)
+    invoice.igst_amount = float(invoice.igst_amount or 0) - float(ret.igst_amount or 0)
+    invoice.total_amount = float(invoice.total_amount) - float(ret.total_amount)
     
     # Update balance due if partially paid
     if invoice.payment_status == 'partial':
