@@ -524,14 +524,34 @@ def _restock_inventory(ret, tenant_id):
         
         db.session.add(movement)
     
-    # Create accounting entry to balance the inventory increase
-    # When inventory is restocked, we need to reverse the COGS that was recorded when sold
-    # DEBIT Inventory (already reflected in item_stock.stock_value)
-    # CREDIT COGS (reduce expense)
+    # Create accounting entries to balance the inventory increase
+    # When inventory is restocked, we need BOTH entries:
+    # 1. DEBIT Inventory (increases asset)
+    # 2. CREDIT COGS (reduces expense/reverses original COGS)
     if total_cost_value > 0:
         ist = pytz.timezone('Asia/Kolkata')
         now = datetime.now(ist)
         
+        # Entry 1: DEBIT Inventory (increases asset)
+        db.session.execute(text("""
+            INSERT INTO account_transactions
+            (tenant_id, account_id, transaction_date, transaction_type,
+             debit_amount, credit_amount, balance_after, reference_type, reference_id,
+             voucher_number, narration, created_at, created_by)
+            VALUES (:tenant_id, NULL, :transaction_date, 'inventory_purchase',
+                    :debit_amount, 0.00, :debit_amount, 'return', :return_id,
+                    :voucher, :narration, :created_at, NULL)
+        """), {
+            'tenant_id': tenant_id,
+            'transaction_date': ret.return_date,
+            'debit_amount': float(total_cost_value),
+            'return_id': ret.id,
+            'voucher': ret.return_number,
+            'narration': f'Inventory restocked from return - {ret.return_number}',
+            'created_at': now
+        })
+        
+        # Entry 2: CREDIT COGS (reduces expense)
         db.session.execute(text("""
             INSERT INTO account_transactions
             (tenant_id, account_id, transaction_date, transaction_type,
@@ -551,7 +571,7 @@ def _restock_inventory(ret, tenant_id):
         })
         
         print(f"✅ Restocked {len(ret.items)} item(s) to inventory")
-        print(f"✅ Created COGS reversal entry: ₹{total_cost_value}")
+        print(f"✅ Created accounting entries: DEBIT Inventory ₹{total_cost_value}, CREDIT COGS ₹{total_cost_value}")
     else:
         print(f"✅ Restocked {len(ret.items)} item(s) to inventory")
 

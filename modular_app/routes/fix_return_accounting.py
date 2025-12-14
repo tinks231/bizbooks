@@ -332,6 +332,97 @@ def fix_return_accounting():
                     print(f"   ✅ Added commission reversal entry\n")
                     commission_fixed_count += 1
         
+        # ============================================================
+        # PART 4: Fix Missing Inventory DEBIT Entries
+        # ============================================================
+        
+        print("\n" + "-"*80)
+        print("🔧 CHECKING FOR MISSING INVENTORY DEBIT ENTRIES")
+        print("-"*80 + "\n")
+        
+        inventory_fixed_count = 0
+        
+        # Find approved returns missing inventory_purchase entries
+        returns_missing_inventory = db.session.execute(text("""
+            SELECT 
+                r.id,
+                r.return_number,
+                r.return_date
+            FROM returns r
+            WHERE r.tenant_id = :tenant_id
+            AND r.status = 'approved'
+            AND EXISTS (
+                SELECT 1 FROM account_transactions at
+                WHERE at.tenant_id = :tenant_id
+                AND at.reference_type = 'return'
+                AND at.reference_id = r.id
+                AND at.transaction_type = 'cogs_reversal'
+            )
+            AND NOT EXISTS (
+                SELECT 1 FROM account_transactions at
+                WHERE at.tenant_id = :tenant_id
+                AND at.reference_type = 'return'
+                AND at.reference_id = r.id
+                AND at.transaction_type = 'inventory_purchase'
+            )
+            ORDER BY r.created_at
+        """), {'tenant_id': tenant_id}).fetchall()
+        
+        if not returns_missing_inventory:
+            print("✅ No returns missing inventory debit entries!\n")
+        else:
+            print(f"Found {len(returns_missing_inventory)} return(s) missing inventory debit:\n")
+            
+            for ret_inv in returns_missing_inventory:
+                ret_id = ret_inv[0]
+                ret_num = ret_inv[1]
+                ret_date = ret_inv[2]
+                
+                # Calculate inventory cost value for this return
+                items_result = db.session.execute(text("""
+                    SELECT 
+                        ri.quantity_returned,
+                        i.cost_price
+                    FROM return_items ri
+                    JOIN items i ON ri.product_id = i.id
+                    WHERE ri.return_id = :return_id
+                    AND ri.return_to_inventory = TRUE
+                """), {'return_id': ret_id}).fetchall()
+                
+                total_cost = Decimal('0')
+                for item in items_result:
+                    qty = Decimal(str(item[0]))
+                    cost = Decimal(str(item[1] or 0))
+                    total_cost += qty * cost
+                
+                if total_cost == 0:
+                    print(f"   ⚠️  {ret_num}: No cost value found - skipping")
+                    continue
+                
+                print(f"   📦 {ret_num}: Adding inventory debit for ₹{total_cost}")
+                
+                # Create inventory_purchase DEBIT entry
+                db.session.execute(text("""
+                    INSERT INTO account_transactions
+                    (tenant_id, account_id, transaction_date, transaction_type,
+                     debit_amount, credit_amount, balance_after, reference_type, reference_id,
+                     voucher_number, narration, created_at, created_by)
+                    VALUES (:tenant_id, NULL, :transaction_date, 'inventory_purchase',
+                            :debit_amount, 0.00, :debit_amount, 'return', :return_id,
+                            :voucher, :narration, :created_at, NULL)
+                """), {
+                    'tenant_id': tenant_id,
+                    'transaction_date': ret_date,
+                    'debit_amount': float(total_cost),
+                    'return_id': ret_id,
+                    'voucher': ret_num,
+                    'narration': f'Inventory restocked from return - {ret_num} (Migration Fix)',
+                    'created_at': now
+                })
+                
+                print(f"   ✅ Added inventory debit entry\n")
+                inventory_fixed_count += 1
+        
         # Commit all changes
         db.session.commit()
         
@@ -340,8 +431,9 @@ def fix_return_accounting():
         print(f"   Refund entries fixed: {fixed_count}")
         print(f"   COGS reversal entries fixed: {cogs_fixed_count}")
         print(f"   Commission reversal entries fixed: {commission_fixed_count}")
+        print(f"   Inventory debit entries fixed: {inventory_fixed_count}")
         print("="*80)
-        print("\n✅ Trial Balance & Commission Reports should now be ACCURATE!\n")
+        print("\n✅ Trial Balance should now be PERFECTLY BALANCED!\n")
         
         return jsonify({
             'status': 'success',
@@ -349,7 +441,8 @@ def fix_return_accounting():
             'refund_entries_fixed': fixed_count,
             'cogs_reversal_entries_fixed': cogs_fixed_count,
             'commission_reversal_entries_fixed': commission_fixed_count,
-            'total_returns_fixed': max(fixed_count, cogs_fixed_count, commission_fixed_count)
+            'inventory_debit_entries_fixed': inventory_fixed_count,
+            'total_returns_fixed': max(fixed_count, cogs_fixed_count, commission_fixed_count, inventory_fixed_count)
         })
         
     except Exception as e:
