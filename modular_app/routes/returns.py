@@ -177,11 +177,25 @@ def create():
                 qty_ret = Decimal(str(qty_returned))
                 proportion = qty_ret / qty_sold
                 
+                # Calculate and round each component
                 return_item.taxable_amount = (Decimal(str(invoice_item.taxable_value)) * proportion).quantize(Decimal('0.01'))
-                return_item.cgst_amount = (Decimal(str(invoice_item.cgst_amount or 0)) * proportion).quantize(Decimal('0.01'))
-                return_item.sgst_amount = (Decimal(str(invoice_item.sgst_amount or 0)) * proportion).quantize(Decimal('0.01'))
-                return_item.igst_amount = (Decimal(str(invoice_item.igst_amount or 0)) * proportion).quantize(Decimal('0.01'))
                 return_item.total_amount = (Decimal(str(invoice_item.total_amount)) * proportion).quantize(Decimal('0.01'))
+                
+                # Calculate total GST from the difference (ensures perfect balance)
+                total_gst = return_item.total_amount - return_item.taxable_amount
+                
+                # Split GST ensuring components sum exactly to total_gst
+                if Decimal(str(invoice_item.igst_amount or 0)) > 0:
+                    # IGST case
+                    return_item.igst_amount = total_gst
+                    return_item.cgst_amount = Decimal('0.00')
+                    return_item.sgst_amount = Decimal('0.00')
+                else:
+                    # CGST/SGST case - split evenly but adjust SGST to absorb rounding error
+                    half_gst = (total_gst / Decimal('2')).quantize(Decimal('0.01'))
+                    return_item.cgst_amount = half_gst
+                    return_item.sgst_amount = total_gst - half_gst  # This absorbs any 0.01 rounding difference
+                    return_item.igst_amount = Decimal('0.00')
                 
                 # Add to return
                 ret.items.append(return_item)
