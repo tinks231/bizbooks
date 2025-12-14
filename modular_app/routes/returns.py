@@ -863,46 +863,36 @@ def _reverse_commission(ret, tenant_id):
         # Commission % is same as original invoice
         commission_on_return = (Decimal(str(ret.total_amount)) * Decimal(str(commission.commission_percentage))) / 100
         
-        # Reduce the invoice amount and commission amount
-        old_invoice_amount = Decimal(str(commission.invoice_amount))
-        old_commission_amount = Decimal(str(commission.commission_amount))
+        # IMPORTANT: DON'T update the commission record!
+        # We keep the original amounts in invoice_commissions table
+        # and create commission_reversal entries to track adjustments
+        # This way the ledger shows original earned amount + reversals separately
         
-        new_invoice_amount = old_invoice_amount - Decimal(str(ret.total_amount))
-        new_commission_amount = old_commission_amount - commission_on_return
+        # ALWAYS create a commission_reversal accounting entry (whether paid or not)
+        # This shows the adjustment in the commission ledger
+        import pytz
+        ist = pytz.timezone('Asia/Kolkata')
+        now = datetime.now(ist)
         
-        # Update commission record
-        commission.invoice_amount = float(new_invoice_amount)
-        commission.commission_amount = float(new_commission_amount)
+        db.session.execute(text("""
+            INSERT INTO account_transactions
+            (tenant_id, account_id, transaction_date, transaction_type,
+             debit_amount, credit_amount, balance_after, reference_type, reference_id,
+             voucher_number, narration, created_at, created_by)
+            VALUES (:tenant_id, NULL, :transaction_date, 'commission_reversal',
+                    0.00, :credit_amount, 0.00, 'return', :return_id,
+                    :voucher, :narration, :created_at, NULL)
+        """), {
+            'tenant_id': tenant_id,
+            'transaction_date': ret.return_date,
+            'credit_amount': float(commission_on_return),
+            'return_id': ret.id,
+            'voucher': ret.return_number,
+            'narration': f'Commission reversal for {commission.agent_name} - Return {ret.return_number} (Original Invoice: {ret.invoice.invoice_number})',
+            'created_at': now
+        })
         
-        # If commission was already paid, create a reversal accounting entry
-        if commission.is_paid and commission.paid_date:
-            # Create commission reversal accounting entry
-            # This reduces the commission expense
-            import pytz
-            ist = pytz.timezone('Asia/Kolkata')
-            now = datetime.now(ist)
-            
-            db.session.execute(text("""
-                INSERT INTO account_transactions
-                (tenant_id, account_id, transaction_date, transaction_type,
-                 debit_amount, credit_amount, balance_after, reference_type, reference_id,
-                 voucher_number, narration, created_at, created_by)
-                VALUES (:tenant_id, NULL, :transaction_date, 'commission_reversal',
-                        0.00, :credit_amount, 0.00, 'return', :return_id,
-                        :voucher, :narration, :created_at, NULL)
-            """), {
-                'tenant_id': tenant_id,
-                'transaction_date': ret.return_date,
-                'credit_amount': float(commission_on_return),
-                'return_id': ret.id,
-                'voucher': ret.return_number,
-                'narration': f'Commission reversal for {commission.agent_name} - Return {ret.return_number} (Original Invoice: {ret.invoice.invoice_number})',
-                'created_at': now
-            })
-            
-            print(f"✅ Reversed commission: {commission.agent_name} - ₹{commission_on_return:.2f} (was paid)")
-        else:
-            print(f"✅ Adjusted commission: {commission.agent_name} - ₹{commission_on_return:.2f} (not yet paid)")
+        print(f"✅ Reversed commission: {commission.agent_name} - ₹{commission_on_return:.2f}")
 
 
 @returns_bp.route('/api/search-invoice')
