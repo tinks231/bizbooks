@@ -878,20 +878,27 @@ def _reverse_commission(ret, tenant_id):
         if commission.is_paid and commission.paid_date:
             # Create commission reversal accounting entry
             # This reduces the commission expense
-            _create_account_transaction(
-                tenant_id=tenant_id,
-                account_id=None,  # Expense account, not tied to specific cash/bank
-                transaction_date=ret.return_date,
-                transaction_type='commission_reversal',
-                debit_amount=Decimal('0'),
-                credit_amount=commission_on_return,  # Credit reduces expense
-                balance_after=Decimal('0'),  # Not applicable for expense accounts
-                reference_type='return',
-                reference_id=ret.id,
-                voucher_number=ret.return_number,
-                narration=f'Commission reversal for {commission.agent_name} - Return {ret.return_number} (Original Invoice: {ret.invoice.invoice_number})',
-                created_by=None  # System adjustment
-            )
+            import pytz
+            ist = pytz.timezone('Asia/Kolkata')
+            now = datetime.now(ist)
+            
+            db.session.execute(text("""
+                INSERT INTO account_transactions
+                (tenant_id, account_id, transaction_date, transaction_type,
+                 debit_amount, credit_amount, balance_after, reference_type, reference_id,
+                 voucher_number, narration, created_at, created_by)
+                VALUES (:tenant_id, NULL, :transaction_date, 'commission_reversal',
+                        0.00, :credit_amount, 0.00, 'return', :return_id,
+                        :voucher, :narration, :created_at, NULL)
+            """), {
+                'tenant_id': tenant_id,
+                'transaction_date': ret.return_date,
+                'credit_amount': float(commission_on_return),
+                'return_id': ret.id,
+                'voucher': ret.return_number,
+                'narration': f'Commission reversal for {commission.agent_name} - Return {ret.return_number} (Original Invoice: {ret.invoice.invoice_number})',
+                'created_at': now
+            })
             
             print(f"✅ Reversed commission: {commission.agent_name} - ₹{commission_on_return:.2f} (was paid)")
         else:
