@@ -611,6 +611,9 @@ def summary():
                          # Gross amounts (before returns)
                          total_sales=total_sales,
                          total_taxable=total_taxable,
+                         total_cgst=total_cgst,
+                         total_sgst=total_sgst,
+                         total_igst=total_igst,
                          total_gst=total_gst,
                          # Returns
                          return_sales=return_sales,
