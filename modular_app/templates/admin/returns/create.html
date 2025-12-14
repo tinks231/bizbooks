@@ -1,0 +1,481 @@
+{% extends 'base_sidebar.html' %}
+
+{% block title %}Create Return - {{ tenant.name }}{% endblock %}
+
+{% block page_title %}Create New Return{% endblock %}
+
+{% block header_actions %}
+<a href="{{ url_for('returns.index') }}" class="btn btn-secondary">
+    ← Back to Returns
+</a>
+{% endblock %}
+
+{% block content %}
+
+<form method="POST" action="{{ url_for('returns.create') }}" id="returnForm">
+    
+    <!-- Step 1: Search & Select Invoice -->
+    <div class="card" style="margin-bottom: 25px;">
+        <h3 style="margin-top: 0; color: #2c3e50;">🔍 Step 1: Find Original Invoice</h3>
+        
+        <div class="form-group">
+            <label for="invoice_search">Search Invoice</label>
+            <input type="text" id="invoice_search" class="form-control" 
+                   placeholder="Search by invoice #, customer name, or phone..." 
+                   autocomplete="off">
+            <div id="searchResults" style="position: relative;"></div>
+        </div>
+        
+        <!-- Selected Invoice Display (Hidden until selected) -->
+        <div id="selectedInvoiceSection" style="display: none; margin-top: 20px;">
+            <div style="background: #e8f5e9; padding: 15px; border-radius: 8px; border-left: 4px solid #27ae60;">
+                <div style="display: flex; justify-content: space-between; align-items: start;">
+                    <div>
+                        <div style="font-weight: 700; font-size: 16px; color: #2c3e50; margin-bottom: 5px;">
+                            <span id="selectedInvoiceNumber"></span>
+                        </div>
+                        <div style="color: #666; font-size: 14px;">
+                            Customer: <span id="selectedCustomerName" style="font-weight: 600;"></span>
+                        </div>
+                        <div style="color: #666; font-size: 14px;">
+                            Date: <span id="selectedInvoiceDate"></span> | 
+                            Amount: ₹<span id="selectedInvoiceAmount"></span> |
+                            Status: <span id="selectedPaymentStatus" style="font-weight: 600;"></span>
+                        </div>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-secondary" onclick="clearInvoiceSelection()">
+                        Change
+                    </button>
+                </div>
+            </div>
+            <input type="hidden" id="invoice_id" name="invoice_id">
+        </div>
+    </div>
+    
+    <!-- Step 2: Select Items to Return (Hidden until invoice selected) -->
+    <div id="itemsSection" class="card" style="margin-bottom: 25px; display: none;">
+        <h3 style="margin-top: 0; color: #2c3e50;">📦 Step 2: Select Items to Return</h3>
+        
+        <div style="overflow-x: auto;">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th style="width: 40px;"></th>
+                        <th>Item Name</th>
+                        <th>HSN</th>
+                        <th>Qty Sold</th>
+                        <th>Qty to Return</th>
+                        <th>Unit Price</th>
+                        <th>Condition</th>
+                        <th>Refund Amount</th>
+                    </tr>
+                </thead>
+                <tbody id="itemsTableBody">
+                    <!-- Items will be populated by JavaScript -->
+                </tbody>
+            </table>
+        </div>
+        
+        <div style="max-width: 400px; margin-left: auto; padding: 15px; background: #f8f9fa; border-radius: 8px;">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                <span>Taxable Amount:</span>
+                <strong>₹<span id="totalTaxable">0.00</span></strong>
+            </div>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                <span>GST:</span>
+                <strong>₹<span id="totalGST">0.00</span></strong>
+            </div>
+            <div style="display: flex; justify-content: space-between; padding-top: 12px; border-top: 2px solid #ddd;">
+                <span style="font-size: 18px; font-weight: 700; color: #e74c3c;">Total Refund:</span>
+                <strong style="font-size: 20px; color: #e74c3c;">₹<span id="totalRefund">0.00</span></strong>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Step 3: Return Details -->
+    <div id="detailsSection" class="card" style="margin-bottom: 25px; display: none;">
+        <h3 style="margin-top: 0; color: #2c3e50;">📝 Step 3: Return Details</h3>
+        
+        <div class="form-group">
+            <label for="return_reason">Return Reason *</label>
+            <select id="return_reason" name="return_reason" class="form-control" required>
+                <option value="">-- Select Reason --</option>
+                <option value="defective">🔧 Defective/Not Working</option>
+                <option value="wrong_item">📦 Wrong Item Shipped</option>
+                <option value="damaged">💔 Damaged in Transit</option>
+                <option value="changed_mind">🤔 Changed Mind</option>
+                <option value="better_price">💰 Found Better Price</option>
+                <option value="quality_issue">⚠️ Quality Issue</option>
+                <option value="other">❓ Other</option>
+            </select>
+        </div>
+        
+        <div class="form-group">
+            <label for="reason_details">Detailed Explanation</label>
+            <textarea id="reason_details" name="reason_details" class="form-control" rows="3"
+                      placeholder="Provide additional details about the return..."></textarea>
+        </div>
+        
+        <div class="form-group">
+            <label for="customer_notes">Customer's Notes (Optional)</label>
+            <textarea id="customer_notes" name="customer_notes" class="form-control" rows="2"
+                      placeholder="Any feedback from the customer..."></textarea>
+        </div>
+        
+        <div class="form-group">
+            <label for="notes">Internal Notes (Optional)</label>
+            <textarea id="notes" name="notes" class="form-control" rows="2"
+                      placeholder="Internal notes for record keeping..."></textarea>
+        </div>
+    </div>
+    
+    <!-- Step 4: Refund Method -->
+    <div id="refundSection" class="card" style="margin-bottom: 25px; display: none;">
+        <h3 style="margin-top: 0; color: #2c3e50;">💰 Step 4: Refund Method</h3>
+        
+        <div class="form-group">
+            <label>How will you refund the customer? *</label>
+            <div style="display: flex; flex-direction: column; gap: 12px;">
+                <label class="radio-label">
+                    <input type="radio" name="refund_method" value="cash" required>
+                    <span>💵 Cash Refund</span>
+                </label>
+                <label class="radio-label">
+                    <input type="radio" name="refund_method" value="bank" required>
+                    <span>🏦 Bank Transfer</span>
+                </label>
+                <label class="radio-label">
+                    <input type="radio" name="refund_method" value="credit_note" required>
+                    <span>📝 Store Credit Only (No cash refund)</span>
+                </label>
+                <label class="radio-label">
+                    <input type="radio" name="refund_method" value="pending" required checked>
+                    <span>⏳ Decide Later</span>
+                </label>
+            </div>
+        </div>
+        
+        <div id="invoicePaymentInfo" style="margin-top: 15px; padding: 12px; background: #fff3cd; border-radius: 6px; border-left: 3px solid #f39c12; display: none;">
+            <div style="font-size: 13px; color: #666;">
+                ℹ️ <strong>Note:</strong> Original invoice was paid via <span id="originalPaymentMethod"></span>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Submit Button -->
+    <div id="submitSection" style="display: none; text-align: right;">
+        <button type="submit" class="btn btn-success" style="font-size: 16px; padding: 12px 32px;">
+            ✅ Create Return (Pending Approval)
+        </button>
+    </div>
+    
+</form>
+
+<style>
+.radio-label {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    background: #f8f9fa;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.radio-label:hover {
+    background: #e8f5e9;
+    border-color: #27ae60;
+}
+
+.radio-label input[type="radio"] {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+}
+
+.radio-label input[type="radio"]:checked + span {
+    font-weight: 700;
+    color: #27ae60;
+}
+
+#searchResults {
+    position: absolute;
+    width: 100%;
+    max-height: 400px;
+    overflow-y: auto;
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    z-index: 100;
+    display: none;
+}
+
+.search-result-item {
+    padding: 12px 16px;
+    border-bottom: 1px solid #f0f0f0;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.search-result-item:hover {
+    background: #f8f9fa;
+}
+
+.search-result-item:last-child {
+    border-bottom: none;
+}
+</style>
+
+<script>
+let selectedInvoice = null;
+let invoiceItems = [];
+let debounceTimer = null;
+
+// Invoice search with debounce
+document.getElementById('invoice_search').addEventListener('input', function(e) {
+    clearTimeout(debounceTimer);
+    const query = e.target.value.trim();
+    
+    if (query.length < 2) {
+        document.getElementById('searchResults').style.display = 'none';
+        return;
+    }
+    
+    debounceTimer = setTimeout(() => {
+        searchInvoices(query);
+    }, 300);
+});
+
+function searchInvoices(query) {
+    fetch(`{{ url_for('returns.api_search_invoice') }}?q=${encodeURIComponent(query)}`)
+        .then(response => response.json())
+        .then(data => {
+            displaySearchResults(data);
+        })
+        .catch(error => {
+            console.error('Search error:', error);
+        });
+}
+
+function displaySearchResults(invoices) {
+    const resultsDiv = document.getElementById('searchResults');
+    
+    if (invoices.length === 0) {
+        resultsDiv.innerHTML = '<div style="padding: 12px; color: #999; text-align: center;">No invoices found</div>';
+        resultsDiv.style.display = 'block';
+        return;
+    }
+    
+    let html = '';
+    invoices.forEach(inv => {
+        html += `
+            <div class="search-result-item" onclick="selectInvoice(${inv.id}, '${inv.invoice_number}', '${inv.customer_name}', '${inv.invoice_date}', ${inv.total_amount}, '${inv.payment_status}')">
+                <div style="font-weight: 700; margin-bottom: 4px;">${inv.invoice_number}</div>
+                <div style="font-size: 13px; color: #666;">
+                    ${inv.customer_name} | ${inv.invoice_date} | ₹${inv.total_amount.toFixed(2)} | 
+                    <span style="font-weight: 600; ${inv.payment_status === 'paid' ? 'color: #27ae60' : 'color: #e74c3c'}">${inv.payment_status}</span>
+                </div>
+            </div>
+        `;
+    });
+    
+    resultsDiv.innerHTML = html;
+    resultsDiv.style.display = 'block';
+}
+
+function selectInvoice(id, number, customer, date, amount, paymentStatus) {
+    selectedInvoice = { id, number, customer, date, amount, paymentStatus };
+    
+    // Hide search results
+    document.getElementById('searchResults').style.display = 'none';
+    document.getElementById('invoice_search').value = '';
+    
+    // Show selected invoice
+    document.getElementById('selectedInvoiceNumber').textContent = number;
+    document.getElementById('selectedCustomerName').textContent = customer;
+    document.getElementById('selectedInvoiceDate').textContent = date;
+    document.getElementById('selectedInvoiceAmount').textContent = amount.toFixed(2);
+    document.getElementById('selectedPaymentStatus').textContent = paymentStatus.toUpperCase();
+    document.getElementById('invoice_id').value = id;
+    
+    document.getElementById('selectedInvoiceSection').style.display = 'block';
+    
+    // Load invoice items
+    loadInvoiceItems(id);
+}
+
+function clearInvoiceSelection() {
+    selectedInvoice = null;
+    document.getElementById('selectedInvoiceSection').style.display = 'none';
+    document.getElementById('itemsSection').style.display = 'none';
+    document.getElementById('detailsSection').style.display = 'none';
+    document.getElementById('refundSection').style.display = 'none';
+    document.getElementById('submitSection').style.display = 'none';
+    document.getElementById('invoice_id').value = '';
+}
+
+function loadInvoiceItems(invoiceId) {
+    fetch(`{{ url_for('returns.api_get_invoice_items', invoice_id=0) }}`.replace('/0/', `/${invoiceId}/`))
+        .then(response => response.json())
+        .then(data => {
+            invoiceItems = data.items;
+            displayInvoiceItems(data);
+            
+            // Show payment method info
+            if (data.payment_status === 'paid') {
+                document.getElementById('invoicePaymentInfo').style.display = 'block';
+                document.getElementById('originalPaymentMethod').textContent = data.payment_status;
+            }
+        })
+        .catch(error => {
+            console.error('Error loading items:', error);
+            alert('Error loading invoice items');
+        });
+}
+
+function displayInvoiceItems(data) {
+    const tbody = document.getElementById('itemsTableBody');
+    tbody.innerHTML = '';
+    
+    data.items.forEach((item, index) => {
+        const row = document.createElement('tr');
+        row.id = `item_row_${index}`;
+        row.innerHTML = `
+            <td>
+                <input type="checkbox" id="select_${index}" onchange="toggleItemRow(${index})" 
+                       style="width: 18px; height: 18px; cursor: pointer;">
+            </td>
+            <td style="font-weight: 600;">${item.item_name}</td>
+            <td>${item.hsn_code}</td>
+            <td><strong>${item.quantity}</strong> ${item.unit}</td>
+            <td>
+                <input type="number" id="qty_${index}" name="return_quantity[]" 
+                       class="form-control" min="1" max="${item.quantity}" 
+                       value="${item.quantity}" disabled
+                       style="width: 100px;" oninput="calculateRefund()">
+                <input type="hidden" name="return_item_id[]" value="${item.id}">
+            </td>
+            <td>₹${item.rate.toFixed(2)}</td>
+            <td>
+                <select id="condition_${index}" name="item_condition[]" 
+                        class="form-control" disabled style="width: 150px;">
+                    <option value="resellable">✅ Resellable</option>
+                    <option value="damaged">⚠️ Damaged</option>
+                    <option value="defective">❌ Defective</option>
+                    <option value="opened_package">📦 Opened</option>
+                </select>
+            </td>
+            <td style="font-weight: 700; color: #e74c3c;">
+                ₹<span id="amount_${index}">0.00</span>
+            </td>
+        </tr>
+        `;
+        tbody.appendChild(row);
+        
+        // Store item data
+        row.setAttribute('data-item', JSON.stringify(item));
+    });
+    
+    document.getElementById('itemsSection').style.display = 'block';
+    document.getElementById('detailsSection').style.display = 'block';
+    document.getElementById('refundSection').style.display = 'block';
+    document.getElementById('submitSection').style.display = 'block';
+}
+
+function toggleItemRow(index) {
+    const checkbox = document.getElementById(`select_${index}`);
+    const qtyInput = document.getElementById(`qty_${index}`);
+    const conditionSelect = document.getElementById(`condition_${index}`);
+    
+    if (checkbox.checked) {
+        qtyInput.disabled = false;
+        conditionSelect.disabled = false;
+        qtyInput.style.background = '#fff';
+        conditionSelect.style.background = '#fff';
+    } else {
+        qtyInput.disabled = true;
+        conditionSelect.disabled = true;
+        qtyInput.style.background = '#f5f5f5';
+        conditionSelect.style.background = '#f5f5f5';
+    }
+    
+    calculateRefund();
+}
+
+function calculateRefund() {
+    let totalTaxable = 0;
+    let totalGST = 0;
+    let totalRefund = 0;
+    
+    const rows = document.querySelectorAll('#itemsTableBody tr');
+    rows.forEach((row, index) => {
+        const checkbox = document.getElementById(`select_${index}`);
+        
+        if (!checkbox.checked) {
+            document.getElementById(`amount_${index}`).textContent = '0.00';
+            return;
+        }
+        
+        const itemData = JSON.parse(row.getAttribute('data-item'));
+        const qtyReturned = parseFloat(document.getElementById(`qty_${index}`).value) || 0;
+        
+        if (qtyReturned <= 0) {
+            document.getElementById(`amount_${index}`).textContent = '0.00';
+            return;
+        }
+        
+        // Calculate amounts
+        const itemTaxable = qtyReturned * itemData.rate / (1 + itemData.gst_rate/100);
+        const itemGST = qtyReturned * itemData.rate - itemTaxable;
+        const itemTotal = qtyReturned * itemData.rate;
+        
+        totalTaxable += itemTaxable;
+        totalGST += itemGST;
+        totalRefund += itemTotal;
+        
+        document.getElementById(`amount_${index}`).textContent = itemTotal.toFixed(2);
+    });
+    
+    document.getElementById('totalTaxable').textContent = totalTaxable.toFixed(2);
+    document.getElementById('totalGST').textContent = totalGST.toFixed(2);
+    document.getElementById('totalRefund').textContent = totalRefund.toFixed(2);
+}
+
+// Form validation
+document.getElementById('returnForm').addEventListener('submit', function(e) {
+    const checkedItems = document.querySelectorAll('#itemsTableBody input[type="checkbox"]:checked');
+    
+    if (checkedItems.length === 0) {
+        e.preventDefault();
+        alert('⚠️ Please select at least one item to return');
+        return false;
+    }
+    
+    // Disable unchecked items (don't submit them)
+    const allCheckboxes = document.querySelectorAll('#itemsTableBody input[type="checkbox"]');
+    allCheckboxes.forEach((checkbox, index) => {
+        if (!checkbox.checked) {
+            document.getElementById(`qty_${index}`).disabled = true;
+            document.getElementById(`condition_${index}`).disabled = true;
+        }
+    });
+    
+    return true;
+});
+
+// Click outside to close search results
+document.addEventListener('click', function(e) {
+    const searchInput = document.getElementById('invoice_search');
+    const searchResults = document.getElementById('searchResults');
+    
+    if (!searchInput.contains(e.target) && !searchResults.contains(e.target)) {
+        searchResults.style.display = 'none';
+    }
+});
+</script>
+
+{% endblock %}
+

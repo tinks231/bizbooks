@@ -398,43 +398,102 @@
         </p>
     </div>
     
-    <!-- Summary Cards -->
+    <!-- Summary Cards (NET - After Returns) -->
     <div class="summary-cards">
         <div class="summary-card primary">
-            <div class="summary-card-label">Invoice Value</div>
-            <div class="summary-card-value">₹{{ "{:,.0f}".format(total_invoice_value) }}</div>
+            <div class="summary-card-label">Invoice Value{% if returns and returns|length > 0 %} (Net){% endif %}</div>
+            <div class="summary-card-value">₹{{ "{:,.0f}".format(net_invoice_value if (returns and returns|length > 0) else total_invoice_value) }}</div>
         </div>
         
         <div class="summary-card success">
-            <div class="summary-card-label">Taxable Value</div>
-            <div class="summary-card-value">₹{{ "{:,.0f}".format(total_taxable) }}</div>
+            <div class="summary-card-label">Taxable Value{% if returns and returns|length > 0 %} (Net){% endif %}</div>
+            <div class="summary-card-value">₹{{ "{:,.0f}".format(net_taxable if (returns and returns|length > 0) else total_taxable) }}</div>
         </div>
         
         <div class="summary-card danger">
-            <div class="summary-card-label">Total CGST</div>
-            <div class="summary-card-value">₹{{ "{:,.0f}".format(total_cgst) }}</div>
+            <div class="summary-card-label">Total CGST{% if returns and returns|length > 0 %} (Net){% endif %}</div>
+            <div class="summary-card-value">₹{{ "{:,.0f}".format(net_cgst if (returns and returns|length > 0) else total_cgst) }}</div>
         </div>
         
         <div class="summary-card warning">
-            <div class="summary-card-label">Total SGST</div>
-            <div class="summary-card-value">₹{{ "{:,.0f}".format(total_sgst) }}</div>
+            <div class="summary-card-label">Total SGST{% if returns and returns|length > 0 %} (Net){% endif %}</div>
+            <div class="summary-card-value">₹{{ "{:,.0f}".format(net_sgst if (returns and returns|length > 0) else total_sgst) }}</div>
         </div>
         
         <div class="summary-card purple">
-            <div class="summary-card-label">Total IGST</div>
-            <div class="summary-card-value">₹{{ "{:,.0f}".format(total_igst) }}</div>
+            <div class="summary-card-label">Total IGST{% if returns and returns|length > 0 %} (Net){% endif %}</div>
+            <div class="summary-card-value">₹{{ "{:,.0f}".format(net_igst if (returns and returns|length > 0) else total_igst) }}</div>
         </div>
         
         <div class="summary-card danger">
-            <div class="summary-card-label">Total GST</div>
-            <div class="summary-card-value">₹{{ "{:,.0f}".format(total_tax) }}</div>
+            <div class="summary-card-label">Total GST{% if returns and returns|length > 0 %} (Net){% endif %}</div>
+            <div class="summary-card-value">₹{{ "{:,.0f}".format(net_tax if (returns and returns|length > 0) else total_tax) }}</div>
         </div>
     </div>
+    
+    <!-- Credit Notes (Returns) Section -->
+    {% if returns and returns|length > 0 %}
+    <div class="report-section">
+        <div class="section-header" style="border-left: 4px solid #e74c3c;">
+            <div>
+                <h3 class="section-title">📤 Credit Notes (Sales Returns)</h3>
+                <p class="section-subtitle">Returns processed during this period (Table 9B)</p>
+            </div>
+            <span class="section-badge" style="background: #e74c3c;">{{ returns|length }} Returns</span>
+        </div>
+        <div class="section-body">
+            <div style="overflow-x: auto;">
+                <table class="gst-table">
+                    <thead>
+                        <tr>
+                            <th>Return No</th>
+                            <th>Credit Note</th>
+                            <th>Date</th>
+                            <th>Customer</th>
+                            <th>Invoice</th>
+                            <th class="text-right">Taxable</th>
+                            <th class="text-right">CGST</th>
+                            <th class="text-right">SGST</th>
+                            <th class="text-right">IGST</th>
+                            <th class="text-right">Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for ret in returns %}
+                        <tr>
+                            <td><strong>{{ ret.return_number }}</strong></td>
+                            <td><code>{{ ret.credit_note_number or 'N/A' }}</code></td>
+                            <td>{{ ret.return_date.strftime('%d-%m-%Y') }}</td>
+                            <td>{{ ret.customer_name }}</td>
+                            <td>{{ ret.invoice_number }}</td>
+                            <td class="text-right" style="color: #e74c3c;">(₹{{ "{:,.2f}".format(ret.taxable) }})</td>
+                            <td class="text-right" style="color: #e74c3c;">(₹{{ "{:,.2f}".format(ret.cgst) }})</td>
+                            <td class="text-right" style="color: #e74c3c;">(₹{{ "{:,.2f}".format(ret.sgst) }})</td>
+                            <td class="text-right" style="color: #e74c3c;">(₹{{ "{:,.2f}".format(ret.igst) }})</td>
+                            <td class="text-right" style="color: #e74c3c;"><strong>(₹{{ "{:,.2f}".format(ret.total) }})</strong></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot>
+                        <tr style="background: #fee;">
+                            <td colspan="5"><strong>TOTAL CREDIT NOTES</strong></td>
+                            <td class="text-right" style="color: #e74c3c;"><strong>(₹{{ "{:,.2f}".format(total_return_taxable) }})</strong></td>
+                            <td class="text-right" style="color: #e74c3c;"><strong>(₹{{ "{:,.2f}".format(total_return_cgst) }})</strong></td>
+                            <td class="text-right" style="color: #e74c3c;"><strong>(₹{{ "{:,.2f}".format(total_return_sgst) }})</strong></td>
+                            <td class="text-right" style="color: #e74c3c;"><strong>(₹{{ "{:,.2f}".format(total_return_igst) }})</strong></td>
+                            <td class="text-right" style="color: #e74c3c;"><strong>(₹{{ "{:,.2f}".format(total_return_value) }})</strong></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
     
     <!-- GST Rate-wise Summary -->
     <div class="report-section">
         <div class="section-header" style="border-left: 4px solid #667eea;">
-            <h3 class="section-title">📊 GST Rate-wise Summary</h3>
+            <h3 class="section-title">📊 GST Rate-wise Summary{% if returns and returns|length > 0 %} (Net - After Returns){% endif %}</h3>
             <span class="section-badge" style="background: #667eea;">Table 5</span>
         </div>
         <div class="section-body">
@@ -462,6 +521,36 @@
                     {% endfor %}
                 </tbody>
                 <tfoot>
+                    {% if returns and returns|length > 0 %}
+                    <!-- Gross Sales -->
+                    <tr style="background: #f8f9fa;">
+                        <td><strong>Gross Sales</strong></td>
+                        <td class="text-right">₹{{ "{:,.2f}".format(total_taxable) }}</td>
+                        <td class="text-right">₹{{ "{:,.2f}".format(total_cgst) }}</td>
+                        <td class="text-right">₹{{ "{:,.2f}".format(total_sgst) }}</td>
+                        <td class="text-right">₹{{ "{:,.2f}".format(total_igst) }}</td>
+                        <td class="text-right">₹{{ "{:,.2f}".format(total_tax) }}</td>
+                    </tr>
+                    <!-- Less: Credit Notes -->
+                    <tr style="background: #fee; color: #e74c3c;">
+                        <td><strong>Less: Credit Notes</strong></td>
+                        <td class="text-right">(₹{{ "{:,.2f}".format(total_return_taxable) }})</td>
+                        <td class="text-right">(₹{{ "{:,.2f}".format(total_return_cgst) }})</td>
+                        <td class="text-right">(₹{{ "{:,.2f}".format(total_return_sgst) }})</td>
+                        <td class="text-right">(₹{{ "{:,.2f}".format(total_return_igst) }})</td>
+                        <td class="text-right">(₹{{ "{:,.2f}".format(total_return_tax) }})</td>
+                    </tr>
+                    <!-- Net Taxable Supplies -->
+                    <tr style="background: #d4edda; font-weight: bold;">
+                        <td><strong>NET TAXABLE SUPPLIES</strong></td>
+                        <td class="text-right">₹{{ "{:,.2f}".format(net_taxable) }}</td>
+                        <td class="text-right">₹{{ "{:,.2f}".format(net_cgst) }}</td>
+                        <td class="text-right">₹{{ "{:,.2f}".format(net_sgst) }}</td>
+                        <td class="text-right">₹{{ "{:,.2f}".format(net_igst) }}</td>
+                        <td class="text-right">₹{{ "{:,.2f}".format(net_tax) }}</td>
+                    </tr>
+                    {% else %}
+                    <!-- No returns - just show total -->
                     <tr>
                         <td><strong>TOTAL</strong></td>
                         <td class="text-right">₹{{ "{:,.2f}".format(total_taxable) }}</td>
@@ -470,6 +559,7 @@
                         <td class="text-right">₹{{ "{:,.2f}".format(total_igst) }}</td>
                         <td class="text-right">₹{{ "{:,.2f}".format(total_tax) }}</td>
                     </tr>
+                    {% endif %}
                 </tfoot>
             </table>
         </div>

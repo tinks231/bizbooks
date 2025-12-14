@@ -147,6 +147,8 @@ app.register_blueprint(admin_purchase_bp)  # NEW: Admin purchase management
 app.register_blueprint(customers_bp)  # NEW: Customer management
 app.register_blueprint(vendors_bp)  # NEW: Vendor management
 app.register_blueprint(invoices_bp)  # NEW: GST invoicing
+from routes.returns import returns_bp
+app.register_blueprint(returns_bp)  # NEW: Returns & Refunds management
 app.register_blueprint(tasks_bp)  # NEW: Task management (admin)
 app.register_blueprint(employee_tasks_bp)  # NEW: Task management (employee)
 app.register_blueprint(sales_order_bp)  # NEW: Sales Order management
@@ -182,8 +184,22 @@ from routes.fix_vendor_payment_constraint import fix_vendor_payment_bp
 app.register_blueprint(fix_vendor_payment_bp)  # FIX: Vendor payment constraint (tenant-specific)
 from routes.fix_purchase_bill_constraint import fix_purchase_bill_bp
 app.register_blueprint(fix_purchase_bill_bp)  # FIX: Purchase bill constraint (tenant-specific)
+from routes.fix_return_accounting import fix_return_accounting_bp
+app.register_blueprint(fix_return_accounting_bp)  # FIX: Add missing refund entries for returns
+from routes.diagnose_returns import diagnose_returns_bp
+app.register_blueprint(diagnose_returns_bp)  # DIAGNOSTIC: Check returns accounting status
+
+from routes.diagnose_commission import diagnose_commission_bp
+app.register_blueprint(diagnose_commission_bp)  # DIAGNOSTIC: Check commission status
+
+from routes.fix_commission_for_returns import fix_commission_for_returns_bp
+app.register_blueprint(fix_commission_for_returns_bp)  # MIGRATION: Fix commission amounts for existing returns
+from routes.diagnose_trial_balance import diagnose_trial_bp
+app.register_blueprint(diagnose_trial_bp)  # DIAGNOSTIC: Check trial balance components
 from routes.migration_add_purchase_bill_item_fields import migration_purchase_bill_items_bp
 app.register_blueprint(migration_purchase_bill_items_bp)  # MIGRATION: Add fields for creating items from purchase bills
+from routes.migration_create_returns_tables import migration_returns_bp
+app.register_blueprint(migration_returns_bp)  # MIGRATION: Create returns & refunds tables
 
 # ============================================================
 # Main route

@@ -1737,8 +1737,37 @@ def profit_loss():
     sales_paid = sum(Decimal(str(inv[3])) for inv in sales_revenue_detail if inv[4] == 'paid')
     sales_pending = sum(Decimal(str(inv[3])) for inv in sales_revenue_detail if inv[4] != 'paid')
     
-    # Total Income
-    total_income = total_sales
+    # 1.5. Sales Returns (reduce from gross sales)
+    sales_returns_from_transactions = db.session.execute(text("""
+        SELECT COALESCE(SUM(debit_amount), 0)
+        FROM account_transactions
+        WHERE tenant_id = :tenant_id
+        AND transaction_type = 'sales_return'
+        AND transaction_date BETWEEN :start_date AND :end_date
+    """), {'tenant_id': tenant_id, 'start_date': start_date, 'end_date': end_date}).fetchone()[0]
+    
+    total_sales_returns = Decimal(str(sales_returns_from_transactions or 0))
+    
+    # Get return details for display
+    sales_returns_detail = db.session.execute(text("""
+        SELECT 
+            voucher_number as return_number,
+            narration,
+            transaction_date,
+            debit_amount,
+            'Return' as type
+        FROM account_transactions
+        WHERE tenant_id = :tenant_id 
+        AND transaction_type = 'sales_return'
+        AND transaction_date BETWEEN :start_date AND :end_date
+        ORDER BY transaction_date DESC, voucher_number DESC
+    """), {'tenant_id': tenant_id, 'start_date': start_date, 'end_date': end_date}).fetchall()
+    
+    # Net Sales = Gross Sales - Sales Returns
+    net_sales = total_sales - total_sales_returns
+    
+    # Total Income (using net sales)
+    total_income = net_sales
     
     # ====================
     # EXPENSES CALCULATION
@@ -1756,6 +1785,17 @@ def profit_loss():
     """), {'tenant_id': tenant_id, 'start_date': start_date, 'end_date': end_date}).fetchone()[0]
     
     total_cogs = Decimal(str(cogs_from_transactions or 0))
+    
+    # Subtract COGS reversals (from returns)
+    cogs_reversals = db.session.execute(text("""
+        SELECT COALESCE(SUM(credit_amount), 0)
+        FROM account_transactions
+        WHERE tenant_id = :tenant_id
+        AND transaction_type = 'cogs_reversal'
+        AND transaction_date BETWEEN :start_date AND :end_date
+    """), {'tenant_id': tenant_id, 'start_date': start_date, 'end_date': end_date}).fetchone()[0]
+    
+    total_cogs = total_cogs - Decimal(str(cogs_reversals or 0))
     
     # Get COGS details for display (which invoices contributed to COGS)
     purchase_expenses_detail = db.session.execute(text("""
@@ -1874,7 +1914,15 @@ def profit_loss():
         AND transaction_date BETWEEN :start_date AND :end_date
     """), {'tenant_id': tenant_id, 'start_date': start_date, 'end_date': end_date}).fetchone()[0]
     
-    total_commission_expenses = Decimal(str(commission_expenses_from_transactions or 0))
+    commission_reversal_from_transactions = db.session.execute(text("""
+        SELECT COALESCE(SUM(credit_amount), 0)
+        FROM account_transactions
+        WHERE tenant_id = :tenant_id
+        AND transaction_type = 'commission_reversal'
+        AND transaction_date BETWEEN :start_date AND :end_date
+    """), {'tenant_id': tenant_id, 'start_date': start_date, 'end_date': end_date}).fetchone()[0]
+    
+    total_commission_expenses = Decimal(str(commission_expenses_from_transactions or 0)) - Decimal(str(commission_reversal_from_transactions or 0))
     
     # Get commission details for display
     commission_expenses_detail = db.session.execute(text("""
@@ -1911,6 +1959,9 @@ def profit_loss():
                          total_sales=float(total_sales),
                          sales_paid=float(sales_paid),
                          sales_pending=float(sales_pending),
+                         sales_returns_detail=sales_returns_detail,
+                         total_sales_returns=float(total_sales_returns),
+                         net_sales=float(net_sales),
                          total_income=float(total_income),
                          # Expenses
                          purchase_expenses_detail=purchase_expenses_detail,
@@ -2038,6 +2089,42 @@ def trial_balance():
             'credit': Decimal('0')
         })
     
+    # 3.6. GST Receivable on Returns (Asset - Debit Balance)
+    # GST amounts from customer returns that can be claimed back
+    gst_return_cgst = db.session.execute(text("""
+        SELECT COALESCE(SUM(debit_amount), 0)
+        FROM account_transactions
+        WHERE tenant_id = :tenant_id
+        AND transaction_type = 'gst_return_cgst'
+        AND transaction_date <= :as_of_date
+    """), {'tenant_id': tenant_id, 'as_of_date': as_of_date}).fetchone()[0]
+    
+    gst_return_sgst = db.session.execute(text("""
+        SELECT COALESCE(SUM(debit_amount), 0)
+        FROM account_transactions
+        WHERE tenant_id = :tenant_id
+        AND transaction_type = 'gst_return_sgst'
+        AND transaction_date <= :as_of_date
+    """), {'tenant_id': tenant_id, 'as_of_date': as_of_date}).fetchone()[0]
+    
+    gst_return_igst = db.session.execute(text("""
+        SELECT COALESCE(SUM(debit_amount), 0)
+        FROM account_transactions
+        WHERE tenant_id = :tenant_id
+        AND transaction_type = 'gst_return_igst'
+        AND transaction_date <= :as_of_date
+    """), {'tenant_id': tenant_id, 'as_of_date': as_of_date}).fetchone()[0]
+    
+    gst_return_total = Decimal(str(gst_return_cgst or 0)) + Decimal(str(gst_return_sgst or 0)) + Decimal(str(gst_return_igst or 0))
+    
+    if gst_return_total > 0:
+        accounts.append({
+            'account_name': 'GST Receivable (Returns)',
+            'category': 'Assets',
+            'debit': gst_return_total,
+            'credit': Decimal('0')
+        })
+    
     # 4. Accounts Payable (Liabilities - Credit Balance)
     # NEW: Calculate from account_transactions (double-entry system)
     # Formula: CREDITS (bills created) - DEBITS (payments made) = Outstanding
@@ -2121,6 +2208,17 @@ def trial_balance():
     
     cogs_total = Decimal(str(cogs_from_transactions or 0))
     
+    # Subtract COGS reversals (from returns)
+    cogs_reversals = db.session.execute(text("""
+        SELECT COALESCE(SUM(credit_amount), 0)
+        FROM account_transactions
+        WHERE tenant_id = :tenant_id
+        AND transaction_type = 'cogs_reversal'
+        AND transaction_date <= :as_of_date
+    """), {'tenant_id': tenant_id, 'as_of_date': as_of_date}).fetchone()[0]
+    
+    cogs_total = cogs_total - Decimal(str(cogs_reversals or 0))
+    
     # IMPORTANT: Do NOT show purchase_bills as COGS!
     # In double-entry: Purchases → Inventory (Asset), not Expense
     # Only when sold: Inventory → COGS (Expense)
@@ -2130,6 +2228,26 @@ def trial_balance():
             'account_name': 'Cost of Goods Sold (COGS)',
             'category': 'Expenses',
             'debit': cogs_total,
+            'credit': Decimal('0')
+        })
+    
+    # 6.5. Sales Returns (Contra-Revenue - Debit Balance)
+    # Sales returns reduce income, shown as debit
+    sales_returns_from_transactions = db.session.execute(text("""
+        SELECT COALESCE(SUM(debit_amount), 0)
+        FROM account_transactions
+        WHERE tenant_id = :tenant_id
+        AND transaction_type = 'sales_return'
+        AND transaction_date <= :as_of_date
+    """), {'tenant_id': tenant_id, 'as_of_date': as_of_date}).fetchone()[0]
+    
+    sales_returns_total = Decimal(str(sales_returns_from_transactions or 0))
+    
+    if sales_returns_total > 0:
+        accounts.append({
+            'account_name': 'Sales Returns',
+            'category': 'Expenses',
+            'debit': sales_returns_total,
             'credit': Decimal('0')
         })
     
@@ -2240,7 +2358,15 @@ def trial_balance():
         AND transaction_date <= :as_of_date
     """), {'tenant_id': tenant_id, 'as_of_date': as_of_date}).fetchone()[0]
     
-    commission_total = Decimal(str(commission_from_transactions or 0))
+    commission_reversal_from_transactions = db.session.execute(text("""
+        SELECT COALESCE(SUM(credit_amount), 0)
+        FROM account_transactions
+        WHERE tenant_id = :tenant_id
+        AND transaction_type = 'commission_reversal'
+        AND transaction_date <= :as_of_date
+    """), {'tenant_id': tenant_id, 'as_of_date': as_of_date}).fetchone()[0]
+    
+    commission_total = Decimal(str(commission_from_transactions or 0)) - Decimal(str(commission_reversal_from_transactions or 0))
     
     if commission_total > 0:
         accounts.append({
