@@ -188,6 +188,12 @@ from routes.fix_return_accounting import fix_return_accounting_bp
 app.register_blueprint(fix_return_accounting_bp)  # FIX: Add missing refund entries for returns
 from routes.diagnose_returns import diagnose_returns_bp
 app.register_blueprint(diagnose_returns_bp)  # DIAGNOSTIC: Check returns accounting status
+
+from routes.diagnose_commission import diagnose_commission_bp
+app.register_blueprint(diagnose_commission_bp)  # DIAGNOSTIC: Check commission status
+
+from routes.fix_commission_for_returns import fix_commission_for_returns_bp
+app.register_blueprint(fix_commission_for_returns_bp)  # MIGRATION: Fix commission amounts for existing returns
 from routes.diagnose_trial_balance import diagnose_trial_bp
 app.register_blueprint(diagnose_trial_bp)  # DIAGNOSTIC: Check trial balance components
 from routes.migration_add_purchase_bill_item_fields import migration_purchase_bill_items_bp
