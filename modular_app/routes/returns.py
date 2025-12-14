@@ -868,12 +868,32 @@ def _reverse_commission(ret, tenant_id):
         # and create commission_reversal entries to track adjustments
         # This way the ledger shows original earned amount + reversals separately
         
-        # ALWAYS create a commission_reversal accounting entry (whether paid or not)
-        # This shows the adjustment in the commission ledger
+        # ALWAYS create commission reversal accounting entries (whether paid or not)
+        # DOUBLE-ENTRY: Commission was overpaid, agent owes us money back
         import pytz
         ist = pytz.timezone('Asia/Kolkata')
         now = datetime.now(ist)
         
+        # Entry 1: DEBIT Commission Recoverable (Asset - agent owes us)
+        db.session.execute(text("""
+            INSERT INTO account_transactions
+            (tenant_id, account_id, transaction_date, transaction_type,
+             debit_amount, credit_amount, balance_after, reference_type, reference_id,
+             voucher_number, narration, created_at, created_by)
+            VALUES (:tenant_id, NULL, :transaction_date, 'commission_recoverable',
+                    :debit_amount, 0.00, :debit_amount, 'return', :return_id,
+                    :voucher, :narration, :created_at, NULL)
+        """), {
+            'tenant_id': tenant_id,
+            'transaction_date': ret.return_date,
+            'debit_amount': float(commission_on_return),
+            'return_id': ret.id,
+            'voucher': ret.return_number,
+            'narration': f'Commission recoverable from {commission.agent_name} - Return {ret.return_number}',
+            'created_at': now
+        })
+        
+        # Entry 2: CREDIT Commission Expense (reduce expense)
         db.session.execute(text("""
             INSERT INTO account_transactions
             (tenant_id, account_id, transaction_date, transaction_type,
@@ -892,7 +912,7 @@ def _reverse_commission(ret, tenant_id):
             'created_at': now
         })
         
-        print(f"✅ Reversed commission: {commission.agent_name} - ₹{commission_on_return:.2f}")
+        print(f"✅ Reversed commission: {commission.agent_name} - ₹{commission_on_return:.2f} (DEBIT Recoverable, CREDIT Expense)")
 
 
 @returns_bp.route('/api/search-invoice')

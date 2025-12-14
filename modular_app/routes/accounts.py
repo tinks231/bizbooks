@@ -2125,6 +2125,26 @@ def trial_balance():
             'credit': Decimal('0')
         })
     
+    # 3.7. Commission Recoverable (Asset - Debit Balance)
+    # Commission amounts to be recovered from agents due to sales returns
+    commission_recoverable = db.session.execute(text("""
+        SELECT COALESCE(SUM(debit_amount), 0)
+        FROM account_transactions
+        WHERE tenant_id = :tenant_id
+        AND transaction_type = 'commission_recoverable'
+        AND transaction_date <= :as_of_date
+    """), {'tenant_id': tenant_id, 'as_of_date': as_of_date}).fetchone()[0]
+    
+    commission_recoverable_total = Decimal(str(commission_recoverable or 0))
+    
+    if commission_recoverable_total > 0:
+        accounts.append({
+            'account_name': 'Commission Recoverable',
+            'category': 'Assets',
+            'debit': commission_recoverable_total,
+            'credit': Decimal('0')
+        })
+    
     # 4. Accounts Payable (Liabilities - Credit Balance)
     # NEW: Calculate from account_transactions (double-entry system)
     # Formula: CREDITS (bills created) - DEBITS (payments made) = Outstanding

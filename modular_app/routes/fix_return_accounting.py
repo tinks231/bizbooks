@@ -309,7 +309,27 @@ def fix_return_accounting():
                     
                     print(f"   📦 {ret_num}: Reversing ₹{commission_on_return:.2f} commission for {agent_name}")
                     
-                    # Create commission reversal entry
+                    # Create BOTH commission reversal entries (double-entry)
+                    # Entry 1: DEBIT Commission Recoverable (asset - agent owes us)
+                    db.session.execute(text("""
+                        INSERT INTO account_transactions
+                        (tenant_id, account_id, transaction_date, transaction_type,
+                         debit_amount, credit_amount, balance_after, reference_type, reference_id,
+                         voucher_number, narration, created_at, created_by)
+                        VALUES (:tenant_id, NULL, :transaction_date, 'commission_recoverable',
+                                :debit_amount, 0.00, :debit_amount, 'return', :return_id,
+                                :voucher, :narration, :created_at, NULL)
+                    """), {
+                        'tenant_id': tenant_id,
+                        'transaction_date': ret_date,
+                        'debit_amount': float(commission_on_return),
+                        'return_id': ret_id,
+                        'voucher': ret_num,
+                        'narration': f'Commission recoverable from {agent_name} - Return {ret_num}',
+                        'created_at': now
+                    })
+                    
+                    # Entry 2: CREDIT Commission Expense (reduce expense)
                     db.session.execute(text("""
                         INSERT INTO account_transactions
                         (tenant_id, account_id, transaction_date, transaction_type,
@@ -328,7 +348,7 @@ def fix_return_accounting():
                         'created_at': now
                     })
                     
-                    print(f"   ✅ Added commission reversal entry\n")
+                    print(f"   ✅ Added commission recoverable DEBIT and reversal CREDIT entries\n")
                     commission_fixed_count += 1
         
         # ============================================================
