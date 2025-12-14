@@ -297,7 +297,7 @@ def gstr3b():
         Invoice.invoice_date <= end_date
     ).all()
     
-    # Calculate outward supplies
+    # Calculate outward supplies (GROSS)
     outward_taxable = Decimal('0')
     outward_cgst = Decimal('0')
     outward_sgst = Decimal('0')
@@ -314,6 +314,38 @@ def gstr3b():
         print(f"❌ Error calculating outward supplies: {str(e)}")
         flash(f'Error: {str(e)}', 'error')
         return redirect(url_for('gst_reports.index'))
+    
+    # ========== SUBTRACT RETURNS (Credit Notes) ==========
+    from models.return_model import Return
+    
+    returns = Return.query.filter_by(tenant_id=tenant_id).filter(
+        Return.return_date >= start_date,
+        Return.return_date <= end_date,
+        Return.status == 'approved'
+    ).all()
+    
+    return_taxable = Decimal('0')
+    return_cgst = Decimal('0')
+    return_sgst = Decimal('0')
+    return_igst = Decimal('0')
+    
+    try:
+        for ret in returns:
+            # Calculate return totals from items
+            for item in ret.items:
+                return_taxable += Decimal(str(item.taxable_amount)) if item.taxable_amount else Decimal('0')
+                return_cgst += Decimal(str(item.cgst_amount)) if item.cgst_amount else Decimal('0')
+                return_sgst += Decimal(str(item.sgst_amount)) if item.sgst_amount else Decimal('0')
+                return_igst += Decimal(str(item.igst_amount)) if item.igst_amount else Decimal('0')
+    except Exception as e:
+        print(f"⚠️  Error calculating returns: {str(e)}")
+        # Continue with zero returns if calculation fails
+    
+    # Calculate NET outward supplies (after returns)
+    net_outward_taxable = outward_taxable - return_taxable
+    net_outward_cgst = outward_cgst - return_cgst
+    net_outward_sgst = outward_sgst - return_sgst
+    net_outward_igst = outward_igst - return_igst
     
     # Calculate inward supplies (ITC from purchase bills)
     from models.purchase_bill import PurchaseBill
@@ -345,28 +377,42 @@ def gstr3b():
         print(f"❌ Error calculating inward supplies: {str(e)}")
         # Continue with zero ITC if calculation fails
     
-    # Calculate net tax liability
-    net_cgst = outward_cgst - inward_cgst
-    net_sgst = outward_sgst - inward_sgst
-    net_igst = outward_igst - inward_igst
-    total_tax_liability = net_cgst + net_sgst + net_igst
+    # Calculate net tax liability (using NET outward supplies after returns)
+    net_cgst_liability = net_outward_cgst - inward_cgst
+    net_sgst_liability = net_outward_sgst - inward_sgst
+    net_igst_liability = net_outward_igst - inward_igst
+    total_tax_liability = net_cgst_liability + net_sgst_liability + net_igst_liability
     
     return render_template('admin/gst_reports/gstr3b.html',
                          tenant=g.tenant,
                          start_date=start_date_str,
                          end_date=end_date_str,
                          month_name=start_date.strftime('%B %Y'),
+                         # Gross outward supplies (before returns)
                          outward_taxable=outward_taxable,
                          outward_cgst=outward_cgst,
                          outward_sgst=outward_sgst,
                          outward_igst=outward_igst,
+                         # Returns (credit notes)
+                         return_taxable=return_taxable,
+                         return_cgst=return_cgst,
+                         return_sgst=return_sgst,
+                         return_igst=return_igst,
+                         returns_count=len(returns),
+                         # NET outward supplies (after returns)
+                         net_outward_taxable=net_outward_taxable,
+                         net_outward_cgst=net_outward_cgst,
+                         net_outward_sgst=net_outward_sgst,
+                         net_outward_igst=net_outward_igst,
+                         # Inward supplies (purchases - ITC)
                          inward_taxable=inward_taxable,
                          inward_cgst=inward_cgst,
                          inward_sgst=inward_sgst,
                          inward_igst=inward_igst,
-                         net_cgst=net_cgst,
-                         net_sgst=net_sgst,
-                         net_igst=net_igst,
+                         # Net tax liability
+                         net_cgst=net_cgst_liability,
+                         net_sgst=net_sgst_liability,
+                         net_igst=net_igst_liability,
                          total_tax_liability=total_tax_liability,
                          invoice_count=len(invoices))
 

@@ -372,17 +372,17 @@
         </p>
     </div>
     
-    <!-- Summary Cards -->
+    <!-- Summary Cards (NET - After Returns) -->
     <div class="summary-cards">
         <div class="summary-card outward">
-            <div class="summary-card-label">Taxable Sales</div>
-            <div class="summary-card-value">₹{{ "{:,.0f}".format(outward_taxable) }}</div>
-            <div class="summary-card-sub">Outward Supplies</div>
+            <div class="summary-card-label">Taxable Sales{% if returns_count > 0 %} (Net){% endif %}</div>
+            <div class="summary-card-value">₹{{ "{:,.0f}".format(net_outward_taxable) }}</div>
+            <div class="summary-card-sub">{% if returns_count > 0 %}After {{ returns_count }} Return(s){% else %}Outward Supplies{% endif %}</div>
         </div>
         
         <div class="summary-card outward">
-            <div class="summary-card-label">Tax Collected</div>
-            <div class="summary-card-value">₹{{ "{:,.0f}".format(outward_cgst + outward_sgst + outward_igst) }}</div>
+            <div class="summary-card-label">Tax Collected{% if returns_count > 0 %} (Net){% endif %}</div>
+            <div class="summary-card-value">₹{{ "{:,.0f}".format(net_outward_cgst + net_outward_sgst + net_outward_igst) }}</div>
             <div class="summary-card-sub">CGST + SGST + IGST</div>
         </div>
         
@@ -402,7 +402,7 @@
     <!-- Outward Supplies (Sales) -->
     <div class="report-section">
         <div class="section-header" style="border-left: 4px solid #28a745;">
-            <h3 class="section-title">📤 Outward Supplies (Sales)</h3>
+            <h3 class="section-title">📤 Outward Supplies (Sales){% if returns_count > 0 %} - Net After Returns{% endif %}</h3>
             <span class="section-badge" style="background: #28a745;">Table 3.1</span>
         </div>
         <div class="section-body">
@@ -410,29 +410,54 @@
                 <thead>
                     <tr>
                         <th>Description</th>
-                        <th>Amount</th>
+                        <th class="text-right">Taxable Value</th>
+                        <th class="text-right">CGST</th>
+                        <th class="text-right">SGST</th>
+                        <th class="text-right">IGST</th>
                     </tr>
                 </thead>
                 <tbody>
+                    {% if returns_count > 0 %}
+                    <!-- Gross Sales -->
+                    <tr style="background: #f8f9fa;">
+                        <td>Gross Sales (Invoices)</td>
+                        <td class="text-right">₹{{ "{:,.2f}".format(outward_taxable) }}</td>
+                        <td class="text-right">₹{{ "{:,.2f}".format(outward_cgst) }}</td>
+                        <td class="text-right">₹{{ "{:,.2f}".format(outward_sgst) }}</td>
+                        <td class="text-right">₹{{ "{:,.2f}".format(outward_igst) }}</td>
+                    </tr>
+                    <!-- Less: Credit Notes -->
+                    <tr style="background: #fee; color: #e74c3c;">
+                        <td>Less: Credit Notes (Returns)</td>
+                        <td class="text-right">(₹{{ "{:,.2f}".format(return_taxable) }})</td>
+                        <td class="text-right">(₹{{ "{:,.2f}".format(return_cgst) }})</td>
+                        <td class="text-right">(₹{{ "{:,.2f}".format(return_sgst) }})</td>
+                        <td class="text-right">(₹{{ "{:,.2f}".format(return_igst) }})</td>
+                    </tr>
+                    <!-- Net Taxable Supplies -->
+                    <tr style="background: #d4edda; font-weight: bold;">
+                        <td><strong>Net Taxable Value of Supplies</strong></td>
+                        <td class="text-right"><strong>₹{{ "{:,.2f}".format(net_outward_taxable) }}</strong></td>
+                        <td class="text-right"><strong>₹{{ "{:,.2f}".format(net_outward_cgst) }}</strong></td>
+                        <td class="text-right"><strong>₹{{ "{:,.2f}".format(net_outward_sgst) }}</strong></td>
+                        <td class="text-right"><strong>₹{{ "{:,.2f}".format(net_outward_igst) }}</strong></td>
+                    </tr>
+                    {% else %}
+                    <!-- No returns - just show totals -->
                     <tr>
                         <td>Taxable Value of Supplies</td>
-                        <td>₹{{ "{:,.2f}".format(outward_taxable) }}</td>
+                        <td class="text-right">₹{{ "{:,.2f}".format(outward_taxable) }}</td>
+                        <td class="text-right">₹{{ "{:,.2f}".format(outward_cgst) }}</td>
+                        <td class="text-right">₹{{ "{:,.2f}".format(outward_sgst) }}</td>
+                        <td class="text-right">₹{{ "{:,.2f}".format(outward_igst) }}</td>
                     </tr>
-                    <tr class="tax-row cgst">
-                        <td>Central Tax (CGST)</td>
-                        <td>₹{{ "{:,.2f}".format(outward_cgst) }}</td>
-                    </tr>
-                    <tr class="tax-row sgst">
-                        <td>State Tax (SGST)</td>
-                        <td>₹{{ "{:,.2f}".format(outward_sgst) }}</td>
-                    </tr>
-                    <tr class="tax-row igst">
-                        <td>Integrated Tax (IGST)</td>
-                        <td>₹{{ "{:,.2f}".format(outward_igst) }}</td>
-                    </tr>
+                    {% endif %}
                     <tr class="total-row">
                         <td><strong>Total Tax on Outward Supplies</strong></td>
-                        <td><strong>₹{{ "{:,.2f}".format(outward_cgst + outward_sgst + outward_igst) }}</strong></td>
+                        <td></td>
+                        <td class="text-right"><strong>₹{{ "{:,.2f}".format(net_outward_cgst) }}</strong></td>
+                        <td class="text-right"><strong>₹{{ "{:,.2f}".format(net_outward_sgst) }}</strong></td>
+                        <td class="text-right"><strong>₹{{ "{:,.2f}".format(net_outward_igst) }}</strong></td>
                     </tr>
                 </tbody>
             </table>
