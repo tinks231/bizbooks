@@ -399,6 +399,7 @@ table tbody tr:hover {
                         <th style="text-align: right;">Paid</th>
                         <th style="text-align: right;">Unpaid</th>
                         <th style="text-align: center;">Invoices</th>
+                        <th style="text-align: center;">Action</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -411,6 +412,13 @@ table tbody tr:hover {
                         <td class="amount unpaid" style="text-align: right;">₹{{ "{:,.0f}".format(summary.unpaid) }}</td>
                         <td style="text-align: center; color: #7f8c8d; font-size: 13px;">
                             {{ summary.count }} invoice{{ 's' if summary.count != 1 else '' }}
+                        </td>
+                        <td style="text-align: center;">
+                            <a href="{{ url_for('admin.commission_agent_ledger', agent_id=agent_id) }}" 
+                               style="color: #3498db; text-decoration: none; font-weight: 600; font-size: 13px;"
+                               title="View full ledger for {{ summary.agent_name }}">
+                                📊 View Ledger
+                            </a>
                         </td>
                     </tr>
                     {% endfor %}

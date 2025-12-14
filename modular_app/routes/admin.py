@@ -1038,6 +1038,170 @@ def mark_commission_unpaid(commission_id):
         flash(f'❌ Error unmarking commission: {str(e)}', 'error')
         return redirect(url_for('admin.commission_reports'))
 
+
+@admin_bp.route('/commission-agent/<int:agent_id>/ledger')
+@require_tenant
+@login_required
+def commission_agent_ledger(agent_id):
+    """View commission agent ledger with all transactions"""
+    from models import CommissionAgent, InvoiceCommission, Invoice
+    from sqlalchemy import text
+    from decimal import Decimal
+    from datetime import datetime, timedelta
+    
+    tenant_id = get_current_tenant_id()
+    agent = CommissionAgent.query.filter_by(id=agent_id, tenant_id=tenant_id).first_or_404()
+    
+    # Get date range filters
+    start_date = request.args.get('start_date', '')
+    end_date = request.args.get('end_date', '')
+    
+    # Default to last 3 months if no dates provided
+    if not start_date:
+        start_date = (datetime.now() - timedelta(days=90)).strftime('%Y-%m-%d')
+    if not end_date:
+        end_date = datetime.now().strftime('%Y-%m-%d')
+    
+    # Get all commission records for this agent (earned)
+    commissions_query = InvoiceCommission.query.join(
+        Invoice, InvoiceCommission.invoice_id == Invoice.id
+    ).filter(
+        InvoiceCommission.tenant_id == tenant_id,
+        InvoiceCommission.agent_id == agent_id
+    ).filter(
+        Invoice.invoice_date >= datetime.strptime(start_date, '%Y-%m-%d').date()
+    ).filter(
+        Invoice.invoice_date <= datetime.strptime(end_date, '%Y-%m-%d').date()
+    ).order_by(Invoice.invoice_date.asc())
+    
+    commissions = commissions_query.all()
+    
+    # Get all commission payments from account_transactions (paid)
+    payments_result = db.session.execute(text("""
+        SELECT 
+            at.transaction_date,
+            at.debit_amount as amount,
+            at.voucher_number,
+            at.narration,
+            'payment' as type
+        FROM account_transactions at
+        WHERE at.tenant_id = :tenant_id
+        AND at.transaction_type = 'commission_expense'
+        AND at.narration LIKE :agent_name
+        AND at.transaction_date >= :start_date
+        AND at.transaction_date <= :end_date
+        ORDER BY at.transaction_date ASC
+    """), {
+        'tenant_id': tenant_id,
+        'agent_name': f'%{agent.name}%',
+        'start_date': datetime.strptime(start_date, '%Y-%m-%d').date(),
+        'end_date': datetime.strptime(end_date, '%Y-%m-%d').date()
+    }).fetchall()
+    
+    # Get all commission reversals from returns
+    reversals_result = db.session.execute(text("""
+        SELECT 
+            at.transaction_date,
+            at.credit_amount as amount,
+            at.voucher_number,
+            at.narration,
+            'reversal' as type
+        FROM account_transactions at
+        WHERE at.tenant_id = :tenant_id
+        AND at.transaction_type = 'commission_reversal'
+        AND at.narration LIKE :agent_name
+        AND at.transaction_date >= :start_date
+        AND at.transaction_date <= :end_date
+        ORDER BY at.transaction_date ASC
+    """), {
+        'tenant_id': tenant_id,
+        'agent_name': f'%{agent.name}%',
+        'start_date': datetime.strptime(start_date, '%Y-%m-%d').date(),
+        'end_date': datetime.strptime(end_date, '%Y-%m-%d').date()
+    }).fetchall()
+    
+    # Combine all transactions
+    transactions = []
+    
+    # Add commission earned entries
+    for comm in commissions:
+        transactions.append({
+            'date': comm.invoice.invoice_date,
+            'type': 'earned',
+            'reference': comm.invoice.invoice_number,
+            'invoice_id': comm.invoice_id,
+            'description': f'Commission earned on Invoice {comm.invoice.invoice_number} to {comm.invoice.customer_name}',
+            'debit': Decimal(str(comm.commission_amount)),  # Money earned (increase)
+            'credit': Decimal('0'),
+            'balance': Decimal('0'),  # Will calculate running balance below
+            'is_paid': comm.is_paid,
+            'paid_date': comm.paid_date
+        })
+    
+    # Add payment entries
+    for payment in payments_result:
+        transactions.append({
+            'date': payment[0],
+            'type': 'payment',
+            'reference': payment[2],  # voucher_number
+            'invoice_id': None,
+            'description': payment[3],  # narration
+            'debit': Decimal('0'),
+            'credit': Decimal(str(payment[1])),  # Money paid (decrease)
+            'balance': Decimal('0'),
+            'is_paid': True,
+            'paid_date': payment[0]
+        })
+    
+    # Add reversal entries
+    for reversal in reversals_result:
+        transactions.append({
+            'date': reversal[0],
+            'type': 'reversal',
+            'reference': reversal[2],  # voucher_number (return number)
+            'invoice_id': None,
+            'description': reversal[3],  # narration
+            'debit': Decimal('0'),
+            'credit': Decimal(str(reversal[1])),  # Commission reversed (decrease)
+            'balance': Decimal('0'),
+            'is_paid': None,
+            'paid_date': None
+        })
+    
+    # Sort all transactions by date
+    transactions.sort(key=lambda x: x['date'])
+    
+    # Calculate running balance
+    balance = Decimal('0')
+    for txn in transactions:
+        balance = balance + txn['debit'] - txn['credit']
+        txn['balance'] = balance
+    
+    # Calculate summary
+    total_earned = sum(txn['debit'] for txn in transactions if txn['type'] == 'earned')
+    total_paid = sum(txn['credit'] for txn in transactions if txn['type'] == 'payment')
+    total_reversed = sum(txn['credit'] for txn in transactions if txn['type'] == 'reversal')
+    net_earned = total_earned - total_reversed
+    outstanding = net_earned - total_paid
+    
+    summary = {
+        'total_earned': total_earned,
+        'total_reversed': total_reversed,
+        'net_earned': net_earned,
+        'total_paid': total_paid,
+        'outstanding': outstanding,
+        'status': 'overpaid' if outstanding < 0 else ('outstanding' if outstanding > 0 else 'settled')
+    }
+    
+    return render_template('admin/commission_agent_ledger.html',
+                         agent=agent,
+                         transactions=transactions,
+                         summary=summary,
+                         start_date=start_date,
+                         end_date=end_date,
+                         tenant=g.tenant)
+
+
 # Sites Management
 @admin_bp.route('/sites', strict_slashes=False)  # PERFORMANCE: Prevent 308 redirects
 @require_tenant
