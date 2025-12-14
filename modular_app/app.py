@@ -194,6 +194,9 @@ app.register_blueprint(diagnose_commission_bp)  # DIAGNOSTIC: Check commission s
 
 from routes.fix_commission_for_returns import fix_commission_for_returns_bp
 app.register_blueprint(fix_commission_for_returns_bp)  # MIGRATION: Fix commission amounts for existing returns
+
+from routes.diagnose_return_amounts import diagnose_return_amounts_bp
+app.register_blueprint(diagnose_return_amounts_bp)  # DIAGNOSTIC: Check return amounts and rounding
 from routes.diagnose_trial_balance import diagnose_trial_bp
 app.register_blueprint(diagnose_trial_bp)  # DIAGNOSTIC: Check trial balance components
 from routes.migration_add_purchase_bill_item_fields import migration_purchase_bill_items_bp
