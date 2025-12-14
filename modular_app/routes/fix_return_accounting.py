@@ -237,6 +237,101 @@ def fix_return_accounting():
                 print(f"   ✅ Added COGS reversal entry\n")
                 cogs_fixed_count += 1
         
+        # ============================================================
+        # PART 3: Fix Missing Commission Reversal Entries
+        # ============================================================
+        
+        print("\n" + "-"*80)
+        print("🔧 CHECKING FOR MISSING COMMISSION REVERSAL ENTRIES")
+        print("-"*80 + "\n")
+        
+        commission_fixed_count = 0
+        
+        # Find approved returns that have commission but no commission_reversal entry
+        returns_missing_commission = db.session.execute(text("""
+            SELECT 
+                r.id,
+                r.return_number,
+                r.invoice_id,
+                r.total_amount,
+                r.return_date
+            FROM returns r
+            WHERE r.tenant_id = :tenant_id
+            AND r.status = 'approved'
+            AND r.invoice_id IS NOT NULL
+            AND EXISTS (
+                SELECT 1 FROM invoice_commissions ic
+                WHERE ic.invoice_id = r.invoice_id
+                AND ic.tenant_id = :tenant_id
+                AND ic.is_paid = TRUE
+            )
+            AND NOT EXISTS (
+                SELECT 1 FROM account_transactions at
+                WHERE at.tenant_id = :tenant_id
+                AND at.reference_type = 'return'
+                AND at.reference_id = r.id
+                AND at.transaction_type = 'commission_reversal'
+            )
+            ORDER BY r.created_at
+        """), {'tenant_id': tenant_id}).fetchall()
+        
+        if not returns_missing_commission:
+            print("✅ No returns missing commission reversal entries!\n")
+        else:
+            print(f"Found {len(returns_missing_commission)} return(s) missing commission reversal:\n")
+            
+            for ret_comm in returns_missing_commission:
+                ret_id = ret_comm[0]
+                ret_num = ret_comm[1]
+                invoice_id = ret_comm[2]
+                return_amount = Decimal(str(ret_comm[3]))
+                ret_date = ret_comm[4]
+                
+                # Get commission record(s) for this invoice
+                commissions = db.session.execute(text("""
+                    SELECT 
+                        id,
+                        agent_name,
+                        commission_percentage,
+                        commission_amount
+                    FROM invoice_commissions
+                    WHERE invoice_id = :invoice_id
+                    AND tenant_id = :tenant_id
+                    AND is_paid = TRUE
+                """), {'invoice_id': invoice_id, 'tenant_id': tenant_id}).fetchall()
+                
+                for comm in commissions:
+                    comm_id = comm[0]
+                    agent_name = comm[1]
+                    comm_percentage = Decimal(str(comm[2]))
+                    
+                    # Calculate commission on return amount
+                    commission_on_return = (return_amount * comm_percentage) / 100
+                    
+                    print(f"   📦 {ret_num}: Reversing ₹{commission_on_return:.2f} commission for {agent_name}")
+                    
+                    # Create commission reversal entry
+                    db.session.execute(text("""
+                        INSERT INTO account_transactions
+                        (tenant_id, account_id, transaction_date, transaction_type,
+                         debit_amount, credit_amount, balance_after, reference_type, reference_id,
+                         voucher_number, narration, created_at, created_by)
+                        VALUES (:tenant_id, NULL, :transaction_date, 'commission_reversal',
+                                0.00, :credit_amount, 0.00, 'return', :return_id,
+                                :voucher, :narration, :created_at, NULL)
+                    """), {
+                        'tenant_id': tenant_id,
+                        'transaction_date': ret_date,
+                        'credit_amount': float(commission_on_return),
+                        'return_id': ret_id,
+                        'voucher': ret_num,
+                        'narration': f'Commission reversal for {agent_name} - Return {ret_num}',
+                        'created_at': now
+                    })
+                    
+                    print(f"   ✅ Added commission reversal entry\n")
+                    commission_fixed_count += 1
+        
         # Commit all changes
         db.session.commit()
         
@@ -244,15 +339,17 @@ def fix_return_accounting():
         print(f"🎉 SUCCESS!")
         print(f"   Refund entries fixed: {fixed_count}")
         print(f"   COGS reversal entries fixed: {cogs_fixed_count}")
+        print(f"   Commission reversal entries fixed: {commission_fixed_count}")
         print("="*80)
-        print("\n✅ Trial Balance should now be BALANCED!\n")
+        print("\n✅ Trial Balance & Commission Reports should now be ACCURATE!\n")
         
         return jsonify({
             'status': 'success',
             'message': f'Successfully fixed returns',
             'refund_entries_fixed': fixed_count,
             'cogs_reversal_entries_fixed': cogs_fixed_count,
-            'total_returns_fixed': max(fixed_count, cogs_fixed_count)
+            'commission_reversal_entries_fixed': commission_fixed_count,
+            'total_returns_fixed': max(fixed_count, cogs_fixed_count, commission_fixed_count)
         })
         
     except Exception as e:

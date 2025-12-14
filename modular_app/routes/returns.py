@@ -275,7 +275,10 @@ def approve(return_id):
         # STEP 5: Reverse loyalty points
         _reverse_loyalty_points(ret, tenant_id)
         
-        # STEP 6: Update return status
+        # STEP 6: Reverse commission for agents
+        _reverse_commission(ret, tenant_id)
+        
+        # STEP 7: Update return status
         ret.status = 'approved'
         ret.approved_at = datetime.now(pytz.timezone('Asia/Kolkata'))
         ret.approved_by = session.get('user_id')
@@ -631,6 +634,64 @@ def _reverse_loyalty_points(ret, tenant_id):
     db.session.add(loyalty_txn)
     
     print(f"✅ Reversed {points_to_deduct} loyalty points")
+
+
+def _reverse_commission(ret, tenant_id):
+    """Reverse commission for agents on returned items"""
+    if not ret.invoice_id:
+        return
+    
+    from models import InvoiceCommission
+    from sqlalchemy import text
+    
+    # Find all commission entries for this invoice
+    commissions = InvoiceCommission.query.filter_by(
+        invoice_id=ret.invoice_id,
+        tenant_id=tenant_id
+    ).all()
+    
+    if not commissions:
+        return  # No commission to reverse
+    
+    # Calculate commission on return amount
+    for commission in commissions:
+        # Calculate commission on the return amount
+        # Commission % is same as original invoice
+        commission_on_return = (Decimal(str(ret.total_amount)) * Decimal(str(commission.commission_percentage))) / 100
+        
+        # Reduce the invoice amount and commission amount
+        old_invoice_amount = Decimal(str(commission.invoice_amount))
+        old_commission_amount = Decimal(str(commission.commission_amount))
+        
+        new_invoice_amount = old_invoice_amount - Decimal(str(ret.total_amount))
+        new_commission_amount = old_commission_amount - commission_on_return
+        
+        # Update commission record
+        commission.invoice_amount = float(new_invoice_amount)
+        commission.commission_amount = float(new_commission_amount)
+        
+        # If commission was already paid, create a reversal accounting entry
+        if commission.is_paid and commission.paid_date:
+            # Create commission reversal accounting entry
+            # This reduces the commission expense
+            _create_account_transaction(
+                tenant_id=tenant_id,
+                account_id=None,  # Expense account, not tied to specific cash/bank
+                transaction_date=ret.return_date,
+                transaction_type='commission_reversal',
+                debit_amount=Decimal('0'),
+                credit_amount=commission_on_return,  # Credit reduces expense
+                balance_after=Decimal('0'),  # Not applicable for expense accounts
+                reference_type='return',
+                reference_id=ret.id,
+                voucher_number=ret.return_number,
+                narration=f'Commission reversal for {commission.agent_name} - Return {ret.return_number} (Original Invoice: {ret.invoice.invoice_number})',
+                created_by=None  # System adjustment
+            )
+            
+            print(f"✅ Reversed commission: {commission.agent_name} - ₹{commission_on_return:.2f} (was paid)")
+        else:
+            print(f"✅ Adjusted commission: {commission.agent_name} - ₹{commission_on_return:.2f} (not yet paid)")
 
 
 @returns_bp.route('/api/search-invoice')

@@ -1914,7 +1914,15 @@ def profit_loss():
         AND transaction_date BETWEEN :start_date AND :end_date
     """), {'tenant_id': tenant_id, 'start_date': start_date, 'end_date': end_date}).fetchone()[0]
     
-    total_commission_expenses = Decimal(str(commission_expenses_from_transactions or 0))
+    commission_reversal_from_transactions = db.session.execute(text("""
+        SELECT COALESCE(SUM(credit_amount), 0)
+        FROM account_transactions
+        WHERE tenant_id = :tenant_id
+        AND transaction_type = 'commission_reversal'
+        AND transaction_date BETWEEN :start_date AND :end_date
+    """), {'tenant_id': tenant_id, 'start_date': start_date, 'end_date': end_date}).fetchone()[0]
+    
+    total_commission_expenses = Decimal(str(commission_expenses_from_transactions or 0)) - Decimal(str(commission_reversal_from_transactions or 0))
     
     # Get commission details for display
     commission_expenses_detail = db.session.execute(text("""
@@ -2350,7 +2358,15 @@ def trial_balance():
         AND transaction_date <= :as_of_date
     """), {'tenant_id': tenant_id, 'as_of_date': as_of_date}).fetchone()[0]
     
-    commission_total = Decimal(str(commission_from_transactions or 0))
+    commission_reversal_from_transactions = db.session.execute(text("""
+        SELECT COALESCE(SUM(credit_amount), 0)
+        FROM account_transactions
+        WHERE tenant_id = :tenant_id
+        AND transaction_type = 'commission_reversal'
+        AND transaction_date <= :as_of_date
+    """), {'tenant_id': tenant_id, 'as_of_date': as_of_date}).fetchone()[0]
+    
+    commission_total = Decimal(str(commission_from_transactions or 0)) - Decimal(str(commission_reversal_from_transactions or 0))
     
     if commission_total > 0:
         accounts.append({
