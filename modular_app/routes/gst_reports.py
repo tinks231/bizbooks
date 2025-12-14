@@ -578,7 +578,7 @@ def summary():
         net_igst = total_igst - return_igst
         net_gst = total_gst - return_gst
         
-        # Group by month
+        # Group by month (GROSS amounts first)
         monthly_data = {}
         for invoice in invoices:
             month_key = invoice.invoice_date.strftime('%Y-%m')
@@ -597,6 +597,22 @@ def summary():
             igst_dec = Decimal(str(invoice.igst_amount)) if invoice.igst_amount else Decimal('0')
             monthly_data[month_key]['gst'] += cgst_dec + sgst_dec + igst_dec
             monthly_data[month_key]['count'] += 1
+        
+        # Subtract returns from monthly data
+        for ret in returns:
+            month_key = ret.return_date.strftime('%Y-%m')
+            if month_key in monthly_data:
+                monthly_data[month_key]['sales'] -= Decimal(str(ret.total_amount)) if ret.total_amount else Decimal('0')
+                # Calculate return GST from items
+                ret_taxable = Decimal('0')
+                ret_gst = Decimal('0')
+                for item in ret.items:
+                    ret_taxable += Decimal(str(item.taxable_amount)) if item.taxable_amount else Decimal('0')
+                    ret_gst += Decimal(str(item.cgst_amount)) if item.cgst_amount else Decimal('0')
+                    ret_gst += Decimal(str(item.sgst_amount)) if item.sgst_amount else Decimal('0')
+                    ret_gst += Decimal(str(item.igst_amount)) if item.igst_amount else Decimal('0')
+                monthly_data[month_key]['taxable'] -= ret_taxable
+                monthly_data[month_key]['gst'] -= ret_gst
     except Exception as e:
         print(f"❌ Error in summary report: {str(e)}")
         import traceback
@@ -623,6 +639,9 @@ def summary():
                          # NET amounts (after returns)
                          net_sales=net_sales,
                          net_taxable=net_taxable,
+                         net_cgst=net_cgst,
+                         net_sgst=net_sgst,
+                         net_igst=net_igst,
                          net_gst=net_gst,
                          invoice_count=len(invoices),
                          monthly_data=monthly_data)
