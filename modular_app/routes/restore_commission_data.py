@@ -78,22 +78,19 @@ def restore_commission_data():
             original_invoice_amount = Decimal(str(comm[8]))
             total_returned = Decimal(str(comm[9]))
             
-            # The ORIGINAL commission should be based on the ORIGINAL invoice amount
-            # (before any returns were processed)
-            # Current invoice.total_amount already reflects the return (it's the net amount)
-            # So we need to add back the returned amount to get the original
-            actual_original_invoice_amount = original_invoice_amount + total_returned
+            # CRITICAL FIX: The invoice.total_amount is NOT modified by returns!
+            # Returns only create accounting entries, they don't change the invoice total
+            # So original_invoice_amount is ALREADY the correct original amount
+            # We just need to recalculate commission based on that
             
-            # Calculate what the original commission should have been
-            original_commission = (actual_original_invoice_amount * comm_percentage) / 100
+            # Calculate what the original commission should be
+            original_commission = (original_invoice_amount * comm_percentage) / 100
             
             print(f"📦 Invoice: {invoice_number} (Agent: {agent_name})")
-            print(f"   Current DB values:")
-            print(f"     Invoice Amount: ₹{current_invoice_amount}")
-            print(f"     Commission: ₹{current_commission_amount}")
-            print(f"   Should be:")
-            print(f"     Original Invoice: ₹{actual_original_invoice_amount}")
-            print(f"     Original Commission: ₹{original_commission}")
+            print(f"   Current DB commission: ₹{current_commission_amount}")
+            print(f"   Invoice total (not modified by returns): ₹{original_invoice_amount}")
+            print(f"   Total returned: ₹{total_returned}")
+            print(f"   Correct commission ({comm_percentage}%): ₹{original_commission}")
             
             # Update to restore original values
             if current_commission_amount != original_commission:
@@ -104,7 +101,7 @@ def restore_commission_data():
                     WHERE id = :commission_id
                     AND tenant_id = :tenant_id
                 """), {
-                    'original_invoice_amount': float(actual_original_invoice_amount),
+                    'original_invoice_amount': float(original_invoice_amount),
                     'original_commission': float(original_commission),
                     'commission_id': commission_id,
                     'tenant_id': tenant_id
