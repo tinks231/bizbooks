@@ -248,6 +248,7 @@ def fix_return_accounting():
         commission_fixed_count = 0
         
         # Find approved returns that have commission but no commission_reversal entry
+        # IMPORTANT: Check ALL returns with commission, not just paid ones!
         returns_missing_commission = db.session.execute(text("""
             SELECT 
                 r.id,
@@ -263,7 +264,6 @@ def fix_return_accounting():
                 SELECT 1 FROM invoice_commissions ic
                 WHERE ic.invoice_id = r.invoice_id
                 AND ic.tenant_id = :tenant_id
-                AND ic.is_paid = TRUE
             )
             AND NOT EXISTS (
                 SELECT 1 FROM account_transactions at
@@ -287,7 +287,7 @@ def fix_return_accounting():
                 return_amount = Decimal(str(ret_comm[3]))
                 ret_date = ret_comm[4]
                 
-                # Get commission record(s) for this invoice
+                # Get commission record(s) for this invoice (paid or unpaid)
                 commissions = db.session.execute(text("""
                     SELECT 
                         id,
@@ -297,7 +297,6 @@ def fix_return_accounting():
                     FROM invoice_commissions
                     WHERE invoice_id = :invoice_id
                     AND tenant_id = :tenant_id
-                    AND is_paid = TRUE
                 """), {'invoice_id': invoice_id, 'tenant_id': tenant_id}).fetchall()
                 
                 for comm in commissions:
