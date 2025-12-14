@@ -346,6 +346,8 @@ def _restock_inventory(ret, tenant_id):
     if not default_site:
         raise Exception("No site found for inventory restocking")
     
+    total_cost_value = Decimal('0')
+    
     for return_item in ret.items:
         if not return_item.return_to_inventory or not return_item.product_id:
             continue
@@ -373,6 +375,7 @@ def _restock_inventory(ret, tenant_id):
         if item and item.cost_price:
             cost_value = Decimal(str(item.cost_price)) * return_item.quantity_returned
             item_stock.stock_value += cost_value
+            total_cost_value += cost_value
         
         # Create stock movement record
         movement = ItemStockMovement()
@@ -388,7 +391,36 @@ def _restock_inventory(ret, tenant_id):
         
         db.session.add(movement)
     
-    print(f"✅ Restocked {len(ret.items)} item(s) to inventory")
+    # Create accounting entry to balance the inventory increase
+    # When inventory is restocked, we need to reverse the COGS that was recorded when sold
+    # DEBIT Inventory (already reflected in item_stock.stock_value)
+    # CREDIT COGS (reduce expense)
+    if total_cost_value > 0:
+        ist = pytz.timezone('Asia/Kolkata')
+        now = datetime.now(ist)
+        
+        db.session.execute(text("""
+            INSERT INTO account_transactions
+            (tenant_id, account_id, transaction_date, transaction_type,
+             debit_amount, credit_amount, balance_after, reference_type, reference_id,
+             voucher_number, narration, created_at, created_by)
+            VALUES (:tenant_id, NULL, :transaction_date, 'cogs_reversal',
+                    0.00, :credit_amount, 0.00, 'return', :return_id,
+                    :voucher, :narration, :created_at, NULL)
+        """), {
+            'tenant_id': tenant_id,
+            'transaction_date': ret.return_date,
+            'credit_amount': float(total_cost_value),
+            'return_id': ret.id,
+            'voucher': ret.return_number,
+            'narration': f'COGS reversal for returned inventory - {ret.return_number}',
+            'created_at': now
+        })
+        
+        print(f"✅ Restocked {len(ret.items)} item(s) to inventory")
+        print(f"✅ Created COGS reversal entry: ₹{total_cost_value}")
+    else:
+        print(f"✅ Restocked {len(ret.items)} item(s) to inventory")
 
 
 def _process_refund_payment(ret, tenant_id, payment_account_id, payment_reference):

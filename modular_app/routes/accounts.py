@@ -1786,6 +1786,17 @@ def profit_loss():
     
     total_cogs = Decimal(str(cogs_from_transactions or 0))
     
+    # Subtract COGS reversals (from returns)
+    cogs_reversals = db.session.execute(text("""
+        SELECT COALESCE(SUM(credit_amount), 0)
+        FROM account_transactions
+        WHERE tenant_id = :tenant_id
+        AND transaction_type = 'cogs_reversal'
+        AND transaction_date BETWEEN :start_date AND :end_date
+    """), {'tenant_id': tenant_id, 'start_date': start_date, 'end_date': end_date}).fetchone()[0]
+    
+    total_cogs = total_cogs - Decimal(str(cogs_reversals or 0))
+    
     # Get COGS details for display (which invoices contributed to COGS)
     purchase_expenses_detail = db.session.execute(text("""
         SELECT 
@@ -2188,6 +2199,17 @@ def trial_balance():
     """), {'tenant_id': tenant_id, 'as_of_date': as_of_date}).fetchone()[0]
     
     cogs_total = Decimal(str(cogs_from_transactions or 0))
+    
+    # Subtract COGS reversals (from returns)
+    cogs_reversals = db.session.execute(text("""
+        SELECT COALESCE(SUM(credit_amount), 0)
+        FROM account_transactions
+        WHERE tenant_id = :tenant_id
+        AND transaction_type = 'cogs_reversal'
+        AND transaction_date <= :as_of_date
+    """), {'tenant_id': tenant_id, 'as_of_date': as_of_date}).fetchone()[0]
+    
+    cogs_total = cogs_total - Decimal(str(cogs_reversals or 0))
     
     # IMPORTANT: Do NOT show purchase_bills as COGS!
     # In double-entry: Purchases → Inventory (Asset), not Expense

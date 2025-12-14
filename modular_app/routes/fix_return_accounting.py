@@ -15,7 +15,7 @@ fix_return_accounting_bp = Blueprint('fix_return_accounting', __name__, url_pref
 @fix_return_accounting_bp.route('/fix-return-accounting')
 @require_tenant
 def fix_return_accounting():
-    """Fix old returns that are missing refund_payment accounting entries"""
+    """Fix old returns that are missing refund_payment or cogs_reversal entries"""
     tenant_id = get_current_tenant_id()
     
     try:
@@ -152,6 +152,92 @@ def fix_return_accounting():
             print(f"   ✅ Updated balance: ₹{current_balance} → ₹{new_balance}\n")
             
             fixed_count += 1
+        
+        # ============================================================
+        # PART 2: Fix Missing COGS Reversal Entries
+        # ============================================================
+        
+        print("\n" + "-"*80)
+        print("🔧 CHECKING FOR MISSING COGS REVERSAL ENTRIES")
+        print("-"*80 + "\n")
+        
+        # Find approved returns missing cogs_reversal entries
+        returns_missing_cogs = db.session.execute(text("""
+            SELECT 
+                r.id,
+                r.return_number,
+                r.total_amount
+            FROM returns r
+            WHERE r.tenant_id = :tenant_id
+            AND r.status = 'approved'
+            AND NOT EXISTS (
+                SELECT 1 FROM account_transactions at
+                WHERE at.tenant_id = :tenant_id
+                AND at.reference_type = 'return'
+                AND at.reference_id = r.id
+                AND at.transaction_type = 'cogs_reversal'
+            )
+            ORDER BY r.created_at
+        """), {'tenant_id': tenant_id}).fetchall()
+        
+        if not returns_missing_cogs:
+            print("✅ No returns missing COGS reversal entries!\n")
+        else:
+            print(f"Found {len(returns_missing_cogs)} return(s) missing COGS reversal:\n")
+            
+            for ret_cogs in returns_missing_cogs:
+                ret_id = ret_cogs[0]
+                ret_num = ret_cogs[1]
+                
+                # Calculate COGS value for this return
+                # Get all return items and their cost prices
+                items_result = db.session.execute(text("""
+                    SELECT 
+                        ri.quantity_returned,
+                        i.cost_price
+                    FROM return_items ri
+                    JOIN items i ON ri.product_id = i.id
+                    WHERE ri.return_id = :return_id
+                    AND ri.return_to_inventory = TRUE
+                """), {'return_id': ret_id}).fetchall()
+                
+                total_cost = Decimal('0')
+                for item in items_result:
+                    qty = Decimal(str(item[0]))
+                    cost = Decimal(str(item[1] or 0))
+                    total_cost += qty * cost
+                
+                if total_cost == 0:
+                    print(f"   ⚠️  {ret_num}: No cost value found - skipping")
+                    continue
+                
+                print(f"   📦 {ret_num}: Adding COGS reversal for ₹{total_cost}")
+                
+                # Get return date
+                ret_date = db.session.execute(text("""
+                    SELECT return_date FROM returns WHERE id = :id
+                """), {'id': ret_id}).scalar()
+                
+                # Create COGS reversal entry
+                db.session.execute(text("""
+                    INSERT INTO account_transactions
+                    (tenant_id, account_id, transaction_date, transaction_type,
+                     debit_amount, credit_amount, balance_after, reference_type, reference_id,
+                     voucher_number, narration, created_at, created_by)
+                    VALUES (:tenant_id, NULL, :transaction_date, 'cogs_reversal',
+                            0.00, :credit_amount, 0.00, 'return', :return_id,
+                            :voucher, :narration, :created_at, NULL)
+                """), {
+                    'tenant_id': tenant_id,
+                    'transaction_date': ret_date,
+                    'credit_amount': float(total_cost),
+                    'return_id': ret_id,
+                    'voucher': ret_num,
+                    'narration': f'COGS reversal for returned inventory - {ret_num}',
+                    'created_at': now
+                })
+                
+                print(f"   ✅ Added COGS reversal entry\n")
         
         # Commit all changes
         db.session.commit()
