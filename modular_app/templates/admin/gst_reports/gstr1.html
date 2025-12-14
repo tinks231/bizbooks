@@ -398,36 +398,36 @@
         </p>
     </div>
     
-    <!-- Summary Cards -->
+    <!-- Summary Cards (NET - After Returns) -->
     <div class="summary-cards">
         <div class="summary-card primary">
-            <div class="summary-card-label">Invoice Value</div>
-            <div class="summary-card-value">₹{{ "{:,.0f}".format(total_invoice_value) }}</div>
+            <div class="summary-card-label">Invoice Value{% if returns and returns|length > 0 %} (Net){% endif %}</div>
+            <div class="summary-card-value">₹{{ "{:,.0f}".format(net_invoice_value if (returns and returns|length > 0) else total_invoice_value) }}</div>
         </div>
         
         <div class="summary-card success">
-            <div class="summary-card-label">Taxable Value</div>
-            <div class="summary-card-value">₹{{ "{:,.0f}".format(total_taxable) }}</div>
+            <div class="summary-card-label">Taxable Value{% if returns and returns|length > 0 %} (Net){% endif %}</div>
+            <div class="summary-card-value">₹{{ "{:,.0f}".format(net_taxable if (returns and returns|length > 0) else total_taxable) }}</div>
         </div>
         
         <div class="summary-card danger">
-            <div class="summary-card-label">Total CGST</div>
-            <div class="summary-card-value">₹{{ "{:,.0f}".format(total_cgst) }}</div>
+            <div class="summary-card-label">Total CGST{% if returns and returns|length > 0 %} (Net){% endif %}</div>
+            <div class="summary-card-value">₹{{ "{:,.0f}".format(net_cgst if (returns and returns|length > 0) else total_cgst) }}</div>
         </div>
         
         <div class="summary-card warning">
-            <div class="summary-card-label">Total SGST</div>
-            <div class="summary-card-value">₹{{ "{:,.0f}".format(total_sgst) }}</div>
+            <div class="summary-card-label">Total SGST{% if returns and returns|length > 0 %} (Net){% endif %}</div>
+            <div class="summary-card-value">₹{{ "{:,.0f}".format(net_sgst if (returns and returns|length > 0) else total_sgst) }}</div>
         </div>
         
         <div class="summary-card purple">
-            <div class="summary-card-label">Total IGST</div>
-            <div class="summary-card-value">₹{{ "{:,.0f}".format(total_igst) }}</div>
+            <div class="summary-card-label">Total IGST{% if returns and returns|length > 0 %} (Net){% endif %}</div>
+            <div class="summary-card-value">₹{{ "{:,.0f}".format(net_igst if (returns and returns|length > 0) else total_igst) }}</div>
         </div>
         
         <div class="summary-card danger">
-            <div class="summary-card-label">Total GST</div>
-            <div class="summary-card-value">₹{{ "{:,.0f}".format(total_tax) }}</div>
+            <div class="summary-card-label">Total GST{% if returns and returns|length > 0 %} (Net){% endif %}</div>
+            <div class="summary-card-value">₹{{ "{:,.0f}".format(net_tax if (returns and returns|length > 0) else total_tax) }}</div>
         </div>
     </div>
     
