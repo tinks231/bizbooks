@@ -61,25 +61,33 @@ class ReturnItem(db.Model, TimestampMixin):
     
     def calculate_amounts(self, is_same_state=True):
         """Calculate all amounts based on quantity, rate, and GST"""
+        # Ensure all calculations use Decimal for precision
+        qty = Decimal(str(self.quantity_returned))
+        price = Decimal(str(self.unit_price))
+        gst_rate_dec = Decimal(str(self.gst_rate))
+        
         # Calculate taxable amount
-        self.taxable_amount = Decimal(str(self.quantity_returned)) * Decimal(str(self.unit_price))
+        self.taxable_amount = qty * price
         
         # Calculate GST
-        gst_amount = self.taxable_amount * (Decimal(str(self.gst_rate)) / Decimal('100'))
+        gst_amount = self.taxable_amount * (gst_rate_dec / Decimal('100'))
         
         if is_same_state:
             # Same state: Split into CGST & SGST
-            self.cgst_amount = gst_amount / Decimal('2')
-            self.sgst_amount = gst_amount / Decimal('2')
-            self.igst_amount = Decimal('0')
+            # Use proper rounding to avoid precision issues
+            half_gst = gst_amount / Decimal('2')
+            self.cgst_amount = half_gst.quantize(Decimal('0.01'))
+            self.sgst_amount = half_gst.quantize(Decimal('0.01'))
+            self.igst_amount = Decimal('0.00')
         else:
             # Different state: IGST
-            self.igst_amount = gst_amount
-            self.cgst_amount = Decimal('0')
-            self.sgst_amount = Decimal('0')
+            self.igst_amount = gst_amount.quantize(Decimal('0.01'))
+            self.cgst_amount = Decimal('0.00')
+            self.sgst_amount = Decimal('0.00')
         
-        # Calculate total
-        self.total_amount = self.taxable_amount + gst_amount
+        # Calculate total (use the rounded GST amounts)
+        total_gst = self.cgst_amount + self.sgst_amount + self.igst_amount
+        self.total_amount = self.taxable_amount + total_gst
         
         return self.total_amount
 

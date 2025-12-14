@@ -171,8 +171,17 @@ def create():
                 return_item.item_condition = conditions[idx] if idx < len(conditions) else 'resellable'
                 return_item.return_to_inventory = (return_item.item_condition == 'resellable')
                 
-                # Calculate amounts
-                return_item.calculate_amounts(is_same_state=is_same_state)
+                # Calculate amounts proportionally from original invoice to avoid rounding errors
+                # This ensures the return amounts match exactly with the original invoice proportions
+                qty_sold = Decimal(str(invoice_item.quantity))
+                qty_ret = Decimal(str(qty_returned))
+                proportion = qty_ret / qty_sold
+                
+                return_item.taxable_amount = (Decimal(str(invoice_item.taxable_value)) * proportion).quantize(Decimal('0.01'))
+                return_item.cgst_amount = (Decimal(str(invoice_item.cgst_amount or 0)) * proportion).quantize(Decimal('0.01'))
+                return_item.sgst_amount = (Decimal(str(invoice_item.sgst_amount or 0)) * proportion).quantize(Decimal('0.01'))
+                return_item.igst_amount = (Decimal(str(invoice_item.igst_amount or 0)) * proportion).quantize(Decimal('0.01'))
+                return_item.total_amount = (Decimal(str(invoice_item.total_amount)) * proportion).quantize(Decimal('0.01'))
                 
                 # Add to return
                 ret.items.append(return_item)
