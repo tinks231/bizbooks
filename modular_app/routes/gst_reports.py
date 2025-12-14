@@ -377,11 +377,91 @@ def gstr3b():
         print(f"❌ Error calculating inward supplies: {str(e)}")
         # Continue with zero ITC if calculation fails
     
-    # Calculate net tax liability (using NET outward supplies after returns)
-    net_cgst_liability = net_outward_cgst - inward_cgst
-    net_sgst_liability = net_outward_sgst - inward_sgst
-    net_igst_liability = net_outward_igst - inward_igst
-    total_tax_liability = net_cgst_liability + net_sgst_liability + net_igst_liability
+    # ========== CALCULATE TAX LIABILITY WITH ITC SET-OFF ==========
+    # Step 1: Calculate initial liability (before cross-utilization)
+    cgst_before_setoff = net_outward_cgst - inward_cgst
+    sgst_before_setoff = net_outward_sgst - inward_sgst
+    igst_before_setoff = net_outward_igst - inward_igst
+    
+    # Step 2: Identify excess credits and liabilities
+    cgst_excess = Decimal('0')
+    sgst_excess = Decimal('0')
+    igst_excess = Decimal('0')
+    
+    cgst_payable = Decimal('0')
+    sgst_payable = Decimal('0')
+    igst_payable = Decimal('0')
+    
+    if cgst_before_setoff < 0:
+        cgst_excess = abs(cgst_before_setoff)
+    else:
+        cgst_payable = cgst_before_setoff
+    
+    if sgst_before_setoff < 0:
+        sgst_excess = abs(sgst_before_setoff)
+    else:
+        sgst_payable = sgst_before_setoff
+    
+    if igst_before_setoff < 0:
+        igst_excess = abs(igst_before_setoff)
+    else:
+        igst_payable = igst_before_setoff
+    
+    # Step 3: Cross-utilization (ITC Set-off)
+    # Rule: Excess CGST & SGST can be used to pay IGST
+    #       Excess IGST can be used to pay CGST & SGST
+    
+    cgst_used_for_igst = Decimal('0')
+    sgst_used_for_igst = Decimal('0')
+    igst_used_for_cgst = Decimal('0')
+    igst_used_for_sgst = Decimal('0')
+    
+    # If IGST is payable, use excess CGST/SGST
+    if igst_payable > 0:
+        # Use CGST excess first
+        if cgst_excess > 0:
+            if cgst_excess >= igst_payable:
+                cgst_used_for_igst = igst_payable
+                igst_payable = Decimal('0')
+            else:
+                cgst_used_for_igst = cgst_excess
+                igst_payable -= cgst_excess
+        
+        # Then use SGST excess if IGST still payable
+        if igst_payable > 0 and sgst_excess > 0:
+            if sgst_excess >= igst_payable:
+                sgst_used_for_igst = igst_payable
+                igst_payable = Decimal('0')
+            else:
+                sgst_used_for_igst = sgst_excess
+                igst_payable -= sgst_excess
+    
+    # If CGST/SGST is payable, use excess IGST
+    if cgst_payable > 0 and igst_excess > 0:
+        if igst_excess >= cgst_payable:
+            igst_used_for_cgst = cgst_payable
+            cgst_payable = Decimal('0')
+            igst_excess -= igst_used_for_cgst
+        else:
+            igst_used_for_cgst = igst_excess
+            cgst_payable -= igst_excess
+            igst_excess = Decimal('0')
+    
+    if sgst_payable > 0 and igst_excess > 0:
+        if igst_excess >= sgst_payable:
+            igst_used_for_sgst = sgst_payable
+            sgst_payable = Decimal('0')
+        else:
+            igst_used_for_sgst = igst_excess
+            sgst_payable -= igst_excess
+    
+    # Step 4: Final tax liability
+    total_tax_liability = cgst_payable + sgst_payable + igst_payable
+    
+    # For backward compatibility
+    net_cgst_liability = cgst_before_setoff
+    net_sgst_liability = sgst_before_setoff
+    net_igst_liability = igst_before_setoff
     
     return render_template('admin/gst_reports/gstr3b.html',
                          tenant=g.tenant,
@@ -409,7 +489,24 @@ def gstr3b():
                          inward_cgst=inward_cgst,
                          inward_sgst=inward_sgst,
                          inward_igst=inward_igst,
-                         # Net tax liability
+                         # Tax liability (before set-off)
+                         cgst_before_setoff=cgst_before_setoff,
+                         sgst_before_setoff=sgst_before_setoff,
+                         igst_before_setoff=igst_before_setoff,
+                         # Excess credits
+                         cgst_excess=cgst_excess,
+                         sgst_excess=sgst_excess,
+                         igst_excess=igst_excess,
+                         # Set-off (cross-utilization)
+                         cgst_used_for_igst=cgst_used_for_igst,
+                         sgst_used_for_igst=sgst_used_for_igst,
+                         igst_used_for_cgst=igst_used_for_cgst,
+                         igst_used_for_sgst=igst_used_for_sgst,
+                         # Final payable (after set-off)
+                         cgst_payable=cgst_payable,
+                         sgst_payable=sgst_payable,
+                         igst_payable=igst_payable,
+                         # Backward compatibility
                          net_cgst=net_cgst_liability,
                          net_sgst=net_sgst_liability,
                          net_igst=net_igst_liability,
@@ -448,6 +545,39 @@ def summary():
         total_igst = sum([Decimal(str(inv.igst_amount)) if inv.igst_amount else Decimal('0') for inv in invoices])
         total_gst = total_cgst + total_sgst + total_igst
         
+        # ========== SUBTRACT RETURNS ==========
+        from models.return_model import Return
+        
+        returns = Return.query.filter_by(tenant_id=tenant_id).filter(
+            Return.return_date >= start_date,
+            Return.return_date <= end_date,
+            Return.status == 'approved'
+        ).all()
+        
+        return_sales = Decimal('0')
+        return_taxable = Decimal('0')
+        return_cgst = Decimal('0')
+        return_sgst = Decimal('0')
+        return_igst = Decimal('0')
+        
+        for ret in returns:
+            return_sales += Decimal(str(ret.total_amount)) if ret.total_amount else Decimal('0')
+            for item in ret.items:
+                return_taxable += Decimal(str(item.taxable_amount)) if item.taxable_amount else Decimal('0')
+                return_cgst += Decimal(str(item.cgst_amount)) if item.cgst_amount else Decimal('0')
+                return_sgst += Decimal(str(item.sgst_amount)) if item.sgst_amount else Decimal('0')
+                return_igst += Decimal(str(item.igst_amount)) if item.igst_amount else Decimal('0')
+        
+        return_gst = return_cgst + return_sgst + return_igst
+        
+        # Calculate NET amounts (after returns)
+        net_sales = total_sales - return_sales
+        net_taxable = total_taxable - return_taxable
+        net_cgst = total_cgst - return_cgst
+        net_sgst = total_sgst - return_sgst
+        net_igst = total_igst - return_igst
+        net_gst = total_gst - return_gst
+        
         # Group by month
         monthly_data = {}
         for invoice in invoices:
@@ -478,12 +608,19 @@ def summary():
                          tenant=g.tenant,
                          start_date=start_date_str,
                          end_date=end_date_str,
+                         # Gross amounts (before returns)
                          total_sales=total_sales,
                          total_taxable=total_taxable,
-                         total_cgst=total_cgst,
-                         total_sgst=total_sgst,
-                         total_igst=total_igst,
                          total_gst=total_gst,
+                         # Returns
+                         return_sales=return_sales,
+                         return_taxable=return_taxable,
+                         return_gst=return_gst,
+                         returns_count=len(returns),
+                         # NET amounts (after returns)
+                         net_sales=net_sales,
+                         net_taxable=net_taxable,
+                         net_gst=net_gst,
                          invoice_count=len(invoices),
                          monthly_data=monthly_data)
 

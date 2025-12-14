@@ -165,26 +165,38 @@
     </form>
 </div>
 
-<!-- Summary Stats -->
+<!-- Summary Stats (NET - After Returns) -->
 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px;">
     <div class="stat-card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
-        <div style="font-size: 12px; opacity: 0.9; margin-bottom: 8px;">Total Sales</div>
-        <div style="font-size: 28px; font-weight: 700;">₹{{ "{:,.0f}".format(total_sales) }}</div>
+        <div style="font-size: 12px; opacity: 0.9; margin-bottom: 8px;">Total Sales{% if returns_count > 0 %} (Net){% endif %}</div>
+        <div style="font-size: 28px; font-weight: 700;">₹{{ "{:,.0f}".format(net_sales) }}</div>
+        {% if returns_count > 0 %}
+        <div style="font-size: 11px; opacity: 0.8; margin-top: 4px;">After {{ returns_count }} return(s)</div>
+        {% endif %}
     </div>
     
     <div class="stat-card" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white;">
-        <div style="font-size: 12px; opacity: 0.9; margin-bottom: 8px;">Taxable Value</div>
-        <div style="font-size: 28px; font-weight: 700;">₹{{ "{:,.0f}".format(total_taxable) }}</div>
+        <div style="font-size: 12px; opacity: 0.9; margin-bottom: 8px;">Taxable Value{% if returns_count > 0 %} (Net){% endif %}</div>
+        <div style="font-size: 28px; font-weight: 700;">₹{{ "{:,.0f}".format(net_taxable) }}</div>
+        {% if returns_count > 0 %}
+        <div style="font-size: 11px; opacity: 0.8; margin-top: 4px;">Gross: ₹{{ "{:,.0f}".format(total_taxable) }}</div>
+        {% endif %}
     </div>
     
     <div class="stat-card" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: white;">
-        <div style="font-size: 12px; opacity: 0.9; margin-bottom: 8px;">Total GST</div>
-        <div style="font-size: 28px; font-weight: 700;">₹{{ "{:,.0f}".format(total_gst) }}</div>
+        <div style="font-size: 12px; opacity: 0.9; margin-bottom: 8px;">Total GST{% if returns_count > 0 %} (Net){% endif %}</div>
+        <div style="font-size: 28px; font-weight: 700;">₹{{ "{:,.0f}".format(net_gst) }}</div>
+        {% if returns_count > 0 %}
+        <div style="font-size: 11px; opacity: 0.8; margin-top: 4px;">Gross: ₹{{ "{:,.0f}".format(total_gst) }}</div>
+        {% endif %}
     </div>
     
     <div class="stat-card" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); color: white;">
-        <div style="font-size: 12px; opacity: 0.9; margin-bottom: 8px;">Invoices</div>
+        <div style="font-size: 12px; opacity: 0.9; margin-bottom: 8px;">Transactions</div>
         <div style="font-size: 28px; font-weight: 700;">{{ invoice_count }}</div>
+        {% if returns_count > 0 %}
+        <div style="font-size: 11px; opacity: 0.8; margin-top: 4px;">{{ returns_count }} return(s)</div>
+        {% endif %}
     </div>
 </div>
 
