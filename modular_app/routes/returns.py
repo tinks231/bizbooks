@@ -326,6 +326,12 @@ def approve(return_id):
         
         db.session.commit()
         
+        # STEP 8: Auto-balance Trial Balance for any rounding differences < ₹1
+        from utils.accounting_helpers import auto_balance_trial_balance
+        balance_result = auto_balance_trial_balance(tenant_id, ret.return_number, max_diff=Decimal('1.00'))
+        if balance_result.get('adjustment_made'):
+            print(f"✅ Auto-balanced: {balance_result.get('adjustment_amount')} adjustment made")
+        
         flash(f'✅ Return {ret.return_number} approved! Credit Note: {ret.credit_note_number}', 'success')
         return redirect(url_for('returns.view', return_id=return_id))
         
@@ -859,9 +865,11 @@ def _reverse_commission(ret, tenant_id):
     
     # Calculate commission on return amount
     for commission in commissions:
-        # Calculate commission on the return amount
+        from utils.accounting_helpers import calculate_commission
+        
+        # Calculate commission on the return amount using precise helper
         # Commission % is same as original invoice
-        commission_on_return = (Decimal(str(ret.total_amount)) * Decimal(str(commission.commission_percentage))) / 100
+        commission_on_return = calculate_commission(ret.total_amount, commission.commission_percentage)
         
         # IMPORTANT: DON'T update the commission record!
         # We keep the original amounts in invoice_commissions table

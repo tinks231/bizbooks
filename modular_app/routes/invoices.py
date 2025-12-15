@@ -619,13 +619,15 @@ def create():
             if commission_agent_id and commission_agent_id.strip() and commission_percentage:
                 try:
                     from models import CommissionAgent, InvoiceCommission
+                    from utils.accounting_helpers import calculate_commission, round_currency
                     
                     agent_id = int(commission_agent_id)
                     agent = CommissionAgent.query.get(agent_id)
                     
                     if agent and agent.tenant_id == tenant_id:
-                        comm_percentage = float(commission_percentage)
-                        commission_amount = (invoice.total_amount * comm_percentage) / 100
+                        comm_percentage = Decimal(str(commission_percentage))
+                        # Use helper function for precise commission calculation
+                        commission_amount = calculate_commission(invoice.total_amount, comm_percentage)
                         
                         commission_record = InvoiceCommission(
                             tenant_id=tenant_id,
@@ -633,15 +635,15 @@ def create():
                             agent_id=agent.id,
                             agent_name=agent.name,  # Denormalized
                             agent_code=agent.code,  # Denormalized
-                            commission_percentage=comm_percentage,
-                            invoice_amount=invoice.total_amount,
-                            commission_amount=commission_amount,
+                            commission_percentage=float(comm_percentage),
+                            invoice_amount=float(invoice.total_amount),
+                            commission_amount=float(commission_amount),  # Store as float but calculated precisely
                             is_paid=False
                         )
                         
                         db.session.add(commission_record)
                         db.session.commit()
-                        print(f"💰 Commission saved: {agent.name} will earn ₹{commission_amount:.2f} ({comm_percentage}% of ₹{invoice.total_amount})")
+                        print(f"💰 Commission saved: {agent.name} will earn ₹{commission_amount} ({comm_percentage}% of ₹{invoice.total_amount})")
                 except Exception as e:
                     print(f"⚠️ Error saving commission: {str(e)}")
                     # Don't fail invoice creation if commission save fails

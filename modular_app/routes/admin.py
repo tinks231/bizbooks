@@ -976,6 +976,13 @@ def mark_commission_paid(commission_id):
         
         db.session.commit()
         
+        # Auto-balance Trial Balance for any rounding differences < ₹1
+        from utils.accounting_helpers import auto_balance_trial_balance
+        from decimal import Decimal
+        balance_result = auto_balance_trial_balance(tenant_id, f'COMM-{commission.id}', max_diff=Decimal('1.00'))
+        if balance_result.get('adjustment_made'):
+            print(f"✅ Auto-balanced: ₹{balance_result.get('adjustment_amount')} adjustment made")
+        
         print(f"\n✅ Double-entry for commission payment:")
         print(f"   DEBIT:  Commission Expense  ₹{commission.commission_amount:.2f}")
         print(f"   CREDIT: {account_name}       ₹{commission.commission_amount:.2f}\n")
