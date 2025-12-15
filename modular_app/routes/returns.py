@@ -220,8 +220,33 @@ def create():
                 sgst_amount += Decimal(str(return_item.sgst_amount or 0))
                 igst_amount += Decimal(str(return_item.igst_amount or 0))
             
+            # ============================================================
+            # 🔧 CRITICAL FIX: Apply Proportional Round-Off Adjustment
+            # ============================================================
+            # Calculate what % of the invoice is being returned
+            invoice_items_total = Decimal('0')
+            for inv_item in invoice.items:
+                invoice_items_total += Decimal(str(inv_item.total_amount))
+            
+            # Calculate proportion of invoice being returned
+            return_proportion = total_amount / invoice_items_total if invoice_items_total > 0 else Decimal('0')
+            
+            # Apply proportional round-off adjustment
+            invoice_round_off = Decimal(str(invoice.round_off)) if invoice.round_off else Decimal('0')
+            proportional_round_off = (invoice_round_off * return_proportion).quantize(Decimal('0.01'))
+            
+            # Adjust total amount to include proportional round-off
+            adjusted_total = (total_amount + proportional_round_off).quantize(Decimal('0.01'))
+            
+            print(f'📊 Return Calculation:')
+            print(f'  - Items total (before round-off): ₹{total_amount}')
+            print(f'  - Invoice round-off: ₹{invoice_round_off}')
+            print(f'  - Return proportion: {return_proportion * 100:.2f}%')
+            print(f'  - Proportional round-off: ₹{proportional_round_off}')
+            print(f'  - Final return total: ₹{adjusted_total}')
+            
             # Set return totals
-            ret.total_amount = total_amount
+            ret.total_amount = adjusted_total  # Use adjusted total with round-off
             ret.taxable_amount = taxable_amount
             ret.cgst_amount = cgst_amount
             ret.sgst_amount = sgst_amount
@@ -1008,6 +1033,7 @@ def api_get_invoice_items(invoice_id):
         'customer_name': invoice.customer_name,
         'invoice_date': invoice.invoice_date.strftime('%Y-%m-%d'),
         'total_amount': float(invoice.total_amount),
+        'round_off': float(invoice.round_off) if invoice.round_off else 0.0,  # CRITICAL: Send round-off to frontend
         'payment_status': invoice.payment_status,
         'items': items
     })

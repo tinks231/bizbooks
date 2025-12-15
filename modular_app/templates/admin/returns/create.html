@@ -232,6 +232,8 @@
 <script>
 let selectedInvoice = null;
 let invoiceItems = [];
+let invoiceRoundOff = 0;  // Store invoice round-off adjustment
+let invoiceTotalAmount = 0;  // Store original invoice total
 let debounceTimer = null;
 
 // Invoice search with debounce
@@ -322,6 +324,11 @@ function loadInvoiceItems(invoiceId) {
         .then(response => response.json())
         .then(data => {
             invoiceItems = data.items;
+            invoiceRoundOff = data.round_off || 0;  // Store round-off adjustment
+            invoiceTotalAmount = data.total_amount || 0;  // Store original invoice total
+            
+            console.log(`📊 Invoice Round-Off: ₹${invoiceRoundOff.toFixed(2)}, Total: ₹${invoiceTotalAmount.toFixed(2)}`);
+            
             displayInvoiceItems(data);
             
             // Show payment method info
@@ -435,6 +442,12 @@ function calculateRefund() {
     let totalGST = 0;
     let totalRefund = 0;
     
+    // Calculate total invoice item amounts (before round-off)
+    let invoiceItemsTotal = 0;
+    invoiceItems.forEach(item => {
+        invoiceItemsTotal += item.total_amount;
+    });
+    
     const rows = document.querySelectorAll('#itemsTableBody tr');
     rows.forEach((row, index) => {
         const checkbox = document.getElementById(`select_${index}`);
@@ -472,9 +485,27 @@ function calculateRefund() {
         document.getElementById(`amount_${index}`).textContent = itemTotal.toFixed(2);
     });
     
+    // ============================================================
+    // 🔧 CRITICAL FIX: Apply Proportional Round-Off Adjustment
+    // ============================================================
+    // Calculate what % of the invoice is being returned
+    const returnProportion = totalRefund / invoiceItemsTotal;
+    
+    // Apply proportional round-off
+    const proportionalRoundOff = invoiceRoundOff * returnProportion;
+    const finalRefundTotal = totalRefund + proportionalRoundOff;
+    
+    console.log('=== RETURN CALCULATION DEBUG ===');
+    console.log(`Items total (before round-off): ₹${totalRefund.toFixed(2)}`);
+    console.log(`Invoice round-off: ₹${invoiceRoundOff.toFixed(2)}`);
+    console.log(`Return proportion: ${(returnProportion * 100).toFixed(2)}%`);
+    console.log(`Proportional round-off: ₹${proportionalRoundOff.toFixed(2)}`);
+    console.log(`Final refund total: ₹${finalRefundTotal.toFixed(2)}`);
+    console.log('================================');
+    
     document.getElementById('totalTaxable').textContent = totalTaxable.toFixed(2);
     document.getElementById('totalGST').textContent = totalGST.toFixed(2);
-    document.getElementById('totalRefund').textContent = totalRefund.toFixed(2);
+    document.getElementById('totalRefund').textContent = finalRefundTotal.toFixed(2);
 }
 
 // Form validation
