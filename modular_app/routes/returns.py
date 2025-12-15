@@ -869,7 +869,10 @@ def _reverse_commission(ret, tenant_id):
         
         # Calculate commission on the return amount using precise helper
         # Commission % is same as original invoice
+        # IMPORTANT: Using ret.total_amount (the final return total including GST)
+        print(f"🔍 DEBUG: Calculating commission reversal - Return total: ₹{ret.total_amount}, Percentage: {commission.commission_percentage}%")
         commission_on_return = calculate_commission(ret.total_amount, commission.commission_percentage)
+        print(f"🔍 DEBUG: Commission reversal amount: ₹{commission_on_return}")
         
         # IMPORTANT: DON'T update the commission record!
         # We keep the original amounts in invoice_commissions table
