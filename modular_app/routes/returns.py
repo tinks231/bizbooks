@@ -424,19 +424,14 @@ def delete(return_id):
                 if invoice.payment_status == 'partial':
                     invoice.balance_due = invoice.total_amount - invoice.paid_amount
             
-            # Reverse commission adjustments
-            if ret.invoice_id:
-                from models import InvoiceCommission
-                commissions = InvoiceCommission.query.filter_by(
-                    invoice_id=ret.invoice_id,
-                    tenant_id=tenant_id
-                ).all()
-                
-                for commission in commissions:
-                    # Add back the commission amount
-                    commission_on_return = (Decimal(str(ret.total_amount)) * Decimal(str(commission.commission_percentage))) / 100
-                    commission.invoice_amount = float(commission.invoice_amount) + float(ret.total_amount)
-                    commission.commission_amount = float(commission.commission_amount) + float(commission_on_return)
+            # NOTE: We DO NOT modify invoice_commissions table when deleting returns!
+            # The commission_amount in invoice_commissions should always be the ORIGINAL
+            # commission on the ORIGINAL invoice. Reversals are tracked separately in
+            # account_transactions (which we delete below at line 457-463).
+            # This maintains data integrity and allows the ledger to show:
+            # - Original earned amount (from invoice_commissions)
+            # - Reversals (from account_transactions with type='commission_reversal')
+            # - Net commission = earned - reversals
             
             # Reverse loyalty points deduction (add points back)
             if ret.customer_id:
