@@ -1924,6 +1924,9 @@ def profit_loss():
     
     total_commission_expenses = Decimal(str(commission_expenses_from_transactions or 0)) - Decimal(str(commission_reversal_from_transactions or 0))
     
+    # CRITICAL FIX: Commission expenses can be negative when reversals exceed expenses
+    # This is valid and should be shown as negative (reduces total expenses)
+    
     # Get commission details for display
     commission_expenses_detail = db.session.execute(text("""
         SELECT 
@@ -2407,13 +2410,26 @@ def trial_balance():
     
     commission_total = Decimal(str(commission_from_transactions or 0)) - Decimal(str(commission_reversal_from_transactions or 0))
     
-    if commission_total > 0:
-        accounts.append({
-            'account_name': 'Commission Expenses',
-            'category': 'Expenses',
-            'debit': commission_total,
-            'credit': Decimal('0')
-        })
+    # CRITICAL FIX: Show commission account even if negative (when reversals > expenses)
+    # Negative balance in expense account = CREDIT balance
+    if commission_total != 0:
+        if commission_total > 0:
+            # Normal: Expenses exceed reversals (DEBIT balance)
+            accounts.append({
+                'account_name': 'Commission Expenses',
+                'category': 'Expenses',
+                'debit': commission_total,
+                'credit': Decimal('0')
+            })
+        else:
+            # Unusual: Reversals exceed expenses (CREDIT balance)
+            # Show as negative expense (reduces total expenses)
+            accounts.append({
+                'account_name': 'Commission Expenses (Reversal Excess)',
+                'category': 'Expenses',
+                'debit': Decimal('0'),
+                'credit': abs(commission_total)
+            })
     
     # 11. Owner's Equity / Capital (from Opening Balance Equity - Credit Balance)
     # These are entries with account_id = NULL and transaction_type in:

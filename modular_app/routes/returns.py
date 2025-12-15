@@ -722,7 +722,7 @@ def _process_refund_payment(ret, tenant_id, payment_account_id, payment_referenc
             'created_at': now
         })
     
-    # Entry 3: DEBIT Round-off (if any)
+    # Entry 3: Round-off adjustment (if any)
     # Calculate round-off = total - (taxable + gst)
     gross_before_roundoff = Decimal(str(ret.taxable_amount)) + \
                            Decimal(str(ret.cgst_amount or 0)) + \
@@ -731,24 +731,49 @@ def _process_refund_payment(ret, tenant_id, payment_account_id, payment_referenc
     round_off = Decimal(str(ret.total_amount)) - gross_before_roundoff
     
     if round_off != 0:
-        db.session.execute(text("""
-            INSERT INTO account_transactions
-            (tenant_id, account_id, transaction_date, transaction_type,
-             debit_amount, credit_amount, balance_after, reference_type, reference_id,
-             voucher_number, narration, created_at, created_by)
-            VALUES (:tenant_id, NULL, :transaction_date, 'round_off_expense',
-                    :debit_amount, 0.00, :debit_amount, 'return', :return_id,
-                    :voucher, :narration, :created_at, NULL)
-        """), {
-            'tenant_id': tenant_id,
-            'transaction_date': ret.return_date,
-            'debit_amount': float(abs(round_off)),
-            'return_id': ret.id,
-            'voucher': ret.return_number,
-            'narration': f'Round-off on return {ret.return_number}',
-            'created_at': now
-        })
-        print(f"✅ Created round-off entry: ₹{round_off}")
+        # CRITICAL FIX: Handle round-off sign correctly
+        # If round_off is NEGATIVE (e.g., -0.10): CREDIT Round-off (reduces total)
+        # If round_off is POSITIVE (e.g., +0.10): DEBIT Round-off (increases total)
+        if round_off < 0:
+            # Negative round-off: CREDIT entry
+            db.session.execute(text("""
+                INSERT INTO account_transactions
+                (tenant_id, account_id, transaction_date, transaction_type,
+                 debit_amount, credit_amount, balance_after, reference_type, reference_id,
+                 voucher_number, narration, created_at, created_by)
+                VALUES (:tenant_id, NULL, :transaction_date, 'round_off_expense',
+                        0.00, :credit_amount, 0.00, 'return', :return_id,
+                        :voucher, :narration, :created_at, NULL)
+            """), {
+                'tenant_id': tenant_id,
+                'transaction_date': ret.return_date,
+                'credit_amount': float(abs(round_off)),
+                'return_id': ret.id,
+                'voucher': ret.return_number,
+                'narration': f'Round-off adjustment (negative) on return {ret.return_number}',
+                'created_at': now
+            })
+            print(f"✅ Created round-off CREDIT entry: ₹{abs(round_off)}")
+        else:
+            # Positive round-off: DEBIT entry
+            db.session.execute(text("""
+                INSERT INTO account_transactions
+                (tenant_id, account_id, transaction_date, transaction_type,
+                 debit_amount, credit_amount, balance_after, reference_type, reference_id,
+                 voucher_number, narration, created_at, created_by)
+                VALUES (:tenant_id, NULL, :transaction_date, 'round_off_expense',
+                        :debit_amount, 0.00, :debit_amount, 'return', :return_id,
+                        :voucher, :narration, :created_at, NULL)
+            """), {
+                'tenant_id': tenant_id,
+                'transaction_date': ret.return_date,
+                'debit_amount': float(round_off),
+                'return_id': ret.id,
+                'voucher': ret.return_number,
+                'narration': f'Round-off adjustment (positive) on return {ret.return_number}',
+                'created_at': now
+            })
+            print(f"✅ Created round-off DEBIT entry: ₹{round_off}")
     
     # Entry 4: CREDIT Cash/Bank (money going out)
     new_balance = Decimal(str(account.current_balance)) - ret.total_amount
