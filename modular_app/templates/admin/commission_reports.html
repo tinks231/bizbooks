@@ -602,6 +602,10 @@ table tbody tr:hover {
         document.getElementById('cashAccountSelect').required = true;
         document.getElementById('bankAccountSelect').required = false;
         
+        // CRITICAL FIX: Initialize disabled state correctly
+        document.getElementById('cashAccountSelect').disabled = false;
+        document.getElementById('bankAccountSelect').disabled = true;
+        
         // Clear selections
         document.getElementById('cashAccountSelect').value = '';
         document.getElementById('bankAccountSelect').value = '';
@@ -625,6 +629,9 @@ table tbody tr:hover {
             cashSelect.required = false;
             bankSelect.required = true;
             cashSelect.value = ''; // Clear cash selection
+            // CRITICAL FIX: Disable hidden select so it doesn't submit
+            cashSelect.disabled = true;
+            bankSelect.disabled = false;
         } else {
             // Show cash accounts, hide bank
             cashSection.style.display = 'block';
@@ -632,6 +639,9 @@ table tbody tr:hover {
             cashSelect.required = true;
             bankSelect.required = false;
             bankSelect.value = ''; // Clear bank selection
+            // CRITICAL FIX: Disable hidden select so it doesn't submit
+            cashSelect.disabled = false;
+            bankSelect.disabled = true;
         }
     }
     
