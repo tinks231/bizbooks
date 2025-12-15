@@ -2274,8 +2274,9 @@ def trial_balance():
             'credit': Decimal('0')
         })
     
-    # 6.6. Round-off Expense (from returns) (Expense - Debit Balance)
-    round_off_from_returns = db.session.execute(text("""
+    # 6.6. Round-off Expense (from returns) (Expense - Can be DEBIT or CREDIT)
+    # CRITICAL FIX: Net DEBIT and CREDIT amounts (not just DEBIT)
+    round_off_debits = db.session.execute(text("""
         SELECT COALESCE(SUM(debit_amount), 0)
         FROM account_transactions
         WHERE tenant_id = :tenant_id
@@ -2283,15 +2284,34 @@ def trial_balance():
         AND transaction_date <= :as_of_date
     """), {'tenant_id': tenant_id, 'as_of_date': as_of_date}).fetchone()[0]
     
-    round_off_total = Decimal(str(round_off_from_returns or 0))
+    round_off_credits = db.session.execute(text("""
+        SELECT COALESCE(SUM(credit_amount), 0)
+        FROM account_transactions
+        WHERE tenant_id = :tenant_id
+        AND transaction_type = 'round_off_expense'
+        AND transaction_date <= :as_of_date
+    """), {'tenant_id': tenant_id, 'as_of_date': as_of_date}).fetchone()[0]
     
-    if round_off_total > 0:
-        accounts.append({
-            'account_name': 'Round-off Expense',
-            'category': 'Expenses',
-            'debit': round_off_total,
-            'credit': Decimal('0')
-        })
+    round_off_total = Decimal(str(round_off_debits or 0)) - Decimal(str(round_off_credits or 0))
+    
+    # Show if non-zero (can be positive DEBIT or negative CREDIT)
+    if round_off_total != 0:
+        if round_off_total > 0:
+            # Normal: DEBIT balance (expense increases total)
+            accounts.append({
+                'account_name': 'Round-off Expense',
+                'category': 'Expenses',
+                'debit': round_off_total,
+                'credit': Decimal('0')
+            })
+        else:
+            # Negative: CREDIT balance (reduces total expenses)
+            accounts.append({
+                'account_name': 'Round-off Expense (Credit Excess)',
+                'category': 'Expenses',
+                'debit': Decimal('0'),
+                'credit': abs(round_off_total)
+            })
     
     # 7. Operating Expenses (Expense - Debit Balance)
     # NEW: Calculate from account_transactions (double-entry system)
