@@ -200,6 +200,9 @@ app.register_blueprint(diagnose_return_amounts_bp)  # DIAGNOSTIC: Check return a
 
 from routes.fix_round_off_sign import fix_round_off_sign_bp
 app.register_blueprint(fix_round_off_sign_bp)  # MIGRATION: Fix incorrect round-off sign in returns
+
+from routes.diagnose_all_round_offs import diagnose_all_round_offs_bp
+app.register_blueprint(diagnose_all_round_offs_bp)  # DIAGNOSTIC: Check all round-off entries
 from routes.diagnose_trial_balance import diagnose_trial_bp
 app.register_blueprint(diagnose_trial_bp)  # DIAGNOSTIC: Check trial balance components
 from routes.migration_add_purchase_bill_item_fields import migration_purchase_bill_items_bp
