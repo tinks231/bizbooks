@@ -525,54 +525,34 @@ table tbody tr:hover {
                 <input type="date" name="payment_date" class="form-control" required value="{{ today }}" style="width: 100%;">
             </div>
             
-            <!-- NEW: Payment Method Selection -->
+            <!-- SIMPLIFIED: Single dropdown for all accounts (like invoice payment) -->
             <div style="margin-bottom: 20px;">
-                <label style="display: block; margin-bottom: 8px; font-weight: 600;">Payment Method: <span style="color: red;">*</span></label>
-                <div style="display: flex; gap: 20px; align-items: center;">
-                    <label style="display: flex; align-items: center; cursor: pointer;">
-                        <input type="radio" name="payment_method" value="cash" checked onchange="toggleAccountSelection()" style="margin-right: 8px;">
-                        <span>💵 Cash in Hand</span>
-                    </label>
-                    <label style="display: flex; align-items: center; cursor: pointer;">
-                        <input type="radio" name="payment_method" value="bank" onchange="toggleAccountSelection()" style="margin-right: 8px;">
-                        <span>🏦 Bank Account</span>
-                    </label>
-                </div>
-            </div>
-            
-            <!-- NEW: Cash Account Selection (shown when Cash is selected) -->
-            <div id="cashAccountSection" style="margin-bottom: 20px; display: block;">
-                <label style="display: block; margin-bottom: 8px; font-weight: 600;">Select Cash Account: <span style="color: red;">*</span></label>
-                <select name="account_id" id="cashAccountSelect" class="form-control" style="width: 100%;">
-                    <option value="">-- Select Cash Account --</option>
-                    {% for account in cash_accounts %}
-                    <option value="{{ account.id }}">
-                        {{ account.account_name }}
-                        - Balance: ₹{{ "{:,.2f}".format(account.current_balance) }}
-                    </option>
-                    {% endfor %}
+                <label style="display: block; margin-bottom: 8px; font-weight: 600;">Pay From Account: <span style="color: red;">*</span></label>
+                <select name="account_id" id="paymentAccountSelect" class="form-control" required style="width: 100%;">
+                    <option value="">-- Select Account --</option>
+                    {% if cash_accounts %}
+                    <optgroup label="💵 Cash Accounts">
+                        {% for account in cash_accounts %}
+                        <option value="{{ account.id }}" data-type="cash">
+                            {{ account.account_name }} - Balance: ₹{{ "{:,.2f}".format(account.current_balance) }}
+                        </option>
+                        {% endfor %}
+                    </optgroup>
+                    {% endif %}
+                    {% if bank_accounts %}
+                    <optgroup label="🏦 Bank Accounts">
+                        {% for account in bank_accounts %}
+                        <option value="{{ account.id }}" data-type="bank">
+                            {{ account.account_name }}
+                            {% if account.bank_name %} - {{ account.bank_name }}{% endif %}
+                            ({{ account.account_type }}) - Balance: ₹{{ "{:,.2f}".format(account.current_balance) }}
+                        </option>
+                        {% endfor %}
+                    </optgroup>
+                    {% endif %}
                 </select>
                 <small style="color: #666; display: block; margin-top: 5px;">
-                    💵 Cash will be deducted from selected account
-                </small>
-            </div>
-            
-            <!-- NEW: Bank Account Selection (shown when Bank is selected) -->
-            <div id="bankAccountSection" style="margin-bottom: 20px; display: none;">
-                <label style="display: block; margin-bottom: 8px; font-weight: 600;">Select Bank Account: <span style="color: red;">*</span></label>
-                <select name="account_id" id="bankAccountSelect" class="form-control" style="width: 100%;">
-                    <option value="">-- Select Bank Account --</option>
-                    {% for account in bank_accounts %}
-                    <option value="{{ account.id }}">
-                        {{ account.account_name }}
-                        {% if account.bank_name %} - {{ account.bank_name }}{% endif %}
-                        ({{ account.account_type }})
-                        - Balance: ₹{{ "{:,.2f}".format(account.current_balance) }}
-                    </option>
-                    {% endfor %}
-                </select>
-                <small style="color: #666; display: block; margin-top: 5px;">
-                    🏦 Money will be deducted from selected bank account
+                    💰 Money will be deducted from the selected account
                 </small>
             </div>
             
@@ -595,55 +575,15 @@ table tbody tr:hover {
         document.getElementById('modalAgentName').textContent = agentName;
         document.getElementById('modalAmount').textContent = '₹' + amount.toFixed(2);
         
-        // Reset to cash payment
-        document.querySelector('input[name="payment_method"][value="cash"]').checked = true;
-        document.getElementById('cashAccountSection').style.display = 'block';
-        document.getElementById('bankAccountSection').style.display = 'none';
-        document.getElementById('cashAccountSelect').required = true;
-        document.getElementById('bankAccountSelect').required = false;
-        
-        // CRITICAL FIX: Initialize disabled state correctly
-        document.getElementById('cashAccountSelect').disabled = false;
-        document.getElementById('bankAccountSelect').disabled = true;
-        
-        // Clear selections
-        document.getElementById('cashAccountSelect').value = '';
-        document.getElementById('bankAccountSelect').value = '';
+        // Clear account selection
+        document.getElementById('paymentAccountSelect').value = '';
     }
     
     function closePaymentModal() {
         document.getElementById('paymentModal').style.display = 'none';
     }
     
-    function toggleAccountSelection() {
-        const paymentMethod = document.querySelector('input[name="payment_method"]:checked').value;
-        const cashSection = document.getElementById('cashAccountSection');
-        const bankSection = document.getElementById('bankAccountSection');
-        const cashSelect = document.getElementById('cashAccountSelect');
-        const bankSelect = document.getElementById('bankAccountSelect');
-        
-        if (paymentMethod === 'bank') {
-            // Show bank accounts, hide cash
-            cashSection.style.display = 'none';
-            bankSection.style.display = 'block';
-            cashSelect.required = false;
-            bankSelect.required = true;
-            cashSelect.value = ''; // Clear cash selection
-            // CRITICAL FIX: Disable hidden select so it doesn't submit
-            cashSelect.disabled = true;
-            bankSelect.disabled = false;
-        } else {
-            // Show cash accounts, hide bank
-            cashSection.style.display = 'block';
-            bankSection.style.display = 'none';
-            cashSelect.required = true;
-            bankSelect.required = false;
-            bankSelect.value = ''; // Clear bank selection
-            // CRITICAL FIX: Disable hidden select so it doesn't submit
-            cashSelect.disabled = false;
-            bankSelect.disabled = true;
-        }
-    }
+    // toggleAccountSelection() function removed - no longer needed with single dropdown
     
     // Form validation before submit
     document.getElementById('paymentForm').addEventListener('submit', function(e) {

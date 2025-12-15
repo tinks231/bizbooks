@@ -894,11 +894,25 @@ def mark_commission_paid(commission_id):
         return redirect(url_for('admin.commission_reports'))
     
     payment_date = request.form.get('payment_date')
-    payment_method = request.form.get('payment_method', 'cash')  # 'cash' or 'bank'
-    account_id = request.form.get('account_id')  # Bank account if payment_method = 'bank'
+    account_id = request.form.get('account_id')
     payment_notes = request.form.get('payment_notes')
     
+    # Validate account_id
+    if not account_id:
+        flash('❌ Please select an account for payment!', 'error')
+        return redirect(url_for('admin.commission_reports'))
+    
     try:
+        # Get account details to determine payment method automatically
+        account = BankAccount.query.filter_by(id=account_id, tenant_id=tenant_id).first()
+        if not account:
+            flash('❌ Selected account not found!', 'error')
+            return redirect(url_for('admin.commission_reports'))
+        
+        # Determine payment method based on account type
+        payment_method = 'bank' if account.account_type in ['savings', 'current', 'bank'] else 'cash'
+        account_name = account.account_name
+        
         # Mark as paid
         commission.is_paid = True
         commission.paid_date = datetime.strptime(payment_date, '%Y-%m-%d').date() if payment_date else date.today()
@@ -913,13 +927,6 @@ def mark_commission_paid(commission_id):
         
         ist = pytz.timezone('Asia/Kolkata')
         now = datetime.now(ist)
-        
-        # Determine account name
-        if payment_method == 'bank' and account_id:
-            account = BankAccount.query.get(account_id)
-            account_name = account.account_name if account else 'Bank Account'
-        else:
-            account_name = 'Cash in Hand'
         
         # Entry 1: DEBIT Commission Expense (Operating Expense)
         # NOTE: account_id is NULL for expense entries - they don't belong to a specific bank/cash account
@@ -952,7 +959,7 @@ def mark_commission_paid(commission_id):
                     :voucher, :narration, :created_at, NULL)
         """), {
             'tenant_id': tenant_id,
-            'account_id': int(account_id) if account_id else None,
+            'account_id': int(account_id),
             'transaction_date': commission.paid_date,
             'transaction_type': 'cash_payment' if payment_method == 'cash' else 'bank_payment',
             'credit_amount': float(commission.commission_amount),
@@ -962,17 +969,18 @@ def mark_commission_paid(commission_id):
             'created_at': now
         })
         
-        # Update bank/cash account balance (reduce balance - money going out)
-        if account_id:
-            db.session.execute(text("""
-                UPDATE bank_accounts
-                SET current_balance = current_balance - :amount
-                WHERE id = :account_id AND tenant_id = :tenant_id
-            """), {
-                'amount': float(commission.commission_amount),
-                'account_id': int(account_id),
-                'tenant_id': tenant_id
-            })
+        # Update account balance (reduce balance - money going out)
+        db.session.execute(text("""
+            UPDATE bank_accounts
+            SET current_balance = current_balance - :amount,
+                updated_at = :updated_at
+            WHERE id = :account_id AND tenant_id = :tenant_id
+        """), {
+            'amount': float(commission.commission_amount),
+            'account_id': int(account_id),
+            'tenant_id': tenant_id,
+            'updated_at': now
+        })
         
         db.session.commit()
         
