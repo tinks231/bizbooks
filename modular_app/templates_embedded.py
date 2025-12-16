@@ -14,12 +14,6 @@ PUBLIC_INVOICE_TEMPLATE = """<!DOCTYPE html>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; background: #f5f5f5; padding: 20px; }
-        .action-bar { max-width: 1100px; margin: 0 auto 20px; display: flex; gap: 10px; flex-wrap: wrap; }
-        .btn { padding: 10px 20px; border: none; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer; text-decoration: none; display: inline-block; transition: all 0.2s; }
-        .btn-primary { background: #3b82f6; color: white; }
-        .btn-primary:hover { background: #2563eb; }
-        .btn-success { background: #10b981; color: white; }
-        .btn-success:hover { background: #059669; }
         .invoice { width: 100%; max-width: 1100px; margin: 0 auto; font-size: 13px; color: #2c3e50; line-height: 1.45; background: #fff; padding: 24px 32px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
         h1, h2, h3, h4 { margin: 0; font-weight: 600; }
         .text-right { text-align: right; }
@@ -39,7 +33,7 @@ PUBLIC_INVOICE_TEMPLATE = """<!DOCTYPE html>
         .signature-block { display: flex; justify-content: space-between; margin-top: 25px; }
         .signature-box { width: 45%; text-align: center; }
         .signature-line { margin-top: 50px; border-top: 1px solid #444; padding-top: 6px; }
-        @media print { body { background: white; padding: 0; } .action-bar { display: none !important; } .invoice { box-shadow: none; max-width: 100%; } }
+        @media print { body { background: white; padding: 0; } .invoice { box-shadow: none; max-width: 100%; } }
         @media (max-width: 768px) { 
             body { padding: 5px; } 
             .invoice { padding: 10px; font-size: 10px; } 
@@ -68,11 +62,6 @@ PUBLIC_INVOICE_TEMPLATE = """<!DOCTYPE html>
     </style>
 </head>
 <body>
-
-<div class="action-bar">
-    <button onclick="window.print()" class="btn btn-primary">🖨️ Print Invoice</button>
-    <button onclick="window.print()" class="btn btn-success">📄 Download PDF</button>
-</div>
 
 <div class="invoice">
     <div class="invoice-header">
