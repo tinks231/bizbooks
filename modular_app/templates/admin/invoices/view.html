@@ -11,7 +11,7 @@
     </button>
     
     {% if invoice.customer and invoice.customer.phone and invoice.public_token %}
-    <a href="https://wa.me/{{ invoice.customer.phone|replace(' ', '')|replace('+', '') }}?text=Hello%20{{ invoice.customer_name|urlencode }},
+    <a href="https://api.whatsapp.com/send?phone={{ invoice.customer.phone|replace(' ', '')|replace('+', '') }}&text=Hello%20{{ invoice.customer_name|urlencode }},
 %0A%0AYour%20invoice%20is%20ready!%20%F0%9F%93%84
 %0A%0A*Invoice%20No:*%20{{ invoice.invoice_number }}
 %0A*Date:*%20{{ invoice.invoice_date.strftime('%d-%m-%Y') }}

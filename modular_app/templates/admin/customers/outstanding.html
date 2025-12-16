@@ -82,7 +82,7 @@
                                class="btn btn-sm btn-info" title="View Ledger">
                                 📄 Ledger
                             </a>
-                            <a href="https://wa.me/{{ item.customer.phone|replace(' ', '')|replace('+', '') }}?text=Hello%20{{ item.customer.name }},
+                            <a href="https://api.whatsapp.com/send?phone={{ item.customer.phone|replace(' ', '')|replace('+', '') }}&text=Hello%20{{ item.customer.name }},
 
 %20Your%20outstanding%20balance%20is%20₹{{ '%.2f'|format(item.outstanding) }}.%20Please%20make%20the%20payment%20at%20the%20earliest." 
                                class="btn btn-sm btn-success" title="Send WhatsApp Reminder" target="_blank"
