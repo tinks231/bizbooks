@@ -43,13 +43,13 @@ PUBLIC_INVOICE_TEMPLATE = """<!DOCTYPE html>
         @media (max-width: 768px) { 
             body { padding: 5px; } 
             .invoice { padding: 10px; font-size: 10px; } 
-            .invoice-header { grid-template-columns: 1fr; gap: 5px; } 
+            .invoice-header { grid-template-columns: auto 1fr auto; gap: 8px; align-items: flex-start; } 
             .header-left { justify-content: flex-start; text-align: left; }
-            .header-center { text-align: left; }
-            .header-right { text-align: left !important; padding-right: 0 !important; font-size: 10px; }
-            .header-right div { margin-bottom: 2px; }
-            .company-name-strong { font-size: 13px; } 
-            .company-address { font-size: 10px; }
+            .header-center { text-align: center; }
+            .header-right { text-align: right !important; padding-right: 4px !important; font-size: 10px; }
+            .header-right div { margin-bottom: 1px; }
+            .company-name-strong { font-size: 12px; } 
+            .company-address { font-size: 9px; }
             .invoice-title { font-size: 16px; margin: 10px 0; text-align: center; }
             .section { margin: 8px 0; }
             .section > div[style*="display:flex"] { flex-direction: row !important; gap: 10px !important; }
@@ -60,10 +60,10 @@ PUBLIC_INVOICE_TEMPLATE = """<!DOCTYPE html>
             .table { font-size: 9px; } 
             .table th, .table td { padding: 3px 1px; font-size: 9px; } 
             .total-row td { font-size: 11px; padding: 6px 1px !important; }
-            .signature-block { flex-direction: column; gap: 15px; margin-top: 15px; }
-            .signature-box { width: 100%; font-size: 10px; }
-            .signature-line { margin-top: 30px; }
-            .footer { font-size: 9px; margin-top: 15px; }
+            .signature-block { display: flex; flex-direction: row; justify-content: space-between; gap: 10px; margin-top: 15px; }
+            .signature-box { width: 48%; font-size: 9px; text-align: center; }
+            .signature-line { margin-top: 25px; font-size: 9px; }
+            .footer { font-size: 9px; margin-top: 15px; text-align: center; }
         }
     </style>
 </head>
