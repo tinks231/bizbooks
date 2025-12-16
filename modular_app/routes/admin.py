@@ -1123,6 +1123,158 @@ def mark_commission_unpaid(commission_id):
         return redirect(url_for('admin.commission_reports'))
 
 
+@admin_bp.route('/commission/pay-agent/<int:agent_id>', methods=['POST'])
+@require_tenant
+@login_required
+def pay_agent_commission(agent_id):
+    """Pay commission to agent (supports partial payments)"""
+    from models import CommissionAgent, BankAccount
+    from sqlalchemy import text
+    from decimal import Decimal
+    from datetime import date, datetime
+    import pytz
+    
+    tenant_id = get_current_tenant_id()
+    
+    # Get agent
+    agent = CommissionAgent.query.filter_by(tenant_id=tenant_id, id=agent_id).first_or_404()
+    
+    # Get form data
+    amount = request.form.get('amount')
+    payment_date_str = request.form.get('payment_date')
+    account_id = request.form.get('account_id')
+    payment_notes = request.form.get('payment_notes')
+    
+    # Validation
+    if not amount or not payment_date_str or not account_id:
+        flash('❌ Please fill all required fields!', 'error')
+        return redirect(url_for('admin.commission_reports'))
+    
+    try:
+        amount = Decimal(amount)
+        if amount <= 0:
+            flash('❌ Payment amount must be greater than zero!', 'error')
+            return redirect(url_for('admin.commission_reports'))
+        
+        payment_date = datetime.strptime(payment_date_str, '%Y-%m-%d').date()
+        account = BankAccount.query.filter_by(id=int(account_id), tenant_id=tenant_id).first_or_404()
+        
+        ist = pytz.timezone('Asia/Kolkata')
+        now = datetime.now(ist)
+        
+        # Generate voucher number
+        voucher_number = f'COMM-PAY-{agent_id}-{int(now.timestamp())}'
+        
+        # Insert into commission_payments table
+        db.session.execute(text("""
+            INSERT INTO commission_payments
+            (tenant_id, agent_id, payment_date, amount, account_id, 
+             payment_method, voucher_number, payment_notes, created_at)
+            VALUES
+            (:tenant_id, :agent_id, :payment_date, :amount, :account_id,
+             :payment_method, :voucher_number, :notes, :created_at)
+        """), {
+            'tenant_id': tenant_id,
+            'agent_id': agent_id,
+            'payment_date': payment_date,
+            'amount': float(amount),
+            'account_id': int(account_id),
+            'payment_method': account.account_type,
+            'voucher_number': voucher_number,
+            'notes': payment_notes,
+            'created_at': now
+        })
+        
+        # ═══════════════════════════════════════════════════════════════════
+        # 📊 DOUBLE-ENTRY ACCOUNTING: Commission Payment
+        # ═══════════════════════════════════════════════════════════════════
+        # When we pay commission to an agent:
+        # 1. DEBIT:  Commission Expense (Expense increases)
+        # 2. CREDIT: Cash/Bank (Asset decreases - money goes out)
+        # ═══════════════════════════════════════════════════════════════════
+        
+        # Entry 1: DEBIT Commission Expense
+        db.session.execute(text("""
+            INSERT INTO account_transactions
+            (tenant_id, account_id, transaction_date, transaction_type,
+             debit_amount, credit_amount, balance_after, reference_type, reference_id,
+             voucher_number, narration, created_at, created_by)
+            VALUES (:tenant_id, NULL, :transaction_date, :transaction_type,
+                    :debit_amount, 0.00, :debit_amount, 'commission_payment', :agent_id,
+                    :voucher, :narration, :created_at, NULL)
+        """), {
+            'tenant_id': tenant_id,
+            'transaction_date': payment_date,
+            'transaction_type': 'commission_expense',
+            'debit_amount': float(amount),
+            'agent_id': agent_id,
+            'voucher': voucher_number,
+            'narration': f'Commission payment to {agent.name}',
+            'created_at': now
+        })
+        
+        # Entry 2: CREDIT Cash/Bank (Asset - money out)
+        db.session.execute(text("""
+            INSERT INTO account_transactions
+            (tenant_id, account_id, transaction_date, transaction_type,
+             debit_amount, credit_amount, balance_after, reference_type, reference_id,
+             voucher_number, narration, created_at, created_by)
+            VALUES (:tenant_id, :account_id, :transaction_date, :transaction_type,
+                    0.00, :credit_amount, :credit_amount, 'commission_payment', :agent_id,
+                    :voucher, :narration, :created_at, NULL)
+        """), {
+            'tenant_id': tenant_id,
+            'account_id': int(account_id),
+            'transaction_date': payment_date,
+            'transaction_type': f'{account.account_type}_payment',
+            'credit_amount': float(amount),
+            'agent_id': agent_id,
+            'voucher': voucher_number,
+            'narration': f'Commission payment to {agent.name} via {account.account_name}',
+            'created_at': now
+        })
+        
+        # Update account balance (reduce balance - money going out)
+        db.session.execute(text("""
+            UPDATE bank_accounts
+            SET current_balance = current_balance - :amount,
+                updated_at = :updated_at
+            WHERE id = :account_id AND tenant_id = :tenant_id
+        """), {
+            'amount': float(amount),
+            'account_id': int(account_id),
+            'tenant_id': tenant_id,
+            'updated_at': now
+        })
+        
+        db.session.commit()
+        
+        # Auto-balance Trial Balance for any rounding differences < ₹1
+        from utils.accounting_helpers import auto_balance_trial_balance
+        balance_result = auto_balance_trial_balance(tenant_id, voucher_number, max_diff=Decimal('1.00'))
+        if balance_result.get('adjustment_made'):
+            print(f"✅ Auto-balanced: ₹{balance_result.get('adjustment_amount')} adjustment made")
+        
+        print(f"\n✅ Commission payment recorded:")
+        print(f"   DEBIT:  Commission Expense  ₹{amount}")
+        print(f"   CREDIT: {account.account_name}  ₹{amount}\n")
+        
+        flash(f'✅ Paid ₹{amount} commission to {agent.name}!', 'success')
+        return redirect(url_for('admin.commission_reports'))
+        
+    except ValueError as e:
+        db.session.rollback()
+        flash(f'❌ Invalid input: {str(e)}', 'error')
+        return redirect(url_for('admin.commission_reports'))
+    except Exception as e:
+        db.session.rollback()
+        print(f"❌ Error paying commission: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        flash(f'❌ Error paying commission: {str(e)}', 'error')
+        return redirect(url_for('admin.commission_reports'))
+
+
 @admin_bp.route('/commission-agent/<int:agent_id>/ledger')
 @require_tenant
 @login_required

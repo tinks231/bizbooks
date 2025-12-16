@@ -433,6 +433,13 @@ table tbody tr:hover {
                                title="View full ledger for {{ summary.agent_name }}">
                                 📊 View Ledger
                             </a>
+                            {% if summary.unpaid > 0 %}
+                            <button onclick="openPaymentModal({{ agent_id }}, '{{ summary.agent_name }}', {{ summary.earned }}, {{ summary.returns }}, {{ summary.net }}, {{ summary.paid }}, {{ summary.unpaid }})"
+                                    style="background: #28a745; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer;"
+                                    title="Pay commission to {{ summary.agent_name }}">
+                                💰 Mark Paid
+                            </button>
+                            {% endif %}
                         </td>
                     </tr>
                     {% endfor %}
@@ -523,16 +530,54 @@ table tbody tr:hover {
 
 <!-- Payment Modal -->
 <div id="paymentModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9999; align-items: center; justify-content: center;">
-    <div style="background: white; padding: 30px; border-radius: 12px; max-width: 500px; width: 90%;">
-        <h3 style="margin: 0 0 20px 0; color: #2c3e50;">💰 Mark Commission as Paid</h3>
+    <div style="background: white; padding: 30px; border-radius: 12px; max-width: 550px; width: 90%;">
+        <h3 style="margin: 0 0 20px 0; color: #2c3e50;">💰 Pay Commission</h3>
         <form method="POST" id="paymentForm" action="">
             <div style="margin-bottom: 20px;">
                 <label style="display: block; margin-bottom: 8px; font-weight: 600;">Agent:</label>
                 <div id="modalAgentName" style="font-size: 18px; color: #667eea; font-weight: 600;"></div>
             </div>
+            
+            <!-- Commission Breakdown -->
+            <div style="margin-bottom: 20px; background: #f8f9fa; padding: 15px; border-radius: 8px; border-left: 4px solid #667eea;">
+                <h4 style="margin: 0 0 10px 0; font-size: 14px; color: #2c3e50; font-weight: 700;">📊 Commission Summary</h4>
+                <table style="width: 100%; font-size: 14px;">
+                    <tr>
+                        <td style="padding: 4px 0; color: #666;">Total Earned:</td>
+                        <td style="padding: 4px 0; text-align: right; font-weight: 600; color: #667eea;" id="modalEarned">₹0</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 4px 0; color: #666;">Returns:</td>
+                        <td style="padding: 4px 0; text-align: right; font-weight: 600; color: #e74c3c;" id="modalReturns">-₹0</td>
+                    </tr>
+                    <tr style="border-top: 1px solid #ddd;">
+                        <td style="padding: 8px 0 4px 0; color: #2c3e50; font-weight: 700;">Net Due:</td>
+                        <td style="padding: 8px 0 4px 0; text-align: right; font-weight: 700; color: #2c3e50; font-size: 16px;" id="modalNet">₹0</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 4px 0; color: #666;">Already Paid:</td>
+                        <td style="padding: 4px 0; text-align: right; font-weight: 600; color: #28a745;" id="modalPaid">₹0</td>
+                    </tr>
+                    <tr style="border-top: 2px solid #667eea;">
+                        <td style="padding: 8px 0 0 0; color: #2c3e50; font-weight: 700; font-size: 15px;">Balance:</td>
+                        <td style="padding: 8px 0 0 0; text-align: right; font-weight: 700; font-size: 18px;" id="modalBalance">₹0</td>
+                    </tr>
+                </table>
+            </div>
+            
+            <!-- Editable Payment Amount -->
             <div style="margin-bottom: 20px;">
-                <label style="display: block; margin-bottom: 8px; font-weight: 600;">Commission Amount:</label>
-                <div id="modalAmount" style="font-size: 24px; color: #28a745; font-weight: 700;"></div>
+                <label style="display: block; margin-bottom: 8px; font-weight: 600;">💰 Amount to Pay: <span style="color: red;">*</span></label>
+                <input type="number" name="amount" id="paymentAmount" class="form-control" required min="0" step="1" 
+                       onchange="checkOverpayment()" onkeyup="checkOverpayment()"
+                       placeholder="Enter amount" style="width: 100%; font-size: 18px; font-weight: 700;">
+                <small style="color: #666; display: block; margin-top: 5px;">
+                    💡 You can pay partial amount or full balance
+                </small>
+                <div id="overpaymentWarning" style="display: none; background: #fff3cd; border: 1px solid #ffc107; padding: 10px; border-radius: 6px; margin-top: 10px;">
+                    <strong style="color: #856404;">⚠️ Overpayment Warning:</strong>
+                    <div id="overpaymentText" style="color: #856404; font-size: 13px; margin-top: 5px;"></div>
+                </div>
             </div>
             <div style="margin-bottom: 20px;">
                 <label style="display: block; margin-bottom: 8px; font-weight: 600;">Payment Date:</label>
@@ -583,14 +628,49 @@ table tbody tr:hover {
 </div>
 
 <script>
-    function showPaymentModal(commissionId, agentName, amount) {
+    // Global variables to store current payment context
+    let currentAgentBalance = 0;
+    
+    function openPaymentModal(agentId, agentName, earned, returns, net, paid, unpaid) {
+        // Store context
+        currentAgentBalance = unpaid;
+        
+        // Show modal
         document.getElementById('paymentModal').style.display = 'flex';
-        document.getElementById('paymentForm').action = '/admin/commission/mark-paid/' + commissionId;
+        document.getElementById('paymentForm').action = '/admin/commission/pay-agent/' + agentId;
+        
+        // Fill in agent info
         document.getElementById('modalAgentName').textContent = agentName;
-        document.getElementById('modalAmount').textContent = '₹' + amount.toFixed(2);
+        
+        // Fill in breakdown
+        document.getElementById('modalEarned').textContent = '₹' + earned.toFixed(0);
+        document.getElementById('modalReturns').textContent = '-₹' + returns.toFixed(0);
+        document.getElementById('modalNet').textContent = '₹' + net.toFixed(0);
+        document.getElementById('modalPaid').textContent = '₹' + paid.toFixed(0);
+        document.getElementById('modalBalance').textContent = '₹' + unpaid.toFixed(0);
+        document.getElementById('modalBalance').style.color = unpaid < 0 ? '#e74c3c' : '#2c3e50';
+        
+        // Set default payment amount to balance (or 0 if overpaid)
+        document.getElementById('paymentAmount').value = Math.max(0, unpaid).toFixed(0);
         
         // Clear account selection
         document.getElementById('paymentAccountSelect').value = '';
+        
+        // Hide overpayment warning initially
+        document.getElementById('overpaymentWarning').style.display = 'none';
+    }
+    
+    function checkOverpayment() {
+        const amount = parseFloat(document.getElementById('paymentAmount').value) || 0;
+        const overpayment = amount - currentAgentBalance;
+        
+        if (overpayment > 0) {
+            document.getElementById('overpaymentWarning').style.display = 'block';
+            document.getElementById('overpaymentText').textContent = 
+                `You are paying ₹${overpayment.toFixed(0)} more than the balance. This will be recorded as an advance payment.`;
+        } else {
+            document.getElementById('overpaymentWarning').style.display = 'none';
+        }
     }
     
     function closePaymentModal() {
