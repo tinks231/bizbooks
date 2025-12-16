@@ -6,8 +6,8 @@ from flask import Blueprint, render_template, abort, g, request
 from models.database import db
 from models.invoice import Invoice
 from models.tenant import Tenant
-from utils.tenant_middleware import set_tenant_from_invoice
 from datetime import datetime
+import json
 
 public_invoice_bp = Blueprint('public_invoice', __name__, url_prefix='/invoice')
 
@@ -34,7 +34,6 @@ def view_public_invoice(token):
     # Get tenant settings
     tenant_settings = {}
     if tenant.settings:
-        import json
         try:
             tenant_settings = json.loads(tenant.settings) if isinstance(tenant.settings, str) else tenant.settings
         except:
