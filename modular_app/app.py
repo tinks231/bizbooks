@@ -130,6 +130,7 @@ from routes.loyalty_features_migration import loyalty_features_bp  # NEW: Loyalt
 from routes.tier_benefits_migration import tier_benefits_bp  # NEW: Tier benefits (earning/redemption multipliers)
 from routes.vendor_performance_migration import vendor_performance_bp  # NEW: Vendor performance optimization
 from routes.fix_attendance_cascade import fix_cascade_bp  # FIX: Attendance CASCADE delete
+from routes.add_invoice_public_token_column import add_invoice_public_token_bp  # MIGRATION: Add public_token column to invoices
 from routes.add_public_tokens import add_public_tokens_bp  # MIGRATION: Add public tokens to existing invoices
 from routes.public_invoice import public_invoice_bp  # PUBLIC: Public invoice view (no login required)
 
@@ -180,6 +181,7 @@ from routes.fix_inventory_equity import fix_inventory_equity_bp
 app.register_blueprint(fix_inventory_equity_bp)  # FIX: Create missing inventory equity entries
 app.register_blueprint(vendor_performance_bp)  # NEW: Vendor performance optimization
 app.register_blueprint(fix_cascade_bp)  # FIX: Attendance CASCADE delete issue
+app.register_blueprint(add_invoice_public_token_bp)  # MIGRATION: Add public_token column to invoices
 app.register_blueprint(add_public_tokens_bp)  # MIGRATION: Add public tokens to existing invoices
 app.register_blueprint(public_invoice_bp)  # PUBLIC: Public invoice view (no login required)
 from routes.migrate_double_entry import migrate_double_entry_bp
