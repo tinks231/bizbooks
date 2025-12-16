@@ -1,12 +1,28 @@
 """
 Migration: Add public_token to existing invoices
 """
-from flask import Blueprint, jsonify, g
+from flask import Blueprint, jsonify, g, session, redirect, url_for, flash
 from models.database import db
 from models.invoice import Invoice
-from utils.decorators import require_tenant, login_required
+from utils.tenant_middleware import require_tenant, get_current_tenant_id
+from functools import wraps
 
 add_public_tokens_bp = Blueprint('add_public_tokens', __name__, url_prefix='/migration')
+
+def login_required(f):
+    """Decorator to require admin login"""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'tenant_admin_id' not in session:
+            flash('Please login first', 'error')
+            return redirect(url_for('admin.login'))
+        # Verify session tenant matches current tenant
+        if session.get('tenant_admin_id') != get_current_tenant_id():
+            session.clear()
+            flash('Session mismatch. Please login again.', 'error')
+            return redirect(url_for('admin.login'))
+        return f(*args, **kwargs)
+    return decorated_function
 
 @add_public_tokens_bp.route('/add-public-tokens', methods=['GET'])
 @require_tenant
