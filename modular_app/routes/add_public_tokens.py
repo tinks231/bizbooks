@@ -4,7 +4,7 @@ Migration: Add public_token to existing invoices
 from flask import Blueprint, jsonify, g
 from models.database import db
 from models.invoice import Invoice
-from decorators import require_tenant, login_required
+from utils.decorators import require_tenant, login_required
 
 add_public_tokens_bp = Blueprint('add_public_tokens', __name__, url_prefix='/migration')
 
