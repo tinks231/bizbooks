@@ -22,6 +22,11 @@ from models import db, init_db
 # Create Flask app with explicit template folder
 # This is needed for Vercel deployment where api/index.py imports from parent dir
 template_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), 'templates'))
+print(f"🔍 Template directory set to: {template_dir}")
+print(f"🔍 __file__ is: {__file__}")
+print(f"🔍 Template dir exists: {os.path.exists(template_dir)}")
+if os.path.exists(template_dir):
+    print(f"🔍 Contents: {os.listdir(template_dir)}")
 app = Flask(__name__, template_folder=template_dir)
 
 # Load configuration
