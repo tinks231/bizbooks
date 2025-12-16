@@ -43,10 +43,10 @@ PUBLIC_INVOICE_TEMPLATE = """<!DOCTYPE html>
         @media (max-width: 768px) { 
             body { padding: 5px; } 
             .invoice { padding: 10px; font-size: 10px; } 
-            .invoice-header { grid-template-columns: auto 1fr auto; gap: 8px; align-items: flex-start; } 
-            .header-left { justify-content: flex-start; text-align: left; }
-            .header-center { text-align: center; }
-            .header-right { text-align: right !important; padding-right: 4px !important; font-size: 10px; }
+            .invoice-header { grid-template-columns: 1fr auto 1fr; gap: 4px; align-items: flex-start; } 
+            .header-left { justify-content: flex-start; text-align: left; visibility: hidden; }
+            .header-center { text-align: center; justify-self: center; }
+            .header-right { text-align: right !important; padding-right: 4px !important; font-size: 10px; justify-self: end; }
             .header-right div { margin-bottom: 1px; }
             .company-name-strong { font-size: 12px; } 
             .company-address { font-size: 9px; }
