@@ -40,6 +40,20 @@ PUBLIC_INVOICE_TEMPLATE = """<!DOCTYPE html>
         .signature-box { width: 45%; text-align: center; }
         .signature-line { margin-top: 50px; border-top: 1px solid #444; padding-top: 6px; }
         @media print { body { background: white; padding: 0; } .action-bar { display: none !important; } .invoice { box-shadow: none; max-width: 100%; } }
+        @media (max-width: 768px) { 
+            body { padding: 10px; } 
+            .invoice { padding: 15px; font-size: 11px; } 
+            .invoice-header { grid-template-columns: 1fr; text-align: center; gap: 10px; } 
+            .header-left, .header-right { justify-content: center; text-align: center; padding: 0; } 
+            .company-name-strong { font-size: 14px; } 
+            .invoice-title { font-size: 18px; margin: 12px 0; }
+            .section { margin: 10px 0; }
+            .table { font-size: 10px; } 
+            .table th, .table td { padding: 4px 2px; font-size: 10px; } 
+            .total-row td { font-size: 12px; }
+            .signature-block { flex-direction: column; gap: 20px; }
+            .signature-box { width: 100%; }
+        }
     </style>
 </head>
 <body>
