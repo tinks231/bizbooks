@@ -28,7 +28,7 @@ PUBLIC_INVOICE_TEMPLATE = """<!DOCTYPE html>
         .table { width: 100%; border-collapse: collapse; margin-top: 10px; }
         .table th { background: #f8f8f8; padding: 8px; font-size: 12px; font-weight: 600; border: 1px solid #e0e0e0; }
         .table td { padding: 6px; border: 1px solid #e0e0e0; }
-        .total-row td { padding: 10px 6px; font-size: 15px; font-weight: 700; background: #eef2ff; border: 2px solid #3b82f6 !important; }
+        .total-row td { padding: 10px 6px; font-size: 15px; font-weight: 700; background: #f8f9fa; border: 1px solid #e0e0e0; }
         .footer { margin-top: 25px; text-align: center; font-size: 12px; color: #777; }
         .signature-block { display: flex; justify-content: space-between; margin-top: 25px; }
         .signature-box { width: 45%; text-align: center; }

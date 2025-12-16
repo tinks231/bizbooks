@@ -810,40 +810,14 @@ def view(invoice_id):
         BankAccount.account_name
     ).all()
     
-    # Check for loyalty footer note
+    # Check for loyalty footer note (same logic as public invoice for consistency)
     loyalty_footer_note = None
-    if invoice.customer_id:
-        try:
-            from services.loyalty_service import LoyaltyService
-            from models.loyalty_program import LoyaltyProgram
-            
-            # Get loyalty program settings
-            loyalty_program = LoyaltyProgram.query.filter_by(tenant_id=tenant_id).first()
-            
-            if (loyalty_program and loyalty_program.is_active and 
-                loyalty_program.show_points_on_invoice and 
-                loyalty_program.invoice_footer_text):
-                
-                # Get customer's current available points (includes bonuses)
-                available_points = LoyaltyService.get_customer_available_points(
-                    invoice.customer_id, 
-                    tenant_id
-                )
-                
-                # Calculate rupee value
-                redemption_value = LoyaltyService.calculate_redemption_value(
-                    available_points,
-                    tenant_id,
-                    invoice.customer_id
-                )
-                
-                # Replace placeholders
-                loyalty_footer_note = loyalty_program.invoice_footer_text
-                loyalty_footer_note = loyalty_footer_note.replace('{balance}', str(available_points))
-                loyalty_footer_note = loyalty_footer_note.replace('{value}', f'{redemption_value:.2f}')
-                
-        except Exception as e:
-            print(f"⚠️ Error fetching loyalty footer: {str(e)}")
+    try:
+        if invoice.loyalty_points_earned and invoice.loyalty_points_earned > 0:
+            loyalty_footer_note = f"🎉 You earned {invoice.loyalty_points_earned} loyalty points on this purchase!"
+    except Exception as e:
+        print(f"⚠️ Error fetching loyalty footer: {str(e)}")
+        loyalty_footer_note = None
     
     return render_template('admin/invoices/view.html',
                          tenant=g.tenant,
