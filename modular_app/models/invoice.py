@@ -1,6 +1,7 @@
 from models.database import db, TimestampMixin
 from datetime import datetime
 import pytz
+import secrets
 
 class Invoice(db.Model, TimestampMixin):
     """
@@ -72,6 +73,9 @@ class Invoice(db.Model, TimestampMixin):
     cancelled_at = db.Column(db.DateTime)
     cancelled_reason = db.Column(db.Text)
     
+    # Public Access Token (for shareable links)
+    public_token = db.Column(db.String(64), unique=True, index=True)  # For /invoice/view/<token>
+    
     # Relationships
     tenant = db.relationship('Tenant', backref='invoices', lazy=True)
     items = db.relationship('InvoiceItem', backref='invoice', lazy=True, cascade='all, delete-orphan')
@@ -103,6 +107,10 @@ class Invoice(db.Model, TimestampMixin):
             new_seq = 1
         
         return f'INV-{year}-{new_seq:04d}'  # INV-2024-0001
+    
+    def generate_public_token(self):
+        """Generate a secure random token for public invoice access"""
+        return secrets.token_urlsafe(32)  # 32 bytes = 43 characters URL-safe
     
     def amount_in_words(self):
         """Convert amount to words (Indian number system)"""

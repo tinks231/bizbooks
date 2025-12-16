@@ -10,7 +10,7 @@
         🖨️ Print Invoice
     </button>
     
-    {% if invoice.customer and invoice.customer.phone %}
+    {% if invoice.customer and invoice.customer.phone and invoice.public_token %}
     <a href="https://wa.me/{{ invoice.customer.phone|replace(' ', '')|replace('+', '') }}?text=Hello%20{{ invoice.customer_name|urlencode }},
 %0A%0AYour%20invoice%20is%20ready!%20%F0%9F%93%84
 %0A%0A*Invoice%20No:*%20{{ invoice.invoice_number }}
@@ -18,7 +18,8 @@
 %0A*Amount:*%20₹{{ '%.2f'|format(invoice.total_amount) }}
 %0A*Status:*%20{{ invoice.payment_status.upper() }}
 %0A%0A{{ 'Thank%20you%20for%20your%20business!' if invoice.payment_status == 'paid' else 'Please%20make%20the%20payment%20at%20your%20earliest%20convenience.' }}
-%0A%0AView%20Invoice:%20{{ request.url|urlencode }}
+%0A%0AView%20%26%20Download%20Invoice:
+%0A{{ request.url_root }}invoice/view/{{ invoice.public_token }}
 %0A%0ARegards,
 %0A{{ tenant.company_name|urlencode }}" 
        class="btn btn-success" 

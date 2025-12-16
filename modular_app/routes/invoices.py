@@ -194,6 +194,9 @@ def create():
             # Generate invoice number
             invoice.invoice_number = invoice.generate_invoice_number()
             
+            # Generate public access token
+            invoice.public_token = invoice.generate_public_token()
+            
             # Get tenant's state from settings
             tenant_settings = json.loads(g.tenant.settings) if g.tenant.settings else {}
             tenant_state = tenant_settings.get('state', 'Maharashtra')
