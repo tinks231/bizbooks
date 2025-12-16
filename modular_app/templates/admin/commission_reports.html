@@ -328,16 +328,24 @@ table tbody tr:hover {
     <!-- Summary Cards -->
     <div class="summary-cards">
         <div class="summary-card total">
-            <div class="label">💰 Total Commission</div>
-            <div class="amount">₹{{ "{:,.2f}".format(total_commission) }}</div>
+            <div class="label">💰 Total Earned</div>
+            <div class="amount">₹{{ "{:,.0f}".format(total_earned) }}</div>
+        </div>
+        <div class="summary-card" style="background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);">
+            <div class="label">↩️ Returns</div>
+            <div class="amount">-₹{{ "{:,.0f}".format(total_returns) }}</div>
+        </div>
+        <div class="summary-card" style="background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);">
+            <div class="label">💵 Net Payable</div>
+            <div class="amount">₹{{ "{:,.0f}".format(total_net) }}</div>
         </div>
         <div class="summary-card paid">
             <div class="label">✅ Paid</div>
-            <div class="amount">₹{{ "{:,.2f}".format(paid_commission) }}</div>
+            <div class="amount">₹{{ "{:,.0f}".format(total_paid) }}</div>
         </div>
         <div class="summary-card unpaid">
-            <div class="label">⏳ Unpaid (Pending)</div>
-            <div class="amount">₹{{ "{:,.2f}".format(unpaid_commission) }}</div>
+            <div class="label">⏳ Balance</div>
+            <div class="amount">{% if total_unpaid < 0 %}-₹{{ "{:,.0f}".format(total_unpaid|abs) }}{% else %}₹{{ "{:,.0f}".format(total_unpaid) }}{% endif %}</div>
         </div>
     </div>
     
@@ -395,7 +403,9 @@ table tbody tr:hover {
                     <tr>
                         <th>Agent Name</th>
                         <th>Agent Code</th>
-                        <th style="text-align: right;">Total</th>
+                        <th style="text-align: right;">Earned</th>
+                        <th style="text-align: right;">Returns</th>
+                        <th style="text-align: right;">Net</th>
                         <th style="text-align: right;">Paid</th>
                         <th style="text-align: right;">Unpaid</th>
                         <th style="text-align: center;">Invoices</th>
@@ -407,15 +417,19 @@ table tbody tr:hover {
                     <tr>
                         <td class="agent-name">{{ summary.agent_name }}</td>
                         <td class="agent-code">{{ summary.agent_code }}</td>
-                        <td class="amount total" style="text-align: right;">₹{{ "{:,.0f}".format(summary.total) }}</td>
-                        <td class="amount paid" style="text-align: right;">₹{{ "{:,.0f}".format(summary.paid) }}</td>
-                        <td class="amount unpaid" style="text-align: right;">₹{{ "{:,.0f}".format(summary.unpaid) }}</td>
+                        <td class="amount total" style="text-align: right; color: #667eea;">₹{{ "{:,.0f}".format(summary.earned) }}</td>
+                        <td class="amount" style="text-align: right; color: #e74c3c;">-₹{{ "{:,.0f}".format(summary.returns) }}</td>
+                        <td class="amount" style="text-align: right; color: #2c3e50; font-weight: 700;">₹{{ "{:,.0f}".format(summary.net) }}</td>
+                        <td class="amount paid" style="text-align: right; color: #28a745;">₹{{ "{:,.0f}".format(summary.paid) }}</td>
+                        <td class="amount unpaid" style="text-align: right; {% if summary.unpaid < 0 %}color: #e74c3c; font-weight: 700;{% else %}color: #ffc107;{% endif %}">
+                            {% if summary.unpaid < 0 %}-₹{{ "{:,.0f}".format(summary.unpaid|abs) }} (Overpaid){% else %}₹{{ "{:,.0f}".format(summary.unpaid) }}{% endif %}
+                        </td>
                         <td style="text-align: center; color: #7f8c8d; font-size: 13px;">
                             {{ summary.count }} invoice{{ 's' if summary.count != 1 else '' }}
                         </td>
                         <td style="text-align: center;">
                             <a href="{{ url_for('admin.commission_agent_ledger', agent_id=agent_id) }}" 
-                               style="color: #3498db; text-decoration: none; font-weight: 600; font-size: 13px;"
+                               style="color: #3498db; text-decoration: none; font-weight: 600; font-size: 13px; margin-right: 10px;"
                                title="View full ledger for {{ summary.agent_name }}">
                                 📊 View Ledger
                             </a>
