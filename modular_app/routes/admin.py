@@ -817,29 +817,96 @@ def commission_reports():
     # Get all commissions
     commissions = query.order_by(Invoice.invoice_date.desc()).all()
     
-    # Calculate summary stats
-    total_commission = sum(c.commission_amount for c in commissions)
-    paid_commission = sum(c.commission_amount for c in commissions if c.is_paid)
-    unpaid_commission = total_commission - paid_commission
+    # Calculate summary stats (will be recalculated after agent_summary is built)
+    total_earned = sum(c.commission_amount for c in commissions)
+    total_returns = 0
+    total_net = 0
+    total_paid = 0
+    total_unpaid = 0
     
-    # Agent-wise summary
+    # Agent-wise summary with EARNED, RETURNS, NET, PAID calculations
     agent_summary = {}
     for comm in commissions:
         if comm.agent_id not in agent_summary:
             agent_summary[comm.agent_id] = {
                 'agent_name': comm.agent_name,
                 'agent_code': comm.agent_code,
-                'total': 0,
-                'paid': 0,
-                'unpaid': 0,
+                'earned': 0,  # Total commission earned from invoices
+                'returns': 0,  # Commission lost due to returns
+                'net': 0,      # earned - returns
+                'paid': 0,     # Actually paid amount (from commission_payments table)
+                'unpaid': 0,   # net - paid
                 'count': 0
             }
-        agent_summary[comm.agent_id]['total'] += comm.commission_amount
-        if comm.is_paid:
-            agent_summary[comm.agent_id]['paid'] += comm.commission_amount
-        else:
-            agent_summary[comm.agent_id]['unpaid'] += comm.commission_amount
+        agent_summary[comm.agent_id]['earned'] += comm.commission_amount
         agent_summary[comm.agent_id]['count'] += 1
+    
+    # Calculate RETURNS (commission reversals) for each agent
+    from sqlalchemy import text
+    from decimal import Decimal
+    
+    returns_result = db.session.execute(text("""
+        SELECT 
+            ic.agent_id,
+            SUM(at.credit_amount) as total_returns
+        FROM account_transactions at
+        JOIN invoice_commissions ic ON (
+            at.reference_type = 'return'
+            AND at.transaction_type = 'commission_reversal'
+            AND at.narration LIKE '%' || ic.agent_name || '%'
+        )
+        WHERE at.tenant_id = :tenant_id
+        AND at.transaction_date >= :start_date
+        AND at.transaction_date <= :end_date
+        GROUP BY ic.agent_id
+    """), {
+        'tenant_id': tenant_id,
+        'start_date': start_date,
+        'end_date': end_date
+    }).fetchall()
+    
+    for row in returns_result:
+        if row.agent_id in agent_summary:
+            agent_summary[row.agent_id]['returns'] = float(row.total_returns or 0)
+    
+    # Calculate PAID (from commission_payments table)
+    paid_result = db.session.execute(text("""
+        SELECT 
+            agent_id,
+            SUM(amount) as total_paid
+        FROM commission_payments
+        WHERE tenant_id = :tenant_id
+        AND payment_date >= :start_date
+        AND payment_date <= :end_date
+        GROUP BY agent_id
+    """), {
+        'tenant_id': tenant_id,
+        'start_date': start_date,
+        'end_date': end_date
+    }).fetchall()
+    
+    for row in paid_result:
+        if row.agent_id in agent_summary:
+            agent_summary[row.agent_id]['paid'] = float(row.total_paid or 0)
+    
+    # Calculate NET and UNPAID for each agent
+    for agent_id in agent_summary:
+        summary = agent_summary[agent_id]
+        summary['net'] = summary['earned'] - summary['returns']
+        summary['unpaid'] = summary['net'] - summary['paid']
+        
+        # Round to whole numbers (as per business logic)
+        summary['earned'] = round(summary['earned'])
+        summary['returns'] = round(summary['returns'])
+        summary['net'] = round(summary['net'])
+        summary['paid'] = round(summary['paid'])
+        summary['unpaid'] = round(summary['unpaid'])
+        
+        # Add to overall totals
+        total_returns += summary['returns']
+        total_net += summary['net']
+        total_paid += summary['paid']
+        total_unpaid += summary['unpaid']
     
     # Get all active agents for filter dropdown
     all_agents = CommissionAgent.query.filter_by(tenant_id=tenant_id, is_active=True).order_by(CommissionAgent.name).all()
@@ -867,9 +934,11 @@ def commission_reports():
                          all_agents=all_agents,
                          cash_accounts=cash_accounts,
                          bank_accounts=bank_accounts,
-                         total_commission=total_commission,
-                         paid_commission=paid_commission,
-                         unpaid_commission=unpaid_commission,
+                         total_earned=total_earned,
+                         total_returns=total_returns,
+                         total_net=total_net,
+                         total_paid=total_paid,
+                         total_unpaid=total_unpaid,
                          start_date=start_date,
                          end_date=end_date,
                          selected_agent=agent_filter,
