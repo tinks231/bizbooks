@@ -2,12 +2,13 @@
 Public Invoice View - No Login Required
 Allows customers to view their invoices via secure token
 """
-from flask import Blueprint, render_template, abort, g, request
+from flask import Blueprint, render_template, render_template_string, abort, g, request
 from models.database import db
 from models.invoice import Invoice
 from models.tenant import Tenant
 from datetime import datetime
 from sqlalchemy.orm import joinedload
+from templates_embedded import PUBLIC_INVOICE_TEMPLATE
 import json
 
 public_invoice_bp = Blueprint('public_invoice', __name__, url_prefix='/invoice')
@@ -60,13 +61,14 @@ def view_public_invoice(token):
             print(f"Error loading customer: {e}")
             customer = None
         
-        return render_template('public/invoice_view.html',
-                             invoice=invoice,
-                             tenant=tenant,
-                             tenant_settings=tenant_settings,
-                             loyalty_footer_note=loyalty_footer_note,
-                             customer=customer,
-                             today=datetime.today())
+        # Use embedded template (Vercel doesn't reliably include template files)
+        return render_template_string(PUBLIC_INVOICE_TEMPLATE,
+                                     invoice=invoice,
+                                     tenant=tenant,
+                                     tenant_settings=tenant_settings,
+                                     loyalty_footer_note=loyalty_footer_note,
+                                     customer=customer,
+                                     today=datetime.today())
     
     except Exception as e:
         # Log the error for debugging
