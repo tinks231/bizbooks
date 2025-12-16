@@ -19,8 +19,10 @@ from config import Config
 # Import database
 from models import db, init_db
 
-# Create Flask app
-app = Flask(__name__)
+# Create Flask app with explicit template folder
+# This is needed for Vercel deployment where api/index.py imports from parent dir
+template_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), 'templates'))
+app = Flask(__name__, template_folder=template_dir)
 
 # Load configuration
 config = Config()
