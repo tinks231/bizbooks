@@ -41,18 +41,29 @@ PUBLIC_INVOICE_TEMPLATE = """<!DOCTYPE html>
         .signature-line { margin-top: 50px; border-top: 1px solid #444; padding-top: 6px; }
         @media print { body { background: white; padding: 0; } .action-bar { display: none !important; } .invoice { box-shadow: none; max-width: 100%; } }
         @media (max-width: 768px) { 
-            body { padding: 10px; } 
-            .invoice { padding: 15px; font-size: 11px; } 
-            .invoice-header { grid-template-columns: 1fr; text-align: center; gap: 10px; } 
-            .header-left, .header-right { justify-content: center; text-align: center; padding: 0; } 
-            .company-name-strong { font-size: 14px; } 
-            .invoice-title { font-size: 18px; margin: 12px 0; }
-            .section { margin: 10px 0; }
-            .table { font-size: 10px; } 
-            .table th, .table td { padding: 4px 2px; font-size: 10px; } 
-            .total-row td { font-size: 12px; }
-            .signature-block { flex-direction: column; gap: 20px; }
-            .signature-box { width: 100%; }
+            body { padding: 5px; } 
+            .invoice { padding: 10px; font-size: 10px; } 
+            .invoice-header { grid-template-columns: 1fr; gap: 5px; } 
+            .header-left { justify-content: flex-start; text-align: left; }
+            .header-center { text-align: left; }
+            .header-right { text-align: left !important; padding-right: 0 !important; font-size: 10px; }
+            .header-right div { margin-bottom: 2px; }
+            .company-name-strong { font-size: 13px; } 
+            .company-address { font-size: 10px; }
+            .invoice-title { font-size: 16px; margin: 10px 0; text-align: center; }
+            .section { margin: 8px 0; }
+            .section > div[style*="display:flex"] { flex-direction: row !important; gap: 10px !important; }
+            .section > div[style*="display:flex"] > div { min-width: 45% !important; flex: 1; font-size: 9px; }
+            .section-title { font-size: 11px; margin-bottom: 5px; padding-bottom: 2px; }
+            .section table { font-size: 9px; }
+            .section table td { padding: 2px 0 !important; }
+            .table { font-size: 9px; } 
+            .table th, .table td { padding: 3px 1px; font-size: 9px; } 
+            .total-row td { font-size: 11px; padding: 6px 1px !important; }
+            .signature-block { flex-direction: column; gap: 15px; margin-top: 15px; }
+            .signature-box { width: 100%; font-size: 10px; }
+            .signature-line { margin-top: 30px; }
+            .footer { font-size: 9px; margin-top: 15px; }
         }
     </style>
 </head>
