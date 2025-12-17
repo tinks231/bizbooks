@@ -85,9 +85,10 @@ def create_inventory_template():
     ws = wb.active
     ws.title = "Inventory Import"
     
-    # Headers - Updated to include Cost, Selling, and MRP
+    # Headers - Updated to include Reorder Point, Discount %, and pricing flexibility
     headers = ['Item Name*', 'SKU', 'Barcode', 'Category*', 'Group*', 'Unit*', 'Stock Quantity*', 
-               'Cost Price*', 'Selling Price*', 'MRP', 'Tax Rate (%)', 'HSN Code', 'Description']
+               'Reorder Point', 'Cost Price*', 'MRP', 'Discount %', 'Selling Price*', 
+               'Tax Rate (%)', 'HSN Code', 'Description']
     
     # Style headers
     header_fill = PatternFill(start_color="70AD47", end_color="70AD47", fill_type="solid")
@@ -99,7 +100,7 @@ def create_inventory_template():
         cell.font = header_font
         cell.alignment = Alignment(horizontal="center", vertical="center")
     
-    # Add sample data (row 2) - Clothing retail example
+    # Add sample data (row 2) - Clothing retail example with formulas
     sample_data = [
         "Men's Cotton T-Shirt - White",  # Item Name
         'TSH-MEN-WHT-001',              # SKU
@@ -108,9 +109,11 @@ def create_inventory_template():
         'T-Shirts',                      # Group
         'Pcs',                          # Unit
         50,                             # Stock Quantity (as number)
+        10,                             # Reorder Point (NEW)
         450,                            # Cost Price (as number)
-        599,                            # Selling Price (as number)
         699,                            # MRP (as number)
+        15,                             # Discount % (NEW) - Can fill this OR Selling Price
+        None,                           # Selling Price - Will be calculated by formula
         12,                             # Tax Rate (as number)
         '6109',                         # HSN Code
         'Premium cotton t-shirt, comfortable fit'  # Description
@@ -120,8 +123,14 @@ def create_inventory_template():
         cell = ws.cell(row=2, column=col_num, value=value)
         cell.fill = PatternFill(start_color="E7E6E6", end_color="E7E6E6", fill_type="solid")
         # Format number columns
-        if col_num in [7, 8, 9, 10, 11]:  # Stock, Cost, Selling, MRP, Tax Rate
+        if col_num in [7, 8, 9, 10, 11, 12, 13]:  # Stock, Reorder, Cost, MRP, Discount, Selling, Tax
             cell.number_format = '0.00'
+    
+    # Add Excel formula to auto-calculate Selling Price from MRP and Discount %
+    # Formula: Selling Price = MRP * (1 - Discount%/100)
+    # Column J = MRP (col 10), Column K = Discount % (col 11), Column L = Selling Price (col 12)
+    ws.cell(row=2, column=12).value = '=IF(AND(J2>0, K2>0), J2*(1-K2/100), "")'
+    ws.cell(row=2, column=12).fill = PatternFill(start_color="FFF2CC", end_color="FFF2CC", fill_type="solid")  # Light yellow for formula
     
     # Add instructions
     ws.cell(row=4, column=1, value="INSTRUCTIONS:")
@@ -130,10 +139,14 @@ def create_inventory_template():
     ws.cell(row=7, column=1, value="3. Barcode is optional (for scanning). Leave blank if not applicable.")
     ws.cell(row=8, column=1, value="4. If Category/Group doesn't exist, it will be created")
     ws.cell(row=9, column=1, value="5. Unit examples: Pcs, Kg, Liter, Box, Bag, Meter")
-    ws.cell(row=10, column=1, value="6. Stock Quantity, Cost Price, Selling Price must be numbers (no commas)")
-    ws.cell(row=11, column=1, value="7. MRP is optional (leave blank if not applicable)")
-    ws.cell(row=12, column=1, value="8. Tax Rate is optional (default 18%)")
-    ws.cell(row=13, column=1, value="9. Delete row 2 (sample data) before uploading")
+    ws.cell(row=10, column=1, value="6. Reorder Point: Low stock alert level (optional, default 0)")
+    ws.cell(row=11, column=1, value="7. PRICING: Fill EITHER 'Discount %' OR 'Selling Price' (or both)")
+    ws.cell(row=12, column=1, value="   - Discount %: System calculates Selling Price from MRP")
+    ws.cell(row=13, column=1, value="   - Selling Price: System calculates Discount % from MRP")
+    ws.cell(row=14, column=1, value="   - Both filled: Selling Price takes priority")
+    ws.cell(row=15, column=1, value="8. MRP is optional but needed for discount calculation")
+    ws.cell(row=16, column=1, value="9. Tax Rate is optional (default 18%)")
+    ws.cell(row=17, column=1, value="10. Delete row 2 (sample data) before uploading")
     
     # Adjust column widths
     ws.column_dimensions['A'].width = 30  # Item Name
@@ -143,12 +156,14 @@ def create_inventory_template():
     ws.column_dimensions['E'].width = 15  # Group
     ws.column_dimensions['F'].width = 8   # Unit
     ws.column_dimensions['G'].width = 12  # Stock Quantity
-    ws.column_dimensions['H'].width = 12  # Cost Price
-    ws.column_dimensions['I'].width = 12  # Selling Price
+    ws.column_dimensions['H'].width = 12  # Reorder Point (NEW)
+    ws.column_dimensions['I'].width = 12  # Cost Price
     ws.column_dimensions['J'].width = 10  # MRP
-    ws.column_dimensions['K'].width = 12  # Tax Rate
-    ws.column_dimensions['L'].width = 12  # HSN Code
-    ws.column_dimensions['M'].width = 35  # Description
+    ws.column_dimensions['K'].width = 11  # Discount % (NEW)
+    ws.column_dimensions['L'].width = 13  # Selling Price (formula)
+    ws.column_dimensions['M'].width = 10  # Tax Rate
+    ws.column_dimensions['N'].width = 12  # HSN Code
+    ws.column_dimensions['O'].width = 35  # Description
     
     # Save to BytesIO
     output = BytesIO()
@@ -277,14 +292,14 @@ def validate_employee_row(row_data, row_num):
 def validate_inventory_row(row_data, row_num):
     """
     Validate a single inventory row
-    Updated to handle new format: Item Name, SKU, Barcode, Category, Group, Unit, Stock, Cost, Selling, MRP, Tax, HSN, Description
+    Updated to handle new format: Item Name, SKU, Barcode, Category, Group, Unit, Stock, Reorder Point, Cost, MRP, Discount %, Selling, Tax, HSN, Description
     Returns: (is_valid, error_message)
     """
-    # Unpack all 13 columns
-    if len(row_data) < 13:
-        row_data = list(row_data) + [None] * (13 - len(row_data))
+    # Unpack all 15 columns (added Reorder Point and Discount %)
+    if len(row_data) < 15:
+        row_data = list(row_data) + [None] * (15 - len(row_data))
     
-    item_name, sku, barcode, category, group, unit, stock, cost_price, selling_price, mrp, tax_rate, hsn, description = row_data[:13]
+    item_name, sku, barcode, category, group, unit, stock, reorder_point, cost_price, mrp, discount_percent, selling_price, tax_rate, hsn, description = row_data[:15]
     
     # Required fields
     if not item_name or str(item_name).strip() == '':
@@ -310,6 +325,15 @@ def validate_inventory_row(row_data, row_num):
     except (ValueError, TypeError):
         return False, f"Row {row_num}: Stock Quantity must be a number (found: {stock})"
     
+    # Validate Reorder Point (optional)
+    if reorder_point is not None and str(reorder_point).strip() != '':
+        try:
+            reorder_val = float(reorder_point)
+            if reorder_val < 0:
+                return False, f"Row {row_num}: Reorder Point cannot be negative"
+        except (ValueError, TypeError):
+            return False, f"Row {row_num}: Reorder Point must be a number"
+    
     # Validate Cost Price
     if cost_price is None or (isinstance(cost_price, str) and cost_price.strip() == ''):
         return False, f"Row {row_num}: Cost Price is required"
@@ -321,25 +345,53 @@ def validate_inventory_row(row_data, row_num):
     except (ValueError, TypeError):
         return False, f"Row {row_num}: Cost Price must be a number"
     
-    # Validate Selling Price
-    if selling_price is None or (isinstance(selling_price, str) and selling_price.strip() == ''):
-        return False, f"Row {row_num}: Selling Price is required"
+    # NEW LOGIC: At least one of (Discount % OR Selling Price) must be provided
+    has_discount = discount_percent is not None and str(discount_percent).strip() != ''
+    has_selling = selling_price is not None and str(selling_price).strip() != ''
     
-    try:
-        selling_val = float(selling_price)
-        if selling_val < 0:
-            return False, f"Row {row_num}: Selling Price cannot be negative"
-    except (ValueError, TypeError):
-        return False, f"Row {row_num}: Selling Price must be a number"
+    # Check if at least one is provided
+    if not has_discount and not has_selling:
+        return False, f"Row {row_num}: Either 'Discount %' or 'Selling Price' must be provided"
     
-    # Validate MRP (optional)
+    # Validate Discount % (if provided)
+    if has_discount:
+        try:
+            discount_val = float(discount_percent)
+            if discount_val < 0:
+                return False, f"Row {row_num}: Discount % cannot be negative"
+            if discount_val > 100:
+                return False, f"Row {row_num}: Discount % cannot exceed 100"
+        except (ValueError, TypeError):
+            return False, f"Row {row_num}: Discount % must be a number"
+    
+    # Validate Selling Price (if provided)
+    if has_selling:
+        try:
+            selling_val = float(selling_price)
+            if selling_val < 0:
+                return False, f"Row {row_num}: Selling Price cannot be negative"
+        except (ValueError, TypeError):
+            return False, f"Row {row_num}: Selling Price must be a number"
+    
+    # Validate MRP (optional, but required for discount calculation)
     if mrp is not None and str(mrp).strip() != '':
         try:
             mrp_val = float(mrp)
             if mrp_val < 0:
                 return False, f"Row {row_num}: MRP cannot be negative"
+            
+            # If both MRP and Selling Price are provided, validate Selling ≤ MRP
+            if has_selling:
+                selling_val = float(selling_price)
+                if selling_val > mrp_val:
+                    return False, f"Row {row_num}: Selling Price (₹{selling_val:.2f}) cannot exceed MRP (₹{mrp_val:.2f})"
         except (ValueError, TypeError):
             return False, f"Row {row_num}: MRP must be a number"
+    
+    # If discount % is provided, MRP is required for calculation
+    if has_discount and not has_selling:
+        if mrp is None or str(mrp).strip() == '':
+            return False, f"Row {row_num}: MRP is required when providing Discount % (for calculating Selling Price)"
     
     return True, None
 
@@ -533,12 +585,12 @@ def import_inventory_from_excel(file, tenant_id):
             if all(cell is None or str(cell).strip() == '' for cell in row):
                 continue
             
-            # Extract data (now with 13 columns: Name, SKU, Barcode, Category, Group, Unit, Stock, Cost, Selling, MRP, Tax, HSN, Description)
-            row_data = list(row) + [None] * (13 - len(row))
-            item_name, sku, barcode, category, group, unit, stock, cost_price, selling_price, mrp, tax_rate, hsn, description = row_data[:13]
+            # Extract data (now with 15 columns: Name, SKU, Barcode, Category, Group, Unit, Stock, Reorder Point, Cost, MRP, Discount %, Selling, Tax, HSN, Description)
+            row_data = list(row) + [None] * (15 - len(row))
+            item_name, sku, barcode, category, group, unit, stock, reorder_point, cost_price, mrp, discount_percent, selling_price, tax_rate, hsn, description = row_data[:15]
             
             # Validate
-            is_valid, error_msg = validate_inventory_row(row_data[:13], row_num)
+            is_valid, error_msg = validate_inventory_row(row_data[:15], row_num)
             if not is_valid:
                 errors.append(error_msg)
                 continue
@@ -593,18 +645,38 @@ def import_inventory_from_excel(file, tenant_id):
                     errors.append(f"Row {row_num}: Item with SKU {sku} already exists")
                     continue
                 
-                # Auto-calculate discount % if MRP and selling price are provided
-                discount_percent = 0.0
+                # PRIORITY-BASED PRICING LOGIC
                 mrp_val = float(mrp) if mrp else None
-                selling_val = float(selling_price) if selling_price else 0.0
+                has_discount = discount_percent is not None and str(discount_percent).strip() != ''
+                has_selling = selling_price is not None and str(selling_price).strip() != ''
                 
-                if mrp_val and mrp_val > 0 and selling_val > 0:
-                    # Calculate discount: ((MRP - Selling) / MRP) × 100
-                    discount_percent = ((mrp_val - selling_val) / mrp_val) * 100
-                    # Round to 2 decimal places
-                    discount_percent = round(discount_percent, 2)
-                    # Ensure discount is between 0 and 100
-                    discount_percent = max(0.0, min(100.0, discount_percent))
+                final_selling_price = 0.0
+                final_discount_percent = 0.0
+                
+                # Scenario 1: Both Discount % and Selling Price provided → SELLING PRICE WINS
+                if has_discount and has_selling:
+                    final_selling_price = float(selling_price)
+                    # Recalculate discount % from MRP and Selling Price
+                    if mrp_val and mrp_val > 0:
+                        final_discount_percent = ((mrp_val - final_selling_price) / mrp_val) * 100
+                        final_discount_percent = round(max(0.0, min(100.0, final_discount_percent)), 2)
+                
+                # Scenario 2: Only Discount % provided → Calculate Selling Price from MRP
+                elif has_discount and not has_selling:
+                    final_discount_percent = float(discount_percent)
+                    if mrp_val and mrp_val > 0:
+                        final_selling_price = mrp_val * (1 - final_discount_percent / 100)
+                        final_selling_price = round(final_selling_price, 2)
+                
+                # Scenario 3: Only Selling Price provided → Calculate Discount % from MRP
+                elif has_selling and not has_discount:
+                    final_selling_price = float(selling_price)
+                    if mrp_val and mrp_val > 0:
+                        final_discount_percent = ((mrp_val - final_selling_price) / mrp_val) * 100
+                        final_discount_percent = round(max(0.0, min(100.0, final_discount_percent)), 2)
+                
+                # Extract reorder point (optional)
+                reorder_point_val = float(reorder_point) if reorder_point else 0.0
                 
                 # Create item
                 item = Item(
@@ -616,10 +688,11 @@ def import_inventory_from_excel(file, tenant_id):
                     item_group_id=group_obj.id,
                     unit=str(unit).strip(),
                     opening_stock=float(stock) if stock else 0.0,
+                    reorder_point=reorder_point_val,  # NEW: Reorder Point
                     cost_price=float(cost_price) if cost_price else 0.0,
-                    selling_price=selling_val,
+                    selling_price=final_selling_price,
                     mrp=mrp_val,
-                    discount_percent=discount_percent,  # Auto-calculated
+                    discount_percent=final_discount_percent,
                     hsn_code=str(hsn).strip() if hsn else None,
                     gst_rate=float(tax_rate) if tax_rate else 18.0,
                     tax_preference=f"GST {tax_rate}%" if tax_rate else "GST 18%",
