@@ -141,6 +141,7 @@ from routes.add_invoice_public_token_column import add_invoice_public_token_bp  
 from routes.add_public_tokens import add_public_tokens_bp  # MIGRATION: Add public tokens to existing invoices
 from routes.public_invoice import public_invoice_bp  # PUBLIC: Public invoice view (no login required)
 from routes.commission_payments_migration import commission_payments_migration_bp  # MIGRATION: Create commission_payments table
+from routes.fix_item_discounts import fix_discounts_bp  # MIGRATION: Fix missing discount_percent
 
 app.register_blueprint(registration_bp)
 app.register_blueprint(employee_portal_bp)  # Register unified portal
@@ -193,6 +194,7 @@ app.register_blueprint(add_invoice_public_token_bp)  # MIGRATION: Add public_tok
 app.register_blueprint(add_public_tokens_bp)  # MIGRATION: Add public tokens to existing invoices
 app.register_blueprint(public_invoice_bp)  # PUBLIC: Public invoice view (no login required)
 app.register_blueprint(commission_payments_migration_bp)  # MIGRATION: Create commission_payments table
+app.register_blueprint(fix_discounts_bp)  # MIGRATION: Fix missing discount_percent
 from routes.migrate_double_entry import migrate_double_entry_bp
 app.register_blueprint(migrate_double_entry_bp)  # MIGRATION: Convert to double-entry accounting
 from routes.fix_vendor_payment_constraint import fix_vendor_payment_bp

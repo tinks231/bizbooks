@@ -593,6 +593,19 @@ def import_inventory_from_excel(file, tenant_id):
                     errors.append(f"Row {row_num}: Item with SKU {sku} already exists")
                     continue
                 
+                # Auto-calculate discount % if MRP and selling price are provided
+                discount_percent = 0.0
+                mrp_val = float(mrp) if mrp else None
+                selling_val = float(selling_price) if selling_price else 0.0
+                
+                if mrp_val and mrp_val > 0 and selling_val > 0:
+                    # Calculate discount: ((MRP - Selling) / MRP) × 100
+                    discount_percent = ((mrp_val - selling_val) / mrp_val) * 100
+                    # Round to 2 decimal places
+                    discount_percent = round(discount_percent, 2)
+                    # Ensure discount is between 0 and 100
+                    discount_percent = max(0.0, min(100.0, discount_percent))
+                
                 # Create item
                 item = Item(
                     tenant_id=tenant_id,
@@ -604,8 +617,9 @@ def import_inventory_from_excel(file, tenant_id):
                     unit=str(unit).strip(),
                     opening_stock=float(stock) if stock else 0.0,
                     cost_price=float(cost_price) if cost_price else 0.0,
-                    selling_price=float(selling_price) if selling_price else 0.0,
-                    mrp=float(mrp) if mrp else None,  # MRP is optional
+                    selling_price=selling_val,
+                    mrp=mrp_val,
+                    discount_percent=discount_percent,  # Auto-calculated
                     hsn_code=str(hsn).strip() if hsn else None,
                     gst_rate=float(tax_rate) if tax_rate else 18.0,
                     tax_preference=f"GST {tax_rate}%" if tax_rate else "GST 18%",
