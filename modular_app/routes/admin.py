@@ -845,49 +845,48 @@ def commission_reports():
     from sqlalchemy import text
     from decimal import Decimal
     
-    returns_result = db.session.execute(text("""
-        SELECT 
-            ic.agent_id,
-            SUM(at.credit_amount) as total_returns
-        FROM account_transactions at
-        JOIN invoice_commissions ic ON (
-            at.reference_type = 'return'
-            AND at.transaction_type = 'commission_reversal'
-            AND at.narration LIKE '%' || ic.agent_name || '%'
-        )
-        WHERE at.tenant_id = :tenant_id
-        AND at.transaction_date >= :start_date
-        AND at.transaction_date <= :end_date
-        GROUP BY ic.agent_id
-    """), {
-        'tenant_id': tenant_id,
-        'start_date': start_date,
-        'end_date': end_date
-    }).fetchall()
-    
-    for row in returns_result:
-        if row.agent_id in agent_summary:
-            agent_summary[row.agent_id]['returns'] = float(row.total_returns or 0)
+    # For each agent in the summary, calculate their returns in the date range
+    for agent_id in agent_summary:
+        agent_name = agent_summary[agent_id]['agent_name']
+        
+        # Query returns for this specific agent
+        returns_result = db.session.execute(text("""
+            SELECT COALESCE(SUM(credit_amount), 0) as total_returns
+            FROM account_transactions
+            WHERE tenant_id = :tenant_id
+            AND transaction_type = 'commission_reversal'
+            AND reference_type = 'return'
+            AND narration LIKE :agent_pattern
+            AND transaction_date >= :start_date
+            AND transaction_date <= :end_date
+        """), {
+            'tenant_id': tenant_id,
+            'agent_pattern': f'%{agent_name}%',
+            'start_date': start_date,
+            'end_date': end_date
+        }).fetchone()
+        
+        if returns_result:
+            agent_summary[agent_id]['returns'] = float(returns_result.total_returns or 0)
     
     # Calculate PAID (from commission_payments table)
-    paid_result = db.session.execute(text("""
-        SELECT 
-            agent_id,
-            SUM(amount) as total_paid
-        FROM commission_payments
-        WHERE tenant_id = :tenant_id
-        AND payment_date >= :start_date
-        AND payment_date <= :end_date
-        GROUP BY agent_id
-    """), {
-        'tenant_id': tenant_id,
-        'start_date': start_date,
-        'end_date': end_date
-    }).fetchall()
-    
-    for row in paid_result:
-        if row.agent_id in agent_summary:
-            agent_summary[row.agent_id]['paid'] = float(row.total_paid or 0)
+    for agent_id in agent_summary:
+        paid_result = db.session.execute(text("""
+            SELECT COALESCE(SUM(amount), 0) as total_paid
+            FROM commission_payments
+            WHERE tenant_id = :tenant_id
+            AND agent_id = :agent_id
+            AND payment_date >= :start_date
+            AND payment_date <= :end_date
+        """), {
+            'tenant_id': tenant_id,
+            'agent_id': agent_id,
+            'start_date': start_date,
+            'end_date': end_date
+        }).fetchone()
+        
+        if paid_result:
+            agent_summary[agent_id]['paid'] = float(paid_result.total_paid or 0)
     
     # Calculate NET and UNPAID for each agent
     for agent_id in agent_summary:
