@@ -678,12 +678,24 @@ def import_inventory_from_excel(file, tenant_id):
                 # Extract reorder point (optional)
                 reorder_point_val = float(reorder_point) if reorder_point else 0.0
                 
+                # Clean barcode - handle Excel converting numbers to floats (8901230000000.0 → 8901230000000)
+                barcode_clean = None
+                if barcode:
+                    try:
+                        # If it's a float like 8901230000000.0, convert to int first to remove .0
+                        if isinstance(barcode, float):
+                            barcode_clean = str(int(barcode))
+                        else:
+                            barcode_clean = str(barcode).strip()
+                    except:
+                        barcode_clean = str(barcode).strip() if barcode else None
+                
                 # Create item
                 item = Item(
                     tenant_id=tenant_id,
                     name=str(item_name).strip(),
                     sku=sku,
-                    barcode=str(barcode).strip() if barcode else None,
+                    barcode=barcode_clean,
                     category_id=category_obj.id,
                     item_group_id=group_obj.id,
                     unit=str(unit).strip(),
