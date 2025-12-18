@@ -510,16 +510,18 @@ def system_health():
         }
         
         # 2. Table Sizes (sorted by largest)
+        print("🔬 Executing table sizes query...")
         table_sizes_result = db.session.execute(text("""
             SELECT 
                 tablename,
-                pg_size_pretty(pg_total_relation_size('public.'||tablename)) AS size_pretty,
-                pg_total_relation_size('public.'||tablename) AS size_bytes
+                pg_size_pretty(pg_total_relation_size(schemaname||'.'||tablename)) AS size_pretty,
+                pg_total_relation_size(schemaname||'.'||tablename) AS size_bytes
             FROM pg_tables
             WHERE schemaname = 'public'
-            ORDER BY size_bytes DESC
+            ORDER BY pg_total_relation_size(schemaname||'.'||tablename) DESC
             LIMIT 20
         """)).fetchall()
+        print(f"🔬 Found {len(table_sizes_result)} tables")
         
         table_sizes = []
         for row in table_sizes_result:
@@ -531,16 +533,18 @@ def system_health():
             })
         
         # 3. Row Counts per Table
+        print("🔬 Executing row counts query...")
         row_counts_result = db.session.execute(text("""
             SELECT 
                 schemaname,
-                tablename,
+                relname as tablename,
                 n_tup_ins - n_tup_del as row_count
             FROM pg_stat_user_tables
             WHERE schemaname = 'public'
             ORDER BY n_tup_ins - n_tup_del DESC
             LIMIT 20
         """)).fetchall()
+        print(f"🔬 Found {len(row_counts_result)} tables with row counts")
         
         row_counts = []
         for row in row_counts_result:
@@ -550,26 +554,28 @@ def system_health():
             })
         
         # 4. Index Sizes
+        print("🔬 Executing index sizes query...")
         index_sizes_result = db.session.execute(text("""
             SELECT 
-                tablename,
-                indexname,
+                schemaname,
+                relname as tablename,
+                indexrelname as indexname,
                 pg_size_pretty(pg_relation_size(indexrelid)) AS index_size,
                 pg_relation_size(indexrelid) AS size_bytes
-            FROM pg_indexes
-            JOIN pg_stat_user_indexes USING (schemaname, tablename, indexname)
+            FROM pg_stat_user_indexes
             WHERE schemaname = 'public'
             ORDER BY pg_relation_size(indexrelid) DESC
             LIMIT 10
         """)).fetchall()
+        print(f"🔬 Found {len(index_sizes_result)} indexes")
         
         index_sizes = []
         for row in index_sizes_result:
             index_sizes.append({
-                'table': row[0],
-                'index': row[1],
-                'size_pretty': row[2],
-                'size_mb': round(row[3] / (1024 * 1024), 2)
+                'table': row[1],  # tablename (relname)
+                'index': row[2],  # indexname (indexrelname)
+                'size_pretty': row[3],  # index_size
+                'size_mb': round(row[4] / (1024 * 1024), 2)  # size_bytes
             })
         
         # 5. Growth Projection (based on current data)
