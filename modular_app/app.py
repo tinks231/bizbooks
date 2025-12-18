@@ -143,6 +143,7 @@ from routes.public_invoice import public_invoice_bp  # PUBLIC: Public invoice vi
 from routes.commission_payments_migration import commission_payments_migration_bp  # MIGRATION: Create commission_payments table
 from routes.fix_item_discounts import fix_discounts_bp  # MIGRATION: Fix missing discount_percent
 from routes.fix_barcode_floats import fix_barcodes_bp  # MIGRATION: Fix barcodes with .0 suffix
+from routes.add_barcode_index import add_barcode_index_bp  # MIGRATION: Add barcode index for fast scanning
 
 app.register_blueprint(registration_bp)
 app.register_blueprint(employee_portal_bp)  # Register unified portal
@@ -197,6 +198,7 @@ app.register_blueprint(public_invoice_bp)  # PUBLIC: Public invoice view (no log
 app.register_blueprint(commission_payments_migration_bp)  # MIGRATION: Create commission_payments table
 app.register_blueprint(fix_discounts_bp)  # MIGRATION: Fix missing discount_percent
 app.register_blueprint(fix_barcodes_bp)  # MIGRATION: Fix barcodes with .0 suffix
+app.register_blueprint(add_barcode_index_bp)  # MIGRATION: Add barcode index for fast scanning
 from routes.migrate_double_entry import migrate_double_entry_bp
 app.register_blueprint(migrate_double_entry_bp)  # MIGRATION: Convert to double-entry accounting
 from routes.fix_vendor_payment_constraint import fix_vendor_payment_bp
