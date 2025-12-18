@@ -180,7 +180,7 @@ def check_license(f):
                             <a href="tel:+918983121201">+91 8983121201</a>
                         </div>
                         <div class="contact-item">
-                            <a href="mailto:support@bizbooks.co.in">support@bizbooks.co.in</a>
+                            <a href="mailto:bizbooks.notifications@gmail.com">bizbooks.notifications@gmail.com</a>
                         </div>
                     </div>
                     
