@@ -113,21 +113,34 @@
 .section-header {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 12px;
     margin-bottom: 20px;
-    padding-bottom: 12px;
-    border-bottom: 1px solid var(--gray-100);
+    padding: 12px 16px;
+    /* 🎨 Beautiful gradient background for headers */
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+    border-radius: 10px;
+    border-left: 4px solid var(--primary);
+    position: relative;
 }
 
 .section-icon {
-    font-size: 20px;
+    font-size: 24px;
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.15);
 }
 
 .section-title {
-    font-size: 16px;
-    font-weight: 600;
+    font-size: 17px;
+    font-weight: 700;
     color: var(--gray-900);
     margin: 0;
+    letter-spacing: -0.01em;
 }
 
 /* Metric Rows (inside sections) */
@@ -199,11 +212,16 @@
     border-radius: 50%;
 }
 
-/* Make header white on gradient */
+/* Override header styling for Quick Actions (on gradient background) */
 .quick-actions-card .section-header {
-    border-bottom-color: rgba(255, 255, 255, 0.2) !important;
+    background: rgba(255, 255, 255, 0.15) !important;
+    border-left-color: rgba(255, 255, 255, 0.5) !important;
     position: relative;
     z-index: 1;
+}
+
+.quick-actions-card .section-icon {
+    background: white !important;
 }
 
 .quick-actions-card .section-title {
