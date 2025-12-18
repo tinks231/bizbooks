@@ -1,10 +1,10 @@
 """
 Super Admin Routes - View all tenants and their data
 """
-from flask import Blueprint, render_template, session, redirect, url_for, request
+from flask import Blueprint, render_template, session, redirect, url_for, request, jsonify
 from models import db, Tenant, Employee, Attendance, Site, Material, Stock
 from models import Item, Customer, Vendor, Invoice, PurchaseBill, Expense, Task
-from sqlalchemy import func
+from sqlalchemy import func, text
 from datetime import datetime, timedelta
 
 superadmin_bp = Blueprint('superadmin', __name__, url_prefix='/superadmin')
@@ -484,6 +484,149 @@ def fix_licenses():
     from flask import flash
     flash(f'✅ Fixed {fixed_count} accounts - gave them 30-day trial from today', 'success')
     return redirect(url_for('superadmin.dashboard'))
+
+@superadmin_bp.route('/system-health')
+def system_health():
+    """System Health Monitoring - Database size, table stats, performance metrics"""
+    if not is_superadmin():
+        return redirect(url_for('superadmin.login'))
+    
+    try:
+        # 1. Total Database Size
+        db_size_result = db.session.execute(text("""
+            SELECT pg_size_pretty(pg_database_size(current_database())) as size_pretty,
+                   pg_database_size(current_database()) as size_bytes
+        """)).fetchone()
+        
+        total_db_size = {
+            'pretty': db_size_result[0],
+            'bytes': db_size_result[1],
+            'mb': round(db_size_result[1] / (1024 * 1024), 2),
+            'percent_used': round((db_size_result[1] / (500 * 1024 * 1024)) * 100, 1)  # 500 MB free plan
+        }
+        
+        # 2. Table Sizes (sorted by largest)
+        table_sizes_result = db.session.execute(text("""
+            SELECT 
+                tablename,
+                pg_size_pretty(pg_total_relation_size('public.'||tablename)) AS size_pretty,
+                pg_total_relation_size('public.'||tablename) AS size_bytes
+            FROM pg_tables
+            WHERE schemaname = 'public'
+            ORDER BY size_bytes DESC
+            LIMIT 20
+        """)).fetchall()
+        
+        table_sizes = []
+        for row in table_sizes_result:
+            table_sizes.append({
+                'table': row[0],
+                'size_pretty': row[1],
+                'size_bytes': row[2],
+                'size_mb': round(row[2] / (1024 * 1024), 2)
+            })
+        
+        # 3. Row Counts per Table
+        row_counts_result = db.session.execute(text("""
+            SELECT 
+                schemaname,
+                tablename,
+                n_tup_ins - n_tup_del as row_count
+            FROM pg_stat_user_tables
+            WHERE schemaname = 'public'
+            ORDER BY n_tup_ins - n_tup_del DESC
+            LIMIT 20
+        """)).fetchall()
+        
+        row_counts = []
+        for row in row_counts_result:
+            row_counts.append({
+                'table': row[1],
+                'count': row[2]
+            })
+        
+        # 4. Index Sizes
+        index_sizes_result = db.session.execute(text("""
+            SELECT 
+                tablename,
+                indexname,
+                pg_size_pretty(pg_relation_size(indexrelid)) AS index_size,
+                pg_relation_size(indexrelid) AS size_bytes
+            FROM pg_indexes
+            JOIN pg_stat_user_indexes USING (schemaname, tablename, indexname)
+            WHERE schemaname = 'public'
+            ORDER BY pg_relation_size(indexrelid) DESC
+            LIMIT 10
+        """)).fetchall()
+        
+        index_sizes = []
+        for row in index_sizes_result:
+            index_sizes.append({
+                'table': row[0],
+                'index': row[1],
+                'size_pretty': row[2],
+                'size_mb': round(row[3] / (1024 * 1024), 2)
+            })
+        
+        # 5. Growth Projection (based on current data)
+        total_tenants = Tenant.query.count()
+        total_items = Item.query.count()
+        total_invoices = Invoice.query.count()
+        total_customers = Customer.query.count()
+        total_vendors = Vendor.query.count()
+        total_purchase_bills = PurchaseBill.query.count()
+        total_expenses = Expense.query.count()
+        
+        # Estimate space per record (bytes)
+        space_estimates = {
+            'items': total_items * 700,
+            'invoices': total_invoices * 500,
+            'customers': total_customers * 300,
+            'vendors': total_vendors * 300,
+            'purchase_bills': total_purchase_bills * 500,
+            'expenses': total_expenses * 400
+        }
+        
+        # Health Status
+        if total_db_size['percent_used'] < 50:
+            health_status = 'healthy'
+            health_color = 'success'
+            health_message = '✅ Database usage is healthy'
+        elif total_db_size['percent_used'] < 70:
+            health_status = 'good'
+            health_color = 'info'
+            health_message = '📊 Database usage is good'
+        elif total_db_size['percent_used'] < 85:
+            health_status = 'warning'
+            health_color = 'warning'
+            health_message = '⚠️ Consider monitoring growth closely'
+        else:
+            health_status = 'critical'
+            health_color = 'danger'
+            health_message = '🚨 Database approaching limit - upgrade recommended'
+        
+        return render_template('superadmin/system_health.html',
+                             total_db_size=total_db_size,
+                             table_sizes=table_sizes,
+                             row_counts=row_counts,
+                             index_sizes=index_sizes,
+                             space_estimates=space_estimates,
+                             health_status=health_status,
+                             health_color=health_color,
+                             health_message=health_message,
+                             total_tenants=total_tenants,
+                             total_items=total_items,
+                             total_invoices=total_invoices,
+                             total_customers=total_customers,
+                             total_vendors=total_vendors,
+                             total_purchase_bills=total_purchase_bills,
+                             total_expenses=total_expenses,
+                             now=datetime.utcnow())
+    
+    except Exception as e:
+        from flask import flash
+        flash(f'❌ Error fetching system health: {str(e)}', 'error')
+        return redirect(url_for('superadmin.dashboard'))
 
 @superadmin_bp.route('/fix-last-logins')
 def fix_last_logins():
