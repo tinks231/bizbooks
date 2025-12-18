@@ -913,7 +913,7 @@
         const hint = document.getElementById('barcodeScannerHint');
         
         // Use API to search items (fast with any number of items)
-        fetch(`/items/api/search?q=${encodeURIComponent(query)}&limit=5`)
+        fetch(`/admin/items/api/search?q=${encodeURIComponent(query)}&limit=5`)
             .then(response => response.json())
             .then(results => {
                 if (results.length === 1) {
@@ -1203,7 +1203,7 @@
         // Debounce API call (wait 300ms after user stops typing)
         searchTimeout = setTimeout(() => {
             // Make API call to search items
-            fetch(`/items/api/search?q=${encodeURIComponent(searchTerm)}&limit=10`)
+            fetch(`/admin/items/api/search?q=${encodeURIComponent(searchTerm)}&limit=10`)
                 .then(response => response.json())
                 .then(filteredItems => {
                     if (filteredItems.length === 0) {
