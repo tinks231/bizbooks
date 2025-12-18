@@ -1,7 +1,7 @@
 """
 Super Admin Routes - View all tenants and their data
 """
-from flask import Blueprint, render_template, session, redirect, url_for, request, jsonify
+from flask import Blueprint, render_template, session, redirect, url_for, request, jsonify, render_template_string
 from models import db, Tenant, Employee, Attendance, Site, Material, Stock
 from models import Item, Customer, Vendor, Invoice, PurchaseBill, Expense, Task
 from sqlalchemy import func, text
@@ -491,12 +491,16 @@ def system_health():
     if not is_superadmin():
         return redirect(url_for('superadmin.login'))
     
+    print("🔬 SYSTEM HEALTH: Starting health check...")
+    
     try:
         # 1. Total Database Size
+        print("🔬 Executing database size query...")
         db_size_result = db.session.execute(text("""
             SELECT pg_size_pretty(pg_database_size(current_database())) as size_pretty,
                    pg_database_size(current_database()) as size_bytes
         """)).fetchone()
+        print(f"🔬 Database size: {db_size_result[0] if db_size_result else 'None'}")
         
         total_db_size = {
             'pretty': db_size_result[0],
@@ -624,9 +628,39 @@ def system_health():
                              now=datetime.utcnow())
     
     except Exception as e:
+        import traceback
+        error_details = traceback.format_exc()
+        print(f"🚨 SYSTEM HEALTH ERROR: {str(e)}")
+        print(f"🚨 Traceback: {error_details}")
+        
         from flask import flash
         flash(f'❌ Error fetching system health: {str(e)}', 'error')
-        return redirect(url_for('superadmin.dashboard'))
+        
+        # Return error page with details for debugging
+        return render_template_string('''
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>System Health Error</title>
+                <style>
+                    body { font-family: Arial; padding: 40px; background: #f5f5f5; }
+                    .error-box { background: white; padding: 30px; border-radius: 10px; max-width: 800px; margin: 0 auto; }
+                    h1 { color: #e74c3c; }
+                    pre { background: #f8f8f8; padding: 15px; border-radius: 5px; overflow-x: auto; }
+                    .back-btn { display: inline-block; margin-top: 20px; padding: 10px 20px; background: #667eea; color: white; text-decoration: none; border-radius: 5px; }
+                </style>
+            </head>
+            <body>
+                <div class="error-box">
+                    <h1>🚨 System Health Monitor Error</h1>
+                    <p><strong>Error:</strong> {{ error }}</p>
+                    <h3>Details:</h3>
+                    <pre>{{ details }}</pre>
+                    <a href="/superadmin/dashboard" class="back-btn">← Back to Dashboard</a>
+                </div>
+            </body>
+            </html>
+        ''', error=str(e), details=error_details)
 
 @superadmin_bp.route('/fix-last-logins')
 def fix_last_logins():
