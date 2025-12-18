@@ -349,7 +349,97 @@ def require_tenant(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if not hasattr(g, 'tenant') or g.tenant is None:
-            return abort(400, "This page requires a tenant subdomain")
+            response = make_response(render_template_string('''
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>Subdomain Required</title>
+                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                    <style>
+                        * { box-sizing: border-box; margin: 0; padding: 0; }
+                        body {
+                            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                            display: flex;
+                            justify-content: center;
+                            align-items: center;
+                            min-height: 100vh;
+                            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                            padding: 20px;
+                        }
+                        .container {
+                            background: white;
+                            padding: 50px 40px;
+                            border-radius: 20px;
+                            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+                            max-width: 600px;
+                            width: 100%;
+                            text-align: center;
+                        }
+                        .icon { font-size: 80px; margin-bottom: 20px; }
+                        h1 { color: #e74c3c; margin-bottom: 20px; font-size: 28px; }
+                        .message {
+                            color: #555;
+                            line-height: 1.8;
+                            margin: 15px 0;
+                            font-size: 16px;
+                        }
+                        .example-box {
+                            background: #f8f9fa;
+                            padding: 20px;
+                            border-radius: 10px;
+                            margin: 25px 0;
+                            border-left: 4px solid #667eea;
+                        }
+                        .example-box code {
+                            background: white;
+                            padding: 10px 15px;
+                            border-radius: 5px;
+                            display: block;
+                            margin: 10px 0;
+                            color: #667eea;
+                            font-weight: bold;
+                            font-size: 16px;
+                        }
+                        .btn {
+                            display: inline-block;
+                            margin-top: 20px;
+                            padding: 15px 30px;
+                            background: linear-gradient(135deg, #667eea, #764ba2);
+                            color: white;
+                            text-decoration: none;
+                            border-radius: 10px;
+                            font-weight: 600;
+                            transition: all 0.3s;
+                        }
+                        .btn:hover {
+                            transform: translateY(-2px);
+                            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+                        }
+                    </style>
+                </head>
+                <body>
+                    <div class="container">
+                        <div class="icon">🏢</div>
+                        <h1>Business Subdomain Required</h1>
+                        <p class="message">
+                            This page requires a business account subdomain to access.
+                        </p>
+                        <div class="example-box">
+                            <p><strong>Correct URL format:</strong></p>
+                            <code>yourcompany.bizbooks.co.in</code>
+                        </div>
+                        <p class="message">
+                            If you don't have a BizBooks account yet, you can register for free!
+                        </p>
+                        <a href="https://bizbooks.co.in/register" class="btn">
+                            🚀 Register Your Business
+                        </a>
+                    </div>
+                </body>
+                </html>
+            '''))
+            response.status_code = 400
+            return response
         return f(*args, **kwargs)
     return decorated_function
 
