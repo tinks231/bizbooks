@@ -380,7 +380,7 @@ def dashboard():
     print(f"4. Recent activity queries: {(time.time() - t8)*1000:.0f}ms")
     
     t9 = time.time()
-    html_result = render_template('admin/dashboard.html',
+    html_result = render_template('admin/dashboard_v2.html',
                          tenant=tenant,
                          today=today,
                          today_sales=today_sales,

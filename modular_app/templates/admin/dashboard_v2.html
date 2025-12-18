@@ -1,0 +1,624 @@
+{% extends "base_sidebar.html" %}
+
+{% block title %}Dashboard - {{ tenant.company_name }}{% endblock %}
+
+{% block page_title %}Business Dashboard{% endblock %}
+
+{% block content %}
+
+<style>
+/* ========================================
+   CLEAN DASHBOARD DESIGN v2.0
+   Modern, Minimal, Professional
+   ======================================== */
+
+:root {
+    --primary: #667eea;
+    --success: #10b981;
+    --warning: #f59e0b;
+    --danger: #ef4444;
+    --gray-50: #f9fafb;
+    --gray-100: #f3f4f6;
+    --gray-400: #9ca3af;
+    --gray-600: #4b5563;
+    --gray-900: #111827;
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.05);
+    --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.05);
+}
+
+.dashboard-v2 {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0;
+}
+
+/* ========================================
+   CLEAN HEADER (No Banner, Just Text)
+   ======================================== */
+.header-clean {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 32px;
+}
+
+.header-left h1 {
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--gray-900);
+    margin: 0 0 4px 0;
+}
+
+.header-left p {
+    font-size: 14px;
+    color: var(--gray-600);
+    margin: 0;
+}
+
+/* ========================================
+   2×2 GRID LAYOUT (Main Content)
+   ======================================== */
+.grid-2x2 {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 24px;
+    margin-bottom: 24px;
+}
+
+.grid-left {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+/* ========================================
+   SECTION CARDS (Grouped Metrics)
+   ======================================== */
+.section-card {
+    background: white;
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--gray-100);
+}
+
+.section-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--gray-100);
+}
+
+.section-icon {
+    font-size: 20px;
+}
+
+.section-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--gray-900);
+    margin: 0;
+}
+
+/* Metric Rows (inside sections) */
+.metric-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--gray-50);
+}
+
+.metric-row:last-child {
+    border-bottom: none;
+}
+
+.metric-label {
+    font-size: 14px;
+    color: var(--gray-600);
+    font-weight: 500;
+}
+
+.metric-value {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--gray-900);
+}
+
+.metric-value.primary {
+    color: var(--primary);
+}
+
+.metric-value.success {
+    color: var(--success);
+}
+
+.metric-value.warning {
+    color: var(--warning);
+}
+
+.metric-subtext {
+    font-size: 12px;
+    color: var(--gray-400);
+    margin-top: 2px;
+}
+
+/* ========================================
+   QUICK ACTIONS (Right Sidebar)
+   ======================================== */
+.quick-actions-card {
+    position: sticky;
+    top: 20px;
+}
+
+.quick-action-btn {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    padding: 16px;
+    background: white;
+    border: 1px solid var(--gray-100);
+    border-radius: 8px;
+    margin-bottom: 10px;
+    text-decoration: none;
+    transition: all 0.2s;
+    cursor: pointer;
+}
+
+.quick-action-btn:hover {
+    background: var(--gray-50);
+    border-color: var(--primary);
+    transform: translateX(4px);
+}
+
+.quick-action-icon {
+    font-size: 24px;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--gray-50);
+    border-radius: 8px;
+}
+
+.quick-action-btn:hover .quick-action-icon {
+    background: var(--primary);
+}
+
+.quick-action-text {
+    flex: 1;
+}
+
+.quick-action-label {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--gray-900);
+    margin: 0;
+}
+
+.quick-action-desc {
+    font-size: 12px;
+    color: var(--gray-600);
+    margin: 2px 0 0 0;
+}
+
+/* ========================================
+   RECENT ACTIVITY (Combined Section)
+   ======================================== */
+.activity-unified {
+    background: white;
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--gray-100);
+}
+
+.activity-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--gray-50);
+}
+
+.activity-item:last-child {
+    border-bottom: none;
+}
+
+.activity-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex: 1;
+}
+
+.activity-icon {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--gray-50);
+    border-radius: 8px;
+    font-size: 18px;
+}
+
+.activity-icon.invoice {
+    background: #dbeafe;
+    color: #2563eb;
+}
+
+.activity-icon.bill {
+    background: #fef3c7;
+    color: #f59e0b;
+}
+
+.activity-details h4 {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--gray-900);
+    margin: 0 0 2px 0;
+}
+
+.activity-details p {
+    font-size: 12px;
+    color: var(--gray-600);
+    margin: 0;
+}
+
+.activity-amount {
+    font-size: 16px;
+    font-weight: 700;
+}
+
+.activity-amount.positive {
+    color: var(--success);
+}
+
+.activity-amount.negative {
+    color: var(--danger);
+}
+
+.view-all-link {
+    display: block;
+    text-align: center;
+    padding: 12px;
+    margin-top: 12px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--primary);
+    text-decoration: none;
+    border-radius: 6px;
+    transition: all 0.2s;
+}
+
+.view-all-link:hover {
+    background: var(--gray-50);
+}
+
+/* ========================================
+   STAT BOX (Clickable Stats)
+   ======================================== */
+.stats-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+}
+
+.stat-box-v2 {
+    background: white;
+    border: 1px solid var(--gray-100);
+    border-radius: 8px;
+    padding: 16px;
+    text-align: center;
+    text-decoration: none;
+    transition: all 0.2s;
+    display: block;
+}
+
+.stat-box-v2:hover {
+    border-color: var(--primary);
+    box-shadow: var(--shadow-md);
+    transform: translateY(-2px);
+}
+
+.stat-icon-v2 {
+    font-size: 28px;
+    margin-bottom: 8px;
+}
+
+.stat-number-v2 {
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--gray-900);
+    margin-bottom: 4px;
+}
+
+.stat-label-v2 {
+    font-size: 13px;
+    color: var(--gray-600);
+}
+
+/* ========================================
+   RESPONSIVE (Mobile-Friendly)
+   ======================================== */
+@media (max-width: 1024px) {
+    .grid-2x2 {
+        grid-template-columns: 1fr;
+    }
+    
+    .quick-actions-card {
+        position: static;
+    }
+}
+
+@media (max-width: 768px) {
+    .header-clean {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+    }
+    
+    .stats-row {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .section-card {
+        padding: 20px;
+    }
+    
+    .metric-value {
+        font-size: 20px;
+    }
+}
+
+@media (max-width: 480px) {
+    .stats-row {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ========================================
+   EMPTY STATE
+   ======================================== */
+.empty-activity {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--gray-400);
+}
+
+.empty-activity-icon {
+    font-size: 48px;
+    margin-bottom: 12px;
+    opacity: 0.5;
+}
+</style>
+
+<div class="dashboard-v2">
+    <!-- ========================================
+         CLEAN HEADER (No Banner)
+         ======================================== -->
+    <div class="header-clean">
+        <div class="header-left">
+            <h1>👋 Welcome back, {{ session.admin_name }}!</h1>
+            <p>{{ tenant.company_name }} • {{ today.strftime('%A, %d %B %Y') }}</p>
+        </div>
+    </div>
+    
+    <!-- ========================================
+         MAIN 2×2 GRID LAYOUT
+         ======================================== -->
+    <div class="grid-2x2">
+        <!-- LEFT COLUMN (2 sections stacked) -->
+        <div class="grid-left">
+            <!-- 💰 SALES SECTION -->
+            <div class="section-card">
+                <div class="section-header">
+                    <span class="section-icon">💰</span>
+                    <h2 class="section-title">Sales</h2>
+                </div>
+                
+                <div class="metric-row">
+                    <div>
+                        <div class="metric-label">Today</div>
+                    </div>
+                    <div style="text-align: right;">
+                        <div class="metric-value primary">₹{{ "{:,.0f}".format(today_sales) }}</div>
+                        <div class="metric-subtext">{{ today_invoice_count }} invoice{{ 's' if today_invoice_count != 1 else '' }}</div>
+                    </div>
+                </div>
+                
+                <div class="metric-row">
+                    <div>
+                        <div class="metric-label">This Month</div>
+                    </div>
+                    <div style="text-align: right;">
+                        <div class="metric-value primary">₹{{ "{:,.0f}".format(month_sales) }}</div>
+                        <div class="metric-subtext">{{ month_invoice_count }} invoice{{ 's' if month_invoice_count != 1 else '' }}</div>
+                    </div>
+                </div>
+                
+                <div class="metric-row">
+                    <div>
+                        <div class="metric-label">To Collect</div>
+                    </div>
+                    <div style="text-align: right;">
+                        <div class="metric-value warning">₹{{ "{:,.0f}".format(pending_receivables) }}</div>
+                        <div class="metric-subtext">Pending receivables</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 📦 INVENTORY + 👥 BUSINESS (Combined Stats) -->
+            <div class="section-card">
+                <div class="section-header">
+                    <span class="section-icon">📊</span>
+                    <h2 class="section-title">Business Overview</h2>
+                </div>
+                
+                <div class="stats-row">
+                    <a href="/admin/items" class="stat-box-v2">
+                        <div class="stat-icon-v2">📦</div>
+                        <div class="stat-number-v2">{{ total_items }}</div>
+                        <div class="stat-label-v2">Total Items</div>
+                    </a>
+                    
+                    <a href="/admin/items?low_stock=1" class="stat-box-v2">
+                        <div class="stat-icon-v2">{% if low_stock_count > 0 %}⚠️{% else %}✅{% endif %}</div>
+                        <div class="stat-number-v2">{{ low_stock_count }}</div>
+                        <div class="stat-label-v2">Low Stock</div>
+                    </a>
+                    
+                    <a href="/admin/customers" class="stat-box-v2">
+                        <div class="stat-icon-v2">👥</div>
+                        <div class="stat-number-v2">{{ total_customers }}</div>
+                        <div class="stat-label-v2">Customers</div>
+                    </a>
+                    
+                    <a href="/admin/vendors" class="stat-box-v2">
+                        <div class="stat-icon-v2">🏢</div>
+                        <div class="stat-number-v2">{{ total_vendors }}</div>
+                        <div class="stat-label-v2">Vendors</div>
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <!-- RIGHT COLUMN (Quick Actions - Sticky) -->
+        <div class="quick-actions-card section-card">
+            <div class="section-header">
+                <span class="section-icon">🎯</span>
+                <h2 class="section-title">Quick Actions</h2>
+            </div>
+            
+            <a href="/admin/invoices/create" class="quick-action-btn">
+                <div class="quick-action-icon">📄</div>
+                <div class="quick-action-text">
+                    <p class="quick-action-label">New Invoice</p>
+                    <p class="quick-action-desc">Create sale invoice</p>
+                </div>
+            </a>
+            
+            <a href="/admin/purchase-bills/create" class="quick-action-btn">
+                <div class="quick-action-icon">🛒</div>
+                <div class="quick-action-text">
+                    <p class="quick-action-label">New Purchase</p>
+                    <p class="quick-action-desc">Record purchase bill</p>
+                </div>
+            </a>
+            
+            <a href="/admin/items/add" class="quick-action-btn">
+                <div class="quick-action-icon">➕</div>
+                <div class="quick-action-text">
+                    <p class="quick-action-label">Add Item</p>
+                    <p class="quick-action-desc">New inventory item</p>
+                </div>
+            </a>
+            
+            <a href="/admin/items" class="quick-action-btn">
+                <div class="quick-action-icon">📊</div>
+                <div class="quick-action-text">
+                    <p class="quick-action-label">View Inventory</p>
+                    <p class="quick-action-desc">Stock & items</p>
+                </div>
+            </a>
+            
+            <a href="/admin/gst-reports" class="quick-action-btn">
+                <div class="quick-action-icon">📋</div>
+                <div class="quick-action-text">
+                    <p class="quick-action-label">GST Reports</p>
+                    <p class="quick-action-desc">Tax & compliance</p>
+                </div>
+            </a>
+        </div>
+    </div>
+    
+    <!-- ========================================
+         RECENT ACTIVITY (Combined)
+         ======================================== -->
+    <div class="activity-unified">
+        <div class="section-header">
+            <span class="section-icon">📋</span>
+            <h2 class="section-title">Recent Activity</h2>
+        </div>
+        
+        {% set combined_activity = [] %}
+        {% for invoice in recent_invoices %}
+            {% set _ = combined_activity.append({
+                'type': 'invoice',
+                'id': invoice.invoice_number,
+                'party': invoice.customer_name,
+                'amount': invoice.total_amount,
+                'date': invoice.invoice_date,
+                'url': '/admin/invoices/' + invoice.id|string
+            }) %}
+        {% endfor %}
+        {% for bill in recent_bills %}
+            {% set _ = combined_activity.append({
+                'type': 'bill',
+                'id': bill.bill_number,
+                'party': bill.vendor_name,
+                'amount': bill.total_amount,
+                'date': bill.bill_date,
+                'url': '/admin/purchase-bills/' + bill.id|string
+            }) %}
+        {% endfor %}
+        
+        {% if combined_activity %}
+            {% for item in combined_activity|sort(attribute='date', reverse=True)[:8] %}
+            <div class="activity-item">
+                <div class="activity-left">
+                    <div class="activity-icon {{ item.type }}">
+                        {{ '📄' if item.type == 'invoice' else '🛒' }}
+                    </div>
+                    <div class="activity-details">
+                        <h4>{{ item.id }}</h4>
+                        <p>{{ item.party }} • {{ item.date.strftime('%d %b') }}</p>
+                    </div>
+                </div>
+                <div class="activity-amount {{ 'positive' if item.type == 'invoice' else 'negative' }}">
+                    {% if item.type == 'invoice' %}+{% else %}-{% endif %}₹{{ "{:,.0f}".format(item.amount) }}
+                </div>
+            </div>
+            {% endfor %}
+            
+            <a href="/admin/invoices" class="view-all-link">View All Activity →</a>
+        {% else %}
+            <div class="empty-activity">
+                <div class="empty-activity-icon">📭</div>
+                <p>No recent activity</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+// Cache dashboard data for instant load (keep existing caching logic)
+(function() {
+    const CACHE_KEY = 'dashboard_data_v2';
+    const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+    
+    function saveToCache() {
+        try {
+            const data = {
+                timestamp: Date.now(),
+                today_sales: {{ today_sales }},
+                month_sales: {{ month_sales }},
+                pending_receivables: {{ pending_receivables }}
+            };
+            localStorage.setItem(CACHE_KEY, JSON.stringify(data));
+        } catch (e) {
+            console.error('Cache error:', e);
+        }
+    }
+    
+    saveToCache();
+})();
+</script>
+
+{% endblock %}
+
