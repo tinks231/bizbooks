@@ -733,7 +733,9 @@
 
 <script>
     let itemCount = 0;
-    const items = {{ items|tojson }};
+    // PERFORMANCE: Items now loaded via API for instant page load
+    // const items = {{ items|tojson }};  // OLD: Loaded all items (slow with 20K+ items)
+    const items = [];  // NEW: Empty array, items loaded via API as user types
     const tenantState = "{{ tenant_settings.get('state', 'Maharashtra') }}";
     
     {% if sales_order %}
@@ -910,42 +912,47 @@
         const scannerInput = document.getElementById('barcodeScanner');
         const hint = document.getElementById('barcodeScannerHint');
         
-        // Search in items array (same as existing item search)
-        const results = items.filter(item => 
-            item.name.toLowerCase().includes(query.toLowerCase()) ||
-            (item.sku && item.sku.toLowerCase().includes(query.toLowerCase()))
-        );
-        
-        if (results.length === 1) {
-            // Exact match - add item
-            playSuccessBeep();
-            hint.textContent = `✅ Found: ${results[0].name}`;
-            hint.style.color = '#4ade80';
-            
-            addItemToInvoice(results[0]);
-            
-            scannerInput.value = '';
-            setTimeout(() => {
-                hint.textContent = '💡 Tip: Keep this field focused for quick scanning. Press Tab to skip.';
-                hint.style.color = 'rgba(255, 255, 255, 0.9)';
-                scannerInput.focus();
-            }, 1500);
-        } else if (results.length > 1) {
-            // Multiple matches
-            playWarningBeep();
-            hint.textContent = `⚠️ ${results.length} items found. Please be more specific.`;
-            hint.style.color = '#fbbf24';
-        } else {
-            // No matches
-            playErrorBeep();
-            hint.textContent = `❌ Item not found: "${query}"`;
-            hint.style.color = '#f87171';
-            
-            setTimeout(() => {
-                hint.textContent = '💡 Tip: Keep this field focused for quick scanning. Press Tab to skip.';
-                hint.style.color = 'rgba(255, 255, 255, 0.9)';
-            }, 2000);
-        }
+        // Use API to search items (fast with any number of items)
+        fetch(`/items/api/search?q=${encodeURIComponent(query)}&limit=5`)
+            .then(response => response.json())
+            .then(results => {
+                if (results.length === 1) {
+                    // Exact match - add item
+                    playSuccessBeep();
+                    hint.textContent = `✅ Found: ${results[0].name}`;
+                    hint.style.color = '#4ade80';
+                    
+                    addItemToInvoice(results[0]);
+                    
+                    scannerInput.value = '';
+                    setTimeout(() => {
+                        hint.textContent = '💡 Tip: Keep this field focused for quick scanning. Press Tab to skip.';
+                        hint.style.color = 'rgba(255, 255, 255, 0.9)';
+                        scannerInput.focus();
+                    }, 1500);
+                } else if (results.length > 1) {
+                    // Multiple matches
+                    playWarningBeep();
+                    hint.textContent = `⚠️ ${results.length} items found. Please be more specific.`;
+                    hint.style.color = '#fbbf24';
+                } else {
+                    // No matches
+                    playErrorBeep();
+                    hint.textContent = `❌ Item not found: "${query}"`;
+                    hint.style.color = '#f87171';
+                    
+                    setTimeout(() => {
+                        hint.textContent = '💡 Tip: Keep this field focused for quick scanning. Press Tab to skip.';
+                        hint.style.color = 'rgba(255, 255, 255, 0.9)';
+                    }, 2000);
+                }
+            })
+            .catch(error => {
+                console.error('Search error:', error);
+                playErrorBeep();
+                hint.textContent = `❌ Search failed. Please try again.`;
+                hint.style.color = '#f87171';
+            });
     }
     
     function addItemToInvoice(item) {
@@ -1168,8 +1175,11 @@
         }
     }
     
+    // Debounce timer for API calls
+    let searchTimeout = null;
+    
     function searchItems(input, rowId) {
-        const searchTerm = input.value.toLowerCase().trim();
+        const searchTerm = input.value.trim();
         const dropdown = document.getElementById(`dropdown_${rowId}`);
         
         if (!searchTerm) {
@@ -1177,24 +1187,38 @@
             return;
         }
         
-        // Filter items based on search term
-        const filteredItems = items.filter(item => 
-            item.name.toLowerCase().includes(searchTerm)
-        );
+        // Show loading indicator
+        dropdown.innerHTML = `
+            <div class="autocomplete-no-results">
+                ⏳ Searching...
+            </div>
+        `;
+        dropdown.style.display = 'block';
         
-        if (filteredItems.length === 0) {
-            dropdown.innerHTML = `
-                <div class="autocomplete-no-results">
-                    No items found. You can type manually or add items to inventory first.
-                </div>
-            `;
-            dropdown.style.display = 'block';
-            return;
+        // Clear previous timeout
+        if (searchTimeout) {
+            clearTimeout(searchTimeout);
         }
         
-        // Build dropdown HTML using data attributes (safer than inline onclick with special chars)
-        let html = '';
-        filteredItems.slice(0, 10).forEach(item => { // Show max 10 results
+        // Debounce API call (wait 300ms after user stops typing)
+        searchTimeout = setTimeout(() => {
+            // Make API call to search items
+            fetch(`/items/api/search?q=${encodeURIComponent(searchTerm)}&limit=10`)
+                .then(response => response.json())
+                .then(filteredItems => {
+                    if (filteredItems.length === 0) {
+                        dropdown.innerHTML = `
+                            <div class="autocomplete-no-results">
+                                No items found. You can type manually or add items to inventory first.
+                            </div>
+                        `;
+                        dropdown.style.display = 'block';
+                        return;
+                    }
+                    
+                    // Build dropdown HTML using data attributes (safer than inline onclick with special chars)
+                    let html = '';
+                    filteredItems.forEach(item => { // Already limited by API
             // Escape for HTML display (not for onclick)
             const escapedName = item.name.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
             const escapedHsn = (item.hsn_code || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -1254,6 +1278,16 @@
         });
         
         dropdown.style.display = 'block';
+                })
+                .catch(error => {
+                    console.error('API search error:', error);
+                    dropdown.innerHTML = `
+                        <div class="autocomplete-no-results">
+                            ❌ Error searching items. Please try again.
+                        </div>
+                    `;
+                });
+        }, 300); // 300ms debounce delay
     }
     
     function selectItemFromDropdown(rowId, itemId, itemName, price, hsnCode, mrp, discountPercent, gstRate) {

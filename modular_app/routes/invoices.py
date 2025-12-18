@@ -709,26 +709,9 @@ def create():
             flash(f'Error creating invoice: {str(e)}', 'error')
     
     # GET request - show form
-    # Get all items for autocomplete with stock info
-    items = Item.query.filter_by(tenant_id=tenant_id, is_active=True).all()
-    
-    # Prepare items for JSON (with stock availability)
-    items_json = []
-    for item in items:
-        # Get total available stock across all sites
-        total_stock = item.get_total_stock() if item.track_inventory else None
-        
-        items_json.append({
-            'id': item.id,
-            'name': item.name,
-            'mrp': item.mrp if hasattr(item, 'mrp') and item.mrp else None,
-            'discount_percent': item.discount_percent if hasattr(item, 'discount_percent') else 0,
-            'selling_price': item.selling_price or 0,
-            'gst_rate': item.gst_rate or 18,
-            'hsn_code': item.hsn_code or '',
-            'track_inventory': item.track_inventory,
-            'stock': total_stock if total_stock is not None else 'N/A'
-        })
+    # PERFORMANCE OPTIMIZATION: Items are now loaded via API (/items/api/search)
+    # This allows fast page load even with 20K+ items
+    items_json = []  # Empty array - items loaded dynamically via API
     
     # Check if converting from sales order
     from_order = request.args.get('from_order')
@@ -1002,22 +985,8 @@ def edit(invoice_id):
     
     # GET - show edit form (using create template)
     try:
-        items = Item.query.filter_by(tenant_id=tenant_id, is_active=True).all()
-        items_json = []
-        for item in items:
-            # Get total available stock across all sites
-            total_stock = item.get_total_stock() if item.track_inventory else None
-            
-            items_json.append({
-                'id': item.id,
-                'name': item.name,
-                'mrp': item.mrp if hasattr(item, 'mrp') and item.mrp else None,
-                'selling_price': item.selling_price or 0,
-                'gst_rate': item.gst_rate or 18,
-                'hsn_code': item.hsn_code or '',
-                'track_inventory': item.track_inventory,
-                'stock': total_stock if total_stock is not None else 'N/A'
-            })
+        # PERFORMANCE OPTIMIZATION: Items loaded via API for fast page load
+        items_json = []  # Empty array - items loaded dynamically via /items/api/search
         
         # Convert invoice items to JSON-serializable format
         invoice_items_json = [

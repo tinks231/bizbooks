@@ -71,6 +71,61 @@ def generate_sku(tenant_id):
     return new_sku
 
 
+# ===== API: ITEM SEARCH =====
+@items_bp.route('/api/search', methods=['GET'])
+@require_tenant
+@login_required
+def api_search_items():
+    """Fast API endpoint for searching items (for invoice/bill creation)"""
+    from sqlalchemy import or_
+    
+    tenant_id = get_current_tenant_id()
+    query_text = request.args.get('q', '').strip()
+    limit = request.args.get('limit', 20, type=int)
+    
+    if not query_text:
+        return jsonify([])
+    
+    # Search by name, SKU, or barcode (fast indexed query)
+    items = Item.query.filter(
+        Item.tenant_id == tenant_id,
+        Item.is_active == True,
+        or_(
+            Item.name.ilike(f'%{query_text}%'),
+            Item.sku.ilike(f'%{query_text}%'),
+            Item.barcode.ilike(f'%{query_text}%')
+        )
+    ).limit(limit).all()
+    
+    # Build JSON response
+    results = []
+    for item in items:
+        # Get total stock (optimized - only for returned items)
+        total_stock = item.get_total_stock() if item.track_inventory else None
+        
+        results.append({
+            'id': item.id,
+            'name': item.name,
+            'sku': item.sku,
+            'barcode': item.barcode,
+            'mrp': float(item.mrp) if item.mrp else None,
+            'discount_percent': float(item.discount_percent) if item.discount_percent else 0,
+            'selling_price': float(item.selling_price) if item.selling_price else 0,
+            'cost_price': float(item.cost_price) if item.cost_price else 0,
+            'gst_rate': float(item.gst_rate) if item.gst_rate else 18,
+            'hsn_code': item.hsn_code or '',
+            'unit': item.unit or 'nos',
+            'track_inventory': item.track_inventory,
+            'stock': total_stock if total_stock is not None else 'N/A',
+            'is_low_stock': item.is_low_stock() if item.track_inventory else False,
+            'category': item.category.name if item.category else None,
+            'brand': item.brand,
+            'manufacturer': item.manufacturer
+        })
+    
+    return jsonify(results)
+
+
 # ===== ITEMS LISTING =====
 @items_bp.route('/', strict_slashes=False)
 @require_tenant
