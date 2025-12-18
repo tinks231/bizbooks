@@ -393,32 +393,32 @@
                     <tr>
                         <td><strong>Inventory Items</strong></td>
                         <td class="table-number">{{ "{:,}".format(total_items) }}</td>
-                        <td class="table-number">{{ "%.2f"|format(space_estimates.items / (1024 * 1024)) }} MB</td>
+                        <td class="table-number">{{ "%.2f"|format(space_estimates['items'] / (1024 * 1024)) }} MB</td>
                     </tr>
                     <tr>
                         <td><strong>Invoices</strong></td>
                         <td class="table-number">{{ "{:,}".format(total_invoices) }}</td>
-                        <td class="table-number">{{ "%.2f"|format(space_estimates.invoices / (1024 * 1024)) }} MB</td>
+                        <td class="table-number">{{ "%.2f"|format(space_estimates['invoices'] / (1024 * 1024)) }} MB</td>
                     </tr>
                     <tr>
                         <td><strong>Customers</strong></td>
                         <td class="table-number">{{ "{:,}".format(total_customers) }}</td>
-                        <td class="table-number">{{ "%.2f"|format(space_estimates.customers / (1024 * 1024)) }} MB</td>
+                        <td class="table-number">{{ "%.2f"|format(space_estimates['customers'] / (1024 * 1024)) }} MB</td>
                     </tr>
                     <tr>
                         <td><strong>Vendors</strong></td>
                         <td class="table-number">{{ "{:,}".format(total_vendors) }}</td>
-                        <td class="table-number">{{ "%.2f"|format(space_estimates.vendors / (1024 * 1024)) }} MB</td>
+                        <td class="table-number">{{ "%.2f"|format(space_estimates['vendors'] / (1024 * 1024)) }} MB</td>
                     </tr>
                     <tr>
                         <td><strong>Purchase Bills</strong></td>
                         <td class="table-number">{{ "{:,}".format(total_purchase_bills) }}</td>
-                        <td class="table-number">{{ "%.2f"|format(space_estimates.purchase_bills / (1024 * 1024)) }} MB</td>
+                        <td class="table-number">{{ "%.2f"|format(space_estimates['purchase_bills'] / (1024 * 1024)) }} MB</td>
                     </tr>
                     <tr>
                         <td><strong>Expenses</strong></td>
                         <td class="table-number">{{ "{:,}".format(total_expenses) }}</td>
-                        <td class="table-number">{{ "%.2f"|format(space_estimates.expenses / (1024 * 1024)) }} MB</td>
+                        <td class="table-number">{{ "%.2f"|format(space_estimates['expenses'] / (1024 * 1024)) }} MB</td>
                     </tr>
                 </tbody>
             </table>
