@@ -1,0 +1,671 @@
+{% extends "base_sidebar.html" %}
+
+{% block title %}Dashboard - {{ tenant.company_name }}{% endblock %}
+
+{% block page_title %}Business Dashboard{% endblock %}
+
+{% block content %}
+
+<style>
+/* ========================================
+   OPTION 3: DASHBOARD WITH ACTION SIDEBAR
+   Best of both: Clean + Visual Interest
+   ======================================== */
+
+:root {
+    --primary: #667eea;
+    --primary-dark: #5568d3;
+    --success: #10b981;
+    --warning: #f59e0b;
+    --danger: #ef4444;
+    --gray-50: #f9fafb;
+    --gray-100: #f3f4f6;
+    --gray-200: #e5e7eb;
+    --gray-400: #9ca3af;
+    --gray-600: #4b5563;
+    --gray-900: #111827;
+    --shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    --shadow-lg: 0 10px 30px rgba(0, 0, 0, 0.08);
+}
+
+.dashboard-v3 {
+    max-width: 1600px;
+    margin: 0 auto;
+    padding: 0;
+}
+
+/* ========================================
+   HEADER WITH GRADIENT
+   ======================================== */
+.hero-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 32px;
+    border-radius: 16px;
+    margin-bottom: 24px;
+    box-shadow: 0 8px 24px rgba(102, 126, 234, 0.25);
+    position: relative;
+    overflow: hidden;
+}
+
+.hero-header::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    right: -10%;
+    width: 400px;
+    height: 400px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 50%;
+}
+
+.hero-content {
+    position: relative;
+    z-index: 1;
+}
+
+.hero-title {
+    font-size: 32px;
+    font-weight: 700;
+    margin: 0 0 8px 0;
+}
+
+.hero-subtitle {
+    font-size: 15px;
+    opacity: 0.9;
+    margin: 0;
+}
+
+/* ========================================
+   MAIN LAYOUT WITH SIDEBAR
+   ======================================== */
+.dashboard-layout {
+    display: grid;
+    grid-template-columns: 1fr 320px;
+    gap: 24px;
+}
+
+.main-content {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+/* ========================================
+   CARD STYLE (Visual Interest!)
+   ======================================== */
+.card {
+    background: white;
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: var(--shadow);
+    border: 1px solid var(--gray-100);
+    transition: all 0.3s ease;
+}
+
+.card:hover {
+    box-shadow: var(--shadow-lg);
+    transform: translateY(-2px);
+}
+
+.card-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+    padding-bottom: 16px;
+    border-bottom: 2px solid var(--gray-100);
+}
+
+.card-icon {
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 12px;
+    font-size: 24px;
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.card-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--gray-900);
+    margin: 0;
+}
+
+/* ========================================
+   SALES METRICS (Beautiful Cards)
+   ======================================== */
+.metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+}
+
+.metric-card-v3 {
+    background: white;
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: var(--shadow);
+    border-left: 4px solid var(--primary);
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.metric-card-v3::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    right: -20%;
+    width: 150px;
+    height: 150px;
+    background: var(--primary);
+    opacity: 0.05;
+    border-radius: 50%;
+}
+
+.metric-card-v3:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-lg);
+}
+
+.metric-card-v3.success {
+    border-left-color: var(--success);
+}
+
+.metric-card-v3.success::before {
+    background: var(--success);
+}
+
+.metric-card-v3.warning {
+    border-left-color: var(--warning);
+}
+
+.metric-card-v3.warning::before {
+    background: var(--warning);
+}
+
+.metric-label-v3 {
+    font-size: 14px;
+    color: var(--gray-600);
+    margin-bottom: 12px;
+    font-weight: 600;
+}
+
+.metric-value-v3 {
+    font-size: 36px;
+    font-weight: 800;
+    color: var(--gray-900);
+    margin-bottom: 8px;
+    position: relative;
+    z-index: 1;
+}
+
+.metric-subtext-v3 {
+    font-size: 13px;
+    color: var(--gray-400);
+}
+
+/* ========================================
+   BUSINESS STATS (Icon Grid)
+   ======================================== */
+.stats-grid-v3 {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+}
+
+.stat-card-v3 {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    text-align: center;
+    text-decoration: none;
+    box-shadow: var(--shadow);
+    border: 1px solid var(--gray-100);
+    transition: all 0.3s ease;
+    display: block;
+}
+
+.stat-card-v3:hover {
+    border-color: var(--primary);
+    box-shadow: var(--shadow-lg);
+    transform: scale(1.05);
+}
+
+.stat-icon-v3 {
+    font-size: 40px;
+    margin-bottom: 12px;
+    display: block;
+}
+
+.stat-number-v3 {
+    font-size: 32px;
+    font-weight: 800;
+    color: var(--gray-900);
+    margin-bottom: 6px;
+}
+
+.stat-label-v3 {
+    font-size: 13px;
+    color: var(--gray-600);
+    font-weight: 600;
+}
+
+/* ========================================
+   SIDEBAR (Colorful Actions)
+   ======================================== */
+.sidebar-actions {
+    position: sticky;
+    top: 20px;
+}
+
+.action-card {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: 0 8px 24px rgba(102, 126, 234, 0.25);
+    margin-bottom: 20px;
+}
+
+.action-header {
+    color: white;
+    font-size: 18px;
+    font-weight: 700;
+    margin: 0 0 20px 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.action-btn-v3 {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    padding: 16px;
+    background: white;
+    border: none;
+    border-radius: 12px;
+    margin-bottom: 10px;
+    text-decoration: none;
+    transition: all 0.2s;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.action-btn-v3:hover {
+    transform: translateX(4px);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+}
+
+.action-btn-icon {
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 10px;
+    font-size: 20px;
+    color: white;
+}
+
+.action-btn-text h3 {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--gray-900);
+    margin: 0 0 2px 0;
+}
+
+.action-btn-text p {
+    font-size: 12px;
+    color: var(--gray-600);
+    margin: 0;
+}
+
+/* ========================================
+   RECENT ACTIVITY (Timeline Style)
+   ======================================== */
+.activity-timeline {
+    position: relative;
+    padding-left: 32px;
+}
+
+.activity-timeline::before {
+    content: '';
+    position: absolute;
+    left: 11px;
+    top: 16px;
+    bottom: 16px;
+    width: 2px;
+    background: var(--gray-200);
+}
+
+.timeline-item {
+    position: relative;
+    padding: 16px 0;
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+}
+
+.timeline-dot {
+    position: absolute;
+    left: -32px;
+    width: 24px;
+    height: 24px;
+    background: white;
+    border: 3px solid var(--primary);
+    border-radius: 50%;
+    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+    z-index: 1;
+}
+
+.timeline-dot.success {
+    border-color: var(--success);
+}
+
+.timeline-dot.warning {
+    border-color: var(--warning);
+}
+
+.timeline-content {
+    flex: 1;
+}
+
+.timeline-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--gray-900);
+    margin: 0 0 4px 0;
+}
+
+.timeline-meta {
+    font-size: 13px;
+    color: var(--gray-600);
+}
+
+.timeline-amount {
+    font-size: 18px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.timeline-amount.positive {
+    color: var(--success);
+}
+
+.timeline-amount.negative {
+    color: var(--danger);
+}
+
+.view-all-btn {
+    display: block;
+    text-align: center;
+    padding: 14px;
+    margin-top: 16px;
+    background: var(--gray-50);
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--primary);
+    text-decoration: none;
+    transition: all 0.2s;
+}
+
+.view-all-btn:hover {
+    background: var(--primary);
+    color: white;
+}
+
+/* ========================================
+   RESPONSIVE
+   ======================================== */
+@media (max-width: 1200px) {
+    .dashboard-layout {
+        grid-template-columns: 1fr;
+    }
+    
+    .sidebar-actions {
+        position: static;
+    }
+    
+    .metrics-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 768px) {
+    .hero-header {
+        padding: 24px;
+    }
+    
+    .hero-title {
+        font-size: 24px;
+    }
+    
+    .stats-grid-v3 {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .metric-value-v3 {
+        font-size: 28px;
+    }
+}
+
+@media (max-width: 480px) {
+    .stats-grid-v3 {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Empty State */
+.empty-timeline {
+    text-align: center;
+    padding: 48px 24px;
+    color: var(--gray-400);
+}
+
+.empty-icon-v3 {
+    font-size: 64px;
+    margin-bottom: 16px;
+    opacity: 0.5;
+}
+</style>
+
+<div class="dashboard-v3">
+    <!-- ========================================
+         HERO HEADER (Gradient with Personality)
+         ======================================== -->
+    <div class="hero-header">
+        <div class="hero-content">
+            <h1 class="hero-title">👋 Welcome back, {{ session.admin_name }}!</h1>
+            <p class="hero-subtitle">{{ tenant.company_name }} • {{ today.strftime('%A, %d %B %Y') }}</p>
+        </div>
+    </div>
+    
+    <!-- ========================================
+         MAIN LAYOUT: Content + Sidebar
+         ======================================== -->
+    <div class="dashboard-layout">
+        <!-- LEFT: Main Content Area -->
+        <div class="main-content">
+            <!-- 💰 SALES METRICS (3 Beautiful Cards) -->
+            <div class="metrics-grid">
+                <div class="metric-card-v3">
+                    <div class="metric-label-v3">Today's Sales</div>
+                    <div class="metric-value-v3">₹{{ "{:,.0f}".format(today_sales) }}</div>
+                    <div class="metric-subtext-v3">{{ today_invoice_count }} invoice{{ 's' if today_invoice_count != 1 else '' }}</div>
+                </div>
+                
+                <div class="metric-card-v3 success">
+                    <div class="metric-label-v3">This Month</div>
+                    <div class="metric-value-v3">₹{{ "{:,.0f}".format(month_sales) }}</div>
+                    <div class="metric-subtext-v3">{{ month_invoice_count }} invoice{{ 's' if month_invoice_count != 1 else '' }}</div>
+                </div>
+                
+                <div class="metric-card-v3 warning">
+                    <div class="metric-label-v3">To Collect</div>
+                    <div class="metric-value-v3">₹{{ "{:,.0f}".format(pending_receivables) }}</div>
+                    <div class="metric-subtext-v3">Pending receivables</div>
+                </div>
+            </div>
+            
+            <!-- 📊 BUSINESS OVERVIEW (Icon Grid) -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-icon">📊</div>
+                    <h2 class="card-title">Business Overview</h2>
+                </div>
+                
+                <div class="stats-grid-v3">
+                    <a href="/admin/items" class="stat-card-v3">
+                        <span class="stat-icon-v3">📦</span>
+                        <div class="stat-number-v3">{{ total_items }}</div>
+                        <div class="stat-label-v3">Total Items</div>
+                    </a>
+                    
+                    <a href="/admin/items?low_stock=1" class="stat-card-v3">
+                        <span class="stat-icon-v3">{% if low_stock_count > 0 %}⚠️{% else %}✅{% endif %}</span>
+                        <div class="stat-number-v3">{{ low_stock_count }}</div>
+                        <div class="stat-label-v3">Low Stock</div>
+                    </a>
+                    
+                    <a href="/admin/customers" class="stat-card-v3">
+                        <span class="stat-icon-v3">👥</span>
+                        <div class="stat-number-v3">{{ total_customers }}</div>
+                        <div class="stat-label-v3">Customers</div>
+                    </a>
+                    
+                    <a href="/admin/vendors" class="stat-card-v3">
+                        <span class="stat-icon-v3">🏢</span>
+                        <div class="stat-number-v3">{{ total_vendors }}</div>
+                        <div class="stat-label-v3">Vendors</div>
+                    </a>
+                </div>
+            </div>
+            
+            <!-- 📋 RECENT ACTIVITY (Timeline) -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-icon">📋</div>
+                    <h2 class="card-title">Recent Activity</h2>
+                </div>
+                
+                {% set combined_activity = [] %}
+                {% for invoice in recent_invoices %}
+                    {% set _ = combined_activity.append({
+                        'type': 'invoice',
+                        'id': invoice.invoice_number,
+                        'party': invoice.customer_name,
+                        'amount': invoice.total_amount,
+                        'date': invoice.invoice_date
+                    }) %}
+                {% endfor %}
+                {% for bill in recent_bills %}
+                    {% set _ = combined_activity.append({
+                        'type': 'bill',
+                        'id': bill.bill_number,
+                        'party': bill.vendor_name,
+                        'amount': bill.total_amount,
+                        'date': bill.bill_date
+                    }) %}
+                {% endfor %}
+                
+                {% if combined_activity %}
+                    <div class="activity-timeline">
+                        {% set sorted_activity = combined_activity|sort(attribute='date', reverse=True) %}
+                        {% for item in sorted_activity[:6] %}
+                        <div class="timeline-item">
+                            <div class="timeline-dot {{ 'success' if item.type == 'invoice' else 'warning' }}"></div>
+                            <div class="timeline-content">
+                                <h3 class="timeline-title">{{ item.id }}</h3>
+                                <p class="timeline-meta">{{ item.party }} • {{ item.date.strftime('%d %b %Y') }}</p>
+                            </div>
+                            <div class="timeline-amount {{ 'positive' if item.type == 'invoice' else 'negative' }}">
+                                {% if item.type == 'invoice' %}+{% else %}-{% endif %}₹{{ "{:,.0f}".format(item.amount) }}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    
+                    <a href="/admin/invoices" class="view-all-btn">View All Activity →</a>
+                {% else %}
+                    <div class="empty-timeline">
+                        <div class="empty-icon-v3">📭</div>
+                        <p>No recent activity</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- RIGHT: Colorful Action Sidebar -->
+        <div class="sidebar-actions">
+            <div class="action-card">
+                <h2 class="action-header">🎯 Quick Actions</h2>
+                
+                <a href="/admin/invoices/create" class="action-btn-v3">
+                    <div class="action-btn-icon">📄</div>
+                    <div class="action-btn-text">
+                        <h3>New Invoice</h3>
+                        <p>Create sale invoice</p>
+                    </div>
+                </a>
+                
+                <a href="/admin/purchase-bills/create" class="action-btn-v3">
+                    <div class="action-btn-icon">🛒</div>
+                    <div class="action-btn-text">
+                        <h3>New Purchase</h3>
+                        <p>Record purchase bill</p>
+                    </div>
+                </a>
+                
+                <a href="/admin/items/add" class="action-btn-v3">
+                    <div class="action-btn-icon">➕</div>
+                    <div class="action-btn-text">
+                        <h3>Add Item</h3>
+                        <p>New inventory item</p>
+                    </div>
+                </a>
+                
+                <a href="/admin/items" class="action-btn-v3">
+                    <div class="action-btn-icon">📊</div>
+                    <div class="action-btn-text">
+                        <h3>View Inventory</h3>
+                        <p>Stock & items</p>
+                    </div>
+                </a>
+                
+                <a href="/admin/gst-reports" class="action-btn-v3">
+                    <div class="action-btn-icon">📋</div>
+                    <div class="action-btn-text">
+                        <h3>GST Reports</h3>
+                        <p>Tax & compliance</p>
+                    </div>
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Cache for instant load
+(function() {
+    const data = {
+        timestamp: Date.now(),
+        today_sales: {{ today_sales }},
+        month_sales: {{ month_sales }}
+    };
+    try {
+        localStorage.setItem('dashboard_v3', JSON.stringify(data));
+    } catch (e) {}
+})();
+</script>
+
+{% endblock %}
+
