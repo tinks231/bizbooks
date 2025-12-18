@@ -67,7 +67,7 @@ def load_tenant():
     
     # Tenant not found
     if not tenant:
-        return abort(404, render_template_string('''
+        return render_template_string('''
             <!DOCTYPE html>
             <html>
             <head>
@@ -115,7 +115,7 @@ def load_tenant():
         status_msg = "suspended" if tenant.status == 'suspended' else "expired"
         trial_end_date = tenant.trial_ends_at.strftime('%d %B %Y') if tenant.trial_ends_at else 'Unknown'
         
-        return abort(403, render_template_string('''
+        return render_template_string('''
             <!DOCTYPE html>
             <html>
             <head>
