@@ -12,11 +12,6 @@
    Best of both: Clean + Visual Interest
    ======================================== */
 
-/* 🔥 FIX: Remove left padding to align cards with welcome banner */
-body .container {
-    padding-left: 0 !important;
-}
-
 :root {
     --primary: #667eea;
     --primary-dark: #5568d3;
@@ -51,6 +46,11 @@ body .container {
     box-shadow: 0 8px 24px rgba(102, 126, 234, 0.25);
     position: relative;
     overflow: hidden;
+}
+
+/* 🔥 Make hero span full grid width (both columns) */
+.hero-full {
+    grid-column: 1 / -1;
 }
 
 .hero-header::before {
@@ -485,19 +485,19 @@ body .container {
 
 <div class="dashboard-v3">
     <!-- ========================================
-         HERO HEADER (Gradient with Personality)
-         ======================================== -->
-    <div class="hero-header">
-        <div class="hero-content">
-            <h1 class="hero-title">👋 Welcome back, {{ session.admin_name }}!</h1>
-            <p class="hero-subtitle">{{ tenant.company_name }} • {{ today.strftime('%A, %d %B %Y') }}</p>
-        </div>
-    </div>
-    
-    <!-- ========================================
          MAIN LAYOUT: Content + Sidebar
          ======================================== -->
     <div class="dashboard-layout">
+        <!-- ========================================
+             HERO HEADER (Full Width - Spans Both Columns)
+             ======================================== -->
+        <div class="hero-header hero-full">
+            <div class="hero-content">
+                <h1 class="hero-title">👋 Welcome back, {{ session.admin_name }}!</h1>
+                <p class="hero-subtitle">{{ tenant.company_name }} • {{ today.strftime('%A, %d %B %Y') }}</p>
+            </div>
+        </div>
+        
         <!-- LEFT: Main Content Area -->
         <div class="main-content">
             <!-- 💰 SALES METRICS (3 Beautiful Cards) -->
