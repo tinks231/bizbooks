@@ -4,6 +4,10 @@
 
 {% block page_title %}Business Dashboard{% endblock %}
 
+{% block header_actions %}
+<!-- Remove Manual Entry and QR Code buttons from dashboard -->
+{% endblock %}
+
 {% block content %}
 
 <style>
@@ -170,11 +174,40 @@
 }
 
 /* ========================================
-   QUICK ACTIONS (Right Sidebar)
+   QUICK ACTIONS (Right Sidebar with Gradient)
    ======================================== */
 .quick-actions-card {
     position: sticky;
     top: 20px;
+    /* 🎨 Beautiful gradient like Welcome banner */
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+    border: none !important;
+    box-shadow: 0 8px 24px rgba(102, 126, 234, 0.25) !important;
+    position: relative;
+    overflow: hidden;
+}
+
+/* Decorative circle */
+.quick-actions-card::before {
+    content: '';
+    position: absolute;
+    top: -30%;
+    right: -20%;
+    width: 200px;
+    height: 200px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 50%;
+}
+
+/* Make header white on gradient */
+.quick-actions-card .section-header {
+    border-bottom-color: rgba(255, 255, 255, 0.2) !important;
+    position: relative;
+    z-index: 1;
+}
+
+.quick-actions-card .section-title {
+    color: white !important;
 }
 
 .quick-action-btn {
@@ -184,12 +217,15 @@
     width: 100%;
     padding: 16px;
     background: white;
-    border: 1px solid var(--gray-100);
-    border-radius: 8px;
-    margin-bottom: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 12px;
+    margin-bottom: 12px;
     text-decoration: none;
     transition: all 0.2s;
     cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    position: relative;
+    z-index: 1;
 }
 
 .quick-action-btn:hover {
