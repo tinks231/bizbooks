@@ -414,12 +414,19 @@ def extend_trial(tenant_id):
     tenant = Tenant.query.get_or_404(tenant_id)
     
     # Extend trial by 30 days
-    if tenant.trial_ends_at < datetime.utcnow():
+    if tenant.trial_ends_at and tenant.trial_ends_at < datetime.utcnow():
         # Already expired, extend from now
         tenant.trial_ends_at = datetime.utcnow() + timedelta(days=30)
     else:
         # Still active, extend from current end date
-        tenant.trial_ends_at = tenant.trial_ends_at + timedelta(days=30)
+        if not tenant.trial_ends_at:
+            tenant.trial_ends_at = datetime.utcnow() + timedelta(days=30)
+        else:
+            tenant.trial_ends_at = tenant.trial_ends_at + timedelta(days=30)
+    
+    # Change status to 'trial' to unsuspend/activate the account
+    tenant.status = 'trial'
+    tenant.plan = 'trial'
     
     db.session.commit()
     
