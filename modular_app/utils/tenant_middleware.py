@@ -282,7 +282,6 @@ def load_tenant():
                         <strong>{{ trial_end }}</strong>
                     </div>
                     
-                    {% if status == 'expired' %}
                     <div class="free-extension">
                         🎉 Good News! Trial Extension Available FREE of Cost
                     </div>
@@ -291,11 +290,6 @@ def load_tenant():
                         We understand you might need more time to explore BizBooks.<br>
                         Contact us to extend your trial period <strong>absolutely free!</strong>
                     </p>
-                    {% else %}
-                    <p class="message">
-                        This account has been suspended. Please contact support for assistance.
-                    </p>
-                    {% endif %}
                     
                     <div class="contact-section">
                         <div class="contact-title">📞 Contact BizBooks Support</div>
