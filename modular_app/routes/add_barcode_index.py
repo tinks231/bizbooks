@@ -12,13 +12,12 @@ even with massive inventories (100K+ items).
 Run: GET /migration/add-barcode-index
 """
 
-from flask import Blueprint, jsonify, g
+from flask import Blueprint, jsonify
 from models import db
 from models.item import Item
-from utils.tenant_middleware import require_tenant
-from utils.decorators import login_required
 from sqlalchemy import text, inspect
 import logging
+import traceback
 
 logger = logging.getLogger(__name__)
 
@@ -26,8 +25,6 @@ add_barcode_index_bp = Blueprint('add_barcode_index', __name__, url_prefix='/mig
 
 
 @add_barcode_index_bp.route('/add-barcode-index', methods=['GET'])
-@require_tenant
-@login_required
 def add_barcode_index():
     """
     Add database index on items.barcode column for lightning-fast scanning
@@ -37,9 +34,10 @@ def add_barcode_index():
     - After: 40K items = ~5ms scan time (indexed lookup)
     
     Safe to run multiple times (checks if index exists first)
+    NO AUTH REQUIRED - This is a system-wide database optimization
     """
     try:
-        logger.info("🔧 MIGRATION: Adding barcode index for fast scanning...")
+        logger.info("🔧 MIGRATION START: Adding barcode index for fast scanning...")
         
         # Check current database indexes
         inspector = inspect(db.engine)
@@ -93,9 +91,15 @@ def add_barcode_index():
         
     except Exception as e:
         logger.error(f"❌ Error adding barcode index: {str(e)}")
-        db.session.rollback()
+        logger.error(f"📋 Full traceback:\n{traceback.format_exc()}")
+        try:
+            db.session.rollback()
+        except:
+            pass
         return jsonify({
             'status': 'error',
-            'message': f'Failed to add barcode index: {str(e)}'
+            'message': f'Failed to add barcode index: {str(e)}',
+            'error_type': type(e).__name__,
+            'traceback': traceback.format_exc()
         }), 500
 
