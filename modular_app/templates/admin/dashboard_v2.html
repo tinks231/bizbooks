@@ -569,7 +569,8 @@
         {% endfor %}
         
         {% if combined_activity %}
-            {% for item in combined_activity|sort(attribute='date', reverse=True)[:8] %}
+            {% set sorted_activity = combined_activity|sort(attribute='date', reverse=True) %}
+            {% for item in sorted_activity[:8] %}
             <div class="activity-item">
                 <div class="activity-left">
                     <div class="activity-icon {{ item.type }}">
