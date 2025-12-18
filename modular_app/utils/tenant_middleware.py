@@ -1,7 +1,7 @@
 """
 Multi-tenant middleware for subdomain-based tenant detection
 """
-from flask import request, g, abort, render_template_string
+from flask import request, g, abort, render_template_string, make_response
 from models import Tenant
 
 def get_subdomain_from_host(host):
@@ -67,7 +67,7 @@ def load_tenant():
     
     # Tenant not found
     if not tenant:
-        return render_template_string('''
+        response = make_response(render_template_string('''
             <!DOCTYPE html>
             <html>
             <head>
@@ -109,13 +109,15 @@ def load_tenant():
             </body>
             </html>
         ''', subdomain=subdomain))
+        response.status_code = 404
+        return response
     
     # Check if tenant is active
     if not tenant.is_active:
         status_msg = "suspended" if tenant.status == 'suspended' else "expired"
         trial_end_date = tenant.trial_ends_at.strftime('%d %B %Y') if tenant.trial_ends_at else 'Unknown'
         
-        return render_template_string('''
+        response = make_response(render_template_string('''
             <!DOCTYPE html>
             <html>
             <head>
@@ -321,6 +323,8 @@ def load_tenant():
             </body>
             </html>
         ''', status=status_msg, company=tenant.company_name, trial_end=trial_end_date, subdomain=tenant.subdomain))
+        response.status_code = 403
+        return response
     
     # Store tenant in g (Flask request context)
     g.tenant = tenant
