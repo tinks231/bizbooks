@@ -148,6 +148,7 @@ from routes.add_special_day_bonus_columns import add_special_day_columns_bp  # M
 from routes.scheduled_tasks import scheduled_tasks_bp  # NEW: Scheduled tasks for automated jobs (birthday/anniversary bonuses)
 from routes.diagnose_inventory_equity import diagnose_inventory_equity_bp  # DIAGNOSTIC: Check inventory equity status
 from routes.diagnose_trial_balance_detail import diagnose_trial_detail_bp  # DIAGNOSTIC: Check what trial balance sees
+from routes.diagnose_remaining_imbalance import diagnose_remaining_bp  # DIAGNOSTIC: Find remaining imbalance
 from routes.fix_inventory_equity_mismatch import fix_inventory_equity_mismatch_bp  # FIX: Adjust inventory equity when stock value changes
 from routes.fix_inventory_double_entry import fix_inventory_double_entry_bp  # FIX: Create missing inventory asset DEBIT entries
 from routes.fix_trial_balance_final import fix_trial_balance_final_bp  # FIX: Delete wrong entries and create correct ones
@@ -211,6 +212,7 @@ app.register_blueprint(add_special_day_columns_bp)  # MIGRATION: Add special day
 app.register_blueprint(scheduled_tasks_bp)  # NEW: Scheduled tasks (birthday/anniversary bonuses)
 app.register_blueprint(diagnose_inventory_equity_bp)  # DIAGNOSTIC: Check inventory equity status
 app.register_blueprint(diagnose_trial_detail_bp)  # DIAGNOSTIC: Check what trial balance sees
+app.register_blueprint(diagnose_remaining_bp)  # DIAGNOSTIC: Find remaining imbalance
 app.register_blueprint(fix_inventory_equity_mismatch_bp)  # FIX: Adjust inventory equity mismatch
 app.register_blueprint(fix_inventory_double_entry_bp)  # FIX: Create missing inventory asset DEBIT entries
 app.register_blueprint(fix_trial_balance_final_bp)  # FIX: Final trial balance fix
