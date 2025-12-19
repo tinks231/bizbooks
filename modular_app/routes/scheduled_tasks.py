@@ -4,7 +4,6 @@ Routes that can be called by cron jobs / scheduled tasks
 """
 
 from flask import Blueprint, jsonify, request
-from services.special_day_bonus_service import SpecialDayBonusService
 from datetime import datetime
 import pytz
 
@@ -34,6 +33,9 @@ def process_special_day_bonuses():
         }), 401
     
     try:
+        # Import here to avoid circular imports
+        from services.special_day_bonus_service import SpecialDayBonusService
+        
         # Log execution time
         ist = pytz.timezone('Asia/Kolkata')
         execution_time = datetime.now(ist)
@@ -78,6 +80,9 @@ def test_special_day_bonuses():
     """
     
     try:
+        # Import here to avoid circular imports
+        from services.special_day_bonus_service import SpecialDayBonusService
+        
         ist = pytz.timezone('Asia/Kolkata')
         execution_time = datetime.now(ist)
         
