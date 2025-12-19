@@ -151,6 +151,7 @@ from routes.diagnose_trial_balance_detail import diagnose_trial_detail_bp  # DIA
 from routes.fix_inventory_equity_mismatch import fix_inventory_equity_mismatch_bp  # FIX: Adjust inventory equity when stock value changes
 from routes.fix_inventory_double_entry import fix_inventory_double_entry_bp  # FIX: Create missing inventory asset DEBIT entries
 from routes.fix_trial_balance_final import fix_trial_balance_final_bp  # FIX: Delete wrong entries and create correct ones
+from routes.fix_cash_bank_opening import fix_cash_bank_opening_bp  # FIX: Correct cash/bank opening balance equity
 
 app.register_blueprint(registration_bp)
 app.register_blueprint(employee_portal_bp)  # Register unified portal
@@ -213,6 +214,7 @@ app.register_blueprint(diagnose_trial_detail_bp)  # DIAGNOSTIC: Check what trial
 app.register_blueprint(fix_inventory_equity_mismatch_bp)  # FIX: Adjust inventory equity mismatch
 app.register_blueprint(fix_inventory_double_entry_bp)  # FIX: Create missing inventory asset DEBIT entries
 app.register_blueprint(fix_trial_balance_final_bp)  # FIX: Final trial balance fix
+app.register_blueprint(fix_cash_bank_opening_bp)  # FIX: Cash/bank opening balance
 from routes.migrate_double_entry import migrate_double_entry_bp
 app.register_blueprint(migrate_double_entry_bp)  # MIGRATION: Convert to double-entry accounting
 from routes.fix_vendor_payment_constraint import fix_vendor_payment_bp
