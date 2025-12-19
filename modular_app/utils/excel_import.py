@@ -570,24 +570,82 @@ def import_employees_from_excel(file, tenant_id):
 def import_inventory_from_excel(file, tenant_id):
     """
     Import inventory items from Excel file
+    Updated to read by HEADER NAME instead of position for flexibility
     Returns: (success_count, errors_list)
     """
     try:
-        wb = load_workbook(file)
+        wb = load_workbook(file, data_only=True)  # data_only=True to get formula results, not formulas!
         ws = wb.active
         
         success_count = 0
         errors = []
         
-        # Skip header row, start from row 2
+        # Read header row to find column positions
+        headers = {}
+        for col_idx, cell in enumerate(ws[1], start=0):
+            if cell.value:
+                # Normalize header name (remove *, emojis, extra spaces)
+                header_clean = str(cell.value).strip().replace('*', '').replace('🔶', '').strip()
+                headers[header_clean] = col_idx
+        
+        # Define required column mappings (flexible names)
+        column_map = {
+            'item_name': ['Item Name', 'Item Name (Auto)', 'Product Name'],
+            'sku': ['SKU'],
+            'barcode': ['Barcode'],
+            'category': ['Category'],
+            'group': ['Group'],
+            'unit': ['Unit'],
+            'stock': ['Stock Quantity', 'Stock'],
+            'reorder_point': ['Reorder Point'],
+            'cost_price': ['Cost Price', 'Cost'],
+            'mrp': ['MRP'],
+            'discount_percent': ['Discount %', 'Discount'],
+            'selling_price': ['Selling Price', 'Selling'],
+            'tax_rate': ['Tax Rate (%)', 'Tax Rate', 'Tax'],
+            'hsn': ['HSN/SAC Code', 'HSN Code', 'HSN'],
+            'description': ['Description']
+        }
+        
+        # Find column positions for each field
+        col_positions = {}
+        for field, possible_names in column_map.items():
+            for name in possible_names:
+                if name in headers:
+                    col_positions[field] = headers[name]
+                    break
+        
+        # Check if required columns exist
+        required_fields = ['item_name', 'category', 'group', 'unit', 'stock', 'cost_price', 'selling_price']
+        missing_fields = [f for f in required_fields if f not in col_positions]
+        if missing_fields:
+            return 0, [f"Missing required columns: {', '.join(missing_fields)}. Please check your Excel template."]
+        
+        # Process data rows (skip header row)
         for row_num, row in enumerate(ws.iter_rows(min_row=2, values_only=True), start=2):
             # Skip empty rows
             if all(cell is None or str(cell).strip() == '' for cell in row):
                 continue
             
-            # Extract data (now with 15 columns: Name, SKU, Barcode, Category, Group, Unit, Stock, Reorder Point, Cost, MRP, Discount %, Selling, Tax, HSN, Description)
-            row_data = list(row) + [None] * (15 - len(row))
-            item_name, sku, barcode, category, group, unit, stock, reorder_point, cost_price, mrp, discount_percent, selling_price, tax_rate, hsn, description = row_data[:15]
+            # Extract data by header position (flexible!)
+            item_name = row[col_positions['item_name']] if 'item_name' in col_positions and col_positions['item_name'] < len(row) else None
+            sku = row[col_positions['sku']] if 'sku' in col_positions and col_positions['sku'] < len(row) else None
+            barcode = row[col_positions['barcode']] if 'barcode' in col_positions and col_positions['barcode'] < len(row) else None
+            category = row[col_positions['category']] if 'category' in col_positions and col_positions['category'] < len(row) else None
+            group = row[col_positions['group']] if 'group' in col_positions and col_positions['group'] < len(row) else None
+            unit = row[col_positions['unit']] if 'unit' in col_positions and col_positions['unit'] < len(row) else None
+            stock = row[col_positions['stock']] if 'stock' in col_positions and col_positions['stock'] < len(row) else None
+            reorder_point = row[col_positions['reorder_point']] if 'reorder_point' in col_positions and col_positions['reorder_point'] < len(row) else None
+            cost_price = row[col_positions['cost_price']] if 'cost_price' in col_positions and col_positions['cost_price'] < len(row) else None
+            mrp = row[col_positions['mrp']] if 'mrp' in col_positions and col_positions['mrp'] < len(row) else None
+            discount_percent = row[col_positions['discount_percent']] if 'discount_percent' in col_positions and col_positions['discount_percent'] < len(row) else None
+            selling_price = row[col_positions['selling_price']] if 'selling_price' in col_positions and col_positions['selling_price'] < len(row) else None
+            tax_rate = row[col_positions['tax_rate']] if 'tax_rate' in col_positions and col_positions['tax_rate'] < len(row) else None
+            hsn = row[col_positions['hsn']] if 'hsn' in col_positions and col_positions['hsn'] < len(row) else None
+            description = row[col_positions['description']] if 'description' in col_positions and col_positions['description'] < len(row) else None
+            
+            # Package for validation
+            row_data = [item_name, sku, barcode, category, group, unit, stock, reorder_point, cost_price, mrp, discount_percent, selling_price, tax_rate, hsn, description]
             
             # Validate
             is_valid, error_msg = validate_inventory_row(row_data[:15], row_num)
