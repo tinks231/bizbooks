@@ -575,7 +575,26 @@ def import_inventory_from_excel(file, tenant_id):
     """
     try:
         wb = load_workbook(file, data_only=True)  # data_only=True to get formula results, not formulas!
-        ws = wb.active
+        
+        # Find the data sheet (try common names, fallback to first sheet)
+        ws = None
+        data_sheet_names = ['Inventory Import', 'Import Data', 'Data', 'Sheet1', 'Sheet']
+        
+        for sheet_name in data_sheet_names:
+            if sheet_name in wb.sheetnames:
+                ws = wb[sheet_name]
+                break
+        
+        # If none found, use the first sheet (skip instruction sheets)
+        if ws is None:
+            for sheet in wb.worksheets:
+                if 'instruction' not in sheet.title.lower():
+                    ws = sheet
+                    break
+        
+        # Final fallback: use active sheet
+        if ws is None:
+            ws = wb.active
         
         success_count = 0
         errors = []
