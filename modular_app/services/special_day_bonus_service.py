@@ -21,12 +21,15 @@ class SpecialDayBonusService:
     @staticmethod
     def process_all_tenants():
         """
-        Process special day bonuses for all active tenants
+        Process special day bonuses for all active/trial tenants
         Called by scheduled task daily at midnight IST
         """
         from models.tenant import Tenant
         
-        active_tenants = Tenant.query.filter_by(status='active').all()
+        # Include both 'active' and 'trial' tenants (trial customers should get loyalty benefits!)
+        active_tenants = Tenant.query.filter(Tenant.status.in_(['active', 'trial'])).all()
+        
+        print(f"📊 Found {len(active_tenants)} active/trial tenants to process")
         
         results = {
             'tenants_processed': 0,
