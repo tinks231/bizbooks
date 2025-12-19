@@ -146,6 +146,7 @@ from routes.fix_barcode_floats import fix_barcodes_bp  # MIGRATION: Fix barcodes
 from routes.add_barcode_index import add_barcode_index_bp  # MIGRATION: Add barcode index for fast scanning
 from routes.add_special_day_bonus_columns import add_special_day_columns_bp  # MIGRATION: Add special day bonus columns
 from routes.scheduled_tasks import scheduled_tasks_bp  # NEW: Scheduled tasks for automated jobs (birthday/anniversary bonuses)
+from routes.diagnose_inventory_equity import diagnose_inventory_equity_bp  # DIAGNOSTIC: Check inventory equity status
 
 app.register_blueprint(registration_bp)
 app.register_blueprint(employee_portal_bp)  # Register unified portal
@@ -203,6 +204,7 @@ app.register_blueprint(fix_barcodes_bp)  # MIGRATION: Fix barcodes with .0 suffi
 app.register_blueprint(add_barcode_index_bp)  # MIGRATION: Add barcode index for fast scanning
 app.register_blueprint(add_special_day_columns_bp)  # MIGRATION: Add special day bonus columns
 app.register_blueprint(scheduled_tasks_bp)  # NEW: Scheduled tasks (birthday/anniversary bonuses)
+app.register_blueprint(diagnose_inventory_equity_bp)  # DIAGNOSTIC: Check inventory equity status
 from routes.migrate_double_entry import migrate_double_entry_bp
 app.register_blueprint(migrate_double_entry_bp)  # MIGRATION: Convert to double-entry accounting
 from routes.fix_vendor_payment_constraint import fix_vendor_payment_bp
