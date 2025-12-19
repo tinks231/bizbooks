@@ -123,6 +123,43 @@
     position: relative;
 }
 
+/* ========================================
+   PRIVACY TOGGLE BUTTON (Hide/Show Amounts)
+   ======================================== */
+.privacy-toggle {
+    margin-left: auto;
+    background: white;
+    border: 2px solid var(--primary);
+    border-radius: 8px;
+    padding: 8px 12px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--primary);
+    font-size: 13px;
+    font-weight: 600;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.privacy-toggle:hover {
+    background: var(--primary);
+    color: white;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(102, 126, 234, 0.3);
+}
+
+.privacy-toggle:active {
+    transform: translateY(0);
+}
+
+/* Hidden amounts styling */
+.amount-hidden {
+    letter-spacing: 2px;
+    font-family: monospace;
+}
+
 .section-icon {
     font-size: 24px;
     width: 44px;
@@ -498,6 +535,17 @@
                 <div class="section-header">
                     <span class="section-icon">💰</span>
                     <h2 class="section-title">Sales</h2>
+                    <!-- 👁️ Privacy Toggle Button -->
+                    <button id="toggleAmounts" class="privacy-toggle" title="Hide/Show amounts" onclick="togglePrivacy()">
+                        <svg id="eyeIcon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                            <circle cx="12" cy="12" r="3"></circle>
+                        </svg>
+                        <svg id="eyeOffIcon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: none;">
+                            <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                            <line x1="1" y1="1" x2="23" y2="23"></line>
+                        </svg>
+                    </button>
                 </div>
                 
                 <div class="metric-row">
@@ -505,7 +553,9 @@
                         <div class="metric-label">Today</div>
                     </div>
                     <div style="text-align: right;">
-                        <div class="metric-value primary">₹{{ "{:,.0f}".format(today_sales) }}</div>
+                        <div class="metric-value primary">
+                            <span class="amount-value" data-value="₹{{ "{:,.0f}".format(today_sales) }}">₹{{ "{:,.0f}".format(today_sales) }}</span>
+                        </div>
                         <div class="metric-subtext">{{ today_invoice_count }} invoice{{ 's' if today_invoice_count != 1 else '' }}</div>
                     </div>
                 </div>
@@ -515,7 +565,9 @@
                         <div class="metric-label">This Month</div>
                     </div>
                     <div style="text-align: right;">
-                        <div class="metric-value primary">₹{{ "{:,.0f}".format(month_sales) }}</div>
+                        <div class="metric-value primary">
+                            <span class="amount-value" data-value="₹{{ "{:,.0f}".format(month_sales) }}">₹{{ "{:,.0f}".format(month_sales) }}</span>
+                        </div>
                         <div class="metric-subtext">{{ month_invoice_count }} invoice{{ 's' if month_invoice_count != 1 else '' }}</div>
                     </div>
                 </div>
@@ -525,7 +577,9 @@
                         <div class="metric-label">To Collect</div>
                     </div>
                     <div style="text-align: right;">
-                        <div class="metric-value warning">₹{{ "{:,.0f}".format(pending_receivables) }}</div>
+                        <div class="metric-value warning">
+                            <span class="amount-value" data-value="₹{{ "{:,.0f}".format(pending_receivables) }}">₹{{ "{:,.0f}".format(pending_receivables) }}</span>
+                        </div>
                         <div class="metric-subtext">Pending receivables</div>
                     </div>
                 </div>
@@ -697,6 +751,67 @@
     
     saveToCache();
 })();
+
+// ========================================
+// PRIVACY TOGGLE - Hide/Show Amounts
+// (Like Workday Payslip Privacy Mode)
+// ========================================
+function togglePrivacy() {
+    const amountElements = document.querySelectorAll('.amount-value');
+    const eyeIcon = document.getElementById('eyeIcon');
+    const eyeOffIcon = document.getElementById('eyeOffIcon');
+    const PRIVACY_KEY = 'dashboard_privacy_mode';
+    
+    // Get current state (default: visible)
+    let isHidden = localStorage.getItem(PRIVACY_KEY) === 'true';
+    
+    // Toggle state
+    isHidden = !isHidden;
+    localStorage.setItem(PRIVACY_KEY, isHidden);
+    
+    // Apply to all amount elements
+    amountElements.forEach(element => {
+        if (isHidden) {
+            // Hide: Show masked value
+            element.textContent = '₹•••••';
+            element.classList.add('amount-hidden');
+        } else {
+            // Show: Restore original value
+            element.textContent = element.getAttribute('data-value');
+            element.classList.remove('amount-hidden');
+        }
+    });
+    
+    // Toggle eye icon
+    if (isHidden) {
+        eyeIcon.style.display = 'none';
+        eyeOffIcon.style.display = 'block';
+    } else {
+        eyeIcon.style.display = 'block';
+        eyeOffIcon.style.display = 'none';
+    }
+}
+
+// Apply saved privacy preference on page load
+document.addEventListener('DOMContentLoaded', function() {
+    const PRIVACY_KEY = 'dashboard_privacy_mode';
+    const isHidden = localStorage.getItem(PRIVACY_KEY) === 'true';
+    
+    if (isHidden) {
+        // Immediately apply hidden state
+        const amountElements = document.querySelectorAll('.amount-value');
+        const eyeIcon = document.getElementById('eyeIcon');
+        const eyeOffIcon = document.getElementById('eyeOffIcon');
+        
+        amountElements.forEach(element => {
+            element.textContent = '₹•••••';
+            element.classList.add('amount-hidden');
+        });
+        
+        eyeIcon.style.display = 'none';
+        eyeOffIcon.style.display = 'block';
+    }
+});
 </script>
 
 {% endblock %}
