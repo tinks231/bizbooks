@@ -11,7 +11,7 @@ This service runs daily at midnight IST to:
 from models import db
 from models.customer import Customer
 from models.loyalty_program import LoyaltyProgram
-from models.loyalty_points import CustomerLoyaltyPoints
+from models.customer_loyalty_points import CustomerLoyaltyPoints
 from models.loyalty_transaction import LoyaltyTransaction
 from datetime import datetime, timedelta
 import pytz
