@@ -623,7 +623,7 @@ def import_inventory_from_excel(file, tenant_id):
         
         # Process data rows (skip header row)
         for row_num, row in enumerate(ws.iter_rows(min_row=2, values_only=True), start=2):
-            # Skip empty rows
+            # Skip completely empty rows
             if all(cell is None or str(cell).strip() == '' for cell in row):
                 continue
             
@@ -643,6 +643,11 @@ def import_inventory_from_excel(file, tenant_id):
             tax_rate = row[col_positions['tax_rate']] if 'tax_rate' in col_positions and col_positions['tax_rate'] < len(row) else None
             hsn = row[col_positions['hsn']] if 'hsn' in col_positions and col_positions['hsn'] < len(row) else None
             description = row[col_positions['description']] if 'description' in col_positions and col_positions['description'] < len(row) else None
+            
+            # IMPROVED: Skip rows where ALL required fields are empty (handles templates with formulas in empty rows)
+            required_values = [item_name, category, group, unit, stock, cost_price, selling_price]
+            if all(val is None or str(val).strip() == '' for val in required_values):
+                continue  # Skip this row - all required fields are empty
             
             # Package for validation
             row_data = [item_name, sku, barcode, category, group, unit, stock, reorder_point, cost_price, mrp, discount_percent, selling_price, tax_rate, hsn, description]
