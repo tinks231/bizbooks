@@ -148,6 +148,7 @@ from routes.add_special_day_bonus_columns import add_special_day_columns_bp  # M
 from routes.scheduled_tasks import scheduled_tasks_bp  # NEW: Scheduled tasks for automated jobs (birthday/anniversary bonuses)
 from routes.diagnose_inventory_equity import diagnose_inventory_equity_bp  # DIAGNOSTIC: Check inventory equity status
 from routes.fix_inventory_equity_mismatch import fix_inventory_equity_mismatch_bp  # FIX: Adjust inventory equity when stock value changes
+from routes.fix_inventory_double_entry import fix_inventory_double_entry_bp  # FIX: Create missing inventory asset DEBIT entries
 
 app.register_blueprint(registration_bp)
 app.register_blueprint(employee_portal_bp)  # Register unified portal
@@ -207,6 +208,7 @@ app.register_blueprint(add_special_day_columns_bp)  # MIGRATION: Add special day
 app.register_blueprint(scheduled_tasks_bp)  # NEW: Scheduled tasks (birthday/anniversary bonuses)
 app.register_blueprint(diagnose_inventory_equity_bp)  # DIAGNOSTIC: Check inventory equity status
 app.register_blueprint(fix_inventory_equity_mismatch_bp)  # FIX: Adjust inventory equity mismatch
+app.register_blueprint(fix_inventory_double_entry_bp)  # FIX: Create missing inventory asset DEBIT entries
 from routes.migrate_double_entry import migrate_double_entry_bp
 app.register_blueprint(migrate_double_entry_bp)  # MIGRATION: Convert to double-entry accounting
 from routes.fix_vendor_payment_constraint import fix_vendor_payment_bp
