@@ -34,6 +34,10 @@ class LoyaltyTransaction(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     created_by = db.Column(db.Integer, db.ForeignKey('users.id'))
     
+    # Special Day Bonus Fields (Birthday/Anniversary)
+    is_temporary = db.Column(db.Boolean, default=False)  # True for birthday/anniversary bonuses
+    expires_at = db.Column(db.DateTime)  # When temporary points expire (midnight)
+    
     # Relationships
     tenant = db.relationship('Tenant')
     customer = db.relationship('Customer', backref='loyalty_transactions')
