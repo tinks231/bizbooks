@@ -12,6 +12,155 @@ import pytz
 
 comprehensive_double_entry_migration_bp = Blueprint('comprehensive_migration', __name__, url_prefix='/migration')
 
+@comprehensive_double_entry_migration_bp.route('/comprehensive-double-entry-fix', methods=['GET'])
+@require_tenant
+def show_migration_page():
+    """Show migration page with execute button"""
+    return """
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Comprehensive Double-Entry Migration</title>
+        <style>
+            body { 
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+                max-width: 800px; 
+                margin: 50px auto; 
+                padding: 20px;
+                background: #f5f5f5;
+            }
+            .container {
+                background: white;
+                padding: 30px;
+                border-radius: 12px;
+                box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            }
+            h1 { color: #333; margin-bottom: 20px; }
+            .warning {
+                background: #fff3cd;
+                border: 1px solid #ffc107;
+                padding: 15px;
+                border-radius: 6px;
+                margin: 20px 0;
+            }
+            .info {
+                background: #d1ecf1;
+                border: 1px solid #bee5eb;
+                padding: 15px;
+                border-radius: 6px;
+                margin: 20px 0;
+            }
+            button {
+                background: #667eea;
+                color: white;
+                border: none;
+                padding: 15px 30px;
+                font-size: 16px;
+                border-radius: 6px;
+                cursor: pointer;
+                font-weight: 600;
+            }
+            button:hover { background: #5568d3; }
+            button:disabled { background: #ccc; cursor: not-allowed; }
+            #result {
+                margin-top: 20px;
+                padding: 15px;
+                border-radius: 6px;
+                display: none;
+            }
+            .success { background: #d4edda; border: 1px solid #c3e6cb; color: #155724; }
+            .error { background: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; }
+            pre { 
+                background: #f8f9fa; 
+                padding: 15px; 
+                border-radius: 6px; 
+                overflow-x: auto;
+                font-size: 12px;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h1>🎯 Comprehensive Double-Entry Migration</h1>
+            
+            <div class="warning">
+                <strong>⚠️ IMPORTANT:</strong> This migration will:
+                <ul>
+                    <li>Delete ALL old equity entries (band-aids)</li>
+                    <li>Create proper double-entry accounting entries</li>
+                    <li>Balance your trial balance permanently</li>
+                </ul>
+            </div>
+            
+            <div class="info">
+                <strong>✅ What This Will Fix:</strong>
+                <ul>
+                    <li>Trial balance will be perfectly balanced</li>
+                    <li>All inventory will have proper accounting entries</li>
+                    <li>Future imports will auto-balance</li>
+                </ul>
+            </div>
+            
+            <button id="executeBtn" onclick="executeMigration()">
+                Execute Migration Now
+            </button>
+            
+            <div id="result"></div>
+        </div>
+        
+        <script>
+            async function executeMigration() {
+                const btn = document.getElementById('executeBtn');
+                const resultDiv = document.getElementById('result');
+                
+                btn.disabled = true;
+                btn.textContent = 'Executing...';
+                resultDiv.style.display = 'none';
+                
+                try {
+                    const response = await fetch('/migration/comprehensive-double-entry-fix', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                    
+                    const data = await response.json();
+                    
+                    resultDiv.style.display = 'block';
+                    
+                    if (data.status === 'success') {
+                        resultDiv.className = 'success';
+                        resultDiv.innerHTML = `
+                            <h3>✅ Migration Successful!</h3>
+                            <pre>${JSON.stringify(data.result, null, 2)}</pre>
+                            <p><strong>Next Step:</strong> <a href="/admin/reports/trial-balance">Check Trial Balance</a></p>
+                        `;
+                    } else {
+                        resultDiv.className = 'error';
+                        resultDiv.innerHTML = `
+                            <h3>❌ Migration Failed</h3>
+                            <p><strong>Error:</strong> ${data.message}</p>
+                            <pre>${data.traceback || ''}</pre>
+                        `;
+                    }
+                } catch (error) {
+                    resultDiv.style.display = 'block';
+                    resultDiv.className = 'error';
+                    resultDiv.innerHTML = `
+                        <h3>❌ Request Failed</h3>
+                        <p>${error.message}</p>
+                    `;
+                } finally {
+                    btn.disabled = false;
+                    btn.textContent = 'Execute Migration Again';
+                }
+            }
+        </script>
+    </body>
+    </html>
+    """
+
 @comprehensive_double_entry_migration_bp.route('/comprehensive-double-entry-fix', methods=['POST'])
 @require_tenant
 def comprehensive_double_entry_fix():
