@@ -1136,7 +1136,7 @@
                 <input type="text" name="hsn_code[]" class="form-control" placeholder="8544">
             </td>
             <td>
-                <input type="number" name="quantity[]" id="quantity_${itemCount}" class="form-control" step="0.01" min="0.01" 
+                <input type="number" name="quantity[]" id="quantity_${itemCount}" class="form-control" step="1" min="0.01" 
                        value="1" placeholder="1" required oninput="calculateRow(${itemCount})">
             </td>
             <td>
@@ -1735,7 +1735,7 @@
                 <input type="text" name="hsn_code[]" class="form-control" placeholder="8544" value="${itemData.hsn_code || ''}">
             </td>
             <td>
-                <input type="number" name="quantity[]" id="quantity_${itemCount}" class="form-control" step="0.01" min="0.01" 
+                <input type="number" name="quantity[]" id="quantity_${itemCount}" class="form-control" step="1" min="0.01" 
                        placeholder="1" value="${itemData.quantity || 1}" required onchange="calculateRow(${itemCount})">
             </td>
             <td>
@@ -1772,10 +1772,10 @@
             <td>
                 <div style="display: flex; align-items: center; gap: 8px;">
                     <input type="number" name="rate[]" id="rate_${itemCount}" class="form-control" step="0.01" min="0.01" 
-                           placeholder="1200" value="${itemData.rate || 0}" required onchange="calculateRow(${itemCount})" 
+                           placeholder="1200" value="${itemData.rate ? parseFloat(itemData.rate).toFixed(2) : 0}" required onchange="calculateRow(${itemCount})" 
                            style="text-align: right; flex: 1; min-width: 80px;">
                     <!-- Hide Inc checkbox in edit mode - stored value is already correct -->
-                    <input type="hidden" name="price_inclusive[]" id="price_inclusive_${itemCount}" 
+                    <input type="hidden" name="price_inclusive[]" id="price_inclusive_${itemCount}"
                            class="price-inclusive-checkbox" value="${isPriceInclusive ? '1' : '0'}">
                 </div>
             </td>
