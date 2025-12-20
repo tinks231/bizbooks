@@ -1416,13 +1416,23 @@
         const rateInput = document.getElementById(`rate_${rowId}`);
         const gstRateInput = document.getElementById(`gst_rate_${rowId}`);
         const mrpInput = document.getElementById(`mrp_${rowId}`);
-        const priceInclusiveCheckbox = document.getElementById(`price_inclusive_${rowId}`);
+        const priceInclusiveInput = document.getElementById(`price_inclusive_${rowId}`);
         
         const qty = qtyInput ? parseFloat(qtyInput.value) || 0 : 0;
         const rate = rateInput ? parseFloat(rateInput.value) || 0 : 0;
         const gstRate = gstRateInput ? parseFloat(gstRateInput.value) || 0 : 0;
         const mrp = mrpInput ? parseFloat(mrpInput.value) || 0 : 0;
-        const isPriceInclusive = priceInclusiveCheckbox ? priceInclusiveCheckbox.checked : false;
+        
+        // For edit mode: Read from hidden input (stores '1' or '0')
+        // For new items: Checkbox might exist, check if it's a checkbox or hidden input
+        let isPriceInclusive = true; // Default to inclusive (most common in India)
+        if (priceInclusiveInput) {
+            if (priceInclusiveInput.type === 'checkbox') {
+                isPriceInclusive = priceInclusiveInput.checked;
+            } else if (priceInclusiveInput.type === 'hidden') {
+                isPriceInclusive = priceInclusiveInput.value === '1' || priceInclusiveInput.value === 'true';
+            }
+        }
         
         const gstEnabled = document.getElementById('gstEnabled').checked;
         
@@ -1764,11 +1774,9 @@
                     <input type="number" name="rate[]" id="rate_${itemCount}" class="form-control" step="0.01" min="0.01" 
                            placeholder="1200" value="${itemData.rate || 0}" required onchange="calculateRow(${itemCount})" 
                            style="text-align: right; flex: 1; min-width: 80px;">
-                    <label style="display: flex; align-items: center; gap: 4px; margin: 0; cursor: pointer; white-space: nowrap;">
-                        <input type="checkbox" name="price_inclusive[]" id="price_inclusive_${itemCount}" 
-                               class="price-inclusive-checkbox" ${isPriceInclusive ? 'checked' : ''} onchange="calculateRow(${itemCount})">
-                        <span style="font-size: 11px; color: #666;">Inc</span>
-                    </label>
+                    <!-- Hide Inc checkbox in edit mode - stored value is already correct -->
+                    <input type="hidden" name="price_inclusive[]" id="price_inclusive_${itemCount}" 
+                           class="price-inclusive-checkbox" value="${isPriceInclusive ? '1' : '0'}">
                 </div>
             </td>
             <td>
