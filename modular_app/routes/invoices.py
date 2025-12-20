@@ -1016,7 +1016,16 @@ def edit(invoice_id):
                 active=True
             ).first()
             
-            if default_site:
+            # Fallback to first active site if no default
+            if not default_site:
+                default_site = Site.query.filter_by(tenant_id=tenant_id, active=True).first()
+            
+            if not default_site:
+                print("⚠️ WARNING: No active site found! Skipping inventory adjustment.")
+                flash('⚠️ Warning: No active site found. Inventory not adjusted.', 'warning')
+            else:
+                print(f"✅ Using site: {default_site.name} (ID: {default_site.id})")
+                
                 # Calculate inventory adjustments
                 # old_items: {item_id: old_qty}
                 # new_items: {item_id: new_qty}
@@ -1025,6 +1034,8 @@ def edit(invoice_id):
                 for item_id, old_qty in old_items.items():
                     new_qty = new_items.get(item_id, 0)  # 0 if item removed
                     qty_diff = old_qty - new_qty  # Positive = restore, Negative = reduce more
+                    
+                    print(f"  🔍 Item {item_id}: old_qty={old_qty}, new_qty={new_qty}, diff={qty_diff}")
                     
                     if qty_diff > 0:  # Restore stock (item removed or qty reduced)
                         item_stock = ItemStock.query.filter_by(
@@ -1059,11 +1070,17 @@ def edit(invoice_id):
                             db.session.add(stock_movement)
                             
                             print(f"✅ Restored {qty_diff} units of item {item_id} (was {old_stock_qty}, now {new_stock_qty})")
+                            flash(f'✅ Restored {qty_diff} units to inventory', 'success')
+                        else:
+                            print(f"⚠️ WARNING: No stock record found for item {item_id}")
+                            flash(f'⚠️ Warning: No stock record found for item {item_id}', 'warning')
                 
                 # Items that were ADDED or INCREASED → reduce stock
                 for item_id, new_qty in new_items.items():
                     old_qty = old_items.get(item_id, 0)  # 0 if new item
                     qty_diff = new_qty - old_qty  # Positive = reduce more, Negative = already handled above
+                    
+                    print(f"  🔍 Item {item_id}: old_qty={old_qty}, new_qty={new_qty}, diff={qty_diff}")
                     
                     if qty_diff > 0:  # Reduce stock (new item or qty increased)
                         item_stock = ItemStock.query.filter_by(
@@ -1102,6 +1119,10 @@ def edit(invoice_id):
                                 flash(f'🚨 {item_obj.name if item_obj else f"Item {item_id}"} is now OUT OF STOCK (Qty: {new_stock_qty:.2f})', 'danger')
                             
                             print(f"✅ Reduced {qty_diff} units of item {item_id} (was {old_stock_qty}, now {new_stock_qty})")
+                            flash(f'✅ Reduced {qty_diff} units from inventory', 'success')
+                        else:
+                            print(f"⚠️ WARNING: No stock record found for item {item_id}")
+                            flash(f'⚠️ Warning: No stock record found for item {item_id}', 'warning')
             
             # Update payment status (after total is calculated)
             if payment_received == 'yes':
