@@ -889,6 +889,17 @@ def edit(invoice_id):
             # Delete existing items
             InvoiceItem.query.filter_by(invoice_id=invoice.id).delete()
             
+            # 🔧 CRITICAL FIX: Delete old accounting entries for this invoice
+            from models.bank_account import AccountTransaction
+            from sqlalchemy import text
+            db.session.execute(text("""
+                DELETE FROM account_transactions
+                WHERE tenant_id = :tenant_id
+                AND reference_type = 'invoice'
+                AND reference_id = :invoice_id
+            """), {'tenant_id': tenant_id, 'invoice_id': invoice.id})
+            print(f"🗑️ Deleted old accounting entries for invoice {invoice.id}")
+            
             # Add updated items (same logic as create)
             tenant_settings = json.loads(g.tenant.settings) if g.tenant.settings else {}
             tenant_state = tenant_settings.get('state', 'Maharashtra')
