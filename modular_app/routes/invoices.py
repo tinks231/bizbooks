@@ -1206,61 +1206,24 @@ def edit(invoice_id):
                 'created_at': now
             })
             
-            # Entry 3: CREDIT CGST/SGST/IGST Payable
-            if invoice.cgst_amount > 0:
+            # Entry 3: CREDIT GST Payable (combined CGST + SGST + IGST)
+            total_gst = (invoice.cgst_amount or 0) + (invoice.sgst_amount or 0) + (invoice.igst_amount or 0)
+            if total_gst > 0:
                 db.session.execute(text("""
                     INSERT INTO account_transactions
                     (tenant_id, account_id, transaction_date, transaction_type,
                      debit_amount, credit_amount, balance_after, reference_type, reference_id,
                      voucher_number, narration, created_at, created_by)
-                    VALUES (:tenant_id, NULL, :transaction_date, 'gst_cgst_payable',
+                    VALUES (:tenant_id, NULL, :transaction_date, 'gst_payable',
                             0.00, :credit_amount, :credit_amount, 'invoice', :invoice_id,
                             :voucher, :narration, :created_at, NULL)
                 """), {
                     'tenant_id': tenant_id,
                     'transaction_date': invoice.invoice_date,
-                    'credit_amount': float(invoice.cgst_amount),
+                    'credit_amount': float(total_gst),
                     'invoice_id': invoice.id,
                     'voucher': invoice.invoice_number,
-                    'narration': f'CGST payable for invoice {invoice.invoice_number}',
-                    'created_at': now
-                })
-            
-            if invoice.sgst_amount > 0:
-                db.session.execute(text("""
-                    INSERT INTO account_transactions
-                    (tenant_id, account_id, transaction_date, transaction_type,
-                     debit_amount, credit_amount, balance_after, reference_type, reference_id,
-                     voucher_number, narration, created_at, created_by)
-                    VALUES (:tenant_id, NULL, :transaction_date, 'gst_sgst_payable',
-                            0.00, :credit_amount, :credit_amount, 'invoice', :invoice_id,
-                            :voucher, :narration, :created_at, NULL)
-                """), {
-                    'tenant_id': tenant_id,
-                    'transaction_date': invoice.invoice_date,
-                    'credit_amount': float(invoice.sgst_amount),
-                    'invoice_id': invoice.id,
-                    'voucher': invoice.invoice_number,
-                    'narration': f'SGST payable for invoice {invoice.invoice_number}',
-                    'created_at': now
-                })
-            
-            if invoice.igst_amount > 0:
-                db.session.execute(text("""
-                    INSERT INTO account_transactions
-                    (tenant_id, account_id, transaction_date, transaction_type,
-                     debit_amount, credit_amount, balance_after, reference_type, reference_id,
-                     voucher_number, narration, created_at, created_by)
-                    VALUES (:tenant_id, NULL, :transaction_date, 'gst_igst_payable',
-                            0.00, :credit_amount, :credit_amount, 'invoice', :invoice_id,
-                            :voucher, :narration, :created_at, NULL)
-                """), {
-                    'tenant_id': tenant_id,
-                    'transaction_date': invoice.invoice_date,
-                    'credit_amount': float(invoice.igst_amount),
-                    'invoice_id': invoice.id,
-                    'voucher': invoice.invoice_number,
-                    'narration': f'IGST payable for invoice {invoice.invoice_number}',
+                    'narration': f'GST payable on {invoice.invoice_number}',
                     'created_at': now
                 })
             
