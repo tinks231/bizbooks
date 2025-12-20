@@ -1,12 +1,15 @@
-from flask import Blueprint, jsonify, g
+from flask import Blueprint, jsonify
 from extensions import db
 from sqlalchemy import text
 from decimal import Decimal
-from utils.tenant_utils import get_current_tenant_id
+from utils.tenant_utils import get_current_tenant_id, require_tenant
+from decorators import login_required
 
 diagnose_return_bp = Blueprint('diagnose_return', __name__)
 
 @diagnose_return_bp.route('/debug/diagnose-return-accounting')
+@require_tenant
+@login_required
 def diagnose_return_accounting():
     """Diagnose return accounting entries for debugging"""
     tenant_id = get_current_tenant_id()
