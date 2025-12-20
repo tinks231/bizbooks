@@ -222,28 +222,43 @@ def comprehensive_double_entry_fix():
         })
         
         # ============================================================
-        # STEP 3: Calculate CURRENT cash/bank balances
+        # STEP 3: Get cash/bank balances FROM ACTUAL TRANSACTIONS (not opening_balance column!)
         # ============================================================
+        # This is more reliable because opening_balance might have been entered wrong
         cash_bank = db.session.execute(text("""
             SELECT 
-                account_name,
-                current_balance,
-                opening_balance
-            FROM bank_accounts
-            WHERE tenant_id = :tenant_id
-            AND is_active = TRUE
+                ba.id,
+                ba.account_name,
+                ba.opening_balance,
+                ba.current_balance,
+                COALESCE(
+                    (SELECT SUM(debit_amount) 
+                     FROM account_transactions 
+                     WHERE account_id = ba.id 
+                     AND transaction_type = 'opening_balance' 
+                     AND tenant_id = :tenant_id), 
+                    0
+                ) as actual_opening_debit
+            FROM bank_accounts ba
+            WHERE ba.tenant_id = :tenant_id
+            AND ba.is_active = TRUE
         """), {'tenant_id': tenant_id}).fetchall()
         
         cash_bank_details = []
         for account in cash_bank:
-            account_name = account[0]
-            current_balance = account[1]
-            opening_balance = account[2]
+            # Use actual DEBIT amount if it exists, otherwise use opening_balance column
+            actual_debit = float(account[4])
+            opening_from_column = float(account[2])
+            
+            # Prefer actual transaction amount over column value
+            opening_to_use = actual_debit if actual_debit > 0 else opening_from_column
             
             cash_bank_details.append({
-                'account': account_name,
-                'current': float(current_balance),
-                'opening': float(opening_balance)
+                'account': account[1],
+                'current': float(account[3]),
+                'opening_column': opening_from_column,
+                'actual_debit': actual_debit,
+                'opening_used': opening_to_use
             })
         
         result['steps'].append({
@@ -305,15 +320,15 @@ def comprehensive_double_entry_fix():
         # ============================================================
         # STEP 5: Create PROPER cash/bank opening CREDIT entries
         # ============================================================
-        # The DEBIT side already exists (created when accounts were set up)
-        # We need to create the matching CREDIT side (Owner's Capital)
+        # Use the ACTUAL DEBIT amounts (from existing transactions), not opening_balance column!
         
         cash_bank_entries_created = 0
         
         for account in cash_bank_details:
-            if account['opening'] > 0:
+            opening_amount = account['opening_used']
+            
+            if opening_amount > 0:
                 account_name = account['account']
-                opening_amount = account['opening']
                 
                 # Check if CREDIT equity entry already exists for this account
                 existing_credit = db.session.execute(text("""
@@ -357,7 +372,8 @@ def comprehensive_double_entry_fix():
             'action': 'Create cash/bank opening CREDIT entries',
             'accounts_checked': len(cash_bank_details),
             'entries_created': cash_bank_entries_created,
-            'message': f'Created {cash_bank_entries_created} missing CREDIT entries for cash/bank opening balances'
+            'message': f'Created {cash_bank_entries_created} missing CREDIT entries (using actual DEBIT amounts)',
+            'details': cash_bank_details
         })
         
         db.session.commit()
