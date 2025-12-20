@@ -1715,6 +1715,14 @@
                        placeholder="1" value="${itemData.quantity || 1}" required onchange="calculateRow(${itemCount})">
             </td>
             <td>
+                <span style="color: #95a5a6; font-size: 12px;">${itemData.mrp ? '₹' + itemData.mrp.toFixed(2) : '-'}</span>
+                <input type="hidden" name="mrp[]" id="mrp_${itemCount}" value="${itemData.mrp || 0}">
+            </td>
+            <td>
+                <span style="color: #95a5a6; font-size: 12px;">${itemData.discount_percent || 0}%</span>
+                <input type="hidden" name="discount_percent[]" value="${itemData.discount_percent || 0}">
+            </td>
+            <td>
                 <select name="unit[]" class="form-control">
                     <option value="Nos" ${itemData.unit === 'Nos' || itemData.unit === 'nos' ? 'selected' : ''}>Nos</option>
                     <option value="Pcs" ${itemData.unit === 'Pcs' || itemData.unit === 'pcs' ? 'selected' : ''}>Pcs</option>
