@@ -991,13 +991,14 @@
     
     function addItemRowWithData(item) {
         itemCount++;
+        const currentRowId = itemCount;  // 🔧 FIX: Capture itemCount in local variable!
         const tbody = document.getElementById('itemsTableBody');
         const row = document.createElement('tr');
-        row.id = `row_${itemCount}`;
+        row.id = `row_${currentRowId}`;
         
         // Pre-populate all item data
         row.innerHTML = `
-            <td>${itemCount}</td>
+            <td>${currentRowId}</td>
             <td style="position: relative;">
                 <input type="text" name="item_name[]" class="form-control" 
                        value="${item.name}" 
@@ -1010,13 +1011,13 @@
                        value="${item.hsn_code || ''}" readonly style="background: #f8f9fa;">
             </td>
             <td>
-                <input type="number" name="quantity[]" id="quantity_${itemCount}" class="form-control" 
+                <input type="number" name="quantity[]" id="quantity_${currentRowId}" class="form-control" 
                        value="1" min="1" step="1" required 
-                       oninput="calculateRow(${itemCount})">
+                       oninput="calculateRow(${currentRowId})">
             </td>
             <td>
                 <span style="color: #95a5a6;">${item.mrp ? '₹' + item.mrp.toFixed(2) : '-'}</span>
-                <input type="hidden" name="mrp[]" id="mrp_${itemCount}" value="${item.mrp || 0}">
+                <input type="hidden" name="mrp[]" id="mrp_${currentRowId}" value="${item.mrp || 0}">
             </td>
             <td>
                 <span style="color: #95a5a6;">${item.discount_percent || 0}%</span>
@@ -1027,20 +1028,20 @@
                 <input type="hidden" name="unit[]" value="${item.unit || 'nos'}">
             </td>
             <td>
-                <input type="number" name="rate[]" id="rate_${itemCount}" class="form-control" 
+                <input type="number" name="rate[]" id="rate_${currentRowId}" class="form-control" 
                        value="${item.selling_price || 0}" min="0" step="0.01" required 
-                       oninput="calculateRow(${itemCount})">
+                       oninput="calculateRow(${currentRowId})">
             </td>
             <td>
-                <input type="number" name="gst_rate[]" id="gst_rate_${itemCount}" class="form-control" 
+                <input type="number" name="gst_rate[]" id="gst_rate_${currentRowId}" class="form-control" 
                        value="${item.gst_rate || 18}" min="0" max="28" step="0.01" 
-                       oninput="calculateRow(${itemCount})">
+                       oninput="calculateRow(${currentRowId})">
             </td>
             <td>
-                <span id="amount_${itemCount}">₹0.00</span>
+                <span id="amount_${currentRowId}">₹0.00</span>
             </td>
             <td>
-                <button type="button" class="btn-icon" onclick="removeRow(${itemCount})" 
+                <button type="button" class="btn-icon" onclick="removeRow(${currentRowId})" 
                         style="color: #e74c3c; font-size: 18px; padding: 4px 8px;">✕</button>
             </td>
         `;
@@ -1048,8 +1049,9 @@
         tbody.appendChild(row);
         
         // Calculate initial amount (with small delay to ensure DOM is ready)
+        // 🔧 FIX: Use captured currentRowId instead of global itemCount!
         setTimeout(() => {
-            calculateRow(itemCount);
+            calculateRow(currentRowId);
             calculateTotal();
         }, 50);
         
