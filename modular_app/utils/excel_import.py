@@ -830,7 +830,8 @@ def import_inventory_from_excel(file, tenant_id):
             # ✅ CRITICAL FIX: Create double-entry accounting entries for inventory import
             # This ensures trial balance stays balanced automatically!
             try:
-                from models import AccountTransaction
+                from models.bank_account import AccountTransaction
+                from models import ItemStock
                 from datetime import datetime
                 import pytz
                 
@@ -839,7 +840,6 @@ def import_inventory_from_excel(file, tenant_id):
                 
                 # Calculate total inventory value imported
                 total_inventory_value = 0.0
-                from models import ItemStock
                 inventory_stocks = ItemStock.query.filter_by(tenant_id=tenant_id).all()
                 for stock in inventory_stocks:
                     total_inventory_value += stock.stock_value or 0.0
