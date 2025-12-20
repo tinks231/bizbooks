@@ -510,6 +510,14 @@ function calculateRefund() {
 
 // Form validation
 document.getElementById('returnForm').addEventListener('submit', function(e) {
+    // 🔧 FIX: Validate invoice_id is not empty
+    const invoiceId = document.getElementById('invoice_id').value;
+    if (!invoiceId || invoiceId.trim() === '') {
+        e.preventDefault();
+        alert('⚠️ Error: No invoice selected! Please go back and search for an invoice first.');
+        return false;
+    }
+    
     const checkedItems = document.querySelectorAll('#itemsTableBody input[type="checkbox"]:checked');
     
     if (checkedItems.length === 0) {
