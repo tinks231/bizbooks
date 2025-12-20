@@ -302,27 +302,34 @@ def comprehensive_double_entry_fix():
             })
         
         # ============================================================
-        # STEP 5: Create PROPER cash/bank opening entries
+        # STEP 5: Create PROPER cash/bank opening CREDIT entries
         # ============================================================
+        # The DEBIT side already exists (created when accounts were set up)
+        # We need to create the matching CREDIT side (Owner's Capital)
+        
+        cash_bank_entries_created = 0
+        
         for account in cash_bank_details:
             if account['opening'] > 0:
-                # Check if opening equity entry already exists for this account
                 account_name = account['account']
                 opening_amount = account['opening']
                 
-                # Check if entry exists
-                existing_entry = db.session.execute(text("""
+                # Check if CREDIT equity entry already exists for this account
+                existing_credit = db.session.execute(text("""
                     SELECT id FROM account_transactions
                     WHERE tenant_id = :tenant_id
                     AND transaction_type = 'opening_balance_equity'
-                    AND narration LIKE :search_pattern
+                    AND credit_amount = :amount
+                    AND (narration LIKE :search_pattern1 OR narration LIKE :search_pattern2)
                 """), {
                     'tenant_id': tenant_id,
-                    'search_pattern': f'%{account_name}%'
+                    'amount': float(opening_amount),
+                    'search_pattern1': f'%{account_name}%',
+                    'search_pattern2': f'%Opening Balance%{account_name}%'
                 }).fetchone()
                 
-                if not existing_entry:
-                    voucher = f"OB-{account_name.replace(' ', '')[:10]}-{tenant_id}"
+                if not existing_credit:
+                    voucher = f"OB-EQUITY-{tenant_id}-{account_name.replace(' ', '')[:10]}"
                     
                     # CREDIT: Owner's Capital for this account opening
                     db.session.execute(text("""
@@ -338,20 +345,18 @@ def comprehensive_double_entry_fix():
                         'date': now.date(),
                         'amount': float(opening_amount),
                         'voucher': voucher,
-                        'narration': f'Opening Balance - {account_name} (Owner Capital Rs.{opening_amount:,.2f})',
+                        'narration': f'Opening Balance Equity - {account_name} (Rs.{opening_amount:,.2f})',
                         'created_at': now
                     })
                     
-                    cash_bank_details[cash_bank_details.index(account)]['created'] = True
-        
-        created_count = sum(1 for acc in cash_bank_details if acc.get('created', False))
+                    cash_bank_entries_created += 1
         
         result['steps'].append({
             'step': 5,
-            'action': 'Create cash/bank opening entries',
-            'accounts_processed': len(cash_bank_details),
-            'entries_created': created_count,
-            'message': f'Created {created_count} cash/bank opening equity entries'
+            'action': 'Create cash/bank opening CREDIT entries',
+            'accounts_checked': len(cash_bank_details),
+            'entries_created': cash_bank_entries_created,
+            'message': f'Created {cash_bank_entries_created} missing CREDIT entries for cash/bank opening balances'
         })
         
         db.session.commit()
