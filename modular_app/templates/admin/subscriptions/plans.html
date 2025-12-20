@@ -133,20 +133,20 @@
     </div>
 
     <!-- Section Header with Action -->
-    <div class="subscription-section-header">
+    <div class="subscription-section-header" style="margin-bottom: 10px;">
         <h2>Available Plans</h2>
-        <button class="btn btn-primary" onclick="openAddPlanModal()">
-            <i class="fas fa-plus"></i> Add New Plan
+        <button class="btn btn-primary btn-sm" onclick="openAddPlanModal()" style="white-space: nowrap; font-size: 13px; padding: 6px 12px;">
+            <i class="fas fa-plus"></i> Add Plan
         </button>
     </div>
     
-    <!-- View Toggle (Mobile-friendly) - Separate row -->
-    <div style="margin-bottom: 15px; display: none;" id="viewToggle">
+    <!-- View Toggle (Mobile-friendly) - Separate row, LEFT aligned -->
+    <div style="margin-bottom: 15px; display: none; text-align: left;" id="viewToggle">
         <div class="btn-group" role="group">
-            <button type="button" class="btn btn-sm btn-outline-secondary" id="cardViewBtn" onclick="switchView('card')">
+            <button type="button" class="btn btn-sm btn-outline-secondary" id="cardViewBtn" onclick="switchView('card')" style="font-size: 12px; padding: 5px 10px;">
                 <i class="fas fa-th-large"></i> Cards
             </button>
-            <button type="button" class="btn btn-sm btn-outline-secondary active" id="tableViewBtn" onclick="switchView('table')">
+            <button type="button" class="btn btn-sm btn-outline-secondary active" id="tableViewBtn" onclick="switchView('table')" style="font-size: 12px; padding: 5px 10px;">
                 <i class="fas fa-table"></i> Table
             </button>
         </div>
@@ -234,7 +234,7 @@
             
             <!-- CARD VIEW (Mobile-friendly) -->
             <div id="cardView" style="display: none;">
-                <div class="plan-cards-grid">
+                <div class="plan-cards-grid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;">
                     {% for plan in plans %}
                     <div style="background: white; border-radius: 10px; padding: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); border-left: 4px solid {% if plan.is_active %}#4caf50{% else %}#bbb{% endif %};">
                         <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px;">
