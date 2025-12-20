@@ -1416,40 +1416,54 @@
         const rateInput = document.getElementById(`rate_${rowId}`);
         const gstRateInput = document.getElementById(`gst_rate_${rowId}`);
         const mrpInput = document.getElementById(`mrp_${rowId}`);
+        const priceInclusiveCheckbox = document.getElementById(`price_inclusive_${rowId}`);
         
         const qty = qtyInput ? parseFloat(qtyInput.value) || 0 : 0;
-        const sellingPrice = rateInput ? parseFloat(rateInput.value) || 0 : 0; // GST-inclusive price from inventory
+        const rate = rateInput ? parseFloat(rateInput.value) || 0 : 0;
         const gstRate = gstRateInput ? parseFloat(gstRateInput.value) || 0 : 0;
         const mrp = mrpInput ? parseFloat(mrpInput.value) || 0 : 0;
+        const isPriceInclusive = priceInclusiveCheckbox ? priceInclusiveCheckbox.checked : false;
         
         const gstEnabled = document.getElementById('gstEnabled').checked;
         
         let taxableValue, gstAmount, total;
         
         if (gstEnabled) {
-            // GST ON: Selling price is GST-inclusive, need to reverse-calculate base price
-            // MRP ₹2000 → Selling Price ₹1830 (GST-incl) → Base ₹1550 (GST-excl) + GST ₹280 = ₹1830
-            total = qty * sellingPrice; // Total is selling price × qty (GST-inclusive)
-            const divisor = 1 + (gstRate / 100);
-            taxableValue = total / divisor; // Reverse calculate base price
-            gstAmount = total - taxableValue; // GST amount
+            if (isPriceInclusive) {
+                // Price is INCLUSIVE of GST: need to extract base price
+                // Example: Rate ₹2231.25 (inclusive) with 12% GST
+                // Base = 2231.25 / 1.12 = ₹1992.19
+                // GST = ₹239.06
+                // Total = ₹2231.25
+                total = qty * rate;
+                const divisor = 1 + (gstRate / 100);
+                taxableValue = total / divisor;
+                gstAmount = total - taxableValue;
+            } else {
+                // Price is EXCLUSIVE of GST: add GST on top
+                // Example: Rate ₹1992.19 (exclusive) with 12% GST
+                // Base = ₹1992.19
+                // GST = 1992.19 × 0.12 = ₹239.06
+                // Total = ₹2231.25
+                taxableValue = qty * rate;
+                gstAmount = taxableValue * (gstRate / 100);
+                total = taxableValue + gstAmount;
+            }
         } else {
-            // GST OFF: Selling price is final price, no GST calculation
-            // MRP ₹2000 → Selling Price ₹1830 → Total ₹1830 (no GST breakdown)
-            total = qty * sellingPrice;
-            taxableValue = total; // Same as total when GST is off
-            gstAmount = 0; // No GST
+            // GST OFF: Rate is final price, no GST calculation
+            total = qty * rate;
+            taxableValue = total;
+            gstAmount = 0;
         }
         
-        // Display amount (always selling price × qty)
+        // Display amount
         document.getElementById(`amount_${rowId}`).textContent = `₹${total.toFixed(2)}`;
         
         // Store calculated values as data attributes for total calculation
-        // IMPORTANT: Store CGST/SGST separately to avoid rounding errors when dividing total GST
         row.setAttribute('data-taxable', taxableValue.toFixed(2));
         row.setAttribute('data-gst', gstAmount.toFixed(2));
-        row.setAttribute('data-cgst', (gstAmount / 2).toFixed(2));  // Calculate CGST at row level
-        row.setAttribute('data-sgst', (gstAmount / 2).toFixed(2));  // Calculate SGST at row level
+        row.setAttribute('data-cgst', (gstAmount / 2).toFixed(2));
+        row.setAttribute('data-sgst', (gstAmount / 2).toFixed(2));
         row.setAttribute('data-total', total.toFixed(2));
         
         calculateTotal();
