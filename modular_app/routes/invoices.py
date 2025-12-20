@@ -444,7 +444,7 @@ def create():
                 })
                 print(f"   DEBIT:  Accounts Receivable  ₹{invoice.total_amount:,.2f}")
             
-            # Entry 2: CREDIT Sales Income (for all sales)
+            # Entry 2: CREDIT Sales Income (for all sales - SUBTOTAL ONLY, NOT including GST!)
             db.session.execute(text("""
                 INSERT INTO account_transactions
                 (tenant_id, account_id, transaction_date, transaction_type,
@@ -456,13 +456,35 @@ def create():
             """), {
                 'tenant_id': tenant_id,
                 'transaction_date': invoice_date,
-                'credit_amount': float(invoice.total_amount),
+                'credit_amount': float(invoice.subtotal),  # ✅ FIX: Use subtotal, not total!
                 'invoice_id': invoice.id,
                 'voucher': invoice.invoice_number,
                 'narration': f'Sales income from {invoice.customer_name} - {invoice.invoice_number}',
                 'created_at': now
             })
-            print(f"   CREDIT: Sales Income         ₹{invoice.total_amount:,.2f}")
+            print(f"   CREDIT: Sales Income         ₹{invoice.subtotal:,.2f}")
+            
+            # Entry 2.5: CREDIT GST Payable (CGST + SGST or IGST)
+            total_gst = (invoice.cgst_amount or 0) + (invoice.sgst_amount or 0) + (invoice.igst_amount or 0)
+            if total_gst > 0:
+                db.session.execute(text("""
+                    INSERT INTO account_transactions
+                    (tenant_id, account_id, transaction_date, transaction_type,
+                     debit_amount, credit_amount, balance_after, reference_type, reference_id,
+                     voucher_number, narration, created_at, created_by)
+                    VALUES (:tenant_id, NULL, :transaction_date, 'gst_payable',
+                            0.00, :credit_amount, :credit_amount, 'invoice', :invoice_id,
+                            :voucher, :narration, :created_at, NULL)
+                """), {
+                    'tenant_id': tenant_id,
+                    'transaction_date': invoice_date,
+                    'credit_amount': float(total_gst),
+                    'invoice_id': invoice.id,
+                    'voucher': invoice.invoice_number,
+                    'narration': f'GST payable on {invoice.invoice_number}',
+                    'created_at': now
+                })
+                print(f"   CREDIT: GST Payable          ₹{total_gst:,.2f}")
             
             # Entry 3: DEBIT Cost of Goods Sold (COGS)
             if cogs_total > 0:
