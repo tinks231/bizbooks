@@ -1026,7 +1026,10 @@ def edit(invoice_id):
                 'cgst_amount': float(item.cgst_amount),
                 'sgst_amount': float(item.sgst_amount),
                 'igst_amount': float(item.igst_amount),
-                'total_amount': float(item.total_amount)
+                'total_amount': float(item.total_amount),
+                # Add MRP and discount_percent from the item master
+                'mrp': float(item.item.mrp) if item.item and item.item.mrp else 0,
+                'discount_percent': float(item.item.discount_percent) if item.item and item.item.discount_percent else 0
             }
             for item in invoice.items
         ]
