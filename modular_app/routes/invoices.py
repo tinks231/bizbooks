@@ -848,6 +848,12 @@ def edit(invoice_id):
     
     if request.method == 'POST':
         try:
+            # 🔧 CRITICAL FIX: Store old item quantities BEFORE deleting for inventory adjustment
+            old_items = {}  # {item_id: quantity}
+            for old_item in invoice.items:
+                if old_item.item_id:
+                    old_items[old_item.item_id] = float(old_item.quantity)
+            
             # Update customer link
             customer_id = request.form.get('customer_id')
             if customer_id and customer_id.strip():
@@ -905,6 +911,8 @@ def edit(invoice_id):
             total_sgst = 0
             total_igst = 0
             
+            new_items = {}  # {item_id: quantity} - track new quantities
+            
             for i in range(len(item_names)):
                 if not item_names[i] or not quantities[i] or not rates[i]:
                     continue
@@ -913,6 +921,10 @@ def edit(invoice_id):
                 quantity = float(quantities[i])
                 rate = float(rates[i])
                 gst_rate = float(gst_rates[i]) if gst_rates[i] else 18
+                
+                # Track new quantities for inventory adjustment
+                if item_id:
+                    new_items[item_id] = new_items.get(item_id, 0) + quantity
                 
                 # Check if price is inclusive of GST (MRP mode)
                 # Checkboxes appear in list only if checked
@@ -981,6 +993,104 @@ def edit(invoice_id):
             total_before_rounding = subtotal + total_cgst + total_sgst + total_igst
             invoice.total_amount = round(total_before_rounding)
             invoice.round_off = invoice.total_amount - total_before_rounding
+            
+            # 🔧 CRITICAL FIX: Adjust inventory based on quantity changes
+            from models.site import Site
+            from models.item import Item, ItemStock, ItemStockMovement
+            
+            # Get default site
+            default_site = Site.query.filter_by(
+                tenant_id=tenant_id,
+                is_default=True,
+                active=True
+            ).first()
+            
+            if default_site:
+                # Calculate inventory adjustments
+                # old_items: {item_id: old_qty}
+                # new_items: {item_id: new_qty}
+                
+                # Items that were REMOVED or REDUCED → restore stock
+                for item_id, old_qty in old_items.items():
+                    new_qty = new_items.get(item_id, 0)  # 0 if item removed
+                    qty_diff = old_qty - new_qty  # Positive = restore, Negative = reduce more
+                    
+                    if qty_diff > 0:  # Restore stock (item removed or qty reduced)
+                        item_stock = ItemStock.query.filter_by(
+                            tenant_id=tenant_id,
+                            item_id=item_id,
+                            site_id=default_site.id
+                        ).first()
+                        
+                        if item_stock:
+                            old_stock_qty = item_stock.quantity_available
+                            item_stock.quantity_available += qty_diff  # Add back
+                            new_stock_qty = item_stock.quantity_available
+                            
+                            # Update stock value
+                            item_obj = Item.query.get(item_id)
+                            if item_obj and item_obj.cost_price:
+                                item_stock.stock_value = new_stock_qty * item_obj.cost_price
+                            
+                            # Create stock movement record
+                            stock_movement = ItemStockMovement(
+                                tenant_id=tenant_id,
+                                item_id=item_id,
+                                site_id=default_site.id,
+                                movement_type='stock_in',  # Restocking
+                                quantity=qty_diff,
+                                unit_cost=item_obj.cost_price if item_obj else 0,
+                                total_value=qty_diff * (item_obj.cost_price if item_obj else 0),
+                                reference_type='invoice_edit',
+                                reference_number=invoice.invoice_number,
+                                notes=f'Stock restored due to invoice edit (qty reduced from {old_qty} to {new_qty})'
+                            )
+                            db.session.add(stock_movement)
+                            
+                            print(f"✅ Restored {qty_diff} units of item {item_id} (was {old_stock_qty}, now {new_stock_qty})")
+                
+                # Items that were ADDED or INCREASED → reduce stock
+                for item_id, new_qty in new_items.items():
+                    old_qty = old_items.get(item_id, 0)  # 0 if new item
+                    qty_diff = new_qty - old_qty  # Positive = reduce more, Negative = already handled above
+                    
+                    if qty_diff > 0:  # Reduce stock (new item or qty increased)
+                        item_stock = ItemStock.query.filter_by(
+                            tenant_id=tenant_id,
+                            item_id=item_id,
+                            site_id=default_site.id
+                        ).first()
+                        
+                        if item_stock:
+                            old_stock_qty = item_stock.quantity_available
+                            item_stock.quantity_available -= qty_diff  # Reduce
+                            new_stock_qty = item_stock.quantity_available
+                            
+                            # Update stock value
+                            item_obj = Item.query.get(item_id)
+                            if item_obj and item_obj.cost_price:
+                                item_stock.stock_value = new_stock_qty * item_obj.cost_price
+                            
+                            # Create stock movement record
+                            stock_movement = ItemStockMovement(
+                                tenant_id=tenant_id,
+                                item_id=item_id,
+                                site_id=default_site.id,
+                                movement_type='stock_out',
+                                quantity=qty_diff,
+                                unit_cost=item_obj.cost_price if item_obj else 0,
+                                total_value=qty_diff * (item_obj.cost_price if item_obj else 0),
+                                reference_type='invoice_edit',
+                                reference_number=invoice.invoice_number,
+                                notes=f'Stock reduced due to invoice edit (qty increased from {old_qty} to {new_qty})'
+                            )
+                            db.session.add(stock_movement)
+                            
+                            # Warn if stock went negative
+                            if new_stock_qty < 0:
+                                flash(f'🚨 {item_obj.name if item_obj else f"Item {item_id}"} is now OUT OF STOCK (Qty: {new_stock_qty:.2f})', 'danger')
+                            
+                            print(f"✅ Reduced {qty_diff} units of item {item_id} (was {old_stock_qty}, now {new_stock_qty})")
             
             # Update payment status (after total is calculated)
             if payment_received == 'yes':
