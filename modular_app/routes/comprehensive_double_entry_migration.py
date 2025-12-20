@@ -262,16 +262,16 @@ def comprehensive_double_entry_fix():
                 INSERT INTO account_transactions
                 (tenant_id, account_id, transaction_date, transaction_type,
                  debit_amount, credit_amount, balance_after, voucher_number,
-                 description, created_at)
+                 narration, created_at)
                 VALUES (:tenant_id, NULL, :date, 'inventory_opening_debit',
                         :amount, 0.00, :amount, :voucher,
-                        :description, :created_at)
+                        :narration, :created_at)
             """), {
                 'tenant_id': tenant_id,
                 'date': now.date(),
                 'amount': float(current_inventory),
                 'voucher': voucher,
-                'description': f'Opening Balance - Total Inventory (Rs.{current_inventory:,.2f})',
+                'narration': f'Opening Balance - Total Inventory (Rs.{current_inventory:,.2f})',
                 'created_at': now
             })
             
@@ -280,16 +280,16 @@ def comprehensive_double_entry_fix():
                 INSERT INTO account_transactions
                 (tenant_id, account_id, transaction_date, transaction_type,
                  debit_amount, credit_amount, balance_after, voucher_number,
-                 description, created_at)
+                 narration, created_at)
                 VALUES (:tenant_id, NULL, :date, 'opening_balance_inventory_equity',
                         0.00, :amount, :amount, :voucher,
-                        :description, :created_at)
+                        :narration, :created_at)
             """), {
                 'tenant_id': tenant_id,
                 'date': now.date(),
                 'amount': float(current_inventory),
                 'voucher': voucher,
-                'description': f'Opening Balance - Owner\'s Capital (Inventory Equity Rs.{current_inventory:,.2f})',
+                'narration': f'Opening Balance - Owner\'s Capital (Inventory Equity Rs.{current_inventory:,.2f})',
                 'created_at': now
             })
             
