@@ -150,6 +150,7 @@ from routes.diagnose_inventory_equity import diagnose_inventory_equity_bp  # DIA
 from routes.diagnose_trial_balance_detail import diagnose_trial_detail_bp  # DIAGNOSTIC: Check what trial balance sees
 from routes.diagnose_remaining_imbalance import diagnose_remaining_bp  # DIAGNOSTIC: Find remaining imbalance
 from routes.comprehensive_diagnosis import comprehensive_diagnosis_bp  # DIAGNOSTIC: Complete trial balance breakdown
+from routes.compare_trial_balance import compare_trial_balance_bp  # DIAGNOSTIC: Compare transactions vs fallback tables
 from routes.fix_inventory_equity_mismatch import fix_inventory_equity_mismatch_bp  # FIX: Adjust inventory equity when stock value changes
 from routes.fix_inventory_double_entry import fix_inventory_double_entry_bp  # FIX: Create missing inventory asset DEBIT entries
 from routes.fix_trial_balance_final import fix_trial_balance_final_bp  # FIX: Delete wrong entries and create correct ones
@@ -218,6 +219,7 @@ app.register_blueprint(diagnose_inventory_equity_bp)  # DIAGNOSTIC: Check invent
 app.register_blueprint(diagnose_trial_detail_bp)  # DIAGNOSTIC: Check what trial balance sees
 app.register_blueprint(diagnose_remaining_bp)  # DIAGNOSTIC: Find remaining imbalance
 app.register_blueprint(comprehensive_diagnosis_bp)  # DIAGNOSTIC: Complete breakdown
+app.register_blueprint(compare_trial_balance_bp)  # DIAGNOSTIC: Compare sources
 app.register_blueprint(fix_inventory_equity_mismatch_bp)  # FIX: Adjust inventory equity mismatch
 app.register_blueprint(fix_inventory_double_entry_bp)  # FIX: Create missing inventory asset DEBIT entries
 app.register_blueprint(fix_trial_balance_final_bp)  # FIX: Final trial balance fix
