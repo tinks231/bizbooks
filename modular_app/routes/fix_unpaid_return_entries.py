@@ -1,17 +1,15 @@
 from flask import Blueprint, jsonify, render_template_string
 from models import db
+from utils.tenant_middleware import require_tenant, get_current_tenant_id
 from sqlalchemy import text
 from decimal import Decimal
-from utils.tenant_utils import get_current_tenant_id, require_tenant
-from decorators import login_required
-import pytz
 from datetime import datetime
+import pytz
 
 fix_unpaid_return_bp = Blueprint('fix_unpaid_return', __name__)
 
 @fix_unpaid_return_bp.route('/migration/fix-unpaid-return-entries', methods=['GET'])
 @require_tenant
-@login_required
 def show_fix_page():
     """Show page with button to run migration"""
     html = """
@@ -66,7 +64,6 @@ def show_fix_page():
 
 @fix_unpaid_return_bp.route('/migration/fix-unpaid-return-entries', methods=['POST'])
 @require_tenant
-@login_required
 def fix_unpaid_return_entries():
     """Add missing accounting entries for unpaid invoice returns"""
     tenant_id = get_current_tenant_id()
