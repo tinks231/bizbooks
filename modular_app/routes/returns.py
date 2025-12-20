@@ -818,7 +818,7 @@ def _process_refund_payment(ret, tenant_id, payment_account_id, payment_referenc
 
 
 def _adjust_unpaid_invoice(ret, tenant_id):
-    """Adjust unpaid invoice amounts for returns"""
+    """Adjust unpaid invoice amounts for returns and create proper double-entry accounting"""
     invoice = ret.invoice
     if not invoice:
         return
@@ -834,10 +834,91 @@ def _adjust_unpaid_invoice(ret, tenant_id):
     if invoice.payment_status == 'partial':
         invoice.balance_due = invoice.total_amount - invoice.paid_amount
     
-    # Adjust Accounts Receivable (reduce customer debt)
+    # 🔧 CRITICAL FIX: Create COMPLETE double-entry accounting for unpaid returns
+    # Same as paid returns, but WITHOUT cash/bank entries
     ist = pytz.timezone('Asia/Kolkata')
     now = datetime.now(ist)
     
+    # Entry 1: DEBIT Sales Returns (reduces income)
+    db.session.execute(text("""
+        INSERT INTO account_transactions
+        (tenant_id, account_id, transaction_date, transaction_type,
+         debit_amount, credit_amount, balance_after, reference_type, reference_id,
+         voucher_number, narration, created_at, created_by)
+        VALUES (:tenant_id, NULL, :transaction_date, 'sales_return',
+                :debit_amount, 0.00, :debit_amount, 'return', :return_id,
+                :voucher, :narration, :created_at, NULL)
+    """), {
+        'tenant_id': tenant_id,
+        'transaction_date': ret.return_date,
+        'debit_amount': float(ret.taxable_amount),
+        'return_id': ret.id,
+        'voucher': ret.return_number,
+        'narration': f'Sales return from {ret.customer_name} - {ret.return_number}',
+        'created_at': now
+    })
+    
+    # Entry 2: DEBIT CGST Receivable (if applicable)
+    if ret.cgst_amount and ret.cgst_amount > 0:
+        db.session.execute(text("""
+            INSERT INTO account_transactions
+            (tenant_id, account_id, transaction_date, transaction_type,
+             debit_amount, credit_amount, balance_after, reference_type, reference_id,
+             voucher_number, narration, created_at, created_by)
+            VALUES (:tenant_id, NULL, :transaction_date, 'gst_return_cgst',
+                    :debit_amount, 0.00, :debit_amount, 'return', :return_id,
+                    :voucher, :narration, :created_at, NULL)
+        """), {
+            'tenant_id': tenant_id,
+            'transaction_date': ret.return_date,
+            'debit_amount': float(ret.cgst_amount),
+            'return_id': ret.id,
+            'voucher': ret.return_number,
+            'narration': f'CGST reversal on return {ret.return_number}',
+            'created_at': now
+        })
+    
+    # Entry 3: DEBIT SGST Receivable (if applicable)
+    if ret.sgst_amount and ret.sgst_amount > 0:
+        db.session.execute(text("""
+            INSERT INTO account_transactions
+            (tenant_id, account_id, transaction_date, transaction_type,
+             debit_amount, credit_amount, balance_after, reference_type, reference_id,
+             voucher_number, narration, created_at, created_by)
+            VALUES (:tenant_id, NULL, :transaction_date, 'gst_return_sgst',
+                    :debit_amount, 0.00, :debit_amount, 'return', :return_id,
+                    :voucher, :narration, :created_at, NULL)
+        """), {
+            'tenant_id': tenant_id,
+            'transaction_date': ret.return_date,
+            'debit_amount': float(ret.sgst_amount),
+            'return_id': ret.id,
+            'voucher': ret.return_number,
+            'narration': f'SGST reversal on return {ret.return_number}',
+            'created_at': now
+        })
+    
+    # Entry 4: DEBIT IGST Receivable (if applicable)
+    if ret.igst_amount and ret.igst_amount > 0:
+        db.session.execute(text("""
+            INSERT INTO account_transactions
+            (tenant_id, account_id, transaction_date, transaction_type,
+             debit_amount, credit_amount, balance_after, reference_type, reference_id,
+             voucher_number, narration, created_at, created_by)
+            VALUES (:tenant_id, NULL, :transaction_date, 'gst_return_igst',
+                    :debit_amount, 0.00, :debit_amount, 'return', :return_id,
+                    :voucher, :narration, :created_at, NULL)
+        """), {
+            'tenant_id': tenant_id,
+            'transaction_date': ret.return_date,
+            'debit_amount': float(ret.igst_amount),
+            'return_id': ret.id,
+            'voucher': ret.return_number,
+            'narration': f'IGST reversal on return {ret.return_number}',
+            'created_at': now
+        })
+    
+    # Entry 5: CREDIT Accounts Receivable (reduce customer debt)
     db.session.execute(text("""
         INSERT INTO account_transactions
         (tenant_id, account_id, transaction_date, transaction_type,
@@ -857,6 +938,7 @@ def _adjust_unpaid_invoice(ret, tenant_id):
     })
     
     print(f"✅ Adjusted invoice {invoice.invoice_number}: reduced by ₹{ret.total_amount}")
+    print(f"✅ Created complete double-entry: DEBIT Sales Returns ₹{ret.taxable_amount}, DEBIT GST ₹{(ret.cgst_amount or 0) + (ret.sgst_amount or 0) + (ret.igst_amount or 0)}, CREDIT Receivable ₹{ret.total_amount}")
 
 
 def _reverse_loyalty_points(ret, tenant_id):
