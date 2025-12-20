@@ -185,13 +185,14 @@ def comprehensive_double_entry_fix():
         }
         
         # ============================================================
-        # STEP 1: Delete ALL old equity band-aid entries
+        # STEP 1: Delete ALL old inventory AND equity entries
         # ============================================================
         delete_result = db.session.execute(text("""
             DELETE FROM account_transactions
             WHERE tenant_id = :tenant_id
             AND transaction_type IN (
                 'opening_balance_inventory_equity',
+                'inventory_opening_debit',
                 'opening_balance_equity'
             )
             RETURNING id
