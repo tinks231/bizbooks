@@ -121,9 +121,20 @@
     <!-- Section Header with Action -->
     <div class="subscription-section-header">
         <h2>Available Plans</h2>
-        <button class="btn btn-primary" onclick="openAddPlanModal()">
-            <i class="fas fa-plus"></i> Add New Plan
-        </button>
+        <div style="display: flex; gap: 10px; align-items: center;">
+            <!-- View Toggle (Mobile-friendly) -->
+            <div class="btn-group" role="group" style="display: none;" id="viewToggle">
+                <button type="button" class="btn btn-sm btn-outline-secondary" id="cardViewBtn" onclick="switchView('card')">
+                    <i class="fas fa-th-large"></i> Cards
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-secondary active" id="tableViewBtn" onclick="switchView('table')">
+                    <i class="fas fa-table"></i> Table
+                </button>
+            </div>
+            <button class="btn btn-primary" onclick="openAddPlanModal()">
+                <i class="fas fa-plus"></i> Add New Plan
+            </button>
+        </div>
     </div>
 
     <!-- Plans Table -->
@@ -131,7 +142,8 @@
         <div class="card">
         <div class="card-body">
             {% if plans %}
-            <div class="table-responsive">
+            <!-- TABLE VIEW -->
+            <div class="table-responsive" id="tableView">
                 <table class="table">
                     <thead>
                         <tr>
@@ -203,6 +215,84 @@
                         {% endfor %}
                     </tbody>
                 </table>
+            </div>
+            
+            <!-- CARD VIEW (Mobile-friendly) -->
+            <div id="cardView" style="display: none;">
+                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 15px;">
+                    {% for plan in plans %}
+                    <div style="background: white; border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); border-left: 4px solid {% if plan.is_active %}#4caf50{% else %}#bbb{% endif %};">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
+                            <h4 style="margin: 0; font-size: 16px; font-weight: 700; color: #2c3e50;">{{ plan.name }}</h4>
+                            {% if plan.is_active %}
+                            <span class="badge badge-success" style="font-size: 10px;">Active</span>
+                            {% else %}
+                            <span class="badge badge-secondary" style="font-size: 10px;">Inactive</span>
+                            {% endif %}
+                        </div>
+                        
+                        <div style="margin-bottom: 10px;">
+                            {% if plan.plan_type == 'metered' %}
+                            <span class="badge badge-info" style="font-size: 11px;">📊 Metered</span>
+                            {% else %}
+                            <span class="badge badge-primary" style="font-size: 11px;">📦 Fixed</span>
+                            {% endif %}
+                        </div>
+                        
+                        {% if plan.description %}
+                        <p style="font-size: 13px; color: #666; margin-bottom: 12px;">{{ plan.description }}</p>
+                        {% endif %}
+                        
+                        <div style="background: #f8f9fa; padding: 12px; border-radius: 8px; margin-bottom: 12px;">
+                            <div style="font-size: 24px; font-weight: 700; color: #2c3e50; margin-bottom: 4px;">
+                                {% if plan.plan_type == 'metered' %}
+                                ₹{{ '{:,.2f}'.format(plan.unit_rate) }}
+                                {% else %}
+                                ₹{{ '{:,.2f}'.format(plan.price) }}
+                                {% endif %}
+                            </div>
+                            <div style="font-size: 12px; color: #666;">
+                                {% if plan.plan_type == 'metered' %}
+                                per {{ plan.unit_name }}
+                                {% else %}
+                                {{ plan.duration_display }}
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 12px; border-top: 1px solid #eee;">
+                            <div style="font-size: 13px; color: #666;">
+                                <i class="fas fa-users"></i> {{ plan.active_members_count }} members
+                            </div>
+                            <div>
+                                <button class="btn btn-sm btn-outline-primary" 
+                                    onclick="openEditPlanModal(
+                                        {{ plan.id }}, 
+                                        '{{ plan.name }}', 
+                                        '{{ plan.description }}', 
+                                        '{{ plan.plan_type }}',
+                                        {{ plan.price or 0 }}, 
+                                        {{ plan.duration_days or 30 }}, 
+                                        {{ plan.unit_rate or 0 }},
+                                        '{{ plan.unit_name or '' }}',
+                                        '{{ plan.delivery_pattern or 'daily' }}',
+                                        '{{ plan.custom_days or '' }}',
+                                        {{ plan.is_active|lower }}
+                                    )" 
+                                    title="Edit Plan"
+                                    style="padding: 4px 8px; font-size: 14px;">
+                                    ✏️
+                                </button>
+                                <form method="POST" action="{{ url_for('subscriptions.delete_plan', plan_id=plan.id) }}" style="display: inline;" onsubmit="return confirm('Deactivate this plan?')">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger" title="Deactivate Plan" style="padding: 4px 8px; font-size: 14px;">
+                                        🗑️
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
             </div>
             {% else %}
             <div class="empty-state">
@@ -477,6 +567,56 @@
 
 
 <script>
+// View toggle functionality
+function switchView(view) {
+    const tableView = document.getElementById('tableView');
+    const cardView = document.getElementById('cardView');
+    const tableBtn = document.getElementById('tableViewBtn');
+    const cardBtn = document.getElementById('cardViewBtn');
+    
+    if (view === 'card') {
+        tableView.style.display = 'none';
+        cardView.style.display = 'block';
+        cardBtn.classList.add('active');
+        tableBtn.classList.remove('active');
+        localStorage.setItem('planView', 'card');
+    } else {
+        tableView.style.display = 'block';
+        cardView.style.display = 'none';
+        tableBtn.classList.add('active');
+        cardBtn.classList.remove('active');
+        localStorage.setItem('planView', 'table');
+    }
+}
+
+// Show/hide view toggle based on screen size and restore previous view
+function initViewToggle() {
+    const viewToggle = document.getElementById('viewToggle');
+    const isMobile = window.innerWidth <= 768;
+    
+    if (isMobile && viewToggle) {
+        viewToggle.style.display = 'flex';
+        
+        // Restore saved view or default to card on mobile
+        const savedView = localStorage.getItem('planView') || 'card';
+        switchView(savedView);
+    } else if (viewToggle) {
+        viewToggle.style.display = 'none';
+        // Force table view on desktop
+        switchView('table');
+    }
+}
+
+// Initialize on load
+document.addEventListener('DOMContentLoaded', initViewToggle);
+
+// Reinitialize on window resize (debounced)
+let resizeTimer;
+window.addEventListener('resize', function() {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(initViewToggle, 250);
+});
+
 function openAddPlanModal() {
     $('#addPlanModal').modal('show');
     toggleAddPlanFields(); // Ensure correct fields are shown
