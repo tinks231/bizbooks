@@ -122,7 +122,7 @@ def comprehensive_double_entry_fix():
                 'date': now.date(),
                 'amount': float(current_inventory),
                 'voucher': voucher,
-                'description': f'Opening Balance - Total Inventory (₹{current_inventory:,.2f})',
+                'description': f'Opening Balance - Total Inventory (Rs.{current_inventory:,.2f})',
                 'created_at': now
             })
             
@@ -140,7 +140,7 @@ def comprehensive_double_entry_fix():
                 'date': now.date(),
                 'amount': float(current_inventory),
                 'voucher': voucher,
-                'description': f'Opening Balance - Owner\\'s Capital (Inventory Equity ₹{current_inventory:,.2f})',
+                'description': f'Opening Balance - Owner\'s Capital (Inventory Equity Rs.{current_inventory:,.2f})',
                 'created_at': now
             })
             
@@ -149,7 +149,7 @@ def comprehensive_double_entry_fix():
                 'action': 'Create inventory opening entries',
                 'debit': float(current_inventory),
                 'credit': float(current_inventory),
-                'message': f'Created proper double-entry for ₹{current_inventory:,.2f} inventory'
+                'message': f'Created proper double-entry for Rs.{current_inventory:,.2f} inventory'
             })
         
         # ============================================================
@@ -189,7 +189,7 @@ def comprehensive_double_entry_fix():
             'total_credits': total_credits,
             'difference': difference,
             'is_balanced': difference < 0.01,
-            'message': '✅ Trial Balance is BALANCED!' if difference < 0.01 else f'⚠️ Difference: ₹{difference:,.2f}'
+            'message': 'Trial Balance is BALANCED!' if difference < 0.01 else f'Difference: Rs.{difference:,.2f}'
         }
         
         return jsonify({
