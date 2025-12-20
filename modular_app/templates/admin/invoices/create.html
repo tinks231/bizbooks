@@ -1736,7 +1736,7 @@
             </td>
             <td>
                 <input type="number" name="quantity[]" id="quantity_${itemCount}" class="form-control" step="1" min="0.01" 
-                       placeholder="1" value="${itemData.quantity || 1}" required onchange="calculateRow(${itemCount})">
+                       placeholder="1" value="${itemData.quantity ? (itemData.quantity % 1 === 0 ? parseInt(itemData.quantity) : itemData.quantity) : 1}" required onchange="calculateRow(${itemCount})">
             </td>
             <td>
                 <span style="color: #95a5a6; font-size: 12px;">${itemData.mrp ? '₹' + itemData.mrp.toFixed(2) : '-'}</span>

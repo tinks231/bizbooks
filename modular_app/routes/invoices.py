@@ -1069,12 +1069,20 @@ def edit(invoice_id):
         
         tenant_settings = json.loads(g.tenant.settings) if g.tenant.settings else {}
         
+        # Fetch bank accounts for payment dropdown
+        from models.bank_account import BankAccount
+        bank_accounts = BankAccount.query.filter_by(
+            tenant_id=tenant_id,
+            status='active'
+        ).order_by(BankAccount.is_default.desc(), BankAccount.account_name.asc()).all()
+        
         flash('Edit mode: Modify invoice details below', 'info')
         return render_template('admin/invoices/create.html',
                              tenant=g.tenant,
                              invoice=invoice_dict,  # Pass serializable dict (without 'items' key)
                              invoice_items=invoice_items_json,  # Pass items separately to avoid dict.items() conflict
                              items=items_json,  # Available items for autocomplete
+                             bank_accounts=bank_accounts,  # ✅ FIX: Pass bank accounts for dropdown
                              today=date.today().strftime('%Y-%m-%d'),
                              tenant_settings=tenant_settings,
                              edit_mode=True,
