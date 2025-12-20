@@ -10,7 +10,7 @@
 
 <style>
 /* Card view grid - responsive */
-#cardView > div {
+.plan-cards-grid {
     display: grid !important;
     grid-template-columns: repeat(2, 1fr) !important;
     gap: 12px !important;
@@ -18,7 +18,7 @@
 
 /* Very small phones: 1 column */
 @media (max-width: 400px) {
-    #cardView > div {
+    .plan-cards-grid {
         grid-template-columns: 1fr !important;
     }
 }
@@ -135,18 +135,19 @@
     <!-- Section Header with Action -->
     <div class="subscription-section-header">
         <h2>Available Plans</h2>
-        <div style="display: flex; gap: 10px; align-items: center;">
-            <!-- View Toggle (Mobile-friendly) -->
-            <div class="btn-group" role="group" style="display: none;" id="viewToggle">
-                <button type="button" class="btn btn-sm btn-outline-secondary" id="cardViewBtn" onclick="switchView('card')">
-                    <i class="fas fa-th-large"></i> Cards
-                </button>
-                <button type="button" class="btn btn-sm btn-outline-secondary active" id="tableViewBtn" onclick="switchView('table')">
-                    <i class="fas fa-table"></i> Table
-                </button>
-            </div>
-            <button class="btn btn-primary" onclick="openAddPlanModal()">
-                <i class="fas fa-plus"></i> Add New Plan
+        <button class="btn btn-primary" onclick="openAddPlanModal()">
+            <i class="fas fa-plus"></i> Add New Plan
+        </button>
+    </div>
+    
+    <!-- View Toggle (Mobile-friendly) - Separate row -->
+    <div style="margin-bottom: 15px; display: none;" id="viewToggle">
+        <div class="btn-group" role="group">
+            <button type="button" class="btn btn-sm btn-outline-secondary" id="cardViewBtn" onclick="switchView('card')">
+                <i class="fas fa-th-large"></i> Cards
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-secondary active" id="tableViewBtn" onclick="switchView('table')">
+                <i class="fas fa-table"></i> Table
             </button>
         </div>
     </div>
@@ -233,7 +234,7 @@
             
             <!-- CARD VIEW (Mobile-friendly) -->
             <div id="cardView" style="display: none;">
-                <div>
+                <div class="plan-cards-grid">
                     {% for plan in plans %}
                     <div style="background: white; border-radius: 10px; padding: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); border-left: 4px solid {% if plan.is_active %}#4caf50{% else %}#bbb{% endif %};">
                         <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px;">
