@@ -1073,7 +1073,7 @@ def edit(invoice_id):
         from models.bank_account import BankAccount
         bank_accounts = BankAccount.query.filter_by(
             tenant_id=tenant_id,
-            status='active'
+            is_active=True  # ✅ FIX: Correct field name is 'is_active', not 'status'
         ).order_by(BankAccount.is_default.desc(), BankAccount.account_name.asc()).all()
         
         flash('Edit mode: Modify invoice details below', 'info')
