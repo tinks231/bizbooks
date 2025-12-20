@@ -11,15 +11,15 @@
 <style>
 /* Card view grid - responsive */
 #cardView > div {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 12px;
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 12px !important;
 }
 
 /* Very small phones: 1 column */
 @media (max-width: 400px) {
     #cardView > div {
-        grid-template-columns: 1fr;
+        grid-template-columns: 1fr !important;
     }
 }
 
