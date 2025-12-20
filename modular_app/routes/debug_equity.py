@@ -19,7 +19,7 @@ def check_equity_entries():
     try:
         tenant_id = get_current_tenant_id()
         
-        # Get ALL equity entries
+        # Get ALL equity entries (not just the 2 specific types)
         all_equity = db.session.execute(text("""
             SELECT 
                 id,
@@ -29,10 +29,14 @@ def check_equity_entries():
                 credit_amount,
                 narration,
                 voucher_number,
-                created_at
+                created_at,
+                account_id
             FROM account_transactions
             WHERE tenant_id = :tenant_id
-            AND transaction_type IN ('opening_balance_equity', 'opening_balance_inventory_equity')
+            AND (transaction_type LIKE '%equity%' 
+                 OR transaction_type LIKE '%opening%'
+                 OR narration LIKE '%Opening%'
+                 OR narration LIKE '%Capital%')
             ORDER BY created_at DESC
         """), {'tenant_id': tenant_id}).fetchall()
         
@@ -46,7 +50,8 @@ def check_equity_entries():
                 'credit': float(row[4]),
                 'narration': row[5],
                 'voucher': row[6],
-                'created': str(row[7])
+                'created': str(row[7]),
+                'account_id': row[8]
             })
         
         # Get cash/bank accounts
