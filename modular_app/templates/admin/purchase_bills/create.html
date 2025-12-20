@@ -835,6 +835,14 @@ function applyItemAction() {
         const newMrp = document.getElementById('modal_new_mrp').value;
         const newCategory = document.getElementById('modal_new_category').value;
         
+        // 🔍 DEBUG: Log captured values
+        console.log('📝 Creating new item:');
+        console.log('  - Name:', newName);
+        console.log('  - SKU:', newSku);
+        console.log('  - Selling:', newSelling);
+        console.log('  - MRP:', newMrp, '← Check if this matches what you entered!');
+        console.log('  - Category:', newCategory);
+        
         // Validate required fields
         if (!newName || !newSku || !newSelling || !newMrp) {
             alert('⚠️ Please fill in all required fields (Name, SKU, Selling Price, MRP)');
