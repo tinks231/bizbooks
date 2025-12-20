@@ -159,6 +159,7 @@ from routes.fix_inventory_double_entry import fix_inventory_double_entry_bp  # F
 from routes.fix_trial_balance_final import fix_trial_balance_final_bp  # FIX: Delete wrong entries and create correct ones
 from routes.fix_cash_bank_opening import fix_cash_bank_opening_bp  # FIX: Correct cash/bank opening balance equity
 from routes.diagnose_return_entries import diagnose_return_bp  # DEBUG: Diagnose return accounting entries
+from routes.diagnose_gst_entries import diagnose_gst_bp  # DEBUG: Diagnose GST entries
 from routes.fix_unpaid_return_entries import fix_unpaid_return_bp  # FIX: Add missing entries for unpaid returns
 from routes.remove_duplicate_equity import remove_duplicate_equity_bp  # FIX: Remove duplicate equity entries
 from routes.show_equity_entries import show_equity_entries_bp  # DEBUG: Show all equity entries
@@ -238,6 +239,7 @@ app.register_blueprint(final_balance_fix_bp)  # FIX: Comprehensive final fix
 from routes.migrate_double_entry import migrate_double_entry_bp
 app.register_blueprint(migrate_double_entry_bp)  # MIGRATION: Convert to double-entry accounting
 app.register_blueprint(diagnose_return_bp)  # DEBUG: Diagnose return accounting entries
+app.register_blueprint(diagnose_gst_bp)  # DEBUG: Diagnose GST entries
 app.register_blueprint(fix_unpaid_return_bp)  # FIX: Add missing entries for unpaid returns
 from routes.fix_vendor_payment_constraint import fix_vendor_payment_bp
 app.register_blueprint(fix_vendor_payment_bp)  # FIX: Vendor payment constraint (tenant-specific)
