@@ -1938,18 +1938,33 @@ def profit_loss():
     # CRITICAL FIX: Commission expenses can be negative when reversals exceed expenses
     # This is valid and should be shown as negative (reduces total expenses)
     
-    # Get commission details for display
+    # Get commission details for display (BOTH expenses and reversals)
     commission_expenses_detail = db.session.execute(text("""
         SELECT 
             at.transaction_date,
             at.narration,
             at.debit_amount,
-            at.voucher_number
+            at.voucher_number,
+            'expense' as entry_type
         FROM account_transactions at
         WHERE at.tenant_id = :tenant_id 
         AND at.transaction_type = 'commission_expense'
         AND at.transaction_date BETWEEN :start_date AND :end_date
-        ORDER BY at.transaction_date DESC
+        
+        UNION ALL
+        
+        SELECT 
+            at.transaction_date,
+            at.narration,
+            at.credit_amount * -1 as debit_amount,  -- Show as negative
+            at.voucher_number,
+            'reversal' as entry_type
+        FROM account_transactions at
+        WHERE at.tenant_id = :tenant_id 
+        AND at.transaction_type = 'commission_reversal'
+        AND at.transaction_date BETWEEN :start_date AND :end_date
+        
+        ORDER BY transaction_date DESC
     """), {'tenant_id': tenant_id, 'start_date': start_date, 'end_date': end_date}).fetchall()
     
     # Total Expenses
