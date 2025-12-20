@@ -1118,6 +1118,159 @@ def edit(invoice_id):
                 invoice.paid_amount = 0
                 invoice.internal_notes = None
             
+            # 🔧 CRITICAL FIX: Recreate accounting entries with new amounts
+            # (Old entries were deleted above, now create fresh ones)
+            ist = pytz.timezone('Asia/Kolkata')
+            now = datetime.now(ist)
+            
+            # Calculate COGS (Cost of Goods Sold)
+            cogs_total = Decimal('0')
+            for invoice_item in invoice.items:
+                if invoice_item.item_id:
+                    item = Item.query.filter_by(
+                        id=invoice_item.item_id,
+                        tenant_id=tenant_id
+                    ).first()
+                    if item and item.cost_price:
+                        item_cogs = Decimal(str(item.cost_price)) * Decimal(str(invoice_item.quantity))
+                        cogs_total += item_cogs
+            
+            # Entry 1: DEBIT Accounts Receivable (if draft) OR handled in payment logic (if paid)
+            if payment_received != 'yes':
+                db.session.execute(text("""
+                    INSERT INTO account_transactions
+                    (tenant_id, account_id, transaction_date, transaction_type,
+                     debit_amount, credit_amount, balance_after, reference_type, reference_id,
+                     voucher_number, narration, created_at, created_by)
+                    VALUES (:tenant_id, NULL, :transaction_date, 'accounts_receivable',
+                            :debit_amount, 0.00, :debit_amount, 'invoice', :invoice_id,
+                            :voucher, :narration, :created_at, NULL)
+                """), {
+                    'tenant_id': tenant_id,
+                    'transaction_date': invoice.invoice_date,
+                    'debit_amount': float(invoice.total_amount),
+                    'invoice_id': invoice.id,
+                    'voucher': invoice.invoice_number,
+                    'narration': f'Invoice {invoice.invoice_number} - {invoice.customer_name}',
+                    'created_at': now
+                })
+            
+            # Entry 2: CREDIT Sales Income (for subtotal)
+            db.session.execute(text("""
+                INSERT INTO account_transactions
+                (tenant_id, account_id, transaction_date, transaction_type,
+                 debit_amount, credit_amount, balance_after, reference_type, reference_id,
+                 voucher_number, narration, created_at, created_by)
+                VALUES (:tenant_id, NULL, :transaction_date, 'sales_income',
+                        0.00, :credit_amount, :credit_amount, 'invoice', :invoice_id,
+                        :voucher, :narration, :created_at, NULL)
+            """), {
+                'tenant_id': tenant_id,
+                'transaction_date': invoice.invoice_date,
+                'credit_amount': float(invoice.subtotal),
+                'invoice_id': invoice.id,
+                'voucher': invoice.invoice_number,
+                'narration': f'Sales income from {invoice.customer_name} - {invoice.invoice_number}',
+                'created_at': now
+            })
+            
+            # Entry 3: CREDIT CGST/SGST/IGST Payable
+            if invoice.cgst_amount > 0:
+                db.session.execute(text("""
+                    INSERT INTO account_transactions
+                    (tenant_id, account_id, transaction_date, transaction_type,
+                     debit_amount, credit_amount, balance_after, reference_type, reference_id,
+                     voucher_number, narration, created_at, created_by)
+                    VALUES (:tenant_id, NULL, :transaction_date, 'gst_cgst_payable',
+                            0.00, :credit_amount, :credit_amount, 'invoice', :invoice_id,
+                            :voucher, :narration, :created_at, NULL)
+                """), {
+                    'tenant_id': tenant_id,
+                    'transaction_date': invoice.invoice_date,
+                    'credit_amount': float(invoice.cgst_amount),
+                    'invoice_id': invoice.id,
+                    'voucher': invoice.invoice_number,
+                    'narration': f'CGST payable for invoice {invoice.invoice_number}',
+                    'created_at': now
+                })
+            
+            if invoice.sgst_amount > 0:
+                db.session.execute(text("""
+                    INSERT INTO account_transactions
+                    (tenant_id, account_id, transaction_date, transaction_type,
+                     debit_amount, credit_amount, balance_after, reference_type, reference_id,
+                     voucher_number, narration, created_at, created_by)
+                    VALUES (:tenant_id, NULL, :transaction_date, 'gst_sgst_payable',
+                            0.00, :credit_amount, :credit_amount, 'invoice', :invoice_id,
+                            :voucher, :narration, :created_at, NULL)
+                """), {
+                    'tenant_id': tenant_id,
+                    'transaction_date': invoice.invoice_date,
+                    'credit_amount': float(invoice.sgst_amount),
+                    'invoice_id': invoice.id,
+                    'voucher': invoice.invoice_number,
+                    'narration': f'SGST payable for invoice {invoice.invoice_number}',
+                    'created_at': now
+                })
+            
+            if invoice.igst_amount > 0:
+                db.session.execute(text("""
+                    INSERT INTO account_transactions
+                    (tenant_id, account_id, transaction_date, transaction_type,
+                     debit_amount, credit_amount, balance_after, reference_type, reference_id,
+                     voucher_number, narration, created_at, created_by)
+                    VALUES (:tenant_id, NULL, :transaction_date, 'gst_igst_payable',
+                            0.00, :credit_amount, :credit_amount, 'invoice', :invoice_id,
+                            :voucher, :narration, :created_at, NULL)
+                """), {
+                    'tenant_id': tenant_id,
+                    'transaction_date': invoice.invoice_date,
+                    'credit_amount': float(invoice.igst_amount),
+                    'invoice_id': invoice.id,
+                    'voucher': invoice.invoice_number,
+                    'narration': f'IGST payable for invoice {invoice.invoice_number}',
+                    'created_at': now
+                })
+            
+            # Entry 4: DEBIT COGS (Cost of Goods Sold)
+            if cogs_total > 0:
+                db.session.execute(text("""
+                    INSERT INTO account_transactions
+                    (tenant_id, account_id, transaction_date, transaction_type,
+                     debit_amount, credit_amount, balance_after, reference_type, reference_id,
+                     voucher_number, narration, created_at, created_by)
+                    VALUES (:tenant_id, NULL, :transaction_date, 'cogs',
+                            :debit_amount, 0.00, :debit_amount, 'invoice', :invoice_id,
+                            :voucher, :narration, :created_at, NULL)
+                """), {
+                    'tenant_id': tenant_id,
+                    'transaction_date': invoice.invoice_date,
+                    'debit_amount': float(cogs_total),
+                    'invoice_id': invoice.id,
+                    'voucher': invoice.invoice_number,
+                    'narration': f'Cost of goods sold for {invoice.invoice_number}',
+                    'created_at': now
+                })
+                
+                # Entry 5: CREDIT Inventory (reduce asset value)
+                db.session.execute(text("""
+                    INSERT INTO account_transactions
+                    (tenant_id, account_id, transaction_date, transaction_type,
+                     debit_amount, credit_amount, balance_after, reference_type, reference_id,
+                     voucher_number, narration, created_at, created_by)
+                    VALUES (:tenant_id, NULL, :transaction_date, 'inventory_sale',
+                            0.00, :credit_amount, :credit_amount, 'invoice', :invoice_id,
+                            :voucher, :narration, :created_at, NULL)
+                """), {
+                    'tenant_id': tenant_id,
+                    'transaction_date': invoice.invoice_date,
+                    'credit_amount': float(cogs_total),
+                    'invoice_id': invoice.id,
+                    'voucher': invoice.invoice_number,
+                    'narration': f'Inventory reduction for {invoice.invoice_number}',
+                    'created_at': now
+                })
+            
             db.session.commit()
             flash('Invoice updated successfully!', 'success')
             return redirect(url_for('invoices.view', invoice_id=invoice.id))
