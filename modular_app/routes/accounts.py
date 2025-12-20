@@ -2193,6 +2193,26 @@ def trial_balance():
             'credit': payables_total
         })
     
+    # 4.5. GST Payable (Liabilities - Credit Balance)
+    # 🔧 CRITICAL FIX: This was missing! GST collected from customers must appear as liability!
+    gst_payable_from_transactions = db.session.execute(text("""
+        SELECT COALESCE(SUM(credit_amount), 0)
+        FROM account_transactions
+        WHERE tenant_id = :tenant_id
+        AND transaction_type = 'gst_payable'
+        AND transaction_date <= :as_of_date
+    """), {'tenant_id': tenant_id, 'as_of_date': as_of_date}).fetchone()[0]
+    
+    gst_payable_total = Decimal(str(gst_payable_from_transactions or 0))
+    
+    if gst_payable_total > 0:
+        accounts.append({
+            'account_name': 'GST Payable (CGST+SGST+IGST)',
+            'category': 'Liabilities',
+            'debit': Decimal('0'),
+            'credit': gst_payable_total
+        })
+    
     # 5. Sales Income (Income - Credit Balance)
     # NEW: Calculate from account_transactions (double-entry system)
     # This will be populated when we implement sales/invoice accounting
