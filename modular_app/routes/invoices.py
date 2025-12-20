@@ -1011,8 +1011,19 @@ def edit(invoice_id):
         items_json = []  # Empty array - items loaded dynamically via /items/api/search
         
         # Convert invoice items to JSON-serializable format
-        invoice_items_json = [
-            {
+        invoice_items_json = []
+        for item in invoice.items:
+            # Safely get MRP and discount from item master
+            mrp = 0
+            discount_percent = 0
+            try:
+                if item.item:
+                    mrp = float(item.item.mrp) if item.item.mrp else 0
+                    discount_percent = float(item.item.discount_percent) if item.item.discount_percent else 0
+            except Exception as e:
+                print(f"⚠️ Could not fetch MRP/discount for item {item.id}: {e}")
+            
+            invoice_items_json.append({
                 'id': item.id,
                 'item_id': item.item_id,
                 'item_name': item.item_name,
@@ -1027,12 +1038,9 @@ def edit(invoice_id):
                 'sgst_amount': float(item.sgst_amount),
                 'igst_amount': float(item.igst_amount),
                 'total_amount': float(item.total_amount),
-                # Add MRP and discount_percent from the item master
-                'mrp': float(item.item.mrp) if item.item and item.item.mrp else 0,
-                'discount_percent': float(item.item.discount_percent) if item.item and item.item.discount_percent else 0
-            }
-            for item in invoice.items
-        ]
+                'mrp': mrp,
+                'discount_percent': discount_percent
+            })
         
         # Create a serializable invoice object (without 'items' key to avoid dict.items() conflict)
         invoice_dict = {
