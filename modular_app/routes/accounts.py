@@ -1606,7 +1606,7 @@ def balance_sheet():
         SELECT COALESCE(SUM(credit_amount), 0)
         FROM account_transactions
         WHERE tenant_id = :tenant_id
-        AND transaction_type IN ('inventory_sale', 'cogs')
+        AND transaction_type IN ('inventory_sale')
         AND transaction_date <= :as_of_date
     """), {'tenant_id': tenant_id, 'as_of_date': as_of_date}).fetchone()[0]
     
@@ -2067,8 +2067,8 @@ def trial_balance():
     
     # 3. Inventory (Assets - Debit Balance)
     # ✅ PROPER FIX: Calculate from account_transactions (double-entry)
-    # Inventory increases: opening_debit, inventory_purchase
-    # Inventory decreases: inventory_sale (COGS)
+    # Inventory increases: inventory_opening_debit, inventory_purchase
+    # Inventory decreases: inventory_sale (ONLY! Not COGS - that's a separate expense)
     inventory_debits = db.session.execute(text("""
         SELECT COALESCE(SUM(debit_amount), 0)
         FROM account_transactions
@@ -2081,7 +2081,7 @@ def trial_balance():
         SELECT COALESCE(SUM(credit_amount), 0)
         FROM account_transactions
         WHERE tenant_id = :tenant_id
-        AND transaction_type IN ('inventory_sale', 'cogs')
+        AND transaction_type IN ('inventory_sale')
         AND transaction_date <= :as_of_date
     """), {'tenant_id': tenant_id, 'as_of_date': as_of_date}).fetchone()[0]
     
