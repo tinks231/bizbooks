@@ -1797,6 +1797,13 @@
         `;
         
         tbody.appendChild(row);
+        
+        // 🔧 CRITICAL FIX: Calculate row totals after adding to DOM
+        const currentRowId = itemCount; // Capture current count
+        setTimeout(() => {
+            calculateRow(currentRowId);
+            calculateTotal();
+        }, 50);
     }
     {% endif %}
     
