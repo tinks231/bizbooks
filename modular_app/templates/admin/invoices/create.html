@@ -1136,7 +1136,7 @@
                 <input type="text" name="hsn_code[]" class="form-control" placeholder="8544">
             </td>
             <td>
-                <input type="number" name="quantity[]" id="quantity_${itemCount}" class="form-control" step="1" min="0.01" 
+                <input type="number" name="quantity[]" id="quantity_${itemCount}" class="form-control" step="any" min="0.01" 
                        value="1" placeholder="1" required oninput="calculateRow(${itemCount})">
             </td>
             <td>
@@ -1735,7 +1735,7 @@
                 <input type="text" name="hsn_code[]" class="form-control" placeholder="8544" value="${itemData.hsn_code || ''}">
             </td>
             <td>
-                <input type="number" name="quantity[]" id="quantity_${itemCount}" class="form-control" step="1" min="0.01" 
+                <input type="number" name="quantity[]" id="quantity_${itemCount}" class="form-control" step="any" min="0.01" 
                        placeholder="1" value="${itemData.quantity ? (itemData.quantity % 1 === 0 ? parseInt(itemData.quantity) : itemData.quantity) : 1}" required onchange="calculateRow(${itemCount})">
             </td>
             <td>
