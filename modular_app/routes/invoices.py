@@ -846,6 +846,17 @@ def edit(invoice_id):
         flash('Only draft invoices can be edited', 'error')
         return redirect(url_for('invoices.view', invoice_id=invoice_id))
     
+    # 🔧 CRITICAL CHECK: Prevent editing if invoice has returns
+    from models.return_model import Return
+    existing_returns = Return.query.filter_by(
+        invoice_id=invoice.id,
+        tenant_id=tenant_id
+    ).count()
+    
+    if existing_returns > 0:
+        flash('❌ Cannot edit invoice with existing returns! Please cancel the returns first.', 'error')
+        return redirect(url_for('invoices.view', invoice_id=invoice_id))
+    
     if request.method == 'POST':
         try:
             # 🔧 CRITICAL FIX: Store old item quantities BEFORE deleting for inventory adjustment
