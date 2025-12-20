@@ -326,18 +326,22 @@ def approve(return_id):
             if ret.refund_method in ['cash', 'bank']:
                 _process_refund_payment(ret, tenant_id, payment_account_id, payment_reference)
         
+        # STEP 2.5: Reverse loyalty points BEFORE adjusting invoice
+        # 🔧 CRITICAL FIX: Must be done BEFORE _adjust_unpaid_invoice!
+        # Reason: calculate_loyalty_points_to_reverse() divides by invoice.total_amount
+        # If we adjust first, total_amount becomes 0 → ZeroDivisionError!
+        _reverse_loyalty_points(ret, tenant_id)
+        
+        # STEP 2.6: Reverse commission BEFORE adjusting invoice
+        # Same reason - commission % calculations need original invoice amounts
+        _reverse_commission(ret, tenant_id)
+        
         # STEP 3: Adjust invoice for unpaid returns
         if ret.invoice and ret.invoice.payment_status != 'paid':
             _adjust_unpaid_invoice(ret, tenant_id)
         
         # STEP 4: Generate credit note
         ret.generate_credit_note_number()
-        
-        # STEP 5: Reverse loyalty points
-        _reverse_loyalty_points(ret, tenant_id)
-        
-        # STEP 6: Reverse commission for agents
-        _reverse_commission(ret, tenant_id)
         
         # STEP 7: Update return status
         ret.status = 'approved'
