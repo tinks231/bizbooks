@@ -4,14 +4,12 @@ Diagnostic route to check GST entries in account_transactions
 from flask import Blueprint, jsonify, g
 from models import db
 from utils.tenant_middleware import require_tenant
-from flask_login import login_required
 from sqlalchemy import text
 
 diagnose_gst_bp = Blueprint('diagnose_gst', __name__)
 
 @diagnose_gst_bp.route('/diagnose-gst-entries', methods=['GET'])
 @require_tenant
-@login_required
 def diagnose_gst_entries():
     """Show all GST-related entries in account_transactions"""
     tenant_id = g.tenant.id
