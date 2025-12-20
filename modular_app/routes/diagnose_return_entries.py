@@ -1,5 +1,5 @@
 from flask import Blueprint, jsonify
-from database import db
+from models import db
 from sqlalchemy import text
 from decimal import Decimal
 from utils.tenant_utils import get_current_tenant_id, require_tenant
