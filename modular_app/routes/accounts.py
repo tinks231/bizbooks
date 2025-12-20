@@ -2159,22 +2159,8 @@ def trial_balance():
         AND transaction_date <= :as_of_date
     """), {'tenant_id': tenant_id, 'as_of_date': as_of_date}).fetchone()[0]
     
-    # FALLBACK: If no double-entry entries exist yet, calculate from purchase_bills table
-    # (This handles old data before migration)
-    # IMPORTANT: Only count APPROVED bills (draft bills shouldn't appear in accounting)
-    if not payables_from_transactions or Decimal(str(payables_from_transactions)) == 0:
-        payables = db.session.execute(text("""
-            SELECT SUM(total_amount - COALESCE(paid_amount, 0)) as outstanding
-            FROM purchase_bills
-            WHERE tenant_id = :tenant_id 
-            AND status = 'approved'
-            AND payment_status != 'paid'
-            AND bill_date <= :as_of_date
-        """), {'tenant_id': tenant_id, 'as_of_date': as_of_date}).fetchone()
-        
-        payables_total = Decimal(str(payables[0])) if payables and payables[0] else Decimal('0')
-    else:
-        payables_total = Decimal(str(payables_from_transactions))
+    # ✅ NO FALLBACK - Only use account_transactions for accuracy
+    payables_total = Decimal(str(payables_from_transactions or 0))
     
     if payables_total > 0:
         accounts.append({
@@ -2195,19 +2181,8 @@ def trial_balance():
         AND transaction_date <= :as_of_date
     """), {'tenant_id': tenant_id, 'as_of_date': as_of_date}).fetchone()[0]
     
-    # FALLBACK: If no double-entry entries exist yet, calculate from invoices table
-    # (This handles old data before migration)
-    if not sales_from_transactions or Decimal(str(sales_from_transactions)) == 0:
-        total_sales = db.session.execute(text("""
-            SELECT COALESCE(SUM(total_amount), 0)
-            FROM invoices
-            WHERE tenant_id = :tenant_id 
-            AND invoice_date <= :as_of_date
-        """), {'tenant_id': tenant_id, 'as_of_date': as_of_date}).fetchone()[0]
-        
-        sales_total = Decimal(str(total_sales or 0))
-    else:
-        sales_total = Decimal(str(sales_from_transactions))
+    # ✅ NO FALLBACK - Only use account_transactions for accuracy
+    sales_total = Decimal(str(sales_from_transactions or 0))
     
     if sales_total > 0:
         accounts.append({
@@ -2218,9 +2193,8 @@ def trial_balance():
         })
     
     # 6. Cost of Goods Sold / COGS (Expense - Debit Balance)
-    # NEW: Calculate from account_transactions (double-entry system)
+    # Calculate from account_transactions (double-entry system)
     # COGS is recorded when items are SOLD, not when purchased
-    # This will be populated when we implement sales/invoice accounting
     cogs_from_transactions = db.session.execute(text("""
         SELECT COALESCE(SUM(debit_amount), 0)
         FROM account_transactions
@@ -2324,40 +2298,15 @@ def trial_balance():
         AND transaction_date <= :as_of_date
     """), {'tenant_id': tenant_id, 'as_of_date': as_of_date}).fetchone()[0]
     
-    # FALLBACK: If no double-entry entries exist yet, calculate from expenses table
-    # (This handles old data before migration)
-    if not operating_from_transactions or Decimal(str(operating_from_transactions)) == 0:
-        operating_expenses = db.session.execute(text("""
-            SELECT 
-                COALESCE(ec.name, 'General Expenses') as category_name,
-                SUM(e.amount) as total
-            FROM expenses e
-            LEFT JOIN expense_categories ec ON e.category_id = ec.id
-            WHERE e.tenant_id = :tenant_id 
-            AND e.expense_date <= :as_of_date
-            GROUP BY ec.name
-            ORDER BY ec.name
-        """), {'tenant_id': tenant_id, 'as_of_date': as_of_date}).fetchall()
-        
-        for exp in operating_expenses:
-            category = exp[0]  # Already has COALESCE to 'General Expenses'
-            amount = Decimal(str(exp[1]))
-            if amount > 0:
-                accounts.append({
-                    'account_name': f"{category}",
-                    'category': 'Expenses',
-                    'debit': amount,
-                    'credit': Decimal('0')
-                })
-    else:
-        operating_total = Decimal(str(operating_from_transactions))
-        if operating_total > 0:
-            accounts.append({
-                'account_name': 'Operating Expenses',
-                'category': 'Expenses',
-                'debit': operating_total,
-                'credit': Decimal('0')
-            })
+    # ✅ NO FALLBACK - Only use account_transactions for accuracy
+    operating_total = Decimal(str(operating_from_transactions or 0))
+    if operating_total > 0:
+        accounts.append({
+            'account_name': 'Operating Expenses',
+            'category': 'Expenses',
+            'debit': operating_total,
+            'credit': Decimal('0')
+        })
     
     # 8. Employee Expenses (Expense - Debit Balance)
     employee_expenses_total = db.session.execute(text("""
@@ -2388,19 +2337,8 @@ def trial_balance():
         AND transaction_date <= :as_of_date
     """), {'tenant_id': tenant_id, 'as_of_date': as_of_date}).fetchone()[0]
     
-    # FALLBACK: If no double-entry entries exist yet, calculate from salary_slips table
-    # (This handles old data before migration)
-    if not salary_from_transactions or Decimal(str(salary_from_transactions)) == 0:
-        salary_expenses_total = db.session.execute(text("""
-            SELECT COALESCE(SUM(salary_amount), 0)
-            FROM salary_slips
-            WHERE tenant_id = :tenant_id 
-            AND payment_date <= :as_of_date
-        """), {'tenant_id': tenant_id, 'as_of_date': as_of_date}).fetchone()[0]
-        
-        salary_total = Decimal(str(salary_expenses_total or 0))
-    else:
-        salary_total = Decimal(str(salary_from_transactions))
+    # ✅ NO FALLBACK - Only use account_transactions for accuracy
+    salary_total = Decimal(str(salary_from_transactions or 0))
     
     if salary_total > 0:
         accounts.append({
