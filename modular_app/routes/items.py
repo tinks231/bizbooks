@@ -623,7 +623,21 @@ def delete(item_id):
     
     try:
         item_name = item.name
-        db.session.delete(item)  # Cascade will delete related records
+        
+        # ✅ FIX: Manually delete stock movements first (cascade not configured in model)
+        from models.item import ItemStockMovement
+        ItemStockMovement.query.filter_by(item_id=item_id, tenant_id=tenant_id).delete()
+        
+        # ✅ FIX: Delete any accounting transactions related to this item
+        from models.account_transaction import AccountTransaction
+        AccountTransaction.query.filter_by(
+            reference_type='item',
+            reference_id=item_id,
+            tenant_id=tenant_id
+        ).delete()
+        
+        # Now delete the item (ItemStock will cascade automatically)
+        db.session.delete(item)
         db.session.commit()
         
         flash(f'✅ Item "{item_name}" deleted successfully!', 'success')
