@@ -35,6 +35,72 @@
             </div>
         </div>
 
+        <!-- Dynamic Attributes (Phase 3) -->
+        {% if attributes %}
+        <div class="card-section" style="margin-top: 25px; border-top: 2px solid #e8e8e8; padding-top: 25px;">
+            <h3 style="color: #667eea; margin-bottom: 20px; font-size: 18px;">
+                🎨 Item Attributes
+                <small style="color: #999; font-weight: normal; font-size: 14px;">
+                    (Auto-generates item name)
+                </small>
+            </h3>
+            
+            <div class="form-row" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px;">
+                {% for attr in attributes %}
+                <div class="form-group">
+                    <label class="field-label {% if attr.is_required %}field-label--required{% endif %}">
+                        {{ attr.attribute_name }}
+                    </label>
+                    
+                    {% if attr.attribute_type == 'dropdown' %}
+                        <select name="attr_{{ attr.id }}" {% if attr.is_required %}required{% endif %}>
+                            <option value="">-- Select {{ attr.attribute_name }} --</option>
+                            {% for option in attr.dropdown_options %}
+                            <option value="{{ option }}" {% if attr.current_value == option %}selected{% endif %}>{{ option }}</option>
+                            {% endfor %}
+                        </select>
+                    {% elif attr.attribute_type == 'number' %}
+                        <input type="number" 
+                               name="attr_{{ attr.id }}" 
+                               value="{{ attr.current_value or '' }}"
+                               step="any"
+                               {% if attr.is_required %}required{% endif %}
+                               placeholder="Enter {{ attr.attribute_name }}">
+                    {% elif attr.attribute_type == 'date' %}
+                        <input type="date" 
+                               name="attr_{{ attr.id }}" 
+                               value="{{ attr.current_value or '' }}"
+                               {% if attr.is_required %}required{% endif %}>
+                    {% else %}
+                        <input type="text" 
+                               name="attr_{{ attr.id }}" 
+                               value="{{ attr.current_value or '' }}"
+                               {% if attr.is_required %}required{% endif %}
+                               placeholder="Enter {{ attr.attribute_name }}">
+                    {% endif %}
+                    
+                    {% if not attr.is_required %}
+                    <small class="help-text">Optional</small>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+            
+            <!-- Auto-generated Item Name Preview -->
+            <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-top: 20px; border-left: 4px solid #667eea;">
+                <label style="font-size: 12px; color: #666; text-transform: uppercase; font-weight: 600; margin-bottom: 8px; display: block;">
+                    📝 Auto-Generated Item Name Preview:
+                </label>
+                <div id="itemNamePreview" style="font-size: 16px; font-weight: 600; color: #667eea; font-family: monospace;">
+                    <em style="color: #999;">Fill in attributes to see preview...</em>
+                </div>
+                <small style="color: #999; font-size: 12px; display: block; margin-top: 5px;">
+                    This will be used as the Item Name
+                </small>
+            </div>
+        </div>
+        {% endif %}
+
         <!-- Type Selection -->
         <div class="form-group">
             <label class="field-label field-label--required">Type</label>
@@ -384,6 +450,62 @@ function updateDiscountInfo() {
 // Calculate on page load
 window.addEventListener('DOMContentLoaded', function() {
     updateDiscountInfo();
+    {% if attributes %}
+    updateItemNamePreview();
+    {% endif %}
 });
+
+// ========================================
+// DYNAMIC ATTRIBUTES - AUTO-GENERATE ITEM NAME (PHASE 3)
+// ========================================
+{% if attributes %}
+const attributeConfig = {{ attributes|tojson|safe }};
+
+function updateItemNamePreview() {
+    const nameParts = [];
+    let hasRequiredValues = true;
+    
+    // Collect attribute values in display order
+    attributeConfig.forEach(attr => {
+        const fieldName = `attr_${attr.id}`;
+        const field = document.querySelector(`[name="${fieldName}"]`);
+        const value = field ? field.value.trim() : '';
+        
+        if (attr.include_in_item_name && value) {
+            nameParts.push(value);
+        }
+        
+        // Check if required attribute is missing
+        if (attr.is_required && !value) {
+            hasRequiredValues = false;
+        }
+    });
+    
+    // Update preview
+    const previewElement = document.getElementById('itemNamePreview');
+    if (nameParts.length > 0) {
+        const generatedName = nameParts.join(' ');
+        previewElement.innerHTML = `<strong>${generatedName}</strong>`;
+        previewElement.style.color = '#667eea';
+        
+        // Auto-fill the Item Name field
+        if (hasRequiredValues) {
+            document.querySelector('input[name="name"]').value = generatedName;
+        }
+    } else {
+        previewElement.innerHTML = '<em style="color: #999;">Fill in attributes to see preview...</em>';
+    }
+}
+
+// Attach change listeners to all attribute fields
+attributeConfig.forEach(attr => {
+    const fieldName = `attr_${attr.id}`;
+    const field = document.querySelector(`[name="${fieldName}"]`);
+    if (field) {
+        field.addEventListener('change', updateItemNamePreview);
+        field.addEventListener('input', updateItemNamePreview);
+    }
+});
+{% endif %}
 </script>
 {% endblock %}
