@@ -393,10 +393,21 @@ def add():
     config = TenantAttributeConfig.query.filter_by(tenant_id=tenant_id).first()
     attributes = []
     if config and config.is_enabled:
-        attributes = ItemAttribute.query.filter_by(
+        attr_objects = ItemAttribute.query.filter_by(
             tenant_id=tenant_id,
             is_active=True
         ).order_by(ItemAttribute.display_order).all()
+        
+        # Convert to dictionaries for JSON serialization
+        attributes = [{
+            'id': attr.id,
+            'attribute_name': attr.attribute_name,
+            'attribute_type': attr.attribute_type,
+            'is_required': attr.is_required,
+            'dropdown_options': attr.dropdown_options or [],
+            'include_in_item_name': attr.include_in_item_name,
+            'display_order': attr.display_order
+        } for attr in attr_objects]
     
     return render_template('admin/items/add.html',
                          categories=categories,
