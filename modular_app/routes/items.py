@@ -295,6 +295,25 @@ def add():
                 created_by=request.form.get('created_by', 'Admin')
             )
             
+            # Save dynamic attributes (Phase 3)
+            from models.item_attribute import ItemAttribute, TenantAttributeConfig
+            config = TenantAttributeConfig.query.filter_by(tenant_id=tenant_id).first()
+            if config and config.is_enabled:
+                attributes = ItemAttribute.query.filter_by(
+                    tenant_id=tenant_id,
+                    is_active=True
+                ).all()
+                
+                attribute_data = {}
+                for attr in attributes:
+                    field_name = f'attr_{attr.id}'
+                    value = request.form.get(field_name, '').strip()
+                    if value:  # Only save non-empty values
+                        attribute_data[attr.attribute_name] = value
+                
+                if attribute_data:
+                    item.attribute_data = attribute_data
+            
             db.session.add(item)
             db.session.flush()  # Get the item ID
             
@@ -369,10 +388,21 @@ def add():
     categories = ItemCategory.query.filter_by(tenant_id=tenant_id).all()
     groups = ItemGroup.query.filter_by(tenant_id=tenant_id).all()
     
+    # Get configured item attributes (Phase 3)
+    from models.item_attribute import ItemAttribute, TenantAttributeConfig
+    config = TenantAttributeConfig.query.filter_by(tenant_id=tenant_id).first()
+    attributes = []
+    if config and config.is_enabled:
+        attributes = ItemAttribute.query.filter_by(
+            tenant_id=tenant_id,
+            is_active=True
+        ).order_by(ItemAttribute.display_order).all()
+    
     return render_template('admin/items/add.html',
                          categories=categories,
                          groups=groups,
-                         tenant=g.tenant)
+                         tenant=g.tenant,
+                         attributes=attributes)
 
 
 # ===== EDIT ITEM =====
