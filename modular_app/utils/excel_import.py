@@ -887,7 +887,17 @@ def import_inventory_from_excel(file, tenant_id):
                         if col_idx < len(row):
                             attr_value = row[col_idx]
                             if attr_value is not None and str(attr_value).strip() != '':
-                                attribute_data[attr.attribute_name] = str(attr_value).strip()
+                                # Clean up numeric values (32.0 → 32)
+                                clean_value = str(attr_value).strip()
+                                try:
+                                    # If it's a number like 32.0, convert to 32
+                                    float_val = float(clean_value)
+                                    if float_val.is_integer():
+                                        clean_value = str(int(float_val))
+                                except (ValueError, AttributeError):
+                                    # Not a number, keep as string
+                                    pass
+                                attribute_data[attr.attribute_name] = clean_value
                 
                 # Create item
                 item = Item(
