@@ -117,6 +117,9 @@
                 <tr>
                     <th>SKU</th>
                     <th>Item Name</th>
+                    {% for attr in attributes %}
+                    <th>{{ attr.attribute_name }}</th>
+                    {% endfor %}
                     <th>Barcode</th>
                     <th>Type</th>
                     <th>Category</th>
@@ -140,6 +143,17 @@
                         <small style="color: #7f8c8d;">{{ item.brand }}</small>
                         {% endif %}
                     </td>
+                    {% for attr in attributes %}
+                    <td>
+                        {% if item.attribute_data and item.attribute_data.get(attr.attribute_name) %}
+                        <span style="color: #667eea; font-weight: 500;">
+                            {{ item.attribute_data.get(attr.attribute_name) }}
+                        </span>
+                        {% else %}
+                        <span style="color: #ccc;">—</span>
+                        {% endif %}
+                    </td>
+                    {% endfor %}
                     <td>
                         {% if item.barcode %}
                         <span style="font-family: monospace; font-size: 13px; color: #27ae60; font-weight: 600;">

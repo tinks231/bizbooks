@@ -188,6 +188,23 @@ def index():
     categories = ItemCategory.query.filter_by(tenant_id=tenant_id).all()
     groups = ItemGroup.query.filter_by(tenant_id=tenant_id).all()
     
+    # Get configured item attributes (Phase 3)
+    from models.item_attribute import ItemAttribute, TenantAttributeConfig
+    config = TenantAttributeConfig.query.filter_by(tenant_id=tenant_id).first()
+    attributes = []
+    if config and config.is_enabled:
+        attr_objects = ItemAttribute.query.filter_by(
+            tenant_id=tenant_id,
+            is_active=True
+        ).order_by(ItemAttribute.display_order).all()
+        
+        # Convert to dictionaries
+        attributes = [{
+            'id': attr.id,
+            'attribute_name': attr.attribute_name,
+            'attribute_type': attr.attribute_type
+        } for attr in attr_objects]
+    
     # OPTIMIZED: Calculate low stock count using SQL aggregation (ONE query!)
     items_with_stock_query = db.session.query(
         Item.id,
@@ -209,6 +226,7 @@ def index():
                          items=items,
                          categories=categories,
                          groups=groups,
+                         attributes=attributes,
                          low_stock_count=low_stock_count,
                          page=page,
                          total_pages=total_pages,
