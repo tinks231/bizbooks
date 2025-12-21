@@ -173,7 +173,8 @@ def create_inventory_template(tenant_id=None):
     if attribute_columns and attr_col_letters:
         # Build formula: =TRIM(D2&" "&E2&" "&F2&...)
         formula_parts = [f"{col}2" for col in attr_col_letters]
-        formula = f'=TRIM({" & \" \" & ".join(formula_parts)})'
+        separator = ' & " " & '
+        formula = f'=TRIM({separator.join(formula_parts)})'
         
         item_name_cell = ws.cell(row=2, column=1)
         item_name_cell.value = formula
