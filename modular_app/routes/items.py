@@ -402,7 +402,7 @@ def add():
                     tenant_id=tenant_id,
                     account_id=None,  # Virtual account
                     transaction_date=now.date(),
-                    transaction_type='inventory_opening',
+                    transaction_type='inventory_opening_debit',  # Must match trial balance query
                     debit_amount=opening_stock_value,
                     credit_amount=Decimal('0'),
                     balance_after=opening_stock_value,
@@ -419,7 +419,7 @@ def add():
                     tenant_id=tenant_id,
                     account_id=None,  # Virtual account
                     transaction_date=now.date(),
-                    transaction_type='inventory_opening_equity',
+                    transaction_type='opening_balance_inventory_equity',  # Must match trial balance query
                     debit_amount=Decimal('0'),
                     credit_amount=opening_stock_value,
                     balance_after=opening_stock_value,
