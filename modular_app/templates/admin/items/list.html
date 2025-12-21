@@ -18,6 +18,9 @@
     <a href="{{ url_for('items.print_labels') }}" class="btn btn-secondary" style="background: #9b59b6;">
         🖨️ Print Labels
     </a>
+    <button onclick="toggleOptionalColumns()" class="btn btn-secondary" style="background: #34495e;" id="toggleBtn">
+        👁️ Show All Columns
+    </button>
     <a href="{{ url_for('items.add') }}" class="btn btn-primary">
         ➕ Add New Item
     </a>
@@ -118,16 +121,16 @@
                     <th>SKU</th>
                     <th>Item Name</th>
                     {% for attr in attributes %}
-                    <th>{{ attr.attribute_name }}</th>
+                    <th class="attr-col">{{ attr.attribute_name }}</th>
                     {% endfor %}
-                    <th>Barcode</th>
-                    <th>Type</th>
-                    <th>Category</th>
-                    <th>Unit</th>
+                    <th class="optional-col">Barcode</th>
+                    <th class="optional-col">Type</th>
+                    <th class="optional-col">Category</th>
+                    <th class="optional-col">Unit</th>
                     <th>Selling Price</th>
-                    <th>Cost Price</th>
+                    <th class="optional-col">Cost Price</th>
                     <th>Stock</th>
-                    <th>Status</th>
+                    <th class="optional-col">Status</th>
                     <th>Actions</th>
                 </tr>
             </thead>
@@ -144,7 +147,7 @@
                         {% endif %}
                     </td>
                     {% for attr in attributes %}
-                    <td>
+                    <td class="attr-col">
                         {% if item.attribute_data and item.attribute_data.get(attr.attribute_name) %}
                         <span style="color: #667eea; font-weight: 500;">
                             {{ item.attribute_data.get(attr.attribute_name) }}
@@ -154,7 +157,7 @@
                         {% endif %}
                     </td>
                     {% endfor %}
-                    <td>
+                    <td class="optional-col">
                         {% if item.barcode %}
                         <span style="font-family: monospace; font-size: 13px; color: #27ae60; font-weight: 600;">
                             📱 {{ item.barcode }}
@@ -165,7 +168,7 @@
                         </span>
                         {% endif %}
                     </td>
-                    <td>
+                    <td class="optional-col">
                         <span style="padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 600; 
                                      background: {% if item.type == 'goods' %}#e3f2fd{% else %}#f3e5f5{% endif %};
                                      color: {% if item.type == 'goods' %}#1976d2{% else %}#7b1fa2{% endif %};
@@ -173,18 +176,18 @@
                             {{ item.type|title }}
                         </span>
                     </td>
-                    <td>
+                    <td class="optional-col">
                         {% if item.category %}
                         {{ item.category.name }}
                         {% else %}
                         <span style="color: #95a5a6;">—</span>
                         {% endif %}
                     </td>
-                    <td>{{ item.unit }}</td>
+                    <td class="optional-col">{{ item.unit }}</td>
                     <td>
                         <strong>₹ {{ "%.2f"|format(item.selling_price) }}</strong>
                     </td>
-                    <td>
+                    <td class="optional-col">
                         ₹ {{ "%.2f"|format(item.cost_price) }}
                     </td>
                     <td>
@@ -234,7 +237,7 @@
                         <span style="color: #95a5a6;">—</span>
                         {% endif %}
                     </td>
-                    <td>
+                    <td class="optional-col">
                         {% if item.is_active %}
                         <span style="color: #28a745; font-weight: 600;">● Active</span>
                         {% else %}
@@ -454,8 +457,48 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('toggleIcon').textContent = '📱';
         document.getElementById('toggleText').textContent = 'Card View';
     }
+    
+    // Load optional columns preference
+    const showOptional = localStorage.getItem('showOptionalColumns') === 'true';
+    if (showOptional) {
+        document.querySelectorAll('.optional-col').forEach(el => el.style.display = 'table-cell');
+        const btn = document.getElementById('toggleBtn');
+        if (btn) btn.innerHTML = '👁️ Hide Extra Columns';
+    }
 });
+
+// Toggle optional columns
+function toggleOptionalColumns() {
+    const optionalCols = document.querySelectorAll('.optional-col');
+    const btn = document.getElementById('toggleBtn');
+    const isHidden = optionalCols[0].style.display === 'none' || !optionalCols[0].style.display;
+    
+    if (isHidden) {
+        // Show optional columns
+        optionalCols.forEach(col => col.style.display = 'table-cell');
+        btn.innerHTML = '👁️ Hide Extra Columns';
+        localStorage.setItem('showOptionalColumns', 'true');
+    } else {
+        // Hide optional columns
+        optionalCols.forEach(col => col.style.display = 'none');
+        btn.innerHTML = '👁️ Show All Columns';
+        localStorage.setItem('showOptionalColumns', 'false');
+    }
+}
 </script>
+
+<style>
+/* Hide optional columns by default */
+.optional-col {
+    display: none;
+}
+
+/* Attribute columns always visible */
+.attr-col {
+    background: #f8f9fa;
+    font-weight: 500;
+}
+</style>
 
 {% endblock %}
 
