@@ -390,6 +390,7 @@ def add():
                 from models.bank_account import AccountTransaction
                 from datetime import datetime
                 from decimal import Decimal
+                from flask_login import current_user
                 import pytz
                 
                 ist = pytz.timezone('Asia/Kolkata')
