@@ -909,6 +909,7 @@ def import_inventory_from_excel(file, tenant_id):
                     item_group_id=group_obj.id,
                     unit=str(unit).strip(),
                     opening_stock=float(stock) if stock else 0.0,
+                    opening_stock_value=(float(stock) if stock else 0.0) * (float(cost_price) if cost_price else 0.0),  # ✅ Calculate opening stock value
                     reorder_point=reorder_point_val,
                     cost_price=float(cost_price) if cost_price else 0.0,
                     selling_price=final_selling_price,
