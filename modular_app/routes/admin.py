@@ -2119,12 +2119,21 @@ def download_template(template_type):
     
     tenant_id = get_current_tenant_id()
     
-    # Standard templates (no tenant context needed)
-    templates = {
+    # Templates that don't need tenant context
+    simple_templates = {
         'employees': (create_employee_template, 'BizBooks_Employee_Import_Template.xlsx'),
-        'inventory': (create_inventory_template, 'BizBooks_Inventory_Import_Template.xlsx'),
         'customers': (create_customer_template, 'BizBooks_Customer_Import_Template.xlsx')
     }
+    
+    # Special case: inventory template needs tenant_id for dynamic attributes (Phase 3)
+    if template_type == 'inventory':
+        excel_file = create_inventory_template(tenant_id)
+        return send_file(
+            excel_file,
+            mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            as_attachment=True,
+            download_name='BizBooks_Inventory_Import_Template.xlsx'
+        )
     
     # Special case: subscription enrollment needs tenant_id for dynamic data
     if template_type == 'subscriptions':
@@ -2136,11 +2145,11 @@ def download_template(template_type):
             download_name='BizBooks_Subscription_Enrollment_Template.xlsx'
         )
     
-    if template_type not in templates:
+    if template_type not in simple_templates:
         flash('Invalid template type', 'error')
         return redirect(url_for('admin.bulk_import'))
     
-    template_func, filename = templates[template_type]
+    template_func, filename = simple_templates[template_type]
     excel_file = template_func()
     
     return send_file(

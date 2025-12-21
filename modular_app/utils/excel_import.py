@@ -76,94 +76,132 @@ def create_employee_template():
     return output
 
 
-def create_inventory_template():
+def create_inventory_template(tenant_id=None):
     """
     Create Excel template for inventory bulk import
+    Now includes dynamic attribute columns based on tenant configuration
     Returns: BytesIO object with Excel file
     """
     wb = Workbook()
     ws = wb.active
     ws.title = "Inventory Import"
     
-    # Headers - Updated to include Reorder Point, Discount %, and pricing flexibility
-    headers = ['Item Name*', 'SKU', 'Barcode', 'Category*', 'Group*', 'Unit*', 'Stock Quantity*', 
-               'Reorder Point', 'Cost Price*', 'MRP', 'Discount %', 'Selling Price*', 
-               'Tax Rate (%)', 'HSN Code', 'Description']
+    # Base headers
+    headers = ['Item Name*', 'SKU', 'Barcode']
+    
+    # Add dynamic attribute columns if tenant has configured attributes
+    attribute_columns = []
+    if tenant_id:
+        from models.item_attribute import ItemAttribute, TenantAttributeConfig
+        config = TenantAttributeConfig.query.filter_by(tenant_id=tenant_id).first()
+        if config and config.is_enabled:
+            attributes = ItemAttribute.query.filter_by(
+                tenant_id=tenant_id,
+                is_active=True
+            ).order_by(ItemAttribute.display_order).all()
+            
+            for attr in attributes:
+                col_name = f"{attr.attribute_name}{'*' if attr.is_required else ''}"
+                headers.append(col_name)
+                attribute_columns.append({
+                    'name': attr.attribute_name,
+                    'required': attr.is_required,
+                    'type': attr.attribute_type,
+                    'options': attr.dropdown_options
+                })
+    
+    # Continue with standard columns
+    headers.extend(['Category*', 'Group*', 'Unit*', 'Stock Quantity*', 
+                   'Reorder Point', 'Cost Price*', 'MRP', 'Discount %', 'Selling Price*', 
+                   'Tax Rate (%)', 'HSN Code', 'Description'])
     
     # Style headers
     header_fill = PatternFill(start_color="70AD47", end_color="70AD47", fill_type="solid")
+    attr_fill = PatternFill(start_color="667eea", end_color="667eea", fill_type="solid")
     header_font = Font(bold=True, color="FFFFFF")
     
     for col_num, header in enumerate(headers, 1):
         cell = ws.cell(row=1, column=col_num, value=header)
-        cell.fill = header_fill
+        # Use purple for attribute columns
+        is_attr_col = any(attr['name'] in header for attr in attribute_columns)
+        cell.fill = attr_fill if is_attr_col else header_fill
         cell.font = header_font
         cell.alignment = Alignment(horizontal="center", vertical="center")
     
-    # Add sample data (row 2) - Clothing retail example with formulas
-    sample_data = [
-        "Men's Cotton T-Shirt - White",  # Item Name
+    # Add sample data (row 2) - Updated with attributes if applicable
+    base_sample = [
+        "Men's Cotton T-Shirt - White",  # Item Name  
         'TSH-MEN-WHT-001',              # SKU
         '8901234567001',                 # Barcode
+    ]
+    
+    # Add sample attribute values
+    for attr in attribute_columns:
+        if attr['options']:  # Dropdown
+            base_sample.append(attr['options'][0] if attr['options'] else '')
+        else:  # Text/Number/Date
+            base_sample.append('Sample Value')
+    
+    # Continue with standard columns
+    base_sample.extend([
         "Men's Wear",                    # Category
         'T-Shirts',                      # Group
         'Pcs',                          # Unit
-        50,                             # Stock Quantity (as number)
-        10,                             # Reorder Point (NEW)
-        450,                            # Cost Price (as number)
-        699,                            # MRP (as number)
-        15,                             # Discount % (NEW) - Can fill this OR Selling Price
-        None,                           # Selling Price - Will be calculated by formula
-        12,                             # Tax Rate (as number)
+        50,                             # Stock Quantity
+        10,                             # Reorder Point
+        450,                            # Cost Price
+        699,                            # MRP
+        15,                             # Discount %
+        None,                           # Selling Price (formula)
+        12,                             # Tax Rate
         '6109',                         # HSN Code
-        'Premium cotton t-shirt, comfortable fit'  # Description
-    ]
+        'Premium cotton t-shirt'        # Description
+    ])
     
-    for col_num, value in enumerate(sample_data, 1):
+    for col_num, value in enumerate(base_sample, 1):
         cell = ws.cell(row=2, column=col_num, value=value)
         cell.fill = PatternFill(start_color="E7E6E6", end_color="E7E6E6", fill_type="solid")
-        # Format number columns
-        if col_num in [7, 8, 9, 10, 11, 12, 13]:  # Stock, Reorder, Cost, MRP, Discount, Selling, Tax
-            cell.number_format = '0.00'
     
-    # Add Excel formula to auto-calculate Selling Price from MRP and Discount %
-    # Formula: Selling Price = MRP * (1 - Discount%/100)
-    # Column J = MRP (col 10), Column K = Discount % (col 11), Column L = Selling Price (col 12)
-    ws.cell(row=2, column=12).value = '=IF(AND(J2>0, K2>0), J2*(1-K2/100), "")'
-    ws.cell(row=2, column=12).fill = PatternFill(start_color="FFF2CC", end_color="FFF2CC", fill_type="solid")  # Light yellow for formula
+    # Add instructions with attribute info
+    instructions_start = 4
+    ws.cell(row=instructions_start, column=1, value="INSTRUCTIONS:")
+    row_idx = instructions_start + 1
     
-    # Add instructions
-    ws.cell(row=4, column=1, value="INSTRUCTIONS:")
-    ws.cell(row=5, column=1, value="1. Fields marked with * are required")
-    ws.cell(row=6, column=1, value="2. If SKU is blank, it will be auto-generated")
-    ws.cell(row=7, column=1, value="3. Barcode is optional (for scanning). Leave blank if not applicable.")
-    ws.cell(row=8, column=1, value="4. If Category/Group doesn't exist, it will be created")
-    ws.cell(row=9, column=1, value="5. Unit examples: Pcs, Kg, Liter, Box, Bag, Meter")
-    ws.cell(row=10, column=1, value="6. Reorder Point: Low stock alert level (optional, default 0)")
-    ws.cell(row=11, column=1, value="7. PRICING: Fill EITHER 'Discount %' OR 'Selling Price' (or both)")
-    ws.cell(row=12, column=1, value="   - Discount %: System calculates Selling Price from MRP")
-    ws.cell(row=13, column=1, value="   - Selling Price: System calculates Discount % from MRP")
-    ws.cell(row=14, column=1, value="   - Both filled: Selling Price takes priority")
-    ws.cell(row=15, column=1, value="8. MRP is optional but needed for discount calculation")
-    ws.cell(row=16, column=1, value="9. Tax Rate is optional (default 18%)")
-    ws.cell(row=17, column=1, value="10. Delete row 2 (sample data) before uploading")
+    if attribute_columns:
+        ws.cell(row=row_idx, column=1, value=f"🎨 {len(attribute_columns)} ATTRIBUTE COLUMNS CONFIGURED:")
+        ws.cell(row=row_idx, column=1).font = Font(bold=True, color="667eea")
+        row_idx += 1
+        for attr in attribute_columns:
+            required_mark = " (Required)" if attr['required'] else " (Optional)"
+            if attr['options']:
+                options_str = ", ".join(attr['options'][:5])
+                if len(attr['options']) > 5:
+                    options_str += "..."
+                ws.cell(row=row_idx, column=1, value=f"   - {attr['name']}{required_mark}: Options: {options_str}")
+            else:
+                ws.cell(row=row_idx, column=1, value=f"   - {attr['name']}{required_mark}: {attr['type'].title()}")
+            row_idx += 1
+        row_idx += 1
     
-    # Adjust column widths
-    ws.column_dimensions['A'].width = 30  # Item Name
-    ws.column_dimensions['B'].width = 18  # SKU
-    ws.column_dimensions['C'].width = 16  # Barcode
-    ws.column_dimensions['D'].width = 18  # Category
-    ws.column_dimensions['E'].width = 15  # Group
-    ws.column_dimensions['F'].width = 8   # Unit
-    ws.column_dimensions['G'].width = 12  # Stock Quantity
-    ws.column_dimensions['H'].width = 12  # Reorder Point (NEW)
-    ws.column_dimensions['I'].width = 12  # Cost Price
-    ws.column_dimensions['J'].width = 10  # MRP
-    ws.column_dimensions['K'].width = 11  # Discount % (NEW)
-    ws.column_dimensions['L'].width = 13  # Selling Price (formula)
-    ws.column_dimensions['M'].width = 10  # Tax Rate
-    ws.column_dimensions['N'].width = 12  # HSN Code
-    ws.column_dimensions['O'].width = 35  # Description
+    ws.cell(row=row_idx, column=1, value="1. Fields marked with * are required")
+    row_idx += 1
+    ws.cell(row=row_idx, column=1, value="2. If SKU is blank, it will be auto-generated")
+    row_idx += 1
+    ws.cell(row=row_idx, column=1, value="3. Barcode is optional (for scanning)")
+    row_idx += 1
+    ws.cell(row=row_idx, column=1, value="4. If Category/Group doesn't exist, it will be created")
+    row_idx += 1
+    ws.cell(row=row_idx, column=1, value="5. Unit examples: Pcs, Kg, Liter, Box")
+    row_idx += 1
+    ws.cell(row=row_idx, column=1, value="6. PRICING: Fill Selling Price (required)")
+    row_idx += 1
+    ws.cell(row=row_idx, column=1, value="7. Delete row 2 (sample data) before uploading")
+    
+    # Auto-adjust column widths
+    for col_idx, header in enumerate(headers, 1):
+        col_letter = ws.cell(row=1, column=col_idx).column_letter
+        # Set reasonable default width based on header length
+        ws.column_dimensions[col_letter].width = max(12, len(str(header)) + 2)
     
     # Save to BytesIO
     output = BytesIO()
@@ -570,13 +608,13 @@ def import_employees_from_excel(file, tenant_id):
 def import_inventory_from_excel(file, tenant_id):
     """
     Import inventory items from Excel file
-    Updated to read by HEADER NAME instead of position for flexibility
+    Updated to support dynamic attributes (Phase 3)
     Returns: (success_count, errors_list)
     """
     try:
-        wb = load_workbook(file, data_only=True)  # data_only=True to get formula results, not formulas!
+        wb = load_workbook(file, data_only=True)
         
-        # Find the data sheet (try common names, fallback to first sheet)
+        # Find the data sheet
         ws = None
         data_sheet_names = ['Inventory Import', 'Import Data', 'Data', 'Sheet1', 'Sheet']
         
@@ -585,25 +623,32 @@ def import_inventory_from_excel(file, tenant_id):
                 ws = wb[sheet_name]
                 break
         
-        # If none found, use the first sheet (skip instruction sheets)
         if ws is None:
             for sheet in wb.worksheets:
                 if 'instruction' not in sheet.title.lower():
                     ws = sheet
                     break
         
-        # Final fallback: use active sheet
         if ws is None:
             ws = wb.active
         
         success_count = 0
         errors = []
         
+        # Get configured attributes for this tenant
+        from models.item_attribute import ItemAttribute, TenantAttributeConfig
+        config = TenantAttributeConfig.query.filter_by(tenant_id=tenant_id).first()
+        configured_attributes = []
+        if config and config.is_enabled:
+            configured_attributes = ItemAttribute.query.filter_by(
+                tenant_id=tenant_id,
+                is_active=True
+            ).order_by(ItemAttribute.display_order).all()
+        
         # Read header row to find column positions
         headers = {}
         for col_idx, cell in enumerate(ws[1], start=0):
             if cell.value:
-                # Normalize header name (remove *, emojis, extra spaces)
                 header_clean = str(cell.value).strip().replace('*', '').replace('🔶', '').strip()
                 headers[header_clean] = col_idx
         
@@ -760,17 +805,26 @@ def import_inventory_from_excel(file, tenant_id):
                 # Extract reorder point (optional)
                 reorder_point_val = float(reorder_point) if reorder_point else 0.0
                 
-                # Clean barcode - handle Excel converting numbers to floats (8901230000000.0 → 8901230000000)
+                # Clean barcode - handle Excel converting numbers to floats
                 barcode_clean = None
                 if barcode:
                     try:
-                        # If it's a float like 8901230000000.0, convert to int first to remove .0
                         if isinstance(barcode, float):
                             barcode_clean = str(int(barcode))
                         else:
                             barcode_clean = str(barcode).strip()
                     except:
                         barcode_clean = str(barcode).strip() if barcode else None
+                
+                # Extract attribute values (Phase 3)
+                attribute_data = {}
+                for attr in configured_attributes:
+                    if attr.attribute_name in headers:
+                        col_idx = headers[attr.attribute_name]
+                        if col_idx < len(row):
+                            attr_value = row[col_idx]
+                            if attr_value is not None and str(attr_value).strip() != '':
+                                attribute_data[attr.attribute_name] = str(attr_value).strip()
                 
                 # Create item
                 item = Item(
@@ -782,7 +836,7 @@ def import_inventory_from_excel(file, tenant_id):
                     item_group_id=group_obj.id,
                     unit=str(unit).strip(),
                     opening_stock=float(stock) if stock else 0.0,
-                    reorder_point=reorder_point_val,  # NEW: Reorder Point
+                    reorder_point=reorder_point_val,
                     cost_price=float(cost_price) if cost_price else 0.0,
                     selling_price=final_selling_price,
                     mrp=mrp_val,
@@ -791,7 +845,8 @@ def import_inventory_from_excel(file, tenant_id):
                     gst_rate=float(tax_rate) if tax_rate else 18.0,
                     tax_preference=f"GST {tax_rate}%" if tax_rate else "GST 18%",
                     sales_description=str(description).strip() if description else '',
-                    purchase_description=str(description).strip() if description else ''
+                    purchase_description=str(description).strip() if description else '',
+                    attribute_data=attribute_data if attribute_data else None  # Phase 3
                 )
                 
                 db.session.add(item)
