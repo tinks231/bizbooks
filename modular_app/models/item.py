@@ -129,7 +129,8 @@ class Item(db.Model, TimestampMixin):
     # ===== Dynamic Attributes (Phase 3 - Variant System) =====
     # Stores custom attribute values as JSON: {"brand": "Levi's", "size": "32", "color": "Blue"}
     # Allows multi-industry support without schema changes
-    attribute_values = db.Column(db.JSON, default=None)
+    # NOTE: Named 'attribute_data' to avoid conflict with 'attribute_values' relationship
+    attribute_data = db.Column(db.JSON, default=None)
     
     # ===== Metadata =====
     created_by = db.Column(db.String(100))
@@ -158,23 +159,23 @@ class Item(db.Model, TimestampMixin):
     
     def get_attribute_value(self, attribute_name):
         """Get a specific attribute value"""
-        if not self.attribute_values:
+        if not self.attribute_data:
             return None
-        return self.attribute_values.get(attribute_name)
+        return self.attribute_data.get(attribute_name)
     
     def set_attribute_value(self, attribute_name, value):
         """Set a specific attribute value"""
-        if self.attribute_values is None:
-            self.attribute_values = {}
-        self.attribute_values[attribute_name] = value
+        if self.attribute_data is None:
+            self.attribute_data = {}
+        self.attribute_data[attribute_name] = value
     
     def get_all_attributes(self):
         """Get all attribute values as dict"""
-        return self.attribute_values or {}
+        return self.attribute_data or {}
     
     def has_attributes(self):
         """Check if item has any attribute values"""
-        return bool(self.attribute_values)
+        return bool(self.attribute_data)
 
 
 class ItemImage(db.Model):

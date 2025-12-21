@@ -1,11 +1,13 @@
 """
-Migration: Add attribute_values JSONB column to items table
+Migration: Add attribute_data JSONB column to items table
 
 This column will store dynamic attribute values for each item, allowing:
 - Clothing: {"brand": "Levi's", "size": "32", "color": "Blue", "style": "Slim Fit"}
 - Pharmacy: {"medicine_name": "Paracetamol", "batch": "B123", "expiry": "2025-12"}
 - Mobile: {"brand": "Apple", "model": "iPhone 15", "imei": "123456789", "storage": "128GB"}
 - Bakery: {"flavor": "Chocolate", "weight": "2kg", "packaging": "Box"}
+
+NOTE: Named 'attribute_data' to avoid conflict with 'attribute_values' relationship from ItemAttributeValue model
 
 Created: Dec 21, 2025
 """
@@ -54,7 +56,7 @@ def show_migration_page():
         <div class="info">
             <h3>📋 What This Does:</h3>
             <ul>
-                <li>Adds <code>attribute_values</code> JSONB column to <code>items</code> table</li>
+                <li>Adds <code>attribute_data</code> JSONB column to <code>items</code> table</li>
                 <li>Allows storing dynamic attributes per item</li>
                 <li>Backward compatible - existing items continue working</li>
                 <li>Enables Phase 3 attribute functionality</li>
@@ -66,8 +68,8 @@ def show_migration_page():
             <ul>
                 <li>This is a <strong>one-time</strong> migration</li>
                 <li>Safe to run - only adds a column, doesn't modify data</li>
-                <li>Existing items will have <code>null</code> attribute values (OK!)</li>
-                <li>New items will populate attribute values automatically</li>
+                <li>Existing items will have <code>null</code> attribute data (OK!)</li>
+                <li>New items will populate attribute data automatically</li>
             </ul>
         </div>
         
@@ -109,7 +111,7 @@ def run_migration():
             SELECT column_name 
             FROM information_schema.columns 
             WHERE table_name = 'items' 
-            AND column_name = 'attribute_values'
+            AND column_name = 'attribute_data'
         """)).fetchone()
         
         if result:
@@ -136,7 +138,7 @@ def run_migration():
                 <body>
                     <div class="success">
                         <h2>✅ Column Already Exists</h2>
-                        <p>The <code>attribute_values</code> column is already present in the <code>items</code> table.</p>
+                        <p>The <code>attribute_data</code> column is already present in the <code>items</code> table.</p>
                         <p>No action needed!</p>
                     </div>
                     <a href="/admin/settings/item-attributes" class="btn">← Back to Attribute Settings</a>
@@ -147,19 +149,19 @@ def run_migration():
         # Add the column
         db.session.execute(text("""
             ALTER TABLE items 
-            ADD COLUMN attribute_values JSONB DEFAULT NULL
+            ADD COLUMN attribute_data JSONB DEFAULT NULL
         """))
         
         # Add comment
         db.session.execute(text("""
-            COMMENT ON COLUMN items.attribute_values IS 
+            COMMENT ON COLUMN items.attribute_data IS 
             'Dynamic attribute values stored as JSON. Example: {"brand": "Levis", "size": "32", "color": "Blue"}'
         """))
         
         # Create index for better query performance
         db.session.execute(text("""
-            CREATE INDEX idx_items_attribute_values 
-            ON items USING GIN (attribute_values)
+            CREATE INDEX idx_items_attribute_data 
+            ON items USING GIN (attribute_data)
         """))
         
         db.session.commit()
@@ -190,7 +192,7 @@ def run_migration():
                     <h2>✅ Migration Successful!</h2>
                     <p>The following changes have been applied:</p>
                     <ul>
-                        <li>✅ Added <code>attribute_values</code> JSONB column to <code>items</code> table</li>
+                        <li>✅ Added <code>attribute_data</code> JSONB column to <code>items</code> table</li>
                         <li>✅ Added GIN index for fast JSON queries</li>
                         <li>✅ Added column comment for documentation</li>
                     </ul>
