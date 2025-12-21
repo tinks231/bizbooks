@@ -259,7 +259,7 @@ def add_attribute():
 # EDIT ATTRIBUTE
 # ============================================================
 
-@item_attributes_settings_bp.route('/admin/settings/item-attributes/edit/<int:attr_id>', methods=['POST'])
+@item_attributes_settings_bp.route('/admin/settings/item-attributes/<int:attr_id>/edit', methods=['POST'])
 @require_tenant
 def edit_attribute(attr_id):
     """Edit an existing attribute"""
@@ -270,14 +270,18 @@ def edit_attribute(attr_id):
         
         # Update fields
         attr.attribute_name = request.form.get('attribute_name', attr.attribute_name)
-        attr.attribute_type = request.form.get('attribute_type', attr.attribute_type)
         attr.is_required = request.form.get('is_required') == 'true'
         attr.include_in_item_name = request.form.get('include_in_name') == 'true'
         
-        # Update dropdown options
-        dropdown_options_raw = request.form.get('dropdown_options', '')
-        if attr.attribute_type == 'dropdown' and dropdown_options_raw:
-            attr.dropdown_options = [opt.strip() for opt in dropdown_options_raw.split(',') if opt.strip()]
+        # Update dropdown options (comes as JSON string from frontend)
+        if attr.attribute_type == 'dropdown':
+            dropdown_options_json = request.form.get('dropdown_options', '[]')
+            try:
+                import json
+                options = json.loads(dropdown_options_json)
+                attr.dropdown_options = [opt.strip() for opt in options if opt and opt.strip()]
+            except:
+                flash('⚠️ Invalid dropdown options format', 'warning')
         
         attr.updated_at = datetime.now()
         db.session.commit()

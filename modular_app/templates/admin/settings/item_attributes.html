@@ -531,6 +531,9 @@
                     </div>
                 </div>
                 <div class="attribute-actions">
+                    <button class="btn-icon" onclick="openEditModal({{ attr.id }}, '{{ attr.attribute_name }}', '{{ attr.attribute_type }}', {{ attr.is_required|lower }}, {{ attr.dropdown_options|tojson if attr.dropdown_options else '[]' }}, {{ attr.include_in_item_name|lower }}, {{ attr.display_order }})" title="Edit">
+                        ✏️ Edit
+                    </button>
                     <form method="POST" action="{{ url_for('item_attributes_settings.delete_attribute', attr_id=attr.id) }}" style="display: inline; margin: 0;" onsubmit="return confirm('Delete this attribute? This cannot be undone.');">
                         <button type="submit" class="btn-icon" title="Delete">
                             🗑️ Delete
@@ -621,6 +624,67 @@
     </div>
 </div>
 
+<!-- Edit Attribute Modal -->
+<div id="editAttributeModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>✏️ Edit Attribute</h3>
+            <button class="modal-close" onclick="closeModal('editAttributeModal')">&times;</button>
+        </div>
+        <form method="POST" action="" id="editAttributeForm">
+            <input type="hidden" name="attribute_id" id="editAttributeId">
+            
+            <div class="form-group">
+                <label>Attribute Name*</label>
+                <input type="text" name="attribute_name" id="editAttributeName" class="form-control" required>
+            </div>
+            
+            <div class="form-group">
+                <label>Field Type*</label>
+                <select name="attribute_type" class="form-control" id="editAttributeType" onchange="toggleEditDropdownOptions()" disabled>
+                    <option value="text">Text</option>
+                    <option value="dropdown">Dropdown</option>
+                    <option value="number">Number</option>
+                    <option value="date">Date</option>
+                </select>
+                <small style="color: #999; font-size: 12px;">Type cannot be changed after creation</small>
+            </div>
+            
+            <div class="form-group" id="editDropdownOptionsGroup" style="display: none;">
+                <label>Dropdown Options</label>
+                <div id="dropdownOptionsEditor" style="margin-bottom: 10px;"></div>
+                <button type="button" class="btn-primary" onclick="addDropdownOption()" style="font-size: 13px; padding: 8px 16px;">
+                    + Add Option
+                </button>
+                <input type="hidden" name="dropdown_options" id="editDropdownOptionsHidden">
+            </div>
+            
+            <div class="form-group">
+                <div class="form-check">
+                    <input type="checkbox" name="is_required" value="true" id="editIsRequired">
+                    <label for="editIsRequired">Required field</label>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <div class="form-check">
+                    <input type="checkbox" name="include_in_name" value="true" id="editIncludeInName">
+                    <label for="editIncludeInName">Include in auto-generated item name</label>
+                </div>
+            </div>
+            
+            <div style="display: flex; gap: 10px; margin-top: 25px;">
+                <button type="button" class="btn-primary" onclick="closeModal('editAttributeModal')" style="background: #6c757d;">
+                    Cancel
+                </button>
+                <button type="submit" class="btn-primary" style="flex: 1;">
+                    Save Changes
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <script>
 function selectPreset(industryType) {
     if (confirm('Apply ' + industryType + ' preset? This will configure attributes automatically.')) {
@@ -641,6 +705,78 @@ function toggleDropdownOptions() {
     const type = document.getElementById('attributeType').value;
     const group = document.getElementById('dropdownOptionsGroup');
     group.style.display = type === 'dropdown' ? 'block' : 'none';
+}
+
+function toggleEditDropdownOptions() {
+    const type = document.getElementById('editAttributeType').value;
+    const group = document.getElementById('editDropdownOptionsGroup');
+    group.style.display = type === 'dropdown' ? 'block' : 'none';
+}
+
+let currentOptions = [];
+
+function openEditModal(id, name, type, isRequired, dropdownOptions, includeInName, order) {
+    document.getElementById('editAttributeId').value = id;
+    document.getElementById('editAttributeName').value = name;
+    document.getElementById('editAttributeType').value = type;
+    document.getElementById('editIsRequired').checked = isRequired;
+    document.getElementById('editIncludeInName').checked = includeInName;
+    
+    // Update form action
+    document.getElementById('editAttributeForm').action = '/admin/settings/item-attributes/' + id + '/edit';
+    
+    // Handle dropdown options
+    currentOptions = dropdownOptions || [];
+    if (type === 'dropdown') {
+        document.getElementById('editDropdownOptionsGroup').style.display = 'block';
+        renderDropdownOptions();
+    } else {
+        document.getElementById('editDropdownOptionsGroup').style.display = 'none';
+    }
+    
+    document.getElementById('editAttributeModal').style.display = 'block';
+}
+
+function renderDropdownOptions() {
+    const container = document.getElementById('dropdownOptionsEditor');
+    container.innerHTML = '';
+    
+    currentOptions.forEach((option, index) => {
+        const optionDiv = document.createElement('div');
+        optionDiv.style.cssText = 'display: flex; gap: 8px; margin-bottom: 8px; align-items: center;';
+        optionDiv.innerHTML = `
+            <input type="text" value="${option}" class="form-control" style="flex: 1;" 
+                   onchange="updateOption(${index}, this.value)">
+            <button type="button" class="btn-icon" onclick="removeOption(${index})" 
+                    style="color: #dc3545; font-size: 18px; padding: 8px;">
+                ✖️
+            </button>
+        `;
+        container.appendChild(optionDiv);
+    });
+    
+    // Update hidden field
+    document.getElementById('editDropdownOptionsHidden').value = JSON.stringify(currentOptions);
+}
+
+function addDropdownOption() {
+    const newOption = prompt('Enter new option:');
+    if (newOption && newOption.trim()) {
+        currentOptions.push(newOption.trim());
+        renderDropdownOptions();
+    }
+}
+
+function updateOption(index, value) {
+    currentOptions[index] = value;
+    document.getElementById('editDropdownOptionsHidden').value = JSON.stringify(currentOptions);
+}
+
+function removeOption(index) {
+    if (confirm('Remove this option?')) {
+        currentOptions.splice(index, 1);
+        renderDropdownOptions();
+    }
 }
 
 // Close modal when clicking outside
