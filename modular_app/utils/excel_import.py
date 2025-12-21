@@ -947,6 +947,51 @@ def import_inventory_from_excel(file, tenant_id):
                         stock_value=(float(stock) if stock else 0.0) * (float(cost_price) if cost_price else 0.0)
                     )
                     db.session.add(item_stock)
+                    
+                    # ✅ Create accounting entries per item (like manual item creation)
+                    if item.opening_stock > 0:
+                        from models.bank_account import AccountTransaction
+                        from datetime import datetime
+                        from decimal import Decimal
+                        import pytz
+                        
+                        ist = pytz.timezone('Asia/Kolkata')
+                        now = datetime.now(ist)
+                        opening_stock_value = item.opening_stock_value
+                        
+                        # Entry 1: DEBIT Inventory (Stock on Hand)
+                        inventory_transaction = AccountTransaction(
+                            tenant_id=tenant_id,
+                            account_id=None,
+                            transaction_date=now.date(),
+                            transaction_type='inventory_opening_debit',
+                            debit_amount=opening_stock_value,
+                            credit_amount=Decimal('0'),
+                            balance_after=opening_stock_value,
+                            reference_type='item',
+                            reference_id=item.id,
+                            narration=f'Bulk import - {item.name} ({item.opening_stock} {item.unit} @ ₹{item.cost_price})',
+                            created_at=now,
+                            created_by=None
+                        )
+                        db.session.add(inventory_transaction)
+                        
+                        # Entry 2: CREDIT Owner's Capital - Inventory Opening
+                        equity_transaction = AccountTransaction(
+                            tenant_id=tenant_id,
+                            account_id=None,
+                            transaction_date=now.date(),
+                            transaction_type='opening_balance_inventory_equity',
+                            debit_amount=Decimal('0'),
+                            credit_amount=opening_stock_value,
+                            balance_after=opening_stock_value,
+                            reference_type='item',
+                            reference_id=item.id,
+                            narration=f'Bulk import equity - {item.name}',
+                            created_at=now,
+                            created_by=None
+                        )
+                        db.session.add(equity_transaction)
                 
                 success_count += 1
                 
@@ -954,72 +999,8 @@ def import_inventory_from_excel(file, tenant_id):
                 errors.append(f"Row {row_num}: {str(e)}")
                 continue
         
-        if success_count > 0:
-            # ✅ CRITICAL FIX: Create double-entry accounting entries for inventory import
-            # This ensures trial balance stays balanced automatically!
-            try:
-                from models.bank_account import AccountTransaction
-                from models import ItemStock
-                from datetime import datetime
-                import pytz
-                
-                ist = pytz.timezone('Asia/Kolkata')
-                current_date = datetime.now(ist).date()
-                
-                # Calculate total inventory value imported
-                total_inventory_value = 0.0
-                inventory_stocks = ItemStock.query.filter_by(tenant_id=tenant_id).all()
-                for stock in inventory_stocks:
-                    total_inventory_value += stock.stock_value or 0.0
-                
-                # Check if opening equity entry already exists for today
-                existing_equity = AccountTransaction.query.filter_by(
-                    tenant_id=tenant_id,
-                    transaction_type='opening_balance_inventory_equity',
-                    transaction_date=current_date
-                ).first()
-                
-                if not existing_equity and total_inventory_value > 0:
-                    # Generate voucher number
-                    voucher_number = f"OB-INV-{tenant_id}-{current_date.strftime('%Y%m%d')}"
-                    
-                    # DEBIT: Inventory (Asset) - increases asset
-                    inventory_debit = AccountTransaction(
-                        tenant_id=tenant_id,
-                        account_id=None,  # Special system account
-                        transaction_type='inventory_opening_debit',
-                        transaction_date=current_date,
-                        debit_amount=total_inventory_value,
-                        credit_amount=0.0,
-                        description=f"Bulk Import - Inventory Opening (₹{total_inventory_value:,.2f} worth of stock)",
-                        voucher_number=voucher_number,
-                        created_at=datetime.now(ist)
-                    )
-                    
-                    # CREDIT: Owner's Capital - Inventory Opening (Equity) - increases equity
-                    equity_credit = AccountTransaction(
-                        tenant_id=tenant_id,
-                        account_id=None,  # Special system account
-                        transaction_type='opening_balance_inventory_equity',
-                        transaction_date=current_date,
-                        debit_amount=0.0,
-                        credit_amount=total_inventory_value,
-                        description=f"Opening Balance - Inventory Equity (₹{total_inventory_value:,.2f} worth of stock)",
-                        voucher_number=voucher_number,
-                        created_at=datetime.now(ist)
-                    )
-                    
-                    db.session.add(inventory_debit)
-                    db.session.add(equity_credit)
-                    
-                    print(f"✅ Created accounting entries for inventory import: ₹{total_inventory_value:,.2f}")
-                
-            except Exception as e:
-                print(f"⚠️ Warning: Could not create accounting entries: {str(e)}")
-                # Don't fail the import if accounting entries fail
-                pass
-            
-            db.session.commit()
+        # Commit all items at once
+        db.session.commit()
         
         return success_count, errors
         
