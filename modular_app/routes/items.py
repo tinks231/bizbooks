@@ -387,7 +387,7 @@ def add():
                 # 2. CREDIT: Owner's Capital - Inventory Opening - Equity increases
                 # ═══════════════════════════════════════════════════════════════════
                 
-                from models.account_transaction import AccountTransaction
+                from models.bank_account import AccountTransaction
                 from datetime import datetime
                 import pytz
                 
