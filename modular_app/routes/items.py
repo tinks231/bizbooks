@@ -629,7 +629,7 @@ def delete(item_id):
         ItemStockMovement.query.filter_by(item_id=item_id, tenant_id=tenant_id).delete()
         
         # ✅ FIX: Delete any accounting transactions related to this item
-        from models.account_transaction import AccountTransaction
+        from models.bank_account import AccountTransaction
         AccountTransaction.query.filter_by(
             reference_type='item',
             reference_id=item_id,
