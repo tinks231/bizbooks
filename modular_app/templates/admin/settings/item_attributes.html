@@ -531,7 +531,9 @@
                     </div>
                 </div>
                 <div class="attribute-actions">
-                    <button class="btn-icon" onclick="openEditModal({{ attr.id }}, '{{ attr.attribute_name }}', '{{ attr.attribute_type }}', {{ attr.is_required|lower }}, {{ attr.dropdown_options|tojson if attr.dropdown_options else '[]' }}, {{ attr.include_in_item_name|lower }}, {{ attr.display_order }})" title="Edit">
+                    <button class="btn-icon" 
+                            onclick='openEditModal({{ attr.id }}, "{{ attr.attribute_name }}", "{{ attr.attribute_type }}", {{ attr.is_required|lower }}, {{ attr.dropdown_options|tojson|safe }}, {{ attr.include_in_item_name|lower }}, {{ attr.display_order }})' 
+                            title="Edit">
                         ✏️ Edit
                     </button>
                     <form method="POST" action="{{ url_for('item_attributes_settings.delete_attribute', attr_id=attr.id) }}" style="display: inline; margin: 0;" onsubmit="return confirm('Delete this attribute? This cannot be undone.');">
@@ -716,6 +718,8 @@ function toggleEditDropdownOptions() {
 let currentOptions = [];
 
 function openEditModal(id, name, type, isRequired, dropdownOptions, includeInName, order) {
+    console.log('🔧 Opening Edit Modal:', {id, name, type, isRequired, dropdownOptions, includeInName, order});
+    
     document.getElementById('editAttributeId').value = id;
     document.getElementById('editAttributeName').value = name;
     document.getElementById('editAttributeType').value = type;
@@ -727,10 +731,15 @@ function openEditModal(id, name, type, isRequired, dropdownOptions, includeInNam
     
     // Handle dropdown options
     currentOptions = dropdownOptions || [];
+    console.log('📋 Current options:', currentOptions);
+    console.log('📝 Type:', type);
+    
     if (type === 'dropdown') {
+        console.log('✅ Type is dropdown, showing options editor');
         document.getElementById('editDropdownOptionsGroup').style.display = 'block';
         renderDropdownOptions();
     } else {
+        console.log('❌ Type is not dropdown, hiding options editor');
         document.getElementById('editDropdownOptionsGroup').style.display = 'none';
     }
     
