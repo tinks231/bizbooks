@@ -389,6 +389,7 @@ def add():
                 
                 from models.bank_account import AccountTransaction
                 from datetime import datetime
+                from decimal import Decimal
                 import pytz
                 
                 ist = pytz.timezone('Asia/Kolkata')
