@@ -378,6 +378,61 @@ def add():
                             created_by='System'
                         )
                         db.session.add(movement)
+                
+                # ═══════════════════════════════════════════════════════════════════
+                # 📊 DOUBLE-ENTRY ACCOUNTING: Opening Stock Added
+                # ═══════════════════════════════════════════════════════════════════
+                # When opening stock is set, we need to record:
+                # 1. DEBIT:  Inventory (Stock on Hand) - Asset increases
+                # 2. CREDIT: Owner's Capital - Inventory Opening - Equity increases
+                # ═══════════════════════════════════════════════════════════════════
+                
+                from models.account_transaction import AccountTransaction
+                from datetime import datetime
+                import pytz
+                
+                ist = pytz.timezone('Asia/Kolkata')
+                now = datetime.now(ist)
+                
+                opening_stock_value = item.opening_stock_value
+                
+                # Entry 1: DEBIT Inventory (Stock on Hand) - Asset increases
+                inventory_transaction = AccountTransaction(
+                    tenant_id=tenant_id,
+                    account_id=None,  # Virtual account
+                    transaction_date=now.date(),
+                    transaction_type='inventory_opening',
+                    debit_amount=opening_stock_value,
+                    credit_amount=Decimal('0'),
+                    balance_after=opening_stock_value,
+                    reference_type='item',
+                    reference_id=item.id,
+                    narration=f'Opening stock - {item.name} ({item.opening_stock} {item.unit} @ ₹{item.cost_price})',
+                    created_at=now,
+                    created_by=current_user.id if current_user and current_user.is_authenticated else None
+                )
+                db.session.add(inventory_transaction)
+                
+                # Entry 2: CREDIT Owner's Capital - Inventory Opening - Equity increases
+                equity_transaction = AccountTransaction(
+                    tenant_id=tenant_id,
+                    account_id=None,  # Virtual account
+                    transaction_date=now.date(),
+                    transaction_type='inventory_opening_equity',
+                    debit_amount=Decimal('0'),
+                    credit_amount=opening_stock_value,
+                    balance_after=opening_stock_value,
+                    reference_type='item',
+                    reference_id=item.id,
+                    narration=f'Opening stock equity - {item.name}',
+                    created_at=now,
+                    created_by=current_user.id if current_user and current_user.is_authenticated else None
+                )
+                db.session.add(equity_transaction)
+                
+                print(f"✅ Created opening stock accounting entries for {item.name}:")
+                print(f"   DEBIT  Inventory (Stock on Hand): ₹{opening_stock_value:,.2f}")
+                print(f"   CREDIT Owner's Capital - Inventory Opening: ₹{opening_stock_value:,.2f}")
             
             db.session.commit()
             
