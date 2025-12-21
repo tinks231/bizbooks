@@ -153,6 +153,7 @@ from routes.comprehensive_diagnosis import comprehensive_diagnosis_bp  # DIAGNOS
 from routes.compare_trial_balance import compare_trial_balance_bp  # DIAGNOSTIC: Compare transactions vs fallback tables
 from routes.inventory_changes import inventory_changes_bp  # DIAGNOSTIC: Show inventory changes
 from routes.comprehensive_double_entry_migration import comprehensive_double_entry_migration_bp  # MIGRATION: Fix all data with double-entry
+from routes.create_attribute_tables import create_attribute_tables_bp  # MIGRATION: Create variant attributes tables
 from routes.debug_equity import debug_equity_bp  # DEBUG: Check equity entries
 from routes.fix_inventory_equity_mismatch import fix_inventory_equity_mismatch_bp  # FIX: Adjust inventory equity when stock value changes
 from routes.fix_inventory_double_entry import fix_inventory_double_entry_bp  # FIX: Create missing inventory asset DEBIT entries
@@ -228,6 +229,7 @@ app.register_blueprint(comprehensive_diagnosis_bp)  # DIAGNOSTIC: Complete break
 app.register_blueprint(compare_trial_balance_bp)  # DIAGNOSTIC: Compare sources
 app.register_blueprint(inventory_changes_bp)  # DIAGNOSTIC: Inventory changes
 app.register_blueprint(comprehensive_double_entry_migration_bp)  # MIGRATION: Fix all data
+app.register_blueprint(create_attribute_tables_bp)  # MIGRATION: Create variant attributes tables
 app.register_blueprint(debug_equity_bp)  # DEBUG: Check equity
 app.register_blueprint(fix_inventory_equity_mismatch_bp)  # FIX: Adjust inventory equity mismatch
 app.register_blueprint(fix_inventory_double_entry_bp)  # FIX: Create missing inventory asset DEBIT entries

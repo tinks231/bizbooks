@@ -42,6 +42,7 @@ from .customer_loyalty_points import CustomerLoyaltyPoints
 from .loyalty_transaction import LoyaltyTransaction
 from .return_model import Return
 from .return_item import ReturnItem
+from .item_attribute import ItemAttribute, ItemAttributeValue, TenantAttributeConfig
 
 # Create Party alias for Customer (for unified party management)
 Party = Customer
@@ -67,6 +68,7 @@ __all__ = [
     'CustomerOrder', 'CustomerOrderItem',
     'BankAccount', 'AccountTransaction',
     'LoyaltyProgram', 'CustomerLoyaltyPoints', 'LoyaltyTransaction',
-    'Return', 'ReturnItem'
+    'Return', 'ReturnItem',
+    'ItemAttribute', 'ItemAttributeValue', 'TenantAttributeConfig'
 ]
 
