@@ -2449,35 +2449,46 @@ def trial_balance():
     
     # 11. Owner's Equity / Capital (from Opening Balance Equity - Credit Balance)
     # These are entries with account_id = NULL and transaction_type in:
-    # - 'opening_balance_equity' (for cash/bank opening)
-    # - 'opening_balance_inventory_equity' (for inventory opening)
+    # - 'opening_balance_equity' (for cash/bank opening - group by narration for separate lines)
+    # - 'opening_balance_inventory_equity' (for inventory opening - aggregate all together)
+    #
+    # ✅ FIX: Use CASE statement to handle inventory vs cash/bank differently
     equity_entries = db.session.execute(text("""
         SELECT 
             transaction_type,
-            narration,
+            CASE 
+                WHEN transaction_type = 'opening_balance_inventory_equity' THEN 'Inventory Opening'
+                ELSE narration
+            END as grouping_key,
             SUM(credit_amount - debit_amount) as net_credit
         FROM account_transactions
         WHERE tenant_id = :tenant_id 
         AND account_id IS NULL
         AND transaction_type IN ('opening_balance_equity', 'opening_balance_inventory_equity')
         AND transaction_date <= :as_of_date
-        GROUP BY transaction_type, narration
-        ORDER BY transaction_type, narration
+        GROUP BY transaction_type, grouping_key
+        ORDER BY transaction_type, grouping_key
     """), {'tenant_id': tenant_id, 'as_of_date': as_of_date}).fetchall()
     
     for equity in equity_entries:
         transaction_type = equity[0]
-        narration = equity[1]
+        grouping_key = equity[1]
         net_amount = Decimal(str(equity[2]))
         
         if net_amount != 0:
-            # Create descriptive account name based on narration
-            if 'Inventory' in narration or transaction_type == 'opening_balance_inventory_equity':
+            # Create descriptive account name
+            if transaction_type == 'opening_balance_inventory_equity':
+                # All inventory opening entries aggregated as ONE line
                 account_label = "Owner's Capital - Inventory Opening"
-            elif 'Cash' in narration or 'cash' in narration.lower():
-                account_label = "Owner's Capital - Cash Opening"
-            elif 'Bank' in narration or any(bank in narration for bank in ['ICICI', 'HDFC', 'SBI', 'Axis']):
-                account_label = "Owner's Capital - Bank Opening"
+            elif transaction_type == 'opening_balance_equity':
+                # Cash/Bank opening - use narration to distinguish
+                narration = grouping_key
+                if 'Cash' in narration or 'cash' in narration.lower():
+                    account_label = "Owner's Capital - Cash Opening"
+                elif 'Bank' in narration or any(bank in narration for bank in ['ICICI', 'HDFC', 'SBI', 'Axis']):
+                    account_label = "Owner's Capital - Bank Opening"
+                else:
+                    account_label = "Owner's Capital - Opening Balance"
             else:
                 account_label = "Owner's Capital - Opening Balance"
             
