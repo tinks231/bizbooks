@@ -126,6 +126,11 @@ class Item(db.Model, TimestampMixin):
     is_active = db.Column(db.Boolean, default=True)
     is_returnable = db.Column(db.Boolean, default=True)
     
+    # ===== Dynamic Attributes (Phase 3 - Variant System) =====
+    # Stores custom attribute values as JSON: {"brand": "Levi's", "size": "32", "color": "Blue"}
+    # Allows multi-industry support without schema changes
+    attribute_values = db.Column(db.JSON, default=None)
+    
     # ===== Metadata =====
     created_by = db.Column(db.String(100))
     
@@ -150,6 +155,26 @@ class Item(db.Model, TimestampMixin):
     def get_stock_value(self):
         """Calculate total stock value"""
         return self.get_total_stock() * self.cost_price
+    
+    def get_attribute_value(self, attribute_name):
+        """Get a specific attribute value"""
+        if not self.attribute_values:
+            return None
+        return self.attribute_values.get(attribute_name)
+    
+    def set_attribute_value(self, attribute_name, value):
+        """Set a specific attribute value"""
+        if self.attribute_values is None:
+            self.attribute_values = {}
+        self.attribute_values[attribute_name] = value
+    
+    def get_all_attributes(self):
+        """Get all attribute values as dict"""
+        return self.attribute_values or {}
+    
+    def has_attributes(self):
+        """Check if item has any attribute values"""
+        return bool(self.attribute_values)
 
 
 class ItemImage(db.Model):
