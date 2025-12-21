@@ -6,7 +6,6 @@ from flask import Blueprint, jsonify, render_template_string
 from models import db
 from sqlalchemy import text
 from utils.tenant_middleware import require_tenant
-from flask_login import login_required
 
 create_attribute_tables_bp = Blueprint('create_attribute_tables', __name__)
 
