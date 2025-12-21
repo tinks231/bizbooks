@@ -390,14 +390,12 @@ def add():
                 from models.bank_account import AccountTransaction
                 from datetime import datetime
                 from decimal import Decimal
-                from flask import session
                 import pytz
                 
                 ist = pytz.timezone('Asia/Kolkata')
                 now = datetime.now(ist)
                 
                 opening_stock_value = item.opening_stock_value
-                created_by_user = session.get('tenant_admin_id')  # Get from session, not flask_login
                 
                 # Entry 1: DEBIT Inventory (Stock on Hand) - Asset increases
                 inventory_transaction = AccountTransaction(
@@ -412,7 +410,7 @@ def add():
                     reference_id=item.id,
                     narration=f'Opening stock - {item.name} ({item.opening_stock} {item.unit} @ ₹{item.cost_price})',
                     created_at=now,
-                    created_by=created_by_user
+                    created_by=None  # System-generated opening stock entry
                 )
                 db.session.add(inventory_transaction)
                 
@@ -429,7 +427,7 @@ def add():
                     reference_id=item.id,
                     narration=f'Opening stock equity - {item.name}',
                     created_at=now,
-                    created_by=created_by_user
+                    created_by=None  # System-generated opening stock entry
                 )
                 db.session.add(equity_transaction)
                 
