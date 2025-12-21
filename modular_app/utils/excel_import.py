@@ -172,42 +172,51 @@ def create_inventory_template(tenant_id=None):
     # ✨ AUTO-GENERATE ITEM NAME FROM ATTRIBUTES (Excel Formula)
     if attribute_columns and attr_col_letters:
         # Build formula: =TRIM(D2&" "&E2&" "&F2&...)
-        formula_parts = [f"{col}2" for col in attr_col_letters]
+        # Apply to rows 2-1000 so it auto-copies
         separator = ' & " " & '
-        formula = f'=TRIM({separator.join(formula_parts)})'
         
-        item_name_cell = ws.cell(row=2, column=1)
-        item_name_cell.value = formula
-        item_name_cell.fill = PatternFill(start_color="FFF2CC", end_color="FFF2CC", fill_type="solid")
-        item_name_cell.font = Font(italic=True, color="666666")
+        for row_num in range(2, 101):  # Apply to first 100 rows (sample + data)
+            formula_parts = [f"{col}{row_num}" for col in attr_col_letters]
+            formula = f'=TRIM({separator.join(formula_parts)})'
+            
+            item_name_cell = ws.cell(row=row_num, column=1)
+            item_name_cell.value = formula
+            if row_num == 2:  # Highlight sample row
+                item_name_cell.fill = PatternFill(start_color="FFF2CC", end_color="FFF2CC", fill_type="solid")
+                item_name_cell.font = Font(italic=True, color="666666")
     
     # ✨ ADD DATA VALIDATION (Dropdowns)
     from openpyxl.worksheet.datavalidation import DataValidation
     
-    # 1. Unit dropdown validation
+    # 1. Unit dropdown validation (ALL units from system)
     unit_col_idx = 3 + len(attribute_columns) + 3  # After attrs, then Category, Group, Unit
     unit_col_letter = chr(ord('A') + unit_col_idx - 1)
     
-    unit_options = '"Pcs,Kg,Gram,Liter,Ml,Box,Bag,Meter,Cm,Pair,Set,Dozen"'
+    # Complete list of units from item form
+    unit_options = '"Nos,Pcs,Dozen,Kg,Qtl,Ton,Gram,Liter,Ml,Meter,Cm,Ft,Sqm,Cum,Cft,Box,Bag,Packet,Bundle,Pair,Set"'
     unit_dv = DataValidation(type="list", formula1=unit_options, allow_blank=False)
-    unit_dv.error = 'Invalid Unit! Choose from: Pcs, Kg, Gram, Liter, Ml, Box, Bag, Meter, Cm, Pair, Set, Dozen'
+    unit_dv.error = 'Invalid Unit! Choose from dropdown or type: Nos, Pcs, Dozen, Kg, Qtl, Ton, Gram, Liter, Ml, Meter, Cm, Ft, Sqm, Cum, Cft, Box, Bag, Packet, Bundle, Pair, Set'
     unit_dv.errorTitle = 'Invalid Unit'
+    unit_dv.promptTitle = 'Select Unit'
+    unit_dv.prompt = 'Choose a unit from the dropdown'
     ws.add_data_validation(unit_dv)
     unit_dv.add(f'{unit_col_letter}2:{unit_col_letter}1000')
     
-    # 2. Attribute dropdowns
+    # 2. Attribute dropdowns (SOFT - only for attributes with options)
     for idx, attr in enumerate(attribute_columns):
-        if attr['options']:  # Only for dropdown type attributes
+        if attr['options']:  # Only add dropdown if options are configured
             col_letter = attr_col_letters[idx]
             options_str = ','.join(attr['options'])
             
+            # SOFT DROPDOWN: Shows warning but allows free text
             attr_dv = DataValidation(
                 type="list",
                 formula1=f'"{options_str}"',
-                allow_blank=not attr['required']
+                allow_blank=True,  # Allow empty
+                showErrorMessage=False  # ✨ SOFT: Show warning, but allow anyway
             )
-            attr_dv.error = f"Invalid {attr['name']}! Choose from: {', '.join(attr['options'][:5])}"
-            attr_dv.errorTitle = f"Invalid {attr['name']}"
+            attr_dv.promptTitle = f'Select {attr["name"]}'
+            attr_dv.prompt = f'Suggested: {", ".join(attr["options"][:5])}{"..." if len(attr["options"]) > 5 else ""}\n\nYou can also type a new value.'
             ws.add_data_validation(attr_dv)
             attr_dv.add(f'{col_letter}2:{col_letter}1000')
     
