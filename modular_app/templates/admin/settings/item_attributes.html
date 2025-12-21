@@ -490,10 +490,16 @@
             <span style="color: #1976d2; font-weight: 600; margin-left: 8px;">
                 {{ industry_presets[config.industry_type].name if config.industry_type in industry_presets else config.industry_type }}
             </span>
+            {% if items_with_attributes > 0 %}
+            <span class="badge badge-success" style="margin-left: 10px;">{{ items_with_attributes }} items using attributes</span>
+            {% endif %}
         </div>
-        {% if items_with_attributes > 0 %}
-        <span class="badge badge-success">{{ items_with_attributes }} items using attributes</span>
-        {% endif %}
+        <form method="POST" action="{{ url_for('item_attributes_settings.toggle_system') }}" style="margin: 0;">
+            <input type="hidden" name="enabled" value="false">
+            <button type="submit" class="btn-primary" style="background: #dc3545; font-size: 13px; padding: 8px 16px;" onclick="return confirm('Disable attribute system? Existing attributes will be preserved but hidden.');">
+                ⚠️ Disable System
+            </button>
+        </form>
     </div>
     {% endif %}
     
@@ -525,12 +531,9 @@
                     </div>
                 </div>
                 <div class="attribute-actions">
-                    <button class="btn-icon" onclick="editAttribute({{ attr.id }})" title="Edit">
-                        ✏️
-                    </button>
-                    <form method="POST" action="{{ url_for('item_attributes_settings.delete_attribute', attr_id=attr.id) }}" style="display: inline; margin: 0;" onsubmit="return confirm('Delete this attribute?');">
+                    <form method="POST" action="{{ url_for('item_attributes_settings.delete_attribute', attr_id=attr.id) }}" style="display: inline; margin: 0;" onsubmit="return confirm('Delete this attribute? This cannot be undone.');">
                         <button type="submit" class="btn-icon" title="Delete">
-                            🗑️
+                            🗑️ Delete
                         </button>
                     </form>
                 </div>
