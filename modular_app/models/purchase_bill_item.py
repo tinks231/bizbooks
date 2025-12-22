@@ -46,11 +46,14 @@ class PurchaseBillItem(db.Model, TimestampMixin):
     selling_price = db.Column(db.Numeric(15, 2))  # Selling price for new item
     mrp = db.Column(db.Numeric(15, 2))  # MRP for new item
     category_id = db.Column(db.Integer, db.ForeignKey('item_categories.id'), nullable=True)  # Category for new item
+    group_id = db.Column(db.Integer, db.ForeignKey('item_groups.id'), nullable=True)  # Group for new item
+    attribute_data_json = db.Column(db.Text)  # JSON string of attributes for new item
     
     # Relationships
     item = db.relationship('Item', backref='purchase_bill_items', foreign_keys=[item_id])
     site = db.relationship('Site', backref='purchase_bill_items', foreign_keys=[site_id])
     category = db.relationship('ItemCategory', backref='purchase_bill_items', foreign_keys=[category_id])
+    group = db.relationship('ItemGroup', backref='purchase_bill_items', foreign_keys=[group_id])
     
     def __repr__(self):
         return f'<PurchaseBillItem {self.item_name} - {self.quantity}>'

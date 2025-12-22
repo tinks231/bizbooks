@@ -327,10 +327,9 @@ def create_bill():
                     line_item.category_id = int(new_item_categories[i]) if (i < len(new_item_categories) and new_item_categories[i]) else None
                     line_item.group_id = int(new_item_groups[i]) if (i < len(new_item_groups) and new_item_groups[i]) else None
                     
-                    # Store attributes as JSON string in description field (temporary)
-                    # We'll parse this when creating the actual item on approval
+                    # Store attributes as JSON string in dedicated field
                     if i < len(new_item_attributes) and new_item_attributes[i]:
-                        line_item.description = new_item_attributes[i]  # Store JSON string temporarily
+                        line_item.attribute_data_json = new_item_attributes[i]  # Store JSON string
                     
                     line_item.item_id = None  # No existing item
                 else:
@@ -748,21 +747,21 @@ def approve_bill(bill_id):
                     
                     # Category and Group
                     new_item.category_id = line_item.category_id
-                    new_item.group_id = line_item.group_id if hasattr(line_item, 'group_id') else None
+                    new_item.group_id = line_item.group_id
                     
                     # Discount
-                    new_item.discount_percentage = float(line_item.discount_percentage) if hasattr(line_item, 'discount_percentage') and line_item.discount_percentage else 0.0
+                    new_item.discount_percentage = float(line_item.discount_percentage) if line_item.discount_percentage else 0.0
                     
-                    # Attributes - Parse from description field (stored as JSON string)
-                    if line_item.description:
+                    # Attributes - Parse from attribute_data_json field
+                    if hasattr(line_item, 'attribute_data_json') and line_item.attribute_data_json:
                         try:
                             import json
-                            attributes_data = json.loads(line_item.description)
+                            attributes_data = json.loads(line_item.attribute_data_json)
                             if isinstance(attributes_data, dict) and attributes_data:
                                 new_item.attribute_data = attributes_data
                                 print(f"✅ Set attributes: {attributes_data}")
-                        except (json.JSONDecodeError, ValueError):
-                            # Not JSON, might be regular description
+                        except (json.JSONDecodeError, ValueError) as e:
+                            print(f"⚠️ Failed to parse attributes: {e}")
                             pass
                     
                     # Inventory tracking
