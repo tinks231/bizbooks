@@ -1,5 +1,5 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, g, jsonify, session
-from models import db, PurchaseBill, PurchaseBillItem, Vendor, Item, ItemStock, Site, Tenant, VendorPayment, PaymentAllocation, ItemCategory, AccountTransaction
+from models import db, PurchaseBill, PurchaseBillItem, Vendor, Item, ItemStock, Site, Tenant, VendorPayment, PaymentAllocation, ItemCategory, ItemGroup, AccountTransaction
 from sqlalchemy import func, text
 from utils.tenant_middleware import get_current_tenant_id
 from utils.license_check import check_license
@@ -259,7 +259,9 @@ def create_bill():
             new_item_skus = request.form.getlist('new_item_sku[]')
             new_item_sellings = request.form.getlist('new_item_selling[]')
             new_item_mrps = request.form.getlist('new_item_mrp[]')
+            new_item_discounts = request.form.getlist('new_item_discount[]')
             new_item_categories = request.form.getlist('new_item_category[]')
+            new_item_groups = request.form.getlist('new_item_group[]')
             
             # NEW: For updating existing items
             update_selling_flags = request.form.getlist('update_selling_price[]')
@@ -320,7 +322,9 @@ def create_bill():
                     line_item.sku = new_item_skus[i] if i < len(new_item_skus) else ''
                     line_item.selling_price = Decimal(new_item_sellings[i]) if (i < len(new_item_sellings) and new_item_sellings[i]) else None
                     line_item.mrp = Decimal(new_item_mrps[i]) if (i < len(new_item_mrps) and new_item_mrps[i]) else None
+                    line_item.discount_percentage = Decimal(new_item_discounts[i]) if (i < len(new_item_discounts) and new_item_discounts[i]) else Decimal('0')
                     line_item.category_id = int(new_item_categories[i]) if (i < len(new_item_categories) and new_item_categories[i]) else None
+                    line_item.group_id = int(new_item_groups[i]) if (i < len(new_item_groups) and new_item_groups[i]) else None
                     line_item.item_id = None  # No existing item
                 else:
                     # Link to existing item
@@ -403,6 +407,7 @@ def create_bill():
     sites = Site.query.filter_by(tenant_id=tenant_id).all()
     items = Item.query.filter_by(tenant_id=tenant_id).all()
     categories = ItemCategory.query.filter_by(tenant_id=tenant_id).order_by(ItemCategory.name).all()
+    groups = ItemGroup.query.filter_by(tenant_id=tenant_id).order_by(ItemGroup.name).all()
     
     # Convert items to JSON-serializable format
     items_json = [
@@ -450,6 +455,7 @@ def create_bill():
                          sites=sites,
                          items=items_json,
                          categories=categories,
+                         groups=groups,
                          today=date.today().strftime('%Y-%m-%d'))
 
 @purchase_bills_bp.route('/<int:bill_id>')
@@ -711,8 +717,12 @@ def approve_bill(bill_id):
                     new_item.gst_rate = float(line_item.gst_rate) if line_item.gst_rate else 18.0
                     new_item.tax_preference = f"GST@{new_item.gst_rate:.0f}%"
                     
-                    # Category
+                    # Category and Group
                     new_item.category_id = line_item.category_id
+                    new_item.group_id = line_item.group_id if hasattr(line_item, 'group_id') else None
+                    
+                    # Discount
+                    new_item.discount_percentage = float(line_item.discount_percentage) if hasattr(line_item, 'discount_percentage') and line_item.discount_percentage else 0.0
                     
                     # Inventory tracking
                     new_item.track_inventory = True
