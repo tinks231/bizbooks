@@ -262,6 +262,7 @@ def create_bill():
             new_item_discounts = request.form.getlist('new_item_discount[]')
             new_item_categories = request.form.getlist('new_item_category[]')
             new_item_groups = request.form.getlist('new_item_group[]')
+            new_item_attributes = request.form.getlist('new_item_attributes[]')
             
             # NEW: For updating existing items
             update_selling_flags = request.form.getlist('update_selling_price[]')
@@ -325,6 +326,12 @@ def create_bill():
                     line_item.discount_percentage = Decimal(new_item_discounts[i]) if (i < len(new_item_discounts) and new_item_discounts[i]) else Decimal('0')
                     line_item.category_id = int(new_item_categories[i]) if (i < len(new_item_categories) and new_item_categories[i]) else None
                     line_item.group_id = int(new_item_groups[i]) if (i < len(new_item_groups) and new_item_groups[i]) else None
+                    
+                    # Store attributes as JSON string in description field (temporary)
+                    # We'll parse this when creating the actual item on approval
+                    if i < len(new_item_attributes) and new_item_attributes[i]:
+                        line_item.description = new_item_attributes[i]  # Store JSON string temporarily
+                    
                     line_item.item_id = None  # No existing item
                 else:
                     # Link to existing item
@@ -409,6 +416,27 @@ def create_bill():
     categories = ItemCategory.query.filter_by(tenant_id=tenant_id).order_by(ItemCategory.name).all()
     groups = ItemGroup.query.filter_by(tenant_id=tenant_id).order_by(ItemGroup.name).all()
     
+    # Get configured item attributes (for Phase 3)
+    from models.item_attribute import ItemAttribute, TenantAttributeConfig
+    config = TenantAttributeConfig.query.filter_by(tenant_id=tenant_id).first()
+    attributes = []
+    if config and config.is_enabled:
+        attr_objects = ItemAttribute.query.filter_by(
+            tenant_id=tenant_id,
+            is_active=True
+        ).order_by(ItemAttribute.display_order).all()
+        
+        # Convert to dictionaries for JSON serialization
+        attributes = [{
+            'id': attr.id,
+            'attribute_name': attr.attribute_name,
+            'attribute_type': attr.attribute_type,
+            'is_required': attr.is_required,
+            'dropdown_options': attr.dropdown_options or [],
+            'include_in_item_name': attr.include_in_item_name,
+            'display_order': attr.display_order
+        } for attr in attr_objects]
+    
     # Convert items to JSON-serializable format
     items_json = [
         {
@@ -456,6 +484,7 @@ def create_bill():
                          items=items_json,
                          categories=categories,
                          groups=groups,
+                         attributes=attributes,
                          today=date.today().strftime('%Y-%m-%d'))
 
 @purchase_bills_bp.route('/<int:bill_id>')
@@ -723,6 +752,18 @@ def approve_bill(bill_id):
                     
                     # Discount
                     new_item.discount_percentage = float(line_item.discount_percentage) if hasattr(line_item, 'discount_percentage') and line_item.discount_percentage else 0.0
+                    
+                    # Attributes - Parse from description field (stored as JSON string)
+                    if line_item.description:
+                        try:
+                            import json
+                            attributes_data = json.loads(line_item.description)
+                            if isinstance(attributes_data, dict) and attributes_data:
+                                new_item.attribute_data = attributes_data
+                                print(f"✅ Set attributes: {attributes_data}")
+                        except (json.JSONDecodeError, ValueError):
+                            # Not JSON, might be regular description
+                            pass
                     
                     # Inventory tracking
                     new_item.track_inventory = True
