@@ -39,7 +39,7 @@ A trial balance is a report that lists **ALL accounts** with their **DEBIT and C
 - Rent Expenses
 - Commission Expenses
 - Sales 
-s (contra-revenue)
+`q2     qs (contra-revenue)
 
 ---
 

@@ -624,11 +624,22 @@ function searchItems(input, rowId) {
     
     if (filteredItems.length === 0) {
         dropdown.innerHTML = `
-            <div class="autocomplete-item" style="background: #fff3cd; color: #856404; cursor: default; border-left: 3px solid #ffc107;">
-                <div style="font-weight: 600;">📝 No matching items found</div>
-                <div style="font-size: 12px;">Continue typing to add "${input.value}" as a new item</div>
+            <div class="autocomplete-item create-new-item" 
+                 data-create-new="true" 
+                 data-item-name="${input.value.replace(/"/g, '&quot;')}"
+                 style="background: #e3f9e5; color: #2d5f3d; cursor: pointer; border-left: 3px solid #28a745; padding: 12px;">
+                <div style="font-weight: 600;">➕ Create new item: "${input.value}"</div>
+                <div style="font-size: 12px;">Click to add as new inventory item with this name</div>
             </div>
         `;
+        
+        // Add click listener for create new
+        dropdown.querySelector('.create-new-item').addEventListener('click', function() {
+            const itemName = this.dataset.itemName;
+            console.log('🆕 Create new item clicked:', itemName);
+            openCreateNewItemModal(input.closest('.item-row'), itemName);
+        });
+        
         dropdown.style.display = 'block';
         return;
     }
@@ -672,8 +683,27 @@ function searchItems(input, rowId) {
         dropdown.appendChild(div);
     });
     
+    // Add "Create new" option at the bottom
+    const createNewDiv = document.createElement('div');
+    createNewDiv.className = 'autocomplete-item create-new-item';
+    createNewDiv.style.cssText = 'background: #e3f9e5; color: #2d5f3d; cursor: pointer; border-left: 3px solid #28a745; border-top: 2px solid #28a745; padding: 12px; margin-top: 5px;';
+    createNewDiv.dataset.createNew = 'true';
+    createNewDiv.dataset.itemName = input.value;
+    createNewDiv.innerHTML = `
+        <div style="font-weight: 600;">➕ Create new: "${input.value}"</div>
+        <div style="font-size: 12px;">Click to add as new inventory item</div>
+    `;
+    
+    createNewDiv.addEventListener('click', function() {
+        const itemName = this.dataset.itemName;
+        console.log('🆕 Create new item clicked:', itemName);
+        openCreateNewItemModal(input.closest('.item-row'), itemName);
+    });
+    
+    dropdown.appendChild(createNewDiv);
+    
     dropdown.style.display = 'block';
-    console.log('✅ Dropdown shown with', filteredItems.length, 'items');
+    console.log('✅ Dropdown shown with', filteredItems.length, 'items + Create New option');
 }
 
 // Hide dropdown when clicking outside
@@ -691,6 +721,75 @@ document.addEventListener('click', function(e) {
 
 // Global variable to track which row we're working with
 let currentItemRow = null;
+
+// Open modal for creating new item (directly, not from existing item selection)
+function openCreateNewItemModal(row, itemName) {
+    currentItemRow = row;
+    
+    // Hide the dropdown
+    const dropdown = row.querySelector('.autocomplete-dropdown');
+    if (dropdown) {
+        dropdown.style.display = 'none';
+    }
+    
+    // Get the rate (cost) entered by user if any
+    const enteredRate = parseFloat(row.querySelector('.rate-input').value) || 0;
+    
+    // Populate modal with defaults for new item
+    document.getElementById('modal_item_name').textContent = itemName;
+    
+    // Clear existing item fields (N/A since this is new)
+    document.getElementById('modal_existing_sku').textContent = 'N/A';
+    document.getElementById('modal_existing_barcode').textContent = 'N/A';
+    document.getElementById('modal_existing_cost').textContent = '0.00';
+    document.getElementById('modal_existing_selling').textContent = '0.00';
+    document.getElementById('modal_existing_mrp').textContent = '0.00';
+    document.getElementById('modal_existing_stock').textContent = '0';
+    
+    // For create new mode - pre-fill with searched name
+    const today = new Date().toLocaleDateString('en-IN', { month: 'short', year: 'numeric' });
+    document.getElementById('modal_new_item_name').value = itemName;
+    document.getElementById('modal_new_cost').value = enteredRate || '';
+    
+    // Suggested markup
+    if (enteredRate > 0) {
+        document.getElementById('modal_new_selling').value = (enteredRate * 1.25).toFixed(2);
+        document.getElementById('modal_new_mrp').value = (enteredRate * 1.40).toFixed(2);
+    } else {
+        document.getElementById('modal_new_selling').value = '';
+        document.getElementById('modal_new_mrp').value = '';
+    }
+    
+    // Auto-generate SKU for new item
+    const lastItem = items.length > 0 ? items[items.length - 1] : null;
+    const lastSku = lastItem ? (lastItem.item_code || 'ITM-00000') : 'ITM-00000';
+    const skuNum = parseInt(lastSku.split('-').pop()) + 1;
+    document.getElementById('modal_new_sku').value = `ITM-${String(skuNum).padStart(5, '0')}`;
+    
+    // Reset warnings
+    document.getElementById('modal_mrp_warning').style.display = 'none';
+    document.getElementById('modal_update_mrp_warning').style.display = 'none';
+    
+    // FORCE "Create as NEW item" mode
+    document.getElementById('modal_action_create').checked = true;
+    document.getElementById('link_options').style.display = 'none';
+    document.getElementById('create_new_options').style.display = 'block';
+    
+    // HIDE the "Link to existing" option (since there's no existing item)
+    document.querySelector('input[name="modal_item_action"][value="link"]').closest('.card').style.display = 'none';
+    
+    // Store minimal data for applyItemAction
+    currentItemRow.dataset.itemId = '';
+    currentItemRow.dataset.itemHsn = '';
+    currentItemRow.dataset.itemUnit = 'Pcs';
+    currentItemRow.dataset.itemCost = enteredRate || 0;
+    currentItemRow.dataset.itemGstRate = 18;
+    
+    // Show modal
+    $('#itemActionModal').modal('show');
+    
+    console.log('✅ Opened create new item modal with pre-filled name:', itemName);
+}
 
 function selectItem(elem, id, name, hsn, unit, cost, gst_rate) {
     const row = elem.closest('.item-row');
@@ -763,6 +862,9 @@ function showItemActionModal(itemId, itemName, hsn, unit, cost, selling, mrp, st
     document.getElementById('modal_action_link').checked = true;
     document.getElementById('link_options').style.display = 'block';
     document.getElementById('create_new_options').style.display = 'none';
+    
+    // SHOW the "Link to existing" option (in case it was hidden)
+    document.querySelector('input[name="modal_item_action"][value="link"]').closest('.card').style.display = 'block';
     
     // Store item data for applyItemAction
     currentItemRow.dataset.itemId = itemId;
