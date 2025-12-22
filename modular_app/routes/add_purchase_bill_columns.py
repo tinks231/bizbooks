@@ -58,6 +58,13 @@ def show_migration_page():
             margin: 20px 0;
             border-radius: 4px;
         }
+        .error {
+            background: #f8d7da;
+            border-left: 4px solid #dc3545;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
         .btn {
             background: #007bff;
             color: white;
@@ -97,6 +104,16 @@ def show_migration_page():
     <div class="card">
         <h1>🔧 Purchase Bill Columns Migration</h1>
         <p>This migration adds support for <strong>Group</strong> and <strong>Attributes</strong> in purchase bills.</p>
+        
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="{{ category }}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
         
         <div class="info">
             <strong>📦 What This Migration Does:</strong>
@@ -145,33 +162,51 @@ def add_purchase_bill_columns():
     Add group_id and attribute_data_json columns to purchase_bill_items table
     NON-BREAKING: No changes to existing data
     """
+    import traceback
+    
     try:
+        print("\n🔧 Starting migration: Add purchase_bill_items columns...")
+        
         # Add group_id column
+        print("  → Adding group_id column...")
         db.session.execute(text("""
             ALTER TABLE purchase_bill_items 
             ADD COLUMN IF NOT EXISTS group_id INTEGER 
             REFERENCES item_groups(id);
         """))
+        print("  ✅ group_id column added")
         
         # Add attribute_data_json column
+        print("  → Adding attribute_data_json column...")
         db.session.execute(text("""
             ALTER TABLE purchase_bill_items 
             ADD COLUMN IF NOT EXISTS attribute_data_json TEXT;
         """))
+        print("  ✅ attribute_data_json column added")
         
         # Create index for group_id
+        print("  → Creating index on group_id...")
         db.session.execute(text("""
             CREATE INDEX IF NOT EXISTS idx_purchase_bill_items_group 
             ON purchase_bill_items(group_id);
         """))
+        print("  ✅ Index created")
         
         db.session.commit()
+        print("✅ Migration completed successfully!")
         
-        flash('✅ Migration completed! Columns added successfully.', 'success')
+        flash('✅ Migration completed! Columns added successfully. You can now use Group and Attributes in purchase bills.', 'success')
         return redirect(url_for('add_purchase_bill_columns.show_migration_page'))
         
     except Exception as e:
         db.session.rollback()
-        flash(f'❌ Migration failed: {str(e)}', 'error')
+        error_msg = str(e)
+        error_trace = traceback.format_exc()
+        
+        print(f"\n❌ Migration failed!")
+        print(f"Error: {error_msg}")
+        print(f"Traceback:\n{error_trace}")
+        
+        flash(f'❌ Migration failed: {error_msg}', 'error')
         return redirect(url_for('add_purchase_bill_columns.show_migration_page'))
 
