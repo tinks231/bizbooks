@@ -419,8 +419,13 @@
                                 
                                 <div id="create_new_options" style="margin-left: 30px; display:none;">
                                     <div class="form-group">
-                                        <label>New Item Name <span class="text-danger">*</span></label>
-                                        <input type="text" id="modal_new_item_name" 
+                                        <label>Item Name Preview 
+                                            <small class="text-muted">(auto-generated from attributes)</small>
+                                        </label>
+                                        <div id="item_name_preview" style="padding: 10px; background: #e3f2fd; border-radius: 4px; border-left: 3px solid #2196f3; font-weight: 600; color: #1565c0; margin-bottom: 10px;">
+                                            Loading...
+                                        </div>
+                                        <input type="hidden" id="modal_new_item_name" 
                                                class="form-control" placeholder="Item name">
                                     </div>
                                     <div class="row">
@@ -507,6 +512,8 @@
                                                         class="form-control attribute-field" 
                                                         data-attribute-name="{{ attr.attribute_name }}"
                                                         data-attribute-type="{{ attr.attribute_type }}"
+                                                        data-include-in-name="{{ attr.include_in_item_name }}"
+                                                        onchange="updateItemNamePreview()"
                                                         {% if attr.is_required %}required{% endif %}>
                                                         <option value="">Select {{ attr.attribute_name }}</option>
                                                         {% for option in attr.dropdown_options %}
@@ -519,6 +526,8 @@
                                                         class="form-control attribute-field" 
                                                         data-attribute-name="{{ attr.attribute_name }}"
                                                         data-attribute-type="{{ attr.attribute_type }}"
+                                                        data-include-in-name="{{ attr.include_in_item_name }}"
+                                                        oninput="updateItemNamePreview()"
                                                         placeholder="Enter {{ attr.attribute_name }}"
                                                         {% if attr.is_required %}required{% endif %}>
                                                 {% elif attr.attribute_type == 'date' %}
@@ -527,6 +536,8 @@
                                                         class="form-control attribute-field" 
                                                         data-attribute-name="{{ attr.attribute_name }}"
                                                         data-attribute-type="{{ attr.attribute_type }}"
+                                                        data-include-in-name="{{ attr.include_in_item_name }}"
+                                                        onchange="updateItemNamePreview()"
                                                         {% if attr.is_required %}required{% endif %}>
                                                 {% else %}
                                                     <input 
@@ -534,6 +545,8 @@
                                                         class="form-control attribute-field" 
                                                         data-attribute-name="{{ attr.attribute_name }}"
                                                         data-attribute-type="{{ attr.attribute_type }}"
+                                                        data-include-in-name="{{ attr.include_in_item_name }}"
+                                                        oninput="updateItemNamePreview()"
                                                         placeholder="Enter {{ attr.attribute_name }}"
                                                         {% if attr.is_required %}required{% endif %}>
                                                 {% endif %}
@@ -814,6 +827,53 @@ document.addEventListener('click', function(e) {
 // Global variable to track which row we're working with
 let currentItemRow = null;
 
+// Generate item name from attribute values (BIDIRECTIONAL SYNC)
+function updateItemNamePreview() {
+    if (!itemAttributes || itemAttributes.length === 0) {
+        return;
+    }
+    
+    // Collect attribute values that should be included in name
+    const nameParts = [];
+    
+    document.querySelectorAll('.attribute-field').forEach(field => {
+        const attrName = field.dataset.attributeName;
+        const includeInName = field.dataset.includeInName === 'True' || field.dataset.includeInName === 'true';
+        const value = field.value.trim();
+        
+        if (includeInName && value) {
+            nameParts.push(value);
+        }
+    });
+    
+    // Generate name
+    const generatedName = nameParts.join(' ');
+    
+    // Update preview and hidden field
+    const previewDiv = document.getElementById('item_name_preview');
+    const nameInput = document.getElementById('modal_new_item_name');
+    
+    if (previewDiv) {
+        if (generatedName) {
+            previewDiv.textContent = generatedName;
+            previewDiv.style.background = '#e3f9e5';
+            previewDiv.style.borderLeftColor = '#28a745';
+            previewDiv.style.color = '#2d5f3d';
+        } else {
+            previewDiv.textContent = 'Fill attributes to generate name...';
+            previewDiv.style.background = '#fff3cd';
+            previewDiv.style.borderLeftColor = '#ffc107';
+            previewDiv.style.color = '#856404';
+        }
+    }
+    
+    if (nameInput) {
+        nameInput.value = generatedName;
+    }
+    
+    console.log('📝 Item name updated:', generatedName);
+}
+
 // Parse item name and auto-fill attributes
 function parseItemNameForAttributes(itemName) {
     // This function attempts to extract attribute values from the item name
@@ -890,6 +950,12 @@ function openCreateNewItemModal(row, itemName) {
     // For create new mode - pre-fill with searched name
     const today = new Date().toLocaleDateString('en-IN', { month: 'short', year: 'numeric' });
     document.getElementById('modal_new_item_name').value = itemName;
+    
+    // Set initial preview
+    const previewDiv = document.getElementById('item_name_preview');
+    if (previewDiv) {
+        previewDiv.textContent = itemName;
+    }
     document.getElementById('modal_new_cost').value = enteredRate || '';
     
     // Default discount
@@ -927,21 +993,6 @@ function openCreateNewItemModal(row, itemName) {
     // HIDE the "Link to existing" option (since there's no existing item)
     document.querySelector('input[name="modal_item_action"][value="link"]').closest('.card').style.display = 'none';
     
-    // Auto-fill attributes from item name (if attributes are enabled)
-    if (itemAttributes && itemAttributes.length > 0) {
-        const parsedAttributes = parseItemNameForAttributes(itemName);
-        console.log('🎨 Auto-filled attributes:', parsedAttributes);
-        
-        // Fill the attribute fields
-        document.querySelectorAll('.attribute-field').forEach(field => {
-            const attrName = field.dataset.attributeName;
-            if (parsedAttributes[attrName]) {
-                field.value = parsedAttributes[attrName];
-                console.log(`  ✅ Set ${attrName} = ${parsedAttributes[attrName]}`);
-            }
-        });
-    }
-    
     // Store minimal data for applyItemAction
     currentItemRow.dataset.itemId = '';
     currentItemRow.dataset.itemHsn = '';
@@ -951,6 +1002,26 @@ function openCreateNewItemModal(row, itemName) {
     
     // Show modal
     $('#itemActionModal').modal('show');
+    
+    // Auto-fill attributes AFTER modal is shown (with small delay for rendering)
+    setTimeout(() => {
+        if (itemAttributes && itemAttributes.length > 0) {
+            const parsedAttributes = parseItemNameForAttributes(itemName);
+            console.log('🎨 Auto-filling attributes:', parsedAttributes);
+            
+            // Fill the attribute fields
+            document.querySelectorAll('.attribute-field').forEach(field => {
+                const attrName = field.dataset.attributeName;
+                if (parsedAttributes[attrName]) {
+                    field.value = parsedAttributes[attrName];
+                    console.log(`  ✅ Set ${attrName} = ${parsedAttributes[attrName]}`);
+                }
+            });
+            
+            // Trigger item name update
+            updateItemNamePreview();
+        }
+    }, 200);
     
     console.log('✅ Opened create new item modal with pre-filled name:', itemName);
 }
