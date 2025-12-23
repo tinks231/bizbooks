@@ -1524,6 +1524,13 @@
         row.setAttribute('data-sgst', (gstAmount / 2).toFixed(2));
         row.setAttribute('data-total', total.toFixed(2));
         
+        // 🆕 GST Smart Invoice: Validate stock on quantity/rate change
+        // Only validate if we have stock data and GST is enabled
+        if (gstEnabled && row.dataset.itemId && qty > 0) {
+            // Use setTimeout to allow validation after UI update
+            setTimeout(() => validateGSTStock(rowId), 100);
+        }
+        
         calculateTotal();
     }
     
@@ -2930,7 +2937,168 @@ function calculateTotalWithLoyalty() {
     calculateTotal();
     calculatePointsPreview();
 }
+
+// 🆕 GST Smart Invoice: Validate stock on quantity change
+function validateGSTStock(rowId) {
+    const row = document.getElementById(`row_${rowId}`);
+    if (!row) return;
+    
+    const itemId = row.dataset.itemId;
+    const gstStock = parseFloat(row.dataset.gstStock || 0);
+    const nonGstStock = parseFloat(row.dataset.nonGstStock || 0);
+    const qtyInput = document.getElementById(`quantity_${rowId}`);
+    const quantity = parseFloat(qtyInput.value || 0);
+    const itemName = row.querySelector('.item-search').value;
+    
+    // Only validate for taxable invoices (default type)
+    // If you add invoice type selector, check that here
+    const invoiceType = 'taxable'; // Default
+    
+    if (quantity > 0 && itemId && invoiceType === 'taxable') {
+        if (quantity > gstStock) {
+            // Show warning
+            showGSTStockWarning({
+                rowId: rowId,
+                itemName: itemName,
+                requested: quantity,
+                gstStock: gstStock,
+                nonGstStock: nonGstStock,
+                totalStock: gstStock + nonGstStock
+            });
+            return false;
+        }
+    }
+    return true;
+}
+
+function showGSTStockWarning(data) {
+    const modal = document.getElementById('gstStockWarningModal');
+    const modalBody = document.getElementById('gstWarningContent');
+    
+    let optionsHtml = '';
+    
+    // Option 1: Reduce quantity
+    if (data.gstStock > 0) {
+        optionsHtml += `
+            <button class="btn btn-primary btn-block mb-2" onclick="reduceQuantityToAvailable(${data.rowId}, ${data.gstStock})">
+                ⬇️ Reduce Quantity to ${data.gstStock} units
+                <small class="d-block" style="font-weight: normal;">Use only available GST stock</small>
+            </button>
+        `;
+    }
+    
+    // Option 2: Change to Non-GST Invoice
+    optionsHtml += `
+        <button class="btn btn-info btn-block mb-2" onclick="alert('Non-GST invoice mode not yet implemented. Please manually remove GST or reduce quantity.')">
+            🔄 Change to Non-GST Invoice
+            <small class="d-block" style="font-weight: normal;">No GST will be charged</small>
+        </button>
+    `;
+    
+    // Option 3: Use 2-Step Method (if non-GST stock available)
+    if (data.nonGstStock > 0) {
+        optionsHtml += `
+            <button class="btn btn-success btn-block mb-2" onclick="showTwoStepInfo()">
+                💰 Use 2-Step Method
+                <small class="d-block" style="font-weight: normal;">Sell as non-GST first, then create credit note (earn commission)</small>
+            </button>
+        `;
+    }
+    
+    // Option 4: Cancel
+    optionsHtml += `
+        <button class="btn btn-secondary btn-block" onclick="closeGSTWarning()">
+            ❌ Cancel
+        </button>
+    `;
+    
+    modalBody.innerHTML = `
+        <div class="alert alert-warning" style="background-color: #fff3cd; border-left: 4px solid #ffc107;">
+            <h5 style="color: #856404;">⚠️ Insufficient GST Stock</h5>
+            <p style="margin-bottom: 15px; color: #856404;">
+                Cannot add <strong>${data.itemName}</strong> to this GST invoice.
+            </p>
+        </div>
+        
+        <div style="background: #f8f9fa; padding: 15px; border-radius: 5px; margin-bottom: 20px;">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                <div>
+                    <div style="font-size: 12px; color: #666; margin-bottom: 5px;">Requested Quantity</div>
+                    <div style="font-size: 20px; font-weight: 600; color: #dc3545;">${data.requested} units</div>
+                </div>
+                <div>
+                    <div style="font-size: 12px; color: #666; margin-bottom: 5px;">GST Stock Available</div>
+                    <div style="font-size: 20px; font-weight: 600; color: ${data.gstStock > 0 ? '#28a745' : '#dc3545'};">${data.gstStock} units</div>
+                </div>
+            </div>
+            <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #dee2e6;">
+                <div style="font-size: 12px; color: #666; margin-bottom: 5px;">Non-GST Stock Available</div>
+                <div style="font-size: 16px; font-weight: 600; color: #17a2b8;">${data.nonGstStock} units</div>
+                <small style="color: #666;">
+                    ℹ️ Non-GST stock cannot be used directly for GST invoices (prevents ITC fraud)
+                </small>
+            </div>
+        </div>
+        
+        <h6 style="margin-bottom: 15px; color: #333;">Choose an option:</h6>
+        ${optionsHtml}
+        
+        <div style="margin-top: 20px; padding: 10px; background: #e7f3ff; border-radius: 5px; font-size: 13px;">
+            <strong>💡 Why this matters:</strong><br>
+            You purchased this item <strong>without GST</strong> from an unregistered vendor. 
+            Selling it with GST would break the ITC chain and could be considered GST fraud.
+        </div>
+    `;
+    
+    // Show modal
+    $(modal).modal('show');
+}
+
+function reduceQuantityToAvailable(rowId, maxQuantity) {
+    const qtyInput = document.getElementById(`quantity_${rowId}`);
+    if (qtyInput) {
+        qtyInput.value = maxQuantity;
+        calculateRow(rowId);
+    }
+    closeGSTWarning();
+}
+
+function showTwoStepInfo() {
+    alert(`📝 2-Step Method:
+
+Step 1: Create a NON-GST invoice now (customer pays, stock reduces)
+Step 2: Later, create a Credit Adjustment invoice (GST-compliant, earn commission)
+
+Note: Credit Adjustment UI is coming soon. For now, please:
+1. Change this to a non-GST invoice, OR
+2. Reduce quantity to available GST stock`);
+    
+    closeGSTWarning();
+}
+
+function closeGSTWarning() {
+    $('#gstStockWarningModal').modal('hide');
+}
 </script>
+
+<!-- 🆕 GST Stock Warning Modal -->
+<div class="modal fade" id="gstStockWarningModal" tabindex="-1" role="dialog" aria-labelledby="gstStockWarningModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document" style="max-width: 600px;">
+        <div class="modal-content">
+            <div class="modal-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                <h5 class="modal-title" id="gstStockWarningModalLabel">
+                    🧾 GST Stock Validation
+                </h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close" style="color: white; opacity: 0.8;">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body" id="gstWarningContent">
+                <!-- Content populated by JavaScript -->
+            </div>
+        </div>
+    </div>
+</div>
 
 {% endblock %}
 
