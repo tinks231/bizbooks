@@ -587,7 +587,7 @@ def create():
                 # Entry 2.5: CREDIT GST Payable (CGST + SGST or IGST)
                 total_gst = (invoice.cgst_amount or 0) + (invoice.sgst_amount or 0) + (invoice.igst_amount or 0)
                 if total_gst > 0:
-                db.session.execute(text("""
+                    db.session.execute(text("""
                     INSERT INTO account_transactions
                     (tenant_id, account_id, transaction_date, transaction_type,
                      debit_amount, credit_amount, balance_after, reference_type, reference_id,
@@ -604,11 +604,11 @@ def create():
                     'narration': f'GST payable on {invoice.invoice_number}',
                     'created_at': now
                 })
-                print(f"   CREDIT: GST Payable          ₹{total_gst:,.2f}")
+                    print(f"   CREDIT: GST Payable          ₹{total_gst:,.2f}")
             
                 # Entry 3: DEBIT Cost of Goods Sold (COGS)
                 if cogs_total > 0:
-                db.session.execute(text("""
+                    db.session.execute(text("""
                     INSERT INTO account_transactions
                     (tenant_id, account_id, transaction_date, transaction_type,
                      debit_amount, credit_amount, balance_after, reference_type, reference_id,
@@ -624,11 +624,11 @@ def create():
                     'voucher': invoice.invoice_number,
                     'narration': f'COGS for {invoice.invoice_number}',
                     'created_at': now
-                })
-                print(f"   DEBIT:  COGS                 ₹{cogs_total:,.2f}")
-                
-                # Entry 4: CREDIT Inventory (reduce asset)
-                db.session.execute(text("""
+                    })
+                    print(f"   DEBIT:  COGS                 ₹{cogs_total:,.2f}")
+                    
+                    # Entry 4: CREDIT Inventory (reduce asset)
+                    db.session.execute(text("""
                     INSERT INTO account_transactions
                     (tenant_id, account_id, transaction_date, transaction_type,
                      debit_amount, credit_amount, balance_after, reference_type, reference_id,
@@ -644,14 +644,14 @@ def create():
                     'voucher': invoice.invoice_number,
                     'narration': f'Inventory reduction for {invoice.invoice_number}',
                     'created_at': now
-                })
-                print(f"   CREDIT: Inventory            ₹{cogs_total:,.2f}\n")
+                    })
+                    print(f"   CREDIT: Inventory            ₹{cogs_total:,.2f}\n")
             
                 print(f"✅ Double-entry accounting created for invoice {invoice.invoice_number}")
             
                 # STEP 3: Handle Cash/Bank Transaction (if payment received immediately)
                 if payment_received == 'yes':
-                from models import BankAccount
+                    from models import BankAccount
                 
                 account_id = request.form.get('payment_account_id')
                 
