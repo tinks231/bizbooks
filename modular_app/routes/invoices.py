@@ -2,9 +2,10 @@
 Invoice management routes
 """
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, g, session
-from models import db, Invoice, InvoiceItem, Item, ItemStock, ItemStockMovement, Site, Tenant
+from models import db, Invoice, InvoiceItem, Item, ItemStock, ItemStockMovement, Site, Tenant, StockBatch, Customer
 from utils.tenant_middleware import require_tenant, get_current_tenant_id
 from utils.license_check import check_license
+from services.stock_batch_service import StockBatchService
 from sqlalchemy import func, desc, text
 from datetime import datetime, date
 from decimal import Decimal
@@ -172,6 +173,11 @@ def create():
             else:
                 delivery_challan_id = None
             
+            # 🆕 GST SMART INVOICE: Determine invoice type
+            invoice_type = request.form.get('invoice_type', 'taxable')
+            linked_invoice_id = request.form.get('linked_invoice_id')
+            credit_commission_rate = request.form.get('credit_commission_rate', '0')
+            
             invoice = Invoice(
                 tenant_id=tenant_id,
                 customer_id=customer_id,  # NEW: Link to customer master
@@ -188,7 +194,12 @@ def create():
                 notes=notes,
                 status=status,
                 payment_status=payment_status,
-                payment_method=payment_method if payment_received == 'yes' else None
+                payment_method=payment_method if payment_received == 'yes' else None,
+                # 🆕 GST SMART INVOICE fields
+                invoice_type=invoice_type,
+                linked_invoice_id=int(linked_invoice_id) if linked_invoice_id and linked_invoice_id.strip() else None,
+                credit_commission_rate=Decimal(credit_commission_rate) if credit_commission_rate else Decimal('0'),
+                reduce_stock=(invoice_type != 'credit_adjustment')
             )
             
             # Generate invoice number
@@ -296,6 +307,23 @@ def create():
                             ).first()
                             
                             if item_stock:
+                                # 🆕 GST SMART INVOICE: Allocate stock from batches (if reducing stock)
+                                if invoice.reduce_stock:
+                                    # Allocate stock from batches (FIFO, GST-aware)
+                                    allocation_result = StockBatchService.allocate_stock_for_invoice_item(
+                                        item_obj.id, quantity, invoice.invoice_type, tenant_id
+                                    )
+                                    
+                                    if allocation_result['status'] == 'success':
+                                        # Process the allocation
+                                        StockBatchService.process_invoice_item_allocation(
+                                            invoice_item, allocation_result['allocated'], reduce_stock=True
+                                        )
+                                        print(f"✅ Allocated {quantity} units from {len(allocation_result['allocated'])} batch(es)")
+                                    else:
+                                        # Allocation failed - show warning but continue
+                                        flash(f'⚠️ {allocation_result.get("message", "Stock allocation issue")}', 'warning')
+                                
                                 # Check if sufficient stock available
                                 if item_stock.quantity_available < quantity:
                                     # Show warning to user
@@ -303,9 +331,14 @@ def create():
                                     print(f"⚠️  WARNING: Insufficient stock for {item_obj.name}! Available: {item_stock.quantity_available}, Requested: {quantity}")
                                 
                                 # Reduce stock (allow negative but warn user)
-                                old_qty = item_stock.quantity_available
-                                item_stock.quantity_available -= quantity
-                                new_qty = item_stock.quantity_available
+                                if invoice.reduce_stock:
+                                    old_qty = item_stock.quantity_available
+                                    item_stock.quantity_available -= quantity
+                                    new_qty = item_stock.quantity_available
+                                else:
+                                    # Credit adjustment: Don't reduce stock
+                                    old_qty = item_stock.quantity_available
+                                    new_qty = old_qty
                                 
                                 # Alert if stock went negative
                                 if new_qty < 0:

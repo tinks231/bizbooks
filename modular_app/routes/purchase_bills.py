@@ -149,6 +149,10 @@ def create_bill():
             bill.notes = request.form.get('notes', '')
             bill.terms_conditions = request.form.get('terms_conditions', '')
             
+            # 🆕 GST SMART INVOICE: Track if bill has GST (for batch creation)
+            bill.gst_applicable = request.form.get('gst_applicable', 'true').lower() == 'true'
+            bill.bill_type = 'taxable' if bill.gst_applicable else 'non_taxable'
+            
             # Handle file upload
             if 'bill_document' in request.files:
                 file = request.files['bill_document']
@@ -678,7 +682,8 @@ def edit_bill(bill_id):
 @check_license
 def approve_bill(bill_id):
     """Approve purchase bill and update inventory using Weighted Average Cost"""
-    from models import Item, ItemStock, ItemStockMovement, Site
+    from models import Item, ItemStock, ItemStockMovement, Site, StockBatch
+    from services.stock_batch_service import StockBatchService
     import pytz
     from sqlalchemy import text
     
@@ -893,6 +898,17 @@ def approve_bill(bill_id):
             print(f"   Quantity: {old_qty} + {new_qty} = {total_qty}")
             print(f"   Cost: ₹{old_item_cost:.2f} → ₹{weighted_avg_cost:.2f} (WAC)")
             print(f"   Calculation: (₹{old_value:.2f} + ₹{new_value:.2f}) / {total_qty} = ₹{weighted_avg_cost:.2f}")
+            
+            # 🆕 GST SMART INVOICE: Create stock batch with GST tracking
+            try:
+                # Set GST applicability based on bill (default to True for backward compatibility)
+                bill.gst_applicable = getattr(bill, 'gst_applicable', True)
+                batch = StockBatchService.create_batch_from_purchase(line_item, bill)
+                db.session.add(batch)
+                print(f"📦 Created stock batch: GST={batch.purchased_with_gst}, ITC=₹{float(batch.itc_total_available):.2f}")
+            except Exception as batch_error:
+                print(f"⚠️ Error creating stock batch: {batch_error}")
+                # Don't fail the entire approval if batch creation fails
         
         # Update bill status
         bill.status = 'approved'
