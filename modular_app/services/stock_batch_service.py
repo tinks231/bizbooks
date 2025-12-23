@@ -360,8 +360,9 @@ class StockBatchService:
                 # Get item and reduce opening_stock
                 item = Item.query.get(invoice_item.item_id)
                 if item and reduce_stock:
-                    item.opening_stock -= qty
-                    print(f"✅ Reduced opening_stock for item {item.id} by {qty}. New: {item.opening_stock}")
+                    # Convert Decimal to float for compatibility with database column type
+                    item.opening_stock = float(item.opening_stock) - float(qty)
+                    print(f"✅ Reduced opening_stock for item {item.id} by {float(qty)}. New: {item.opening_stock}")
                 
                 # Calculate costs from alloc (no batch object)
                 cost_for_qty = Decimal(str(alloc['cost_per_unit'])) * qty
