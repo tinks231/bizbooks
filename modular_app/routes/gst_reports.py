@@ -68,9 +68,11 @@ def gstr1():
         return redirect(url_for('gst_reports.index'))
     
     # Get all invoices in date range
+    # 🆕 GST SMART INVOICE: Only include taxable and credit_adjustment invoices (exclude non_taxable)
     invoices = Invoice.query.filter_by(tenant_id=tenant_id).filter(
         Invoice.invoice_date >= start_date,
-        Invoice.invoice_date <= end_date
+        Invoice.invoice_date <= end_date,
+        Invoice.invoice_type.in_(['taxable', 'credit_adjustment'])
     ).order_by(Invoice.invoice_date.desc()).all()
     
     # Group invoices by type
@@ -292,9 +294,11 @@ def gstr3b():
     end_date_str = end_date.strftime('%Y-%m-%d')
     
     # Get all invoices in date range
+    # 🆕 GST SMART INVOICE: Only include taxable and credit_adjustment invoices
     invoices = Invoice.query.filter_by(tenant_id=tenant_id).filter(
         Invoice.invoice_date >= start_date,
-        Invoice.invoice_date <= end_date
+        Invoice.invoice_date <= end_date,
+        Invoice.invoice_type.in_(['taxable', 'credit_adjustment'])
     ).all()
     
     # Calculate outward supplies (GROSS)
