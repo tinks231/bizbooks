@@ -429,63 +429,140 @@ def create():
             # ═══════════════════════════════════════════════════════════════════
             # 📊 DOUBLE-ENTRY ACCOUNTING: Sales Invoice Created
             # ═══════════════════════════════════════════════════════════════════
-            # When an invoice is created (even if unpaid), we need to record:
-            # 1. DEBIT:  Accounts Receivable OR Cash (Asset) - Money owed/received
-            # 2. CREDIT: Sales Income (Income) - Revenue earned
-            # 3. DEBIT:  Cost of Goods Sold (Expense) - Cost of items sold
-            # 4. CREDIT: Inventory (Asset) - Stock reduction
+            # 🆕 GST SMART INVOICE: Different accounting for credit_adjustment
+            # - Credit Adjustment: NO revenue/AR/COGS (already in kaccha bill)
+            # - Credit Adjustment: ONLY GST liability + commission benefit
             # ═══════════════════════════════════════════════════════════════════
             
             ist = pytz.timezone('Asia/Kolkata')
             now = datetime.now(ist)
             
-            # STEP 1: Calculate COGS (Cost of Goods Sold)
-            # Get the cost price of each item sold
-            cogs_total = Decimal('0')
-            
-            for invoice_item in invoice.items:
-                if invoice_item.item_id:  # Only for linked inventory items
-                    item = Item.query.filter_by(
-                        id=invoice_item.item_id,
-                        tenant_id=tenant_id
-                    ).first()
-                    
-                    if item and item.cost_price:
-                        item_cogs = Decimal(str(item.cost_price)) * Decimal(str(invoice_item.quantity))
-                        cogs_total += item_cogs
-                        print(f"  📦 {item.name}: Qty {invoice_item.quantity} × Cost ₹{item.cost_price} = COGS ₹{item_cogs:,.2f}")
-            
-            print(f"\n💰 Invoice {invoice.invoice_number} - Total COGS: ₹{cogs_total:,.2f}")
-            print(f"💰 Invoice {invoice.invoice_number} - Sales: ₹{invoice.total_amount:,.2f}")
-            print(f"💰 Invoice {invoice.invoice_number} - Gross Profit: ₹{invoice.total_amount - float(cogs_total):,.2f}")
-            
-            # STEP 2: Create Double-Entry Accounting Transactions
-            
-            # Entry 1: DEBIT Accounts Receivable (if credit sale) OR Cash (if paid)
-            if payment_received == 'yes':
-                # Cash sale - will be handled below in the existing payment logic
-                # We'll update that section to use proper double-entry
-                pass
+            # 🆕 Skip normal accounting for credit_adjustment invoices
+            if invoice_type == 'credit_adjustment':
+                # ═══════════════════════════════════════════════════════════════════
+                # 🔄 CREDIT ADJUSTMENT SPECIAL ACCOUNTING
+                # ═══════════════════════════════════════════════════════════════════
+                # Customer already paid via kaccha bill - no new revenue/AR
+                # We ONLY record:
+                # 1. GST liability (CGST/SGST payable)
+                # 2. Commission benefit (Other Income offset)
+                # ═══════════════════════════════════════════════════════════════════
+                
+                print(f"\n🔄 Credit Adjustment Invoice {invoice.invoice_number}")
+                print(f"   Linked to: INV-{invoice.linked_invoice_id if invoice.linked_invoice_id else 'Not linked'}")
+                print(f"   Commission Rate: {invoice.credit_commission_rate}%")
+                print(f"   NO REVENUE/AR/COGS recorded (already in kaccha bill)")
+                
+                # Calculate commission amount
+                # Commission = Taxable Value × Rate%
+                commission_amount = float(invoice.subtotal) * float(invoice.credit_commission_rate) / 100
+                invoice.credit_commission_amount = commission_amount
+                
+                print(f"   Commission Amount: ₹{commission_amount:,.2f}")
+                
+                # Entry 1: CREDIT GST Payable (CGST + SGST or IGST)
+                total_gst = (invoice.cgst_amount or 0) + (invoice.sgst_amount or 0) + (invoice.igst_amount or 0)
+                if total_gst > 0:
+                    db.session.execute(text("""
+                        INSERT INTO account_transactions
+                        (tenant_id, account_id, transaction_date, transaction_type,
+                         debit_amount, credit_amount, balance_after, reference_type, reference_id,
+                         voucher_number, narration, created_at, created_by)
+                        VALUES (:tenant_id, NULL, :transaction_date, 'gst_payable',
+                                0.00, :credit_amount, :credit_amount, 'invoice', :invoice_id,
+                                :voucher, :narration, :created_at, NULL)
+                    """), {
+                        'tenant_id': tenant_id,
+                        'transaction_date': invoice_date,
+                        'credit_amount': float(total_gst),
+                        'invoice_id': invoice.id,
+                        'voucher': invoice.invoice_number,
+                        'narration': f'GST payable - Credit Adjustment {invoice.invoice_number}',
+                        'created_at': now
+                    })
+                    print(f"   ✅ CREDIT: GST Payable       ₹{total_gst:,.2f}")
+                
+                # Entry 2: DEBIT Other Income (commission benefit offset by GST liability)
+                # This represents your benefit for doing GST compliance work
+                if commission_amount > 0:
+                    db.session.execute(text("""
+                        INSERT INTO account_transactions
+                        (tenant_id, account_id, transaction_date, transaction_type,
+                         debit_amount, credit_amount, balance_after, reference_type, reference_id,
+                         voucher_number, narration, created_at, created_by)
+                        VALUES (:tenant_id, NULL, :transaction_date, 'other_income_reversal',
+                                :debit_amount, 0.00, :debit_amount, 'invoice', :invoice_id,
+                                :voucher, :narration, :created_at, NULL)
+                    """), {
+                        'tenant_id': tenant_id,
+                        'transaction_date': invoice_date,
+                        'debit_amount': commission_amount,
+                        'invoice_id': invoice.id,
+                        'voucher': invoice.invoice_number,
+                        'narration': f'Commission benefit - Credit Adjustment {invoice.invoice_number}',
+                        'created_at': now
+                    })
+                    print(f"   ✅ DEBIT:  Other Income (reversal) ₹{commission_amount:,.2f}")
+                
+                print(f"✅ Credit adjustment accounting complete for {invoice.invoice_number}\n")
+                
             else:
-                # Credit sale - create receivable
-                db.session.execute(text("""
-                    INSERT INTO account_transactions
-                    (tenant_id, account_id, transaction_date, transaction_type,
-                     debit_amount, credit_amount, balance_after, reference_type, reference_id,
-                     voucher_number, narration, created_at, created_by)
-                    VALUES (:tenant_id, NULL, :transaction_date, 'accounts_receivable',
-                            :debit_amount, 0.00, :debit_amount, 'invoice', :invoice_id,
-                            :voucher, :narration, :created_at, NULL)
-                """), {
-                    'tenant_id': tenant_id,
-                    'transaction_date': invoice_date,
-                    'debit_amount': float(invoice.total_amount),
-                    'invoice_id': invoice.id,
-                    'voucher': invoice.invoice_number,
-                    'narration': f'Credit sale to {invoice.customer_name} - {invoice.invoice_number}',
-                    'created_at': now
-                })
-                print(f"   DEBIT:  Accounts Receivable  ₹{invoice.total_amount:,.2f}")
+                # ═══════════════════════════════════════════════════════════════════
+                # 📊 NORMAL INVOICE ACCOUNTING (Taxable / Non-Taxable)
+                # ═══════════════════════════════════════════════════════════════════
+                # 1. DEBIT:  Accounts Receivable OR Cash (Asset)
+                # 2. CREDIT: Sales Income (Income)
+                # 3. DEBIT:  Cost of Goods Sold (Expense)
+                # 4. CREDIT: Inventory (Asset)
+                # ═══════════════════════════════════════════════════════════════════
+            
+                # STEP 1: Calculate COGS (Cost of Goods Sold)
+                # Get the cost price of each item sold
+                cogs_total = Decimal('0')
+                
+                for invoice_item in invoice.items:
+                    if invoice_item.item_id:  # Only for linked inventory items
+                        item = Item.query.filter_by(
+                            id=invoice_item.item_id,
+                            tenant_id=tenant_id
+                        ).first()
+                        
+                        if item and item.cost_price:
+                            item_cogs = Decimal(str(item.cost_price)) * Decimal(str(invoice_item.quantity))
+                            cogs_total += item_cogs
+                            print(f"  📦 {item.name}: Qty {invoice_item.quantity} × Cost ₹{item.cost_price} = COGS ₹{item_cogs:,.2f}")
+                
+                print(f"\n💰 Invoice {invoice.invoice_number} - Total COGS: ₹{cogs_total:,.2f}")
+                print(f"💰 Invoice {invoice.invoice_number} - Sales: ₹{invoice.total_amount:,.2f}")
+                print(f"💰 Invoice {invoice.invoice_number} - Gross Profit: ₹{invoice.total_amount - float(cogs_total):,.2f}")
+                
+                # STEP 2: Create Double-Entry Accounting Transactions
+            
+                # Entry 1: DEBIT Accounts Receivable (if credit sale) OR Cash (if paid)
+                if payment_received == 'yes':
+                    # Cash sale - will be handled below in the existing payment logic
+                    # We'll update that section to use proper double-entry
+                    pass
+                else:
+                    # Credit sale - create receivable
+                    db.session.execute(text("""
+                        INSERT INTO account_transactions
+                        (tenant_id, account_id, transaction_date, transaction_type,
+                         debit_amount, credit_amount, balance_after, reference_type, reference_id,
+                         voucher_number, narration, created_at, created_by)
+                        VALUES (:tenant_id, NULL, :transaction_date, 'accounts_receivable',
+                                :debit_amount, 0.00, :debit_amount, 'invoice', :invoice_id,
+                                :voucher, :narration, :created_at, NULL)
+                    """), {
+                        'tenant_id': tenant_id,
+                        'transaction_date': invoice_date,
+                        'debit_amount': float(invoice.total_amount),
+                        'invoice_id': invoice.id,
+                        'voucher': invoice.invoice_number,
+                        'narration': f'Credit sale to {invoice.customer_name} - {invoice.invoice_number}',
+                        'created_at': now
+                    })
+                    print(f"   DEBIT:  Accounts Receivable  ₹{invoice.total_amount:,.2f}")
             
             # Entry 2: CREDIT Sales Income (for all sales - SUBTOTAL ONLY, NOT including GST!)
             db.session.execute(text("""
@@ -1667,4 +1744,56 @@ def settings():
     return render_template('admin/invoices/settings.html',
                          tenant=tenant,
                          settings=tenant_settings)
+
+
+# ========================================
+# 🆕 API ENDPOINTS
+# ========================================
+
+@invoices_bp.route('/api/invoices/non-taxable', methods=['GET'])
+@require_tenant
+@login_required
+def api_get_non_taxable_invoices():
+    """
+    API endpoint to fetch recent non-taxable invoices for credit adjustment linking
+    
+    Query params:
+        limit: Max number of invoices to return (default 50)
+    
+    Returns:
+        JSON with list of non-taxable invoices
+    """
+    try:
+        tenant_id = g.tenant.id
+        limit = int(request.args.get('limit', 50))
+        
+        # Fetch recent non-taxable invoices
+        invoices = Invoice.query.filter_by(
+            tenant_id=tenant_id,
+            invoice_type='non_taxable'
+        ).order_by(Invoice.invoice_date.desc()).limit(limit).all()
+        
+        # Format for dropdown
+        invoice_list = []
+        for inv in invoices:
+            invoice_list.append({
+                'id': inv.id,
+                'invoice_number': inv.invoice_number,
+                'customer_name': inv.customer_name,
+                'total_amount': float(inv.total_amount),
+                'invoice_date': inv.invoice_date.strftime('%Y-%m-%d') if inv.invoice_date else None
+            })
+        
+        return jsonify({
+            'success': True,
+            'invoices': invoice_list,
+            'count': len(invoice_list)
+        }), 200
+        
+    except Exception as e:
+        print(f"❌ Error fetching non-taxable invoices: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
 

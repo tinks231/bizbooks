@@ -474,7 +474,18 @@
             <h3 class="card-title">Additional Information</h3>
         </div>
         
-        <div class="form-group">
+        <!-- 🆕 Credit Adjustment Payment Info (shown only for credit adjustment) -->
+        <div id="creditAdjustmentPaymentInfo" style="display: none; padding: 15px; background: #f3e5f5; border-radius: 8px; border-left: 4px solid #9C27B0; margin-bottom: 15px;">
+            <strong style="color: #7B1FA2;">💡 Payment Information</strong>
+            <p style="margin: 10px 0 0 0; font-size: 13px; color: #666;">
+                ✅ Customer already paid via the original kaccha bill.<br>
+                ✅ No new payment is being collected.<br>
+                ✅ This invoice is for GST compliance only - no account will be credited.<br>
+                ✅ Prevents double-counting of payment.
+            </p>
+        </div>
+        
+        <div class="form-group" id="paymentStatusGroup">
             <label class="field-label" for="payment_received">Payment Status *</label>
             {% set payment_status = invoice.payment_status if invoice else 'unpaid' %}
             <select id="payment_received" name="payment_received" class="form-control" required onchange="togglePaymentDetails(this.value)">
@@ -551,6 +562,9 @@
         const invoiceType = document.querySelector('input[name="invoice_type"]:checked').value;
         const creditSection = document.getElementById('creditAdjustmentSection');
         const gstEnabledHidden = document.getElementById('gstEnabled');
+        const paymentStatusGroup = document.getElementById('paymentStatusGroup');
+        const paymentDetails = document.getElementById('paymentDetails');
+        const creditPaymentInfo = document.getElementById('creditAdjustmentPaymentInfo');
         
         // Update visual selection (border highlight)
         document.querySelectorAll('.invoice-type-option').forEach(opt => {
@@ -569,10 +583,23 @@
             creditSection.style.display = 'block';
             gstEnabledHidden.value = '1';  // Credit adjustment has GST
             
+            // 🆕 HIDE payment section (no payment collected)
+            if (paymentStatusGroup) paymentStatusGroup.style.display = 'none';
+            if (paymentDetails) paymentDetails.style.display = 'none';
+            if (creditPaymentInfo) creditPaymentInfo.style.display = 'block';
+            
+            // Set payment_received to 'no' (backend compatibility)
+            const paymentSelect = document.getElementById('payment_received');
+            if (paymentSelect) paymentSelect.value = 'no';
+            
             // Load non-taxable invoices for linking
             loadNonTaxableInvoices();
         } else {
             creditSection.style.display = 'none';
+            
+            // 🆕 SHOW payment section for normal invoices
+            if (paymentStatusGroup) paymentStatusGroup.style.display = 'block';
+            if (creditPaymentInfo) creditPaymentInfo.style.display = 'none';
             
             // Update hidden gst_enabled field (backward compatibility)
             if (invoiceType === 'taxable') {
@@ -589,17 +616,43 @@
     // Load non-taxable invoices for credit adjustment linking
     function loadNonTaxableInvoices() {
         const select = document.getElementById('linkedInvoiceId');
+        if (!select) return;
+        
         if (select.options.length > 1) return;  // Already loaded
         
-        // Fetch recent non-taxable invoices via API (if endpoint exists)
-        // For now, just show placeholder
+        // Show loading state
         select.innerHTML = '<option value="">--- Not Linked (Optional) ---</option>';
         select.innerHTML += '<option disabled>Loading recent kaccha bills...</option>';
         
-        // TODO: Add API call to fetch non-taxable invoices
-        // fetch('/api/invoices/non-taxable')
-        //   .then(r => r.json())
-        //   .then(data => populateDropdown(data));
+        // Fetch recent non-taxable invoices via API
+        fetch('/api/invoices/non-taxable?limit=50')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && data.invoices) {
+                    // Clear loading
+                    select.innerHTML = '<option value="">--- Not Linked (Optional) ---</option>';
+                    
+                    if (data.invoices.length === 0) {
+                        select.innerHTML += '<option disabled>No kaccha bills found</option>';
+                    } else {
+                        // Populate with invoices
+                        data.invoices.forEach(inv => {
+                            const option = document.createElement('option');
+                            option.value = inv.id;
+                            option.textContent = `${inv.invoice_number} - ${inv.customer_name} (₹${inv.total_amount}) - ${inv.invoice_date}`;
+                            select.appendChild(option);
+                        });
+                    }
+                } else {
+                    select.innerHTML = '<option value="">--- Not Linked (Optional) ---</option>';
+                    select.innerHTML += '<option disabled>Error loading invoices</option>';
+                }
+            })
+            .catch(error => {
+                console.error('Error loading non-taxable invoices:', error);
+                select.innerHTML = '<option value="">--- Not Linked (Optional) ---</option>';
+                select.innerHTML += '<option disabled>Error loading invoices</option>';
+            });
     }
     
     // Initialize on page load
