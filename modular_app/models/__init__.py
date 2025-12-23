@@ -43,6 +43,7 @@ from .loyalty_transaction import LoyaltyTransaction
 from .return_model import Return
 from .return_item import ReturnItem
 from .item_attribute import ItemAttribute, ItemAttributeValue, TenantAttributeConfig
+from .stock_batch import StockBatch
 
 # Create Party alias for Customer (for unified party management)
 Party = Customer
@@ -69,6 +70,7 @@ __all__ = [
     'BankAccount', 'AccountTransaction',
     'LoyaltyProgram', 'CustomerLoyaltyPoints', 'LoyaltyTransaction',
     'Return', 'ReturnItem',
-    'ItemAttribute', 'ItemAttributeValue', 'TenantAttributeConfig'
+    'ItemAttribute', 'ItemAttributeValue', 'TenantAttributeConfig',
+    'StockBatch'
 ]
 
