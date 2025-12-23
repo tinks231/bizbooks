@@ -87,6 +87,24 @@
             <h5 class="mb-0">Bill Details</h5>
         </div>
         <div class="card-body">
+                <!-- 🆕 GST Smart Invoice: GST Applicable Toggle -->
+                <div class="row mb-4">
+                    <div class="col-md-12">
+                        <div class="alert alert-info" style="background-color: #e3f2fd; border-left: 4px solid #2196F3; padding: 15px;">
+                            <div class="custom-control custom-switch">
+                                <input type="checkbox" class="custom-control-input" id="gst_applicable" name="gst_applicable" value="true" checked>
+                                <label class="custom-control-label" for="gst_applicable" style="font-weight: 600; cursor: pointer;">
+                                    <span style="font-size: 16px;">🧾 GST Applicable on this Purchase</span>
+                                </label>
+                            </div>
+                            <small class="d-block mt-2" style="color: #1976D2; margin-left: 32px;">
+                                <strong>Checked (Default):</strong> Purchasing from registered GST vendor (with tax invoice)<br>
+                                <strong>Unchecked:</strong> Purchasing from unregistered vendor / composition dealer (no GST on bill)
+                            </small>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="row">
                     <div class="col-md-4 mb-3">
                         <label class="field-label">Bill Date <span class="text-danger">*</span></label>
@@ -586,6 +604,9 @@ const itemAttributes = {{ attributes|tojson|safe }} || [];
 
 // Tenant's state for GST calculation
 const tenantState = "{{ tenant_settings.get('state', 'Maharashtra') }}".toLowerCase();
+
+// 🆕 GST Smart Invoice: Track GST applicability
+let isGSTApplicable = true;
 
 console.log('=== PURCHASE BILLS AUTOCOMPLETE DEBUG ===');
 console.log('✅ Loaded items:', items.length, items);
@@ -1286,6 +1307,44 @@ function calculateRow(input) {
 }
 
 // Total calculation
+// 🆕 GST Smart Invoice: Update all GST fields based on toggle
+function updateAllGSTFields() {
+    document.querySelectorAll('.item-row').forEach(row => {
+        const gstInput = row.querySelector('.gst-input');
+        if (gstInput) {
+            if (!isGSTApplicable) {
+                // GST off: Set all GST rates to 0
+                gstInput.value = '0';
+                gstInput.disabled = true;
+                gstInput.style.backgroundColor = '#f0f0f0';
+            } else {
+                // GST on: Enable GST inputs
+                gstInput.disabled = false;
+                gstInput.style.backgroundColor = '';
+                // If it's 0, set back to default (18%)
+                if (parseFloat(gstInput.value) === 0) {
+                    gstInput.value = '18';
+                }
+            }
+        }
+    });
+}
+
+// 🆕 GST Smart Invoice: Toggle GST column visibility
+function toggleGSTColumns() {
+    const gstHeaders = document.querySelectorAll('.gst-column-header');
+    const gstCells = document.querySelectorAll('.gst-column-cell');
+    const display = isGSTApplicable ? '' : 'none';
+    
+    gstHeaders.forEach(header => {
+        header.style.display = display;
+    });
+    
+    gstCells.forEach(cell => {
+        cell.style.display = display;
+    });
+}
+
 function calculateTotal() {
     let subtotal = 0;
     let total_cgst = 0;
@@ -1304,12 +1363,15 @@ function calculateTotal() {
             const taxable = qty * rate;
             subtotal += taxable;
             
-            if (use_igst) {
-                total_igst += taxable * gst_rate / 100;
-            } else {
-                const gst_half = taxable * gst_rate / 200;
-                total_cgst += gst_half;
-                total_sgst += gst_half;
+            // 🆕 GST Smart Invoice: Only calculate GST if applicable
+            if (isGSTApplicable && gst_rate > 0) {
+                if (use_igst) {
+                    total_igst += taxable * gst_rate / 100;
+                } else {
+                    const gst_half = taxable * gst_rate / 200;
+                    total_cgst += gst_half;
+                    total_sgst += gst_half;
+                }
             }
         }
     });
@@ -1648,6 +1710,24 @@ document.addEventListener('DOMContentLoaded', function() {
         linkRadio.addEventListener('change', function() {
             document.getElementById('link_options').style.display = 'block';
             document.getElementById('create_new_options').style.display = 'none';
+        });
+    }
+    
+    // 🆕 GST Smart Invoice: Handle GST toggle
+    const gstToggle = document.getElementById('gst_applicable');
+    if (gstToggle) {
+        gstToggle.addEventListener('change', function() {
+            isGSTApplicable = this.checked;
+            console.log('🧾 GST Applicable changed:', isGSTApplicable);
+            
+            // Update all existing line item GST rates
+            updateAllGSTFields();
+            
+            // Show/hide GST column headers
+            toggleGSTColumns();
+            
+            // Recalculate totals
+            calculatePurchaseBillTotals();
         });
     }
     
