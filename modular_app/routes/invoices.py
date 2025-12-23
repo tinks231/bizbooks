@@ -178,12 +178,23 @@ def create():
             gst_enabled_form = request.form.get('gst_enabled') == '1'
             invoice_type_form = request.form.get('invoice_type')
             
+            print(f"\n{'='*70}")
+            print(f"🔍 INVOICE TYPE DETECTION DEBUG")
+            print(f"{'='*70}")
+            print(f"   📋 invoice_type_form (radio): '{invoice_type_form}'")
+            print(f"   📋 gst_enabled_form (checkbox): {gst_enabled_form}")
+            
             if invoice_type_form:
                 # If invoice_type is explicitly provided (future UI)
                 invoice_type = invoice_type_form
+                print(f"   ✅ Using radio button value: '{invoice_type}'")
             else:
                 # Fallback: Use gst_enabled checkbox (current UI)
                 invoice_type = 'taxable' if gst_enabled_form else 'non_taxable'
+                print(f"   ✅ Using fallback (checkbox): '{invoice_type}'")
+            
+            print(f"   🎯 FINAL invoice_type: '{invoice_type}'")
+            print(f"{'='*70}\n")
             
             linked_invoice_id = request.form.get('linked_invoice_id')
             credit_commission_rate = request.form.get('credit_commission_rate', '0')
@@ -436,6 +447,14 @@ def create():
             
             ist = pytz.timezone('Asia/Kolkata')
             now = datetime.now(ist)
+            
+            print(f"\n{'='*70}")
+            print(f"🔍 ACCOUNTING PATH DETECTION")
+            print(f"{'='*70}")
+            print(f"   📋 invoice_type variable: '{invoice_type}'")
+            print(f"   📋 invoice.invoice_type field: '{invoice.invoice_type}'")
+            print(f"   📋 Checking: invoice_type == 'credit_adjustment'? {invoice_type == 'credit_adjustment'}")
+            print(f"{'='*70}\n")
             
             # 🆕 Skip normal accounting for credit_adjustment invoices
             if invoice_type == 'credit_adjustment':
