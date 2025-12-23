@@ -26,6 +26,10 @@ class PurchaseBill(db.Model, TimestampMixin):
     # Purchase Request Reference (optional)
     purchase_request_id = db.Column(db.Integer, db.ForeignKey('purchase_requests.id'), nullable=True)
     
+    # 🆕 GST SMART INVOICE: Purchase bill type and GST applicability
+    bill_type = db.Column(db.String(20), default='taxable')  # 'taxable', 'non_taxable'
+    gst_applicable = db.Column(db.Boolean, default=True)  # TRUE = registered vendor (has GST), FALSE = unregistered
+    
     # Amounts
     subtotal = db.Column(db.Numeric(15, 2), default=0)
     discount_amount = db.Column(db.Numeric(15, 2), default=0)
