@@ -564,8 +564,8 @@ def create():
                     })
                     print(f"   DEBIT:  Accounts Receivable  ₹{invoice.total_amount:,.2f}")
             
-            # Entry 2: CREDIT Sales Income (for all sales - SUBTOTAL ONLY, NOT including GST!)
-            db.session.execute(text("""
+                # Entry 2: CREDIT Sales Income (for all sales - SUBTOTAL ONLY, NOT including GST!)
+                db.session.execute(text("""
                 INSERT INTO account_transactions
                 (tenant_id, account_id, transaction_date, transaction_type,
                  debit_amount, credit_amount, balance_after, reference_type, reference_id,
@@ -582,11 +582,11 @@ def create():
                 'narration': f'Sales income from {invoice.customer_name} - {invoice.invoice_number}',
                 'created_at': now
             })
-            print(f"   CREDIT: Sales Income         ₹{invoice.subtotal:,.2f}")
+                print(f"   CREDIT: Sales Income         ₹{invoice.subtotal:,.2f}")
             
-            # Entry 2.5: CREDIT GST Payable (CGST + SGST or IGST)
-            total_gst = (invoice.cgst_amount or 0) + (invoice.sgst_amount or 0) + (invoice.igst_amount or 0)
-            if total_gst > 0:
+                # Entry 2.5: CREDIT GST Payable (CGST + SGST or IGST)
+                total_gst = (invoice.cgst_amount or 0) + (invoice.sgst_amount or 0) + (invoice.igst_amount or 0)
+                if total_gst > 0:
                 db.session.execute(text("""
                     INSERT INTO account_transactions
                     (tenant_id, account_id, transaction_date, transaction_type,
@@ -606,8 +606,8 @@ def create():
                 })
                 print(f"   CREDIT: GST Payable          ₹{total_gst:,.2f}")
             
-            # Entry 3: DEBIT Cost of Goods Sold (COGS)
-            if cogs_total > 0:
+                # Entry 3: DEBIT Cost of Goods Sold (COGS)
+                if cogs_total > 0:
                 db.session.execute(text("""
                     INSERT INTO account_transactions
                     (tenant_id, account_id, transaction_date, transaction_type,
@@ -647,10 +647,10 @@ def create():
                 })
                 print(f"   CREDIT: Inventory            ₹{cogs_total:,.2f}\n")
             
-            print(f"✅ Double-entry accounting created for invoice {invoice.invoice_number}")
+                print(f"✅ Double-entry accounting created for invoice {invoice.invoice_number}")
             
-            # STEP 3: Handle Cash/Bank Transaction (if payment received immediately)
-            if payment_received == 'yes':
+                # STEP 3: Handle Cash/Bank Transaction (if payment received immediately)
+                if payment_received == 'yes':
                 from models import BankAccount
                 
                 account_id = request.form.get('payment_account_id')
