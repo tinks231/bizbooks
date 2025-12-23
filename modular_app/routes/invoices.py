@@ -174,7 +174,17 @@ def create():
                 delivery_challan_id = None
             
             # 🆕 GST SMART INVOICE: Determine invoice type
-            invoice_type = request.form.get('invoice_type', 'taxable')
+            # For now, use gst_enabled checkbox to determine type (backward compatible)
+            gst_enabled_form = request.form.get('gst_enabled') == '1'
+            invoice_type_form = request.form.get('invoice_type')
+            
+            if invoice_type_form:
+                # If invoice_type is explicitly provided (future UI)
+                invoice_type = invoice_type_form
+            else:
+                # Fallback: Use gst_enabled checkbox (current UI)
+                invoice_type = 'taxable' if gst_enabled_form else 'non_taxable'
+            
             linked_invoice_id = request.form.get('linked_invoice_id')
             credit_commission_rate = request.form.get('credit_commission_rate', '0')
             

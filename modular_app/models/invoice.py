@@ -56,6 +56,13 @@ class Invoice(db.Model, TimestampMixin):
     sgst_amount = db.Column(db.Float, default=0)  # State GST (for same state)
     igst_amount = db.Column(db.Float, default=0)  # Integrated GST (for inter-state)
     
+    # 🆕 GST SMART INVOICE: Invoice type and credit adjustment fields
+    invoice_type = db.Column(db.String(20), default='taxable')  # 'taxable', 'non_taxable', 'credit_adjustment'
+    linked_invoice_id = db.Column(db.Integer, db.ForeignKey('invoices.id'), nullable=True)  # For credit_adjustment
+    credit_commission_rate = db.Column(db.Float, default=0)  # Commission % for credit adjustment
+    credit_commission_amount = db.Column(db.Float, default=0)  # Calculated commission amount
+    reduce_stock = db.Column(db.Boolean, default=True)  # FALSE for credit_adjustment (no stock impact)
+    
     round_off = db.Column(db.Float, default=0)  # To make total round number
     total_amount = db.Column(db.Float, nullable=False)
     
