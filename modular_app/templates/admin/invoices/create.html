@@ -193,18 +193,100 @@
             </div>
         </div>
         
-        <div class="form-row" style="margin-top: 15px; padding: 15px; background: #f8f9fa; border-radius: 8px;">
-            <div class="form-group">
-                <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; font-weight: 600; color: #2c3e50;">
-                    <input type="checkbox" id="gstEnabled" name="gst_enabled" value="1" 
-                           {% if not invoice or invoice.gst_enabled != False %}checked{% endif %}
-                           onchange="toggleGSTRows()" 
-                           style="width: 20px; height: 20px; cursor: pointer;">
-                    <span>📋 Apply GST on this Invoice</span>
+        <!-- 🆕 Invoice Type Selection (GST Smart Invoice Management) -->
+        <div class="form-row" style="margin-top: 15px; padding: 20px; background: linear-gradient(135deg, #e3f2fd 0%, #f5f7fa 100%); border-radius: 8px; border: 2px solid #2196F3;">
+            <div class="form-group" style="width: 100%;">
+                <label style="font-weight: 700; color: #1976D2; font-size: 16px; margin-bottom: 15px; display: block;">
+                    📋 Invoice Type
                 </label>
-                <small class="help-text" style="margin-left: 30px;">
-                    Uncheck for non-GST customers or cash sales where GST is not applicable
-                </small>
+                
+                <div style="display: flex; gap: 20px; flex-wrap: wrap;">
+                    <!-- Taxable Invoice (Regular GST) -->
+                    <label style="flex: 1; min-width: 200px; padding: 15px; background: white; border: 2px solid #4CAF50; border-radius: 8px; cursor: pointer; transition: all 0.3s;" 
+                           class="invoice-type-option" data-type="taxable">
+                        <input type="radio" name="invoice_type" value="taxable" id="invoiceTypeTaxable" 
+                               {% if not invoice or invoice.invoice_type == 'taxable' %}checked{% endif %}
+                               onchange="updateInvoiceTypeUI()" 
+                               style="margin-right: 10px; width: 18px; height: 18px; cursor: pointer;">
+                        <div style="display: inline-block; vertical-align: top;">
+                            <strong style="color: #2E7D32; font-size: 15px;">✅ Taxable (GST Invoice)</strong>
+                            <p style="margin: 5px 0 0 0; font-size: 12px; color: #666;">
+                                Regular invoice with GST charges<br>
+                                <span style="color: #4CAF50;">Requires GST stock</span>
+                            </p>
+                        </div>
+                    </label>
+                    
+                    <!-- Non-Taxable Invoice (Kaccha Bill) -->
+                    <label style="flex: 1; min-width: 200px; padding: 15px; background: white; border: 2px solid #FF9800; border-radius: 8px; cursor: pointer; transition: all 0.3s;" 
+                           class="invoice-type-option" data-type="non_taxable">
+                        <input type="radio" name="invoice_type" value="non_taxable" id="invoiceTypeNonTaxable" 
+                               onchange="updateInvoiceTypeUI()" 
+                               style="margin-right: 10px; width: 18px; height: 18px; cursor: pointer;">
+                        <div style="display: inline-block; vertical-align: top;">
+                            <strong style="color: #F57C00; font-size: 15px;">📄 Non-Taxable (Kaccha Bill)</strong>
+                            <p style="margin: 5px 0 0 0; font-size: 12px; color: #666;">
+                                Invoice without GST (cash sales)<br>
+                                <span style="color: #FF9800;">Can use any stock</span>
+                            </p>
+                        </div>
+                    </label>
+                    
+                    <!-- Credit Adjustment Invoice -->
+                    <label style="flex: 1; min-width: 200px; padding: 15px; background: white; border: 2px solid #9C27B0; border-radius: 8px; cursor: pointer; transition: all 0.3s;" 
+                           class="invoice-type-option" data-type="credit_adjustment">
+                        <input type="radio" name="invoice_type" value="credit_adjustment" id="invoiceTypeCreditAdj" 
+                               onchange="updateInvoiceTypeUI()" 
+                               style="margin-right: 10px; width: 18px; height: 18px; cursor: pointer;">
+                        <div style="display: inline-block; vertical-align: top;">
+                            <strong style="color: #7B1FA2; font-size: 15px;">🔄 Credit Adjustment</strong>
+                            <p style="margin: 5px 0 0 0; font-size: 12px; color: #666;">
+                                GST compliance for kaccha bills<br>
+                                <span style="color: #9C27B0;">No stock impact</span>
+                            </p>
+                        </div>
+                    </label>
+                </div>
+                
+                <!-- Hidden checkbox for backward compatibility -->
+                <input type="hidden" id="gstEnabled" name="gst_enabled" value="1">
+            </div>
+        </div>
+        
+        <!-- 🆕 Credit Adjustment Details (Hidden by default) -->
+        <div id="creditAdjustmentSection" style="margin-top: 15px; padding: 20px; background: #f3e5f5; border-radius: 8px; border-left: 4px solid #9C27B0; display: none;">
+            <h4 style="color: #7B1FA2; margin-top: 0;">🔄 Credit Adjustment Details</h4>
+            <p style="color: #666; font-size: 13px; margin-bottom: 15px;">
+                Create a GST-compliant invoice for a previous kaccha bill. Stock will NOT be reduced (already reduced in original invoice).
+            </p>
+            
+            <div class="form-row" style="gap: 20px;">
+                <div class="form-group" style="flex: 1;">
+                    <label class="field-label">Original Invoice (Optional)</label>
+                    <select id="linkedInvoiceId" name="linked_invoice_id" class="form-control">
+                        <option value="">--- Not Linked ---</option>
+                        <!-- Will be populated dynamically with non-taxable invoices -->
+                    </select>
+                    <small class="help-text">Link to the original kaccha bill (for reference only)</small>
+                </div>
+                
+                <div class="form-group" style="flex: 1;">
+                    <label class="field-label">Commission Rate (%)</label>
+                    <input type="number" id="creditCommissionRate" name="credit_commission_rate" 
+                           class="form-control" value="5" min="0" max="100" step="0.1">
+                    <small class="help-text">Your benefit for GST compliance work (recorded as "Other Income")</small>
+                </div>
+            </div>
+            
+            <div style="background: white; padding: 15px; border-radius: 6px; margin-top: 15px;">
+                <strong style="color: #7B1FA2;">💡 How Credit Adjustment Works:</strong>
+                <ul style="margin: 10px 0 0 20px; font-size: 13px; color: #666; line-height: 1.8;">
+                    <li>Customer already paid (via kaccha bill)</li>
+                    <li>Create this invoice to show GST breakdown for compliance</li>
+                    <li>Stock is NOT reduced (already done in kaccha bill)</li>
+                    <li>Commission recorded as "Other Income" (your benefit)</li>
+                    <li>Appears in GSTR-1 report for CA filing</li>
+                </ul>
             </div>
         </div>
     </div>
@@ -463,6 +545,67 @@
             paymentDetails.style.display = 'none';
         }
     }
+    
+    // 🆕 GST SMART INVOICE: Handle invoice type changes
+    function updateInvoiceTypeUI() {
+        const invoiceType = document.querySelector('input[name="invoice_type"]:checked').value;
+        const creditSection = document.getElementById('creditAdjustmentSection');
+        const gstEnabledHidden = document.getElementById('gstEnabled');
+        
+        // Update visual selection (border highlight)
+        document.querySelectorAll('.invoice-type-option').forEach(opt => {
+            opt.style.transform = 'scale(1)';
+            opt.style.boxShadow = 'none';
+        });
+        
+        const selectedOption = document.querySelector(`.invoice-type-option[data-type="${invoiceType}"]`);
+        if (selectedOption) {
+            selectedOption.style.transform = 'scale(1.02)';
+            selectedOption.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
+        }
+        
+        // Show/hide credit adjustment section
+        if (invoiceType === 'credit_adjustment') {
+            creditSection.style.display = 'block';
+            gstEnabledHidden.value = '1';  // Credit adjustment has GST
+            
+            // Load non-taxable invoices for linking
+            loadNonTaxableInvoices();
+        } else {
+            creditSection.style.display = 'none';
+            
+            // Update hidden gst_enabled field (backward compatibility)
+            if (invoiceType === 'taxable') {
+                gstEnabledHidden.value = '1';
+            } else {
+                gstEnabledHidden.value = '0';
+            }
+        }
+        
+        // Trigger GST row visibility update
+        toggleGSTRows();
+    }
+    
+    // Load non-taxable invoices for credit adjustment linking
+    function loadNonTaxableInvoices() {
+        const select = document.getElementById('linkedInvoiceId');
+        if (select.options.length > 1) return;  // Already loaded
+        
+        // Fetch recent non-taxable invoices via API (if endpoint exists)
+        // For now, just show placeholder
+        select.innerHTML = '<option value="">--- Not Linked (Optional) ---</option>';
+        select.innerHTML += '<option disabled>Loading recent kaccha bills...</option>';
+        
+        // TODO: Add API call to fetch non-taxable invoices
+        // fetch('/api/invoices/non-taxable')
+        //   .then(r => r.json())
+        //   .then(data => populateDropdown(data));
+    }
+    
+    // Initialize on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        updateInvoiceTypeUI();
+    });
     </script>
     
 </form>
@@ -1482,7 +1625,7 @@
             }
         }
         
-        const gstEnabled = document.getElementById('gstEnabled').checked;
+        const gstEnabled = document.getElementById('gstEnabled').value === '1';
         
         let taxableValue, gstAmount, total;
         
@@ -1557,7 +1700,7 @@
         
         const customerState = document.getElementById('customer_state').value;
         const isSameState = customerState === tenantState;
-        const gstEnabled = document.getElementById('gstEnabled').checked;
+        const gstEnabled = document.getElementById('gstEnabled').value === '1';
         
         // Use stored calculated values from data attributes
         const rows = document.querySelectorAll('#itemsTableBody tr');
