@@ -1385,6 +1385,9 @@
             console.error('❌ Rate input not found for row:', rowId);
         }
         
+        // 🆕 GST Smart Invoice: Fetch and display stock info
+        fetchAndDisplayStockInfo(itemId, rowId);
+        
         // Hide dropdown
         hideDropdown(rowId);
         
@@ -1398,6 +1401,51 @@
             qtyInput.focus();
             qtyInput.select();  // Select the default value for easy override
         }
+    }
+    
+    // 🆕 GST Smart Invoice: Fetch stock breakdown
+    function fetchAndDisplayStockInfo(itemId, rowId) {
+        fetch(`/api/gst-invoice/item/${itemId}/stock-info`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Create stock info display
+                    const row = document.getElementById(`row_${rowId}`);
+                    const itemCell = row.querySelector('td:nth-child(2)');
+                    
+                    // Remove old stock info if exists
+                    const oldStockInfo = itemCell.querySelector('.stock-info-badge');
+                    if (oldStockInfo) {
+                        oldStockInfo.remove();
+                    }
+                    
+                    // Add new stock info
+                    const stockBadge = document.createElement('div');
+                    stockBadge.className = 'stock-info-badge';
+                    stockBadge.style.cssText = 'margin-top: 5px; font-size: 11px; display: flex; gap: 8px;';
+                    
+                    const gstBadge = `<span style="background: ${data.gst_stock > 0 ? '#28a745' : '#dc3545'}; color: white; padding: 2px 6px; border-radius: 3px; font-weight: 600;">
+                        GST: ${data.gst_stock} units
+                    </span>`;
+                    
+                    const nonGstBadge = `<span style="background: ${data.non_gst_stock > 0 ? '#17a2b8' : '#6c757d'}; color: white; padding: 2px 6px; border-radius: 3px; font-weight: 600;">
+                        Non-GST: ${data.non_gst_stock} units
+                    </span>`;
+                    
+                    stockBadge.innerHTML = gstBadge + nonGstBadge;
+                    itemCell.appendChild(stockBadge);
+                    
+                    // Store stock info in row data attributes for validation
+                    row.dataset.gstStock = data.gst_stock;
+                    row.dataset.nonGstStock = data.non_gst_stock;
+                    row.dataset.itemId = itemId;
+                    
+                    console.log('✅ Stock info loaded:', data);
+                }
+            })
+            .catch(error => {
+                console.error('❌ Error fetching stock info:', error);
+            });
     }
     
     function hideDropdown(rowId) {
