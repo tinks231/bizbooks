@@ -352,6 +352,7 @@ def gstr3b():
     net_outward_igst = outward_igst - return_igst
     
     # Calculate inward supplies (ITC from purchase bills)
+    # 🆕 GST SMART INVOICE: Only include purchases from GST-registered vendors
     from models.purchase_bill import PurchaseBill
     
     purchase_bills = PurchaseBill.query.filter(
@@ -359,11 +360,7 @@ def gstr3b():
         PurchaseBill.status == 'approved',
         PurchaseBill.bill_date >= start_date,
         PurchaseBill.bill_date <= end_date,
-        db.or_(
-            PurchaseBill.cgst_amount > 0,
-            PurchaseBill.sgst_amount > 0,
-            PurchaseBill.igst_amount > 0
-        )
+        PurchaseBill.gst_applicable == True  # Only registered vendor purchases
     ).all()
     
     inward_taxable = Decimal('0')

@@ -119,11 +119,29 @@ class StockBatchService:
         gst_qty = sum([float(b.quantity_remaining) for b in batches if b.purchased_with_gst])
         non_gst_qty = sum([float(b.quantity_remaining) for b in batches if not b.purchased_with_gst])
         
+        # 🆕 FALLBACK: If no batches exist, use opening_stock from item master
+        # This handles existing inventory added before batch tracking was implemented
+        if not batches:
+            item = Item.query.filter_by(id=item_id, tenant_id=tenant_id).first()
+            if item and item.opening_stock > 0:
+                total_qty = float(item.opening_stock)
+                
+                # User's logic: Use gst_rate to classify existing inventory
+                if item.gst_rate > 0:
+                    # Taxable item - assume purchased WITH GST (benefit of doubt)
+                    gst_qty = total_qty
+                    non_gst_qty = 0
+                else:
+                    # Exempt item (books, vegetables) - no GST applicable
+                    gst_qty = 0
+                    non_gst_qty = total_qty
+        
         return {
             'total_stock': total_qty,
             'gst_stock': gst_qty,
             'non_gst_stock': non_gst_qty,
-            'batches': batches
+            'batches': batches,
+            'uses_fallback': len(batches) == 0  # Flag to indicate using opening_stock
         }
     
     @staticmethod
@@ -141,6 +159,31 @@ class StockBatchService:
         Returns:
             dict with status and message
         """
+        # Get item to check GST rate
+        item = Item.query.filter_by(id=item_id, tenant_id=tenant_id).first()
+        if not item:
+            return {
+                'status': 'error',
+                'message': 'Item not found'
+            }
+        
+        # 🆕 USER'S LOGIC: Block GST invoices for exempt items (gst_rate = 0)
+        # Examples: Books, Vegetables, Education Services
+        if invoice_type in ['taxable', 'credit_adjustment']:
+            if item.gst_rate == 0:
+                return {
+                    'status': 'error',
+                    'error_type': 'exempt_item',
+                    'message': f'''Cannot create GST invoice for exempt item.
+                    
+                    Item: {item.name}
+                    GST Rate: 0% (Exempt by law)
+                    
+                    This item is GST-exempt. Only non-taxable invoices are allowed.''',
+                    'suggestions': ['non_taxable_invoice_only']
+                }
+        
+        # Get stock information
         stock_info = StockBatchService.get_available_stock(item_id, tenant_id)
         
         # For non-taxable invoices, any stock is fine
@@ -152,7 +195,8 @@ class StockBatchService:
                 }
             return {'status': 'ok'}
         
-        # For taxable and credit_adjustment, need GST stock
+        # 🆕 USER'S LOGIC: For taxable invoices, MUST have GST stock
+        # "No GST purchase = No GST sale" - PERIOD!
         if invoice_type in ['taxable', 'credit_adjustment']:
             if quantity > stock_info['gst_stock']:
                 # Check customer type for better messaging
@@ -161,16 +205,21 @@ class StockBatchService:
                 return {
                     'status': 'error',
                     'error_type': 'insufficient_gst_stock',
-                    'message': f'''Cannot add to {invoice_type} invoice.
+                    'message': f'''Cannot create GST invoice - insufficient GST stock.
                     
                     Requested: {quantity} units
                     GST Stock Available: {stock_info['gst_stock']} units
                     Non-GST Stock: {stock_info['non_gst_stock']} units
                     
-                    Non-GST stock cannot be used for GST invoices.''',
+                    ⚠️ Items purchased WITHOUT GST cannot be sold WITH GST invoice.
+                    
+                    Options:
+                    1. Reduce quantity to {stock_info['gst_stock']} units (GST stock available)
+                    2. Create non-GST invoice (kaccha bill) for this sale
+                    3. Later create Credit Adjustment invoice for compliance (if needed)''',
                     'available_gst_stock': stock_info['gst_stock'],
                     'available_non_gst_stock': stock_info['non_gst_stock'],
-                    'suggestions': ['non_taxable_invoice', 'credit_adjustment_route', 'reduce_quantity']
+                    'suggestions': ['reduce_quantity', 'non_taxable_invoice', 'credit_adjustment_route']
                 }
             
             return {'status': 'ok'}
@@ -252,6 +301,26 @@ class StockBatchService:
             
             remaining_qty -= allocated_from_batch
         
+        # 🆕 FALLBACK: If no batches allocated, use opening_stock
+        if not allocated:
+            # Get item to check opening_stock
+            item = Item.query.filter_by(id=item_id, tenant_id=tenant_id).first()
+            if item and item.opening_stock >= quantity:
+                # Use opening_stock as fallback (for legacy inventory)
+                # Determine if this stock has GST backing based on item.gst_rate
+                has_gst_backing = item.gst_rate > 0
+                
+                allocated.append({
+                    'batch_id': None,  # No batch (using opening_stock)
+                    'batch': None,
+                    'quantity': float(quantity),
+                    'cost_per_unit': float(item.cost_price) if item.cost_price else 0,
+                    'itc_per_unit': 0,  # No ITC for opening stock
+                    'has_gst_backing': has_gst_backing,
+                    'uses_opening_stock': True  # Flag for special handling
+                })
+                remaining_qty = Decimal('0')
+        
         if remaining_qty > 0:
             return {
                 'status': 'error',
@@ -260,7 +329,8 @@ class StockBatchService:
         
         return {
             'status': 'success',
-            'allocated': allocated
+            'allocated': allocated,
+            'uses_fallback': any(a.get('uses_opening_stock') for a in allocated)
         }
     
     @staticmethod
@@ -278,35 +348,61 @@ class StockBatchService:
         """
         total_cost = Decimal('0')
         total_itc = Decimal('0')
+        uses_fallback = False
         
         for alloc in allocated_batches:
             batch = alloc['batch']
             qty = Decimal(str(alloc['quantity']))
             
-            # Calculate costs
-            cost_for_qty = batch.base_cost_per_unit * qty
-            itc_for_qty = batch.itc_per_unit * qty if batch.purchased_with_gst else Decimal('0')
+            # 🆕 FALLBACK HANDLING: Check if using opening_stock instead of batch
+            if alloc.get('uses_opening_stock'):
+                uses_fallback = True
+                # Get item and reduce opening_stock
+                item = Item.query.get(invoice_item.item_id)
+                if item and reduce_stock:
+                    item.opening_stock -= qty
+                    print(f"✅ Reduced opening_stock for item {item.id} by {qty}. New: {item.opening_stock}")
+                
+                # Calculate costs from alloc (no batch object)
+                cost_for_qty = Decimal(str(alloc['cost_per_unit'])) * qty
+                itc_for_qty = Decimal('0')  # No ITC for opening stock
+                
+                total_cost += cost_for_qty
+                total_itc += itc_for_qty
+                continue
             
-            total_cost += cost_for_qty
-            total_itc += itc_for_qty
-            
-            if reduce_stock:
-                # Reduce batch quantity and claim ITC
-                batch.allocate_quantity(qty)
+            # Normal batch processing
+            if batch:
+                # Calculate costs
+                cost_for_qty = batch.base_cost_per_unit * qty
+                itc_for_qty = batch.itc_per_unit * qty if batch.purchased_with_gst else Decimal('0')
+                
+                total_cost += cost_for_qty
+                total_itc += itc_for_qty
+                
+                if reduce_stock:
+                    # Reduce batch quantity and claim ITC
+                    batch.allocate_quantity(qty)
         
         # Update invoice item with cost tracking
-        invoice_item.cost_base = total_cost / Decimal(str(invoice_item.quantity))
-        invoice_item.cost_gst_paid = total_itc / Decimal(str(invoice_item.quantity))
+        if invoice_item.quantity > 0:
+            invoice_item.cost_base = total_cost / Decimal(str(invoice_item.quantity))
+            invoice_item.cost_gst_paid = total_itc / Decimal(str(invoice_item.quantity))
         
-        # Link to primary batch (first one)
-        if allocated_batches:
+        # Link to primary batch (first one) - only if not using fallback
+        if allocated_batches and not uses_fallback:
             invoice_item.stock_batch_id = allocated_batches[0]['batch_id']
             invoice_item.uses_gst_stock = allocated_batches[0]['has_gst_backing']
+        elif uses_fallback:
+            # Flag that this used opening_stock, not batches
+            invoice_item.stock_batch_id = None
+            invoice_item.uses_gst_stock = allocated_batches[0]['has_gst_backing'] if allocated_batches else False
         
         return {
             'total_cost': float(total_cost),
             'total_itc_available': float(total_itc),
-            'batches_used': len(allocated_batches)
+            'batches_used': len(allocated_batches),
+            'uses_fallback': uses_fallback
         }
     
     @staticmethod

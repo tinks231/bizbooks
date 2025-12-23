@@ -618,7 +618,8 @@ def create():
             db.session.commit()
             
             # Process Loyalty Program (if enabled and customer linked)
-            if customer_id and customer_id > 0:
+            # 🆕 GST SMART INVOICE: Skip loyalty for credit_adjustment (already processed in original invoice)
+            if customer_id and customer_id > 0 and invoice_type != 'credit_adjustment':
                 try:
                     from services.loyalty_service import LoyaltyService
                     
@@ -674,7 +675,8 @@ def create():
                     traceback.print_exc()
             
             # Save Commission Data (if agent selected)
-            if commission_agent_id and commission_agent_id.strip() and commission_percentage:
+            # 🆕 GST SMART INVOICE: Skip commission for credit_adjustment (already processed in original invoice)
+            if commission_agent_id and commission_agent_id.strip() and commission_percentage and invoice_type != 'credit_adjustment':
                 try:
                     from models import CommissionAgent, InvoiceCommission
                     from utils.accounting_helpers import calculate_commission, round_currency
