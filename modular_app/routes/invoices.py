@@ -671,55 +671,55 @@ def create():
                 # STEP 3: Handle Cash/Bank Transaction (if payment received immediately)
                 if payment_received == 'yes':
                     from models import BankAccount
-                
-                account_id = request.form.get('payment_account_id')
-                
-                if account_id:
-                    account = BankAccount.query.filter_by(
-                        id=account_id,
-                        tenant_id=tenant_id,
-                        is_active=True
-                    ).first()
                     
-                    if account:
-                        # For cash sales: DEBIT Cash/Bank (money received)
-                        # Note: CREDIT Sales Income was already created above
-                        amount = Decimal(str(invoice.total_amount))
-                        new_balance = Decimal(str(account.current_balance)) + amount
+                    account_id = request.form.get('payment_account_id')
+                    
+                    if account_id:
+                        account = BankAccount.query.filter_by(
+                            id=account_id,
+                            tenant_id=tenant_id,
+                            is_active=True
+                        ).first()
                         
-                        db.session.execute(text("""
-                            INSERT INTO account_transactions
-                            (tenant_id, account_id, transaction_date, transaction_type,
-                             debit_amount, credit_amount, balance_after, reference_type, reference_id,
-                             voucher_number, narration, created_at, created_by)
-                            VALUES (:tenant_id, :account_id, :txn_date, 'invoice_payment',
-                                    :debit, 0.00, :balance, 'invoice', :ref_id,
-                                    :voucher, :narration, :created_at, NULL)
-                        """), {
-                            'tenant_id': tenant_id,
-                            'account_id': account_id,
-                            'txn_date': invoice_date,
-                            'debit': float(amount),  # Money received = Debit
-                            'balance': float(new_balance),
-                            'ref_id': invoice.id,
-                            'voucher': invoice.invoice_number,
-                            'narration': f'Cash sale - {invoice.invoice_number} from {invoice.customer_name}',
-                            'created_at': now
-                        })
-                        
-                        # Update account balance
-                        db.session.execute(text("""
-                            UPDATE bank_accounts 
-                            SET current_balance = :new_balance, updated_at = :updated_at
-                            WHERE id = :account_id AND tenant_id = :tenant_id
-                        """), {
-                            'new_balance': float(new_balance),
-                            'updated_at': now,
-                            'account_id': account_id,
-                            'tenant_id': tenant_id
-                        })
-                        
-                        print(f"   DEBIT:  {account.account_name}  ₹{amount:,.2f} (Cash sale)")
+                        if account:
+                            # For cash sales: DEBIT Cash/Bank (money received)
+                            # Note: CREDIT Sales Income was already created above
+                            amount = Decimal(str(invoice.total_amount))
+                            new_balance = Decimal(str(account.current_balance)) + amount
+                            
+                            db.session.execute(text("""
+                                INSERT INTO account_transactions
+                                (tenant_id, account_id, transaction_date, transaction_type,
+                                 debit_amount, credit_amount, balance_after, reference_type, reference_id,
+                                 voucher_number, narration, created_at, created_by)
+                                VALUES (:tenant_id, :account_id, :txn_date, 'invoice_payment',
+                                        :debit, 0.00, :balance, 'invoice', :ref_id,
+                                        :voucher, :narration, :created_at, NULL)
+                            """), {
+                                'tenant_id': tenant_id,
+                                'account_id': account_id,
+                                'txn_date': invoice_date,
+                                'debit': float(amount),  # Money received = Debit
+                                'balance': float(new_balance),
+                                'ref_id': invoice.id,
+                                'voucher': invoice.invoice_number,
+                                'narration': f'Cash sale - {invoice.invoice_number} from {invoice.customer_name}',
+                                'created_at': now
+                            })
+                            
+                            # Update account balance
+                            db.session.execute(text("""
+                                UPDATE bank_accounts 
+                                SET current_balance = :new_balance, updated_at = :updated_at
+                                WHERE id = :account_id AND tenant_id = :tenant_id
+                            """), {
+                                'new_balance': float(new_balance),
+                                'updated_at': now,
+                                'account_id': account_id,
+                                'tenant_id': tenant_id
+                            })
+                            
+                            print(f"   DEBIT:  {account.account_name}  ₹{amount:,.2f} (Cash sale)")
             
             db.session.commit()
             
