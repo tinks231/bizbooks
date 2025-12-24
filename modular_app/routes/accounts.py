@@ -1577,6 +1577,7 @@ def balance_sheet():
     cash_and_bank_total = sum(Decimal(str(acc[2])) for acc in cash_bank_accounts)
     
     # 2. Accounts Receivable (Unpaid Invoices)
+    # 🆕 EXCLUDE credit_adjustment invoices (no AR - customer already paid via kaccha bill)
     accounts_receivable = db.session.execute(text("""
         SELECT 
             customer_name,
@@ -1585,6 +1586,7 @@ def balance_sheet():
         WHERE tenant_id = :tenant_id 
         AND payment_status != 'paid'
         AND invoice_date <= :as_of_date
+        AND (invoice_type IS NULL OR invoice_type != 'credit_adjustment')
         GROUP BY customer_name
         ORDER BY outstanding DESC
     """), {'tenant_id': tenant_id, 'as_of_date': as_of_date}).fetchall()
@@ -1731,6 +1733,7 @@ def profit_loss():
     # ====================
     
     # 1. Sales Revenue (from Invoices)
+    # 🆕 EXCLUDE credit_adjustment invoices (no revenue - already in kaccha bill)
     sales_revenue_detail = db.session.execute(text("""
         SELECT 
             invoice_number,
@@ -1741,6 +1744,7 @@ def profit_loss():
         FROM invoices
         WHERE tenant_id = :tenant_id 
         AND invoice_date BETWEEN :start_date AND :end_date
+        AND (invoice_type IS NULL OR invoice_type != 'credit_adjustment')
         ORDER BY invoice_date DESC, invoice_number DESC
     """), {'tenant_id': tenant_id, 'start_date': start_date, 'end_date': end_date}).fetchall()
     
@@ -2058,6 +2062,7 @@ def trial_balance():
         })
     
     # 2. Accounts Receivable (Assets - Debit Balance)
+    # 🆕 EXCLUDE credit_adjustment invoices (no AR - customer already paid via kaccha bill)
     receivables = db.session.execute(text("""
         SELECT 
             customer_name,
@@ -2066,6 +2071,7 @@ def trial_balance():
         WHERE tenant_id = :tenant_id 
         AND payment_status != 'paid'
         AND invoice_date <= :as_of_date
+        AND (invoice_type IS NULL OR invoice_type != 'credit_adjustment')
         GROUP BY customer_name
         HAVING SUM(total_amount - COALESCE(paid_amount, 0)) > 0
         ORDER BY customer_name
