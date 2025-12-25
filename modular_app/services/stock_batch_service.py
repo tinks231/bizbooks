@@ -252,7 +252,8 @@ class StockBatchService:
         
         # Filter by GST status if needed
         if invoice_type in ['taxable', 'credit_adjustment']:
-            query = query.filter(StockBatch.purchased_with_gst == True)
+            # For taxable/credit adjustment: only use GST stock
+            available_batches = query.filter(StockBatch.purchased_with_gst == True).all()
         elif invoice_type == 'non_taxable':
             # Prefer non-GST batches first (save GST stock for taxable sales)
             # First get non-GST batches, then GST batches
@@ -278,6 +279,7 @@ class StockBatchService:
             
             available_batches = non_gst_batches + gst_batches
         else:
+            # Default: get all batches
             available_batches = query.all()
         
         # Allocate from batches (FIFO)
