@@ -136,7 +136,11 @@
                         {% if invoice.status == 'draft' %}
                         <span class="badge" style="background: #95a5a6;">Draft</span>
                         {% elif invoice.status == 'sent' %}
-                        <span class="badge" style="background: #3498db;">Sent</span>
+                            {% if invoice.invoice_type == 'credit_adjustment' %}
+                            <span class="badge" style="background: #9C27B0;">🔄 Credit Adj</span>
+                            {% else %}
+                            <span class="badge" style="background: #3498db;">Sent</span>
+                            {% endif %}
                         {% elif invoice.status == 'paid' %}
                         <span class="badge" style="background: #2ecc71;">Paid</span>
                         {% elif invoice.status == 'cancelled' %}
@@ -144,7 +148,9 @@
                         {% endif %}
                     </td>
                     <td>
-                        {% if invoice.payment_status == 'paid' %}
+                        {% if invoice.payment_status == 'not_applicable' or invoice.invoice_type == 'credit_adjustment' %}
+                        <span class="badge" style="background: #9C27B0; color: white;">N/A</span>
+                        {% elif invoice.payment_status == 'paid' %}
                         <span class="badge" style="background: #27ae60;">Paid</span>
                         {% elif invoice.payment_status == 'partial' %}
                         <span class="badge" style="background: #f39c12;">Partial</span>
@@ -185,9 +191,15 @@
                         Draft
                     </span>
                     {% elif invoice.status == 'sent' %}
-                    <span style="background: #3498db; color: white; padding: 3px 8px; border-radius: 10px; font-size: 10px; font-weight: 600;">
-                        Sent
-                    </span>
+                        {% if invoice.invoice_type == 'credit_adjustment' %}
+                        <span style="background: #9C27B0; color: white; padding: 3px 8px; border-radius: 10px; font-size: 10px; font-weight: 600;">
+                            🔄 Credit Adj
+                        </span>
+                        {% else %}
+                        <span style="background: #3498db; color: white; padding: 3px 8px; border-radius: 10px; font-size: 10px; font-weight: 600;">
+                            Sent
+                        </span>
+                        {% endif %}
                     {% elif invoice.status == 'paid' %}
                     <span style="background: #2ecc71; color: white; padding: 3px 8px; border-radius: 10px; font-size: 10px; font-weight: 600;">
                         Paid
@@ -198,7 +210,11 @@
                     </span>
                     {% endif %}
                     
-                    {% if invoice.payment_status == 'paid' %}
+                    {% if invoice.payment_status == 'not_applicable' or invoice.invoice_type == 'credit_adjustment' %}
+                    <span style="background: #9C27B0; color: white; padding: 3px 8px; border-radius: 10px; font-size: 10px; font-weight: 600;">
+                        N/A
+                    </span>
+                    {% elif invoice.payment_status == 'paid' %}
                     <span style="background: #27ae60; color: white; padding: 3px 8px; border-radius: 10px; font-size: 10px; font-weight: 600;">
                         💰 Paid
                     </span>

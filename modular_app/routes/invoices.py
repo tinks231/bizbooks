@@ -1277,7 +1277,16 @@ def edit(invoice_id):
                             flash(f'⚠️ Warning: No stock record found for item {item_id}', 'warning')
             
             # Update payment status (after total is calculated)
-            if payment_received == 'yes':
+            # 🆕 GST SMART INVOICE: Different status/payment for credit_adjustment
+            if invoice_type == 'credit_adjustment':
+                # Credit Adjustment: Auto-set to "sent" (not draft)
+                # No payment expected (customer already paid via kaccha bill)
+                invoice.status = 'sent'
+                invoice.payment_status = 'not_applicable'  # Special status for credit adj
+                invoice.payment_method = None
+                invoice.paid_amount = 0
+                invoice.internal_notes = "Credit Adjustment - No payment expected (already paid via original invoice)"
+            elif payment_received == 'yes':
                 invoice.status = 'sent'
                 invoice.payment_status = 'paid'
                 invoice.payment_method = payment_method
