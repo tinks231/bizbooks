@@ -143,17 +143,7 @@ def create():
             else:
                 due_date = None
             
-            # Determine status based on payment
-            if payment_received == 'yes':
-                status = 'sent'  # Auto-mark as sent if payment received
-                payment_status = 'paid'
-            else:
-                status = 'draft'  # Keep as draft for credit sales
-                payment_status = 'unpaid'
-            
-            # Create invoice
-            # Get customer_id if provided (from customer selection)
-            customer_id = request.form.get('customer_id')
+            # 🆕 GST SMART INVOICE: Determine invoice type
             if customer_id and customer_id.strip():
                 customer_id = int(customer_id)
             else:
@@ -195,6 +185,20 @@ def create():
             
             print(f"   🎯 FINAL invoice_type: '{invoice_type}'")
             print(f"{'='*70}\n")
+            
+            # Determine status and payment_status based on invoice type and payment
+            if invoice_type == 'credit_adjustment':
+                # Credit Adjustment: Always sent, no payment expected
+                status = 'sent'
+                payment_status = 'not_applicable'
+            elif payment_received == 'yes':
+                # Normal invoice with payment received
+                status = 'sent'
+                payment_status = 'paid'
+            else:
+                # Normal unpaid invoice (credit sale)
+                status = 'draft'
+                payment_status = 'unpaid'
             
             linked_invoice_id = request.form.get('linked_invoice_id')
             credit_commission_rate = request.form.get('credit_commission_rate', '0')
@@ -1285,30 +1289,6 @@ def edit(invoice_id):
                         else:
                             print(f"⚠️ WARNING: No stock record found for item {item_id}")
                             flash(f'⚠️ Warning: No stock record found for item {item_id}', 'warning')
-            
-            # Update payment status (after total is calculated)
-            # 🆕 GST SMART INVOICE: Different status/payment for credit_adjustment
-            if invoice_type == 'credit_adjustment':
-                # Credit Adjustment: Auto-set to "sent" (not draft)
-                # No payment expected (customer already paid via kaccha bill)
-                invoice.status = 'sent'
-                invoice.payment_status = 'not_applicable'  # Special status for credit adj
-                invoice.payment_method = None
-                invoice.paid_amount = 0
-                invoice.internal_notes = "Credit Adjustment - No payment expected (already paid via original invoice)"
-            elif payment_received == 'yes':
-                invoice.status = 'sent'
-                invoice.payment_status = 'paid'
-                invoice.payment_method = payment_method
-                invoice.paid_amount = invoice.total_amount
-                if payment_reference:
-                    invoice.internal_notes = f"Payment Reference: {payment_reference}"
-            else:
-                invoice.status = 'draft'
-                invoice.payment_status = 'unpaid'
-                invoice.payment_method = None
-                invoice.paid_amount = 0
-                invoice.internal_notes = None
             
             # 🔧 CRITICAL FIX: Recreate accounting entries with new amounts
             # (Old entries were deleted above, now create fresh ones)
