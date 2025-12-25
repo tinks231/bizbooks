@@ -1709,18 +1709,29 @@ def record_payment(invoice_id):
 @require_tenant
 @login_required
 def delete(invoice_id):
-    """Delete invoice (only drafts)"""
+    """Delete invoice (only drafts and credit adjustments for testing)"""
     tenant_id = g.tenant.id
     invoice = Invoice.query.filter_by(id=invoice_id, tenant_id=tenant_id).first_or_404()
     
-    if invoice.status != 'draft':
-        flash('Only draft invoices can be deleted', 'error')
+    # Allow deleting drafts OR credit adjustments (for fixing accounting errors)
+    if invoice.status != 'draft' and invoice.invoice_type != 'credit_adjustment':
+        flash('Only draft invoices and credit adjustments can be deleted', 'error')
         return redirect(url_for('invoices.view', invoice_id=invoice_id))
     
     try:
+        # Delete associated accounting entries first
+        from sqlalchemy import text
+        db.session.execute(text("""
+            DELETE FROM account_transactions 
+            WHERE reference_type = 'invoice' 
+            AND reference_id = :invoice_id 
+            AND tenant_id = :tenant_id
+        """), {'invoice_id': invoice_id, 'tenant_id': tenant_id})
+        
+        # Delete invoice
         db.session.delete(invoice)
         db.session.commit()
-        flash('Invoice deleted successfully!', 'success')
+        flash('Invoice and related accounting entries deleted successfully!', 'success')
         return redirect(url_for('invoices.index'))
     except Exception as e:
         db.session.rollback()
