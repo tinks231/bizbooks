@@ -134,7 +134,7 @@
                     <td>₹{{ "%.2f"|format(invoice.paid_amount) }}</td>
                     <td>
                         {% if invoice.invoice_type == 'credit_adjustment' %}
-                        <span class="badge" style="background: #9C27B0;">🔄 Credit Adj</span>
+                        <span class="badge" style="background: #AB47BC; color: white;">🔄 Credit Adj</span>
                         {% elif invoice.status == 'draft' %}
                         <span class="badge" style="background: #95a5a6;">Draft</span>
                         {% elif invoice.status == 'sent' %}
@@ -147,7 +147,7 @@
                     </td>
                     <td>
                         {% if invoice.payment_status == 'not_applicable' or invoice.invoice_type == 'credit_adjustment' %}
-                        <span class="badge" style="background: #9C27B0; color: white;">N/A</span>
+                        <span class="badge" style="background: #AB47BC; color: white;">N/A</span>
                         {% elif invoice.payment_status == 'paid' %}
                         <span class="badge" style="background: #27ae60;">Paid</span>
                         {% elif invoice.payment_status == 'partial' %}
@@ -185,7 +185,7 @@
                 </div>
                 <div style="display: flex; flex-direction: column; gap: 4px; align-items: flex-end;">
                     {% if invoice.invoice_type == 'credit_adjustment' %}
-                    <span style="background: #9C27B0; color: white; padding: 3px 8px; border-radius: 10px; font-size: 10px; font-weight: 600;">
+                    <span style="background: #AB47BC; color: white; padding: 3px 8px; border-radius: 10px; font-size: 10px; font-weight: 600;">
                         🔄 Credit Adj
                     </span>
                     {% elif invoice.status == 'draft' %}
@@ -207,7 +207,7 @@
                     {% endif %}
                     
                     {% if invoice.payment_status == 'not_applicable' or invoice.invoice_type == 'credit_adjustment' %}
-                    <span style="background: #9C27B0; color: white; padding: 3px 8px; border-radius: 10px; font-size: 10px; font-weight: 600;">
+                    <span style="background: #AB47BC; color: white; padding: 3px 8px; border-radius: 10px; font-size: 10px; font-weight: 600;">
                         N/A
                     </span>
                     {% elif invoice.payment_status == 'paid' %}
