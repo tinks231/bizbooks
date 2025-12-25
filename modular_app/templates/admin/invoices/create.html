@@ -1238,7 +1238,7 @@
             </td>
             <td>
                 <span style="color: #95a5a6;" id="discount_display_${currentRowId}">${item.discount_percent || 0}%</span>
-                <input type="hidden" name="discount_percent[]" id="discount_${currentRowId}" value="${item.discount_percent || 0}">
+                <input type="hidden" name="discount_percent[]" id="discount_percent_${currentRowId}" value="${item.discount_percent || 0}">
             </td>
             <td>
                 <span style="color: #95a5a6; font-size: 12px;">${item.unit || 'nos'}</span>
@@ -1670,7 +1670,7 @@
         
         // 🆕 AUTO-CALCULATE DISCOUNT: If MRP and Rate exist, calculate discount %
         const discountDisplay = document.getElementById(`discount_display_${rowId}`);
-        const discountHidden = document.getElementById(`discount_${rowId}`);
+        const discountHidden = document.getElementById(`discount_percent_${rowId}`);
         if (mrp > 0 && rate > 0 && discountDisplay && discountHidden) {
             const discount = ((mrp - rate) / mrp) * 100;
             discountDisplay.textContent = `${discount.toFixed(1)}%`;
