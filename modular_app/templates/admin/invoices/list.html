@@ -133,14 +133,12 @@
                     <td style="font-weight: 600;">₹{{ "%.2f"|format(invoice.total_amount) }}</td>
                     <td>₹{{ "%.2f"|format(invoice.paid_amount) }}</td>
                     <td>
-                        {% if invoice.status == 'draft' %}
+                        {% if invoice.invoice_type == 'credit_adjustment' %}
+                        <span class="badge" style="background: #9C27B0;">🔄 Credit Adj</span>
+                        {% elif invoice.status == 'draft' %}
                         <span class="badge" style="background: #95a5a6;">Draft</span>
                         {% elif invoice.status == 'sent' %}
-                            {% if invoice.invoice_type == 'credit_adjustment' %}
-                            <span class="badge" style="background: #9C27B0;">🔄 Credit Adj</span>
-                            {% else %}
-                            <span class="badge" style="background: #3498db;">Sent</span>
-                            {% endif %}
+                        <span class="badge" style="background: #3498db;">Sent</span>
                         {% elif invoice.status == 'paid' %}
                         <span class="badge" style="background: #2ecc71;">Paid</span>
                         {% elif invoice.status == 'cancelled' %}
@@ -186,20 +184,18 @@
                     </div>
                 </div>
                 <div style="display: flex; flex-direction: column; gap: 4px; align-items: flex-end;">
-                    {% if invoice.status == 'draft' %}
+                    {% if invoice.invoice_type == 'credit_adjustment' %}
+                    <span style="background: #9C27B0; color: white; padding: 3px 8px; border-radius: 10px; font-size: 10px; font-weight: 600;">
+                        🔄 Credit Adj
+                    </span>
+                    {% elif invoice.status == 'draft' %}
                     <span style="background: #95a5a6; color: white; padding: 3px 8px; border-radius: 10px; font-size: 10px; font-weight: 600;">
                         Draft
                     </span>
                     {% elif invoice.status == 'sent' %}
-                        {% if invoice.invoice_type == 'credit_adjustment' %}
-                        <span style="background: #9C27B0; color: white; padding: 3px 8px; border-radius: 10px; font-size: 10px; font-weight: 600;">
-                            🔄 Credit Adj
-                        </span>
-                        {% else %}
-                        <span style="background: #3498db; color: white; padding: 3px 8px; border-radius: 10px; font-size: 10px; font-weight: 600;">
-                            Sent
-                        </span>
-                        {% endif %}
+                    <span style="background: #3498db; color: white; padding: 3px 8px; border-radius: 10px; font-size: 10px; font-weight: 600;">
+                        Sent
+                    </span>
                     {% elif invoice.status == 'paid' %}
                     <span style="background: #2ecc71; color: white; padding: 3px 8px; border-radius: 10px; font-size: 10px; font-weight: 600;">
                         Paid
