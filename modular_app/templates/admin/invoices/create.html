@@ -1237,8 +1237,8 @@
                 <input type="hidden" name="mrp[]" id="mrp_${currentRowId}" value="${item.mrp || 0}">
             </td>
             <td>
-                <span style="color: #95a5a6;">${item.discount_percent || 0}%</span>
-                <input type="hidden" name="discount_percent[]" value="${item.discount_percent || 0}">
+                <span style="color: #95a5a6;" id="discount_display_${currentRowId}">${item.discount_percent || 0}%</span>
+                <input type="hidden" name="discount_percent[]" id="discount_${currentRowId}" value="${item.discount_percent || 0}">
             </td>
             <td>
                 <span style="color: #95a5a6; font-size: 12px;">${item.unit || 'nos'}</span>
@@ -1660,12 +1660,27 @@
         const rateInput = document.getElementById(`rate_${rowId}`);
         const gstRateInput = document.getElementById(`gst_rate_${rowId}`);
         const mrpInput = document.getElementById(`mrp_${rowId}`);
+        const discountInput = document.getElementById(`discount_${rowId}`);
         const priceInclusiveInput = document.getElementById(`price_inclusive_${rowId}`);
         
         const qty = qtyInput ? parseFloat(qtyInput.value) || 0 : 0;
         const rate = rateInput ? parseFloat(rateInput.value) || 0 : 0;
         const gstRate = gstRateInput ? parseFloat(gstRateInput.value) || 0 : 0;
         const mrp = mrpInput ? parseFloat(mrpInput.value) || 0 : 0;
+        
+        // 🆕 AUTO-CALCULATE DISCOUNT: If MRP and Rate exist, calculate discount %
+        const discountDisplay = document.getElementById(`discount_display_${rowId}`);
+        const discountHidden = document.getElementById(`discount_${rowId}`);
+        if (mrp > 0 && rate > 0 && discountDisplay && discountHidden) {
+            const discount = ((mrp - rate) / mrp) * 100;
+            discountDisplay.textContent = `${discount.toFixed(1)}%`;
+            discountHidden.value = discount.toFixed(2);
+            if (discount > 0) {
+                discountDisplay.style.color = '#27ae60'; // Green for positive discount
+            } else {
+                discountDisplay.style.color = '#95a5a6'; // Gray for no discount
+            }
+        }
         
         // For edit mode: Read from hidden input (stores '1' or '0')
         // For new items: Checkbox might exist, check if it's a checkbox or hidden input
