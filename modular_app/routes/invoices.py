@@ -482,6 +482,30 @@ def create():
                 # Entry 1: CREDIT GST Payable (CGST + SGST or IGST)
                 total_gst = (invoice.cgst_amount or 0) + (invoice.sgst_amount or 0) + (invoice.igst_amount or 0)
                 if total_gst > 0:
+                    # 🔧 CRITICAL FIX: DEBIT must equal CREDIT for balanced accounting
+                    # The GST liability reduces your effective revenue/profit
+                    
+                    # Entry 1a: DEBIT Other Income/Sales Adjustment (expense - GST cost)
+                    db.session.execute(text("""
+                        INSERT INTO account_transactions
+                        (tenant_id, account_id, transaction_date, transaction_type,
+                         debit_amount, credit_amount, balance_after, reference_type, reference_id,
+                         voucher_number, narration, created_at, created_by)
+                        VALUES (:tenant_id, NULL, :transaction_date, 'other_income_reversal',
+                                :debit_amount, 0.00, :debit_amount, 'invoice', :invoice_id,
+                                :voucher, :narration, :created_at, NULL)
+                    """), {
+                        'tenant_id': tenant_id,
+                        'transaction_date': invoice_date,
+                        'debit_amount': float(total_gst),  # MUST equal GST credit!
+                        'invoice_id': invoice.id,
+                        'voucher': invoice.invoice_number,
+                        'narration': f'GST liability cost - Credit Adjustment {invoice.invoice_number}',
+                        'created_at': now
+                    })
+                    print(f"   ✅ DEBIT:  Other Income (GST cost) ₹{total_gst:,.2f}")
+                    
+                    # Entry 1b: CREDIT GST Payable (liability to government)
                     db.session.execute(text("""
                         INSERT INTO account_transactions
                         (tenant_id, account_id, transaction_date, transaction_type,
@@ -499,29 +523,15 @@ def create():
                         'narration': f'GST payable - Credit Adjustment {invoice.invoice_number}',
                         'created_at': now
                     })
-                    print(f"   ✅ CREDIT: GST Payable       ₹{total_gst:,.2f}")
+                    print(f"   ✅ CREDIT: GST Payable            ₹{total_gst:,.2f}")
+                    print(f"   ⚖️  BALANCED: Debit ₹{total_gst:,.2f} = Credit ₹{total_gst:,.2f}")
                 
-                # Entry 2: DEBIT Other Income (commission benefit offset by GST liability)
-                # This represents your benefit for doing GST compliance work
-                if commission_amount > 0:
-                    db.session.execute(text("""
-                        INSERT INTO account_transactions
-                        (tenant_id, account_id, transaction_date, transaction_type,
-                         debit_amount, credit_amount, balance_after, reference_type, reference_id,
-                         voucher_number, narration, created_at, created_by)
-                        VALUES (:tenant_id, NULL, :transaction_date, 'other_income_reversal',
-                                :debit_amount, 0.00, :debit_amount, 'invoice', :invoice_id,
-                                :voucher, :narration, :created_at, NULL)
-                    """), {
-                        'tenant_id': tenant_id,
-                        'transaction_date': invoice_date,
-                        'debit_amount': commission_amount,
-                        'invoice_id': invoice.id,
-                        'voucher': invoice.invoice_number,
-                        'narration': f'Commission benefit - Credit Adjustment {invoice.invoice_number}',
-                        'created_at': now
-                    })
-                    print(f"   ✅ DEBIT:  Other Income (reversal) ₹{commission_amount:,.2f}")
+                # Entry 2 (Optional): Commission benefit tracking (informational only)
+                # Calculate commission amount (your benefit from doing this work)
+                commission_amount = float(invoice.subtotal) * float(invoice.credit_commission_rate) / 100
+                invoice.credit_commission_amount = commission_amount
+                print(f"   💰 Commission Benefit (informational): ₹{commission_amount:,.2f}")
+                print(f"   📝 Note: Commission is your margin, GST is paid from that margin")
                 
                 print(f"✅ Credit adjustment accounting complete for {invoice.invoice_number}\n")
                 
