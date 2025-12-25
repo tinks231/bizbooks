@@ -2351,6 +2351,45 @@ def trial_balance():
                 'credit': abs(round_off_total)
             })
     
+    # 🆕 6.7. Other Income/Expense (for GST Credit Adjustment costs)
+    # When creating credit adjustment, GST becomes a cost/expense
+    other_income_debits = db.session.execute(text("""
+        SELECT COALESCE(SUM(debit_amount), 0)
+        FROM account_transactions
+        WHERE tenant_id = :tenant_id
+        AND transaction_type = 'other_income_reversal'
+        AND transaction_date <= :as_of_date
+    """), {'tenant_id': tenant_id, 'as_of_date': as_of_date}).fetchone()[0]
+    
+    other_income_credits = db.session.execute(text("""
+        SELECT COALESCE(SUM(credit_amount), 0)
+        FROM account_transactions
+        WHERE tenant_id = :tenant_id
+        AND transaction_type = 'other_income'
+        AND transaction_date <= :as_of_date
+    """), {'tenant_id': tenant_id, 'as_of_date': as_of_date}).fetchone()[0]
+    
+    other_income_total = Decimal(str(other_income_debits or 0)) - Decimal(str(other_income_credits or 0))
+    
+    # Show if non-zero
+    if other_income_total != 0:
+        if other_income_total > 0:
+            # DEBIT balance = Expense (GST cost from credit adjustment)
+            accounts.append({
+                'account_name': 'Other Income/Expense (GST Cost)',
+                'category': 'Expenses',
+                'debit': other_income_total,
+                'credit': Decimal('0')
+            })
+        else:
+            # CREDIT balance = Income
+            accounts.append({
+                'account_name': 'Other Income',
+                'category': 'Income',
+                'debit': Decimal('0'),
+                'credit': abs(other_income_total)
+            })
+    
     # 7. Operating Expenses (Expense - Debit Balance)
     # NEW: Calculate from account_transactions (double-entry system)
     # The expenses.py route already creates entries with transaction_type='expense'
