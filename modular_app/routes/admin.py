@@ -237,6 +237,100 @@ def logout():
     flash('Logged out successfully', 'success')
     return redirect(url_for('admin.login'))
 
+
+@admin_bp.route('/profile', methods=['GET', 'POST'])
+@require_tenant
+@login_required
+def profile():
+    """Admin profile management - Edit email, phone, address, company details"""
+    tenant_id = get_current_tenant_id()
+    tenant = get_current_tenant()
+    
+    if request.method == 'POST':
+        try:
+            # Get form data
+            admin_name = request.form.get('admin_name', '').strip()
+            admin_email = request.form.get('admin_email', '').strip()
+            admin_phone = request.form.get('admin_phone', '').strip()
+            company_name = request.form.get('company_name', '').strip()
+            company_address = request.form.get('company_address', '').strip()
+            company_phone = request.form.get('company_phone', '').strip()
+            gstin = request.form.get('gstin', '').strip()
+            
+            # Password change (optional)
+            current_password = request.form.get('current_password', '').strip()
+            new_password = request.form.get('new_password', '').strip()
+            confirm_password = request.form.get('confirm_password', '').strip()
+            
+            # Validate required fields
+            if not admin_name or not admin_email or not company_name:
+                flash('❌ Name, Email, and Company Name are required!', 'error')
+                return redirect(url_for('admin.profile'))
+            
+            # If changing password, validate current password
+            if new_password:
+                if not current_password:
+                    flash('❌ Please enter your current password to change it!', 'error')
+                    return redirect(url_for('admin.profile'))
+                
+                # Verify current password
+                current_hash = hashlib.sha256(current_password.encode()).hexdigest()
+                if tenant.admin_password_hash != current_hash:
+                    flash('❌ Current password is incorrect!', 'error')
+                    return redirect(url_for('admin.profile'))
+                
+                # Validate new passwords match
+                if new_password != confirm_password:
+                    flash('❌ New passwords do not match!', 'error')
+                    return redirect(url_for('admin.profile'))
+                
+                # Validate password length
+                if len(new_password) < 6:
+                    flash('❌ New password must be at least 6 characters!', 'error')
+                    return redirect(url_for('admin.profile'))
+                
+                # Update password
+                tenant.admin_password_hash = hashlib.sha256(new_password.encode()).hexdigest()
+                flash('✅ Password updated successfully!', 'success')
+            
+            # Update tenant details
+            tenant.admin_name = admin_name
+            tenant.admin_email = admin_email
+            tenant.admin_phone = admin_phone
+            tenant.company_name = company_name
+            tenant.gstin = gstin if gstin else None
+            
+            # Update settings JSON with address and company phone
+            import json
+            settings = json.loads(tenant.settings) if tenant.settings else {}
+            settings['company_address'] = company_address
+            settings['company_phone'] = company_phone
+            tenant.settings = json.dumps(settings)
+            
+            # Update session with new admin name
+            session['admin_name'] = admin_name
+            
+            db.session.commit()
+            flash('✅ Profile updated successfully!', 'success')
+            return redirect(url_for('admin.profile'))
+            
+        except Exception as e:
+            db.session.rollback()
+            flash(f'❌ Error updating profile: {str(e)}', 'error')
+            print(f"Error updating profile: {str(e)}")
+            import traceback
+            traceback.print_exc()
+    
+    # GET - Load current settings
+    import json
+    settings = json.loads(tenant.settings) if tenant.settings else {}
+    
+    return render_template('admin/profile.html',
+                         tenant=tenant,
+                         company_address=settings.get('company_address', ''),
+                         company_phone=settings.get('company_phone', ''))
+
+
 @admin_bp.route('/dashboard', strict_slashes=False)
 @require_tenant
 @login_required
