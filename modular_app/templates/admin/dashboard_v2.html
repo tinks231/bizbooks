@@ -5,7 +5,41 @@
 {% block page_title %}Business Dashboard{% endblock %}
 
 {% block header_actions %}
-<!-- Remove Manual Entry and QR Code buttons from dashboard -->
+<!-- Profile Dropdown -->
+<div class="profile-dropdown" id="profileDropdown">
+    <div class="profile-btn" onclick="toggleProfileDropdown()">
+        <div class="profile-avatar">
+            {{ tenant.admin_name[0]|upper if tenant and tenant.admin_name else 'A' }}
+        </div>
+        <div class="profile-info hide-mobile">
+            <div class="profile-name">{{ tenant.admin_name if tenant else 'Admin' }}</div>
+            <div class="profile-role">{{ tenant.company_name if tenant else 'Company' }}</div>
+        </div>
+        <span class="profile-arrow hide-mobile">▼</span>
+    </div>
+    
+    <div class="profile-menu">
+        <div class="profile-menu-header">
+            <div class="profile-menu-header-name">{{ tenant.admin_name if tenant else 'Admin' }}</div>
+            <div class="profile-menu-header-email">{{ tenant.admin_email if tenant else 'admin@company.com' }}</div>
+        </div>
+        <div class="profile-menu-items">
+            <a href="{{ url_for('admin.profile') }}" class="profile-menu-item">
+                <i>👤</i> My Profile
+            </a>
+            <a href="{{ url_for('item_attributes_settings.settings') }}" class="profile-menu-item">
+                <i>🎨</i> Item Attributes
+            </a>
+            <a href="/admin/invoices/settings" class="profile-menu-item">
+                <i>⚙️</i> Invoice Settings
+            </a>
+            <div class="profile-menu-divider"></div>
+            <a href="{{ url_for('admin.logout') }}" class="profile-menu-item logout">
+                <i>🚪</i> Logout
+            </a>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block content %}
